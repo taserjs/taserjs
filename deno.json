@@ -1,0 +1,14 @@
+{
+  "workspace": [
+    "./packages/router-utils",
+    "./packages/router-core",
+    "./packages/router",
+    "./packages/adapter-express",
+    "./packages/adapter-fastify",
+    "./packages/adapter-node",
+    "./packages/router-generator",
+    "./packages/router-cli",
+    "./packages/router-client",
+    "./packages/create-taserjs"
+  ]
+}

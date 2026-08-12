@@ -1,0 +1,118 @@
+---
+title: Layouts and middleware
+description: Compose shared behavior with layout files and keep handler state typed.
+icon: Layers
+---
+
+Layouts are how Taser scales beyond a handful of routes.
+
+Instead of copy and pasting auth checks, parsing, and shared state into every handler, you define middleware once in a layout file and let it apply to the routes underneath it.
+
+## What is a layout file
+
+A layout file is a TypeScript file under `src/routes/` that does not include an HTTP method suffix.
+
+It exports `Middleware`:
+
+```ts
+import { t } from '../taser'
+
+export const Middleware = t.middleware('some-layout')
+  .use({
+    handler: (_ctx, next) => next(),
+  })
+```
+
+Layout middleware runs before the route handler and can add typed state.
+
+## Root layout
+
+If you want middleware to apply to every route, create `src/routes/$.ts`:
+
+```ts
+import { t } from '../taser'
+import { z } from 'zod'
+
+export const Middleware = t.middleware('/$')
+  .use({
+    state: z.object({ requestId: z.string() }),
+    handler: (_ctx, next) => {
+      return next({ state: { requestId: crypto.randomUUID() } })
+    },
+  })
+```
+
+Now every handler sees `ctx.state.requestId` as a `string`.
+
+## Directory layouts
+
+Layouts can also live in directories, so they only affect a subset of routes.
+
+Example structure:
+
+```
+src/routes/todo.ts
+src/routes/todo/index.get.ts
+src/routes/todo/index.post.ts
+src/routes/todo/$id.get.ts
+```
+
+`src/routes/todo.ts` applies to all `/todo/*` routes.
+
+## Pathless layouts for grouping
+
+If a segment starts with `_` (and does not end with `_`), it is pathless. It does not appear in the URL, but its middleware still runs.
+
+This is a good place for cross-cutting concerns like auth:
+
+```
+src/routes/todo/_auth.ts
+src/routes/todo/_auth/$id.get.ts
+```
+
+`_auth` does not appear in the URL. Your route stays `/todo/:id`, but auth runs for those files.
+
+## Add typed state in middleware
+
+Middleware can validate and inject state in a typed way.
+
+This example checks a header and injects `userId`:
+
+```ts
+import { reply } from '@taserjs/router'
+import { t } from '../taser'
+import { z } from 'zod'
+
+export const Middleware = t.middleware('auth')
+  .use({
+    state: z.object({ userId: z.string() }),
+    handler: (ctx, next) => {
+      const userId = ctx.headers.get('x-user-id')
+      if (!userId) return reply.unauthorized({ message: 'Missing x-user-id header' })
+      return next({ state: { userId } })
+    },
+  })
+```
+
+Downstream route handlers can now rely on `ctx.state.userId`.
+
+## Layering layouts
+
+Taser composes layouts from outer to inner.
+
+In practice, this means:
+
+- Root layout runs first
+- Directory layout runs next
+- Pathless layouts and nested layouts run after that
+- The route handler runs last
+
+Use this to build predictable pipelines. Keep layouts focused, and prefer a small number of well named layouts over many tiny ones.
+
+## Next steps
+
+<Cards>
+  <Card title="Validation" href="/docs/validation" description="Validate query and body inputs with runtime schemas." />
+  <Card title="Responses and errors" href="/docs/responses-and-errors" description="Return typed replies and handle errors consistently." />
+</Cards>
+

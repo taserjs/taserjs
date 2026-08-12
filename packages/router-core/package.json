@@ -1,0 +1,61 @@
+{
+  "name": "@taserjs/router-core",
+  "version": "0.0.0",
+  "description": "Taser Hono-backed Request/Response runtime pipeline",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.cts",
+        "default": "./dist/cjs/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "vite build && publint --strict",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "benchmark:runtime": "tsx benchmarks/runtime-hot-path.js",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.1.0",
+    "@taserjs/router-utils": "workspace:*",
+    "hono": "^4.10.3"
+  },
+  "devDependencies": {
+    "@tanstack/vite-config": "^0.6.0",
+    "publint": "^0.3.22",
+    "tsx": "^4.23.1",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10",
+    "zod": "^4.4.3"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taserjs/taserjs.git",
+    "directory": "packages/router-core"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  }
+}

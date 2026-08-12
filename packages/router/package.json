@@ -1,0 +1,150 @@
+{
+  "name": "@taserjs/router",
+  "version": "0.0.0",
+  "description": "Type-safe Node.js router with runtime validation and middleware",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.cts",
+        "default": "./dist/cjs/index.cjs"
+      }
+    },
+    "./body-limit": {
+      "import": {
+        "types": "./dist/esm/middleware/body-limit.d.ts",
+        "default": "./dist/esm/middleware/body-limit.js"
+      },
+      "require": {
+        "types": "./dist/cjs/middleware/body-limit.d.cts",
+        "default": "./dist/cjs/middleware/body-limit.cjs"
+      }
+    },
+    "./compress": {
+      "import": {
+        "types": "./dist/esm/middleware/compress.d.ts",
+        "default": "./dist/esm/middleware/compress.js"
+      },
+      "require": {
+        "types": "./dist/cjs/middleware/compress.d.cts",
+        "default": "./dist/cjs/middleware/compress.cjs"
+      }
+    },
+    "./cors": {
+      "import": {
+        "types": "./dist/esm/middleware/cors.d.ts",
+        "default": "./dist/esm/middleware/cors.js"
+      },
+      "require": {
+        "types": "./dist/cjs/middleware/cors.d.cts",
+        "default": "./dist/cjs/middleware/cors.cjs"
+      }
+    },
+    "./csrf": {
+      "import": {
+        "types": "./dist/esm/middleware/csrf.d.ts",
+        "default": "./dist/esm/middleware/csrf.js"
+      },
+      "require": {
+        "types": "./dist/cjs/middleware/csrf.d.cts",
+        "default": "./dist/cjs/middleware/csrf.cjs"
+      }
+    },
+    "./etag": {
+      "import": {
+        "types": "./dist/esm/middleware/etag.d.ts",
+        "default": "./dist/esm/middleware/etag.js"
+      },
+      "require": {
+        "types": "./dist/cjs/middleware/etag.d.cts",
+        "default": "./dist/cjs/middleware/etag.cjs"
+      }
+    },
+    "./jwk": {
+      "import": {
+        "types": "./dist/esm/middleware/jwk.d.ts",
+        "default": "./dist/esm/middleware/jwk.js"
+      },
+      "require": {
+        "types": "./dist/cjs/middleware/jwk.d.cts",
+        "default": "./dist/cjs/middleware/jwk.cjs"
+      }
+    },
+    "./jwt": {
+      "import": {
+        "types": "./dist/esm/middleware/jwt.d.ts",
+        "default": "./dist/esm/middleware/jwt.js"
+      },
+      "require": {
+        "types": "./dist/cjs/middleware/jwt.d.cts",
+        "default": "./dist/cjs/middleware/jwt.cjs"
+      }
+    },
+    "./secure-headers": {
+      "import": {
+        "types": "./dist/esm/middleware/secure-headers.d.ts",
+        "default": "./dist/esm/middleware/secure-headers.js"
+      },
+      "require": {
+        "types": "./dist/cjs/middleware/secure-headers.d.cts",
+        "default": "./dist/cjs/middleware/secure-headers.cjs"
+      }
+    },
+    "./timing": {
+      "import": {
+        "types": "./dist/esm/middleware/timing.d.ts",
+        "default": "./dist/esm/middleware/timing.js"
+      },
+      "require": {
+        "types": "./dist/cjs/middleware/timing.d.cts",
+        "default": "./dist/cjs/middleware/timing.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "vite build && publint --strict",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.1.0",
+    "@taserjs/router-core": "workspace:*",
+    "@taserjs/router-utils": "workspace:*",
+    "hono": "^4.10.3"
+  },
+  "devDependencies": {
+    "@tanstack/vite-config": "^0.6.0",
+    "publint": "^0.3.22",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10",
+    "zod": "^4.4.3"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taserjs/taserjs.git",
+    "directory": "packages/router"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  }
+}

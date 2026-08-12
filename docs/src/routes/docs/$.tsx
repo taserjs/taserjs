@@ -1,0 +1,116 @@
+import { createFileRoute, Link, notFound } from '@tanstack/react-router'
+import { DocsLayout } from 'fumadocs-ui/layouts/docs'
+import { createServerFn } from '@tanstack/react-start'
+import { docs, source } from '@/lib/source'
+import {
+  DocsBody,
+  DocsDescription,
+  DocsPage,
+  DocsTitle,
+  MarkdownCopyButton,
+  ViewOptionsPopover,
+} from 'fumadocs-ui/layouts/docs/page'
+import { baseOptions } from '@/lib/layout.shared'
+import { getDocsOgImageUrl, openGraphMeta } from '@/lib/og-meta'
+import { encodeMarkdownUrl, gitConfig } from '@/lib/shared'
+import { staticFunctionMiddleware } from '@tanstack/start-static-server-functions'
+import { useFumadocsLoader } from 'fumadocs-core/source/client'
+import { Suspense, use } from 'react'
+import { useMDXComponents } from '@/components/mdx'
+import { LinkItemType } from 'fumadocs-ui/layouts/shared'
+import { BotIcon, BotMessageSquareIcon } from 'lucide-react'
+
+export const Route = createFileRoute('/docs/$')({
+  component: Page,
+  loader: async ({ params }) => {
+    const slugs = params._splat?.split('/') ?? []
+    const data = await loader({ data: slugs })
+    await docs.getPage(data.path)?.preload()
+    return data
+  },
+  head: ({ loaderData }) => {
+    if (!loaderData) return {}
+
+    return {
+      meta: openGraphMeta({
+        title: loaderData.title,
+        description: loaderData.description,
+        image: loaderData.ogImage,
+      }),
+    }
+  },
+})
+
+const loader = createServerFn({
+  method: 'GET',
+})
+  .validator((slugs: string[]) => slugs)
+  .middleware([staticFunctionMiddleware])
+  .handler(async ({ data: slugs }) => {
+    const page = source.getPage(slugs)
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
+    if (!page) throw notFound()
+
+    return {
+      path: page.path,
+      markdownUrl: encodeMarkdownUrl(page.slugs, page.locale),
+      pageTree: await source.serializePageTree(source.getPageTree()),
+      title: page.data.title,
+      description: page.data.description ?? '',
+      ogImage: getDocsOgImageUrl(page.slugs),
+    }
+  })
+
+function Content({ path, markdownUrl }: { path: string, markdownUrl: string }) {
+  const page = docs.getPage(path)
+  if (!page) throw new Error(`unknown page: ${path}`)
+
+  const { toc } = use(page.load())
+  const MDX = page.body
+
+  return (
+    <DocsPage toc={toc}>
+      <DocsTitle>{page.title}</DocsTitle>
+      <DocsDescription>{page.description}</DocsDescription>
+      <div className="flex flex-row gap-2 items-center border-b -mt-4 pb-6">
+        <MarkdownCopyButton markdownUrl={markdownUrl} />
+        <ViewOptionsPopover
+          markdownUrl={markdownUrl}
+          githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/content/docs/${path}`}
+        />
+      </div>
+      <DocsBody>
+        <MDX components={useMDXComponents()} />
+      </DocsBody>
+    </DocsPage>
+  )
+}
+
+function Page() {
+  const { pageTree, path, markdownUrl } = useFumadocsLoader(Route.useLoaderData())
+
+  const options = baseOptions()
+  const llms: LinkItemType[] = [
+    {
+      icon: <BotIcon />,
+      text: 'LLMs Full.txt',
+      url: '/llms-full.txt',
+      external: true,
+    },
+    {
+      icon: <BotMessageSquareIcon />,
+      text: 'LLMs.txt',
+      url: '/llms.txt',
+      external: true,
+    },
+  ]
+
+  return (
+    <DocsLayout {...options} links={[...(options.links || []), ...llms]} tree={pageTree}>
+      <Link to={markdownUrl} hidden />
+      <Suspense>
+        <Content path={path} markdownUrl={markdownUrl} />
+      </Suspense>
+    </DocsLayout>
+  )
+}

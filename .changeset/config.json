@@ -1,0 +1,23 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.0.3/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [
+    [
+      "@taserjs/router-utils",
+      "@taserjs/router-core",
+      "@taserjs/router",
+      "@taserjs/adapter-express",
+      "@taserjs/adapter-fastify",
+      "@taserjs/adapter-node",
+      "@taserjs/router-generator",
+      "@taserjs/router-cli",
+      "@taserjs/router-client"
+    ]
+  ],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": ["taserjs", "express", "fastify", "hono", "docs"]
+}

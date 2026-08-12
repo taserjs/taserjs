@@ -1,0 +1,255 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+:root {
+  --landing-accent: #ff7f04;
+  --landing-accent-22: color-mix(in oklab, var(--landing-accent) 22%, transparent);
+  --landing-accent-40: color-mix(in oklab, var(--landing-accent) 40%, transparent);
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+/* Brand accent gradients */
+.landing-text-gradient-warm {
+  @apply bg-linear-to-r from-orange-500 to-red-500 bg-clip-text text-transparent;
+}
+
+.landing-text-gradient-cool {
+  @apply bg-linear-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent;
+}
+
+.landing-logo {
+  @apply bg-linear-to-b from-orange-500 to-red-500;
+  display: inline-block;
+  aspect-ratio: 600 / 227;
+  -webkit-mask-image: url('/logo.svg');
+  mask-image: url('/logo.svg');
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.landing-border-gradient {
+  border-image: linear-gradient(
+      90deg,
+      transparent,
+      var(--landing-accent-40),
+      transparent
+    )
+    1;
+}
+
+.landing-section-separator {
+  pointer-events: none;
+  position: absolute;
+  inset-inline: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--landing-accent-40),
+    transparent
+  );
+}
+
+.landing-hero-glow-warm {
+  background: radial-gradient(
+    ellipse 70% 50% at 20% -10%,
+    var(--landing-accent-22),
+    transparent
+  );
+}
+
+.text-landing-accent {
+  color: var(--landing-accent);
+}
+
+.bg-landing-accent-22 {
+  background-color: var(--landing-accent-22);
+}
+
+@keyframes landing-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes landing-gradient {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes landing-cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes landing-line-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-animate-in {
+  animation: landing-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-delay-1 {
+  animation-delay: 0.08s;
+}
+
+.landing-delay-2 {
+  animation-delay: 0.16s;
+}
+
+.landing-delay-3 {
+  animation-delay: 0.24s;
+}
+
+.landing-delay-4 {
+  animation-delay: 0.32s;
+}
+
+.landing-delay-5 {
+  animation-delay: 0.4s;
+}
+
+.landing-float {
+  animation: landing-float 5s ease-in-out infinite;
+}
+
+.landing-glow {
+  animation: landing-gradient 8s ease-in-out infinite;
+}
+
+.landing-cursor {
+  display: inline-block;
+  width: 0.5ch;
+  margin-left: 1px;
+  background: currentColor;
+  animation: landing-cursor-blink 1s step-end infinite;
+}
+
+.landing-line {
+  animation: landing-line-reveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-line-delay-1 {
+  animation-delay: 0.35s;
+}
+
+.landing-line-delay-2 {
+  animation-delay: 0.7s;
+}
+
+.landing-line-delay-3 {
+  animation-delay: 1.05s;
+}
+
+.landing-line-delay-4 {
+  animation-delay: 1.4s;
+}
+
+@keyframes landing-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes landing-marquee-reverse {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.landing-marquee {
+  animation: landing-marquee 50s linear infinite;
+}
+
+.landing-marquee-reverse {
+  animation: landing-marquee-reverse 55s linear infinite;
+}
+
+.group\/marquee:hover .landing-marquee,
+.group\/marquee:hover .landing-marquee-reverse {
+  animation-play-state: paused;
+}
+
+.hero-code-block {
+  overflow: auto;
+}
+
+.hero-code-block .shiki {
+  background: transparent !important;
+  overflow: visible !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-animate-in,
+  .landing-float,
+  .landing-glow,
+  .landing-cursor,
+  .landing-line {
+    animation: none;
+  }
+
+  .landing-animate-in,
+  .landing-line {
+    opacity: 1;
+    transform: none;
+  }
+
+  .landing-marquee,
+  .landing-marquee-reverse {
+    animation: none;
+  }
+}

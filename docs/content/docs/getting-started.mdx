@@ -1,0 +1,101 @@
+---
+title: Getting started
+description: Scaffold a Taser API, add your first route, and generate the route manifest.
+icon: Play
+---
+
+Taser is a file-based router for Node.js HTTP APIs. You write routes as files, compose middleware in layouts, validate inputs at runtime, and get end-to-end TypeScript inference.
+
+## Prerequisites
+
+- Node.js 20.19 or newer
+- TypeScript
+
+## Scaffold a project
+
+Create a new project and follow the prompts:
+
+```bash
+npm create taserjs@latest
+```
+
+When asked, pick the adapter you want to run on. Express, Fastify, and plain Node are all supported.
+
+Then install dependencies and start the dev server:
+
+```bash
+cd my-api
+npm install
+npm run start
+```
+
+## Add your first route
+
+Taser routes are files under `src/routes/`. A route file ends with an HTTP method, like `.get.ts` or `.post.ts`, and exports a `Route`.
+
+Create `src/routes/hello.get.ts`:
+
+```ts
+import { reply } from '@taserjs/router'
+import { t } from '../taser'
+
+export const Route = t.get('/hello')
+  .handler(() => {
+    return reply.json({ message: 'Hello from Taser' })
+  })
+```
+
+Run your server, then request `GET /hello`.
+
+## Generate the route manifest
+
+Taser scans your route files and generates a `routeManifest.gen.ts` file. Your server uses this manifest to wire routes and layouts together.
+
+If your scaffold did not include the CLI yet, install it:
+
+```bash
+npm install -D @taserjs/router-cli
+```
+
+Add scripts to `package.json`:
+
+```json
+{
+  "scripts": {
+    "taser:generate": "taser generate",
+    "taser:watch": "taser watch"
+  }
+}
+```
+
+Generate once:
+
+```bash
+npm run taser:generate
+```
+
+Or run watch mode in a second terminal:
+
+```bash
+npm run taser:watch
+```
+
+Now import the manifest in your server entry and create the app:
+
+```ts
+import { routeManifest } from './routeManifest.gen'
+import { t } from './taser'
+
+export const app = t.create(routeManifest)
+export type TaserAppRouter = typeof app
+```
+
+## Next steps
+
+<Cards>
+  <Card title="File-based routing" href="/docs/routing/file-based" description="Learn the route file naming rules and how URLs are derived." />
+  <Card title="Layouts and middleware" href="/docs/routing/layouts-and-middleware" description="Compose shared behavior and keep state typed across routes." />
+  <Card title="Adapters" href="/docs/adapters" description="Mount the same router on Express, Fastify, or Node." />
+  <Card title="Typed client" href="/docs/typed-client" description="Call your API with a client that matches your routes." />
+</Cards>
+

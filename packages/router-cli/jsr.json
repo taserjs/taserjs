@@ -1,0 +1,5 @@
+{
+  "name": "@taserjs/router-cli",
+  "version": "0.0.0",
+  "exports": "./src/cli.ts"
+}

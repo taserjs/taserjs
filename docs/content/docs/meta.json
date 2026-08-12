@@ -1,0 +1,14 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "getting-started",
+    "routing",
+    "validation",
+    "responses-and-errors",
+    "adapters",
+    "typed-client",
+    "test"
+  ]
+}
+

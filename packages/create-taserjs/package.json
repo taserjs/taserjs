@@ -1,0 +1,46 @@
+{
+  "name": "create-taserjs",
+  "version": "0.0.0",
+  "description": "Scaffold a new Taser application",
+  "type": "module",
+  "sideEffects": false,
+  "bin": {
+    "create-taserjs": "./dist/esm/cli.js"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "vite build && publint --strict",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "package-manager-detector": "^1.8.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@tanstack/vite-config": "^0.6.0",
+    "publint": "^0.3.22",
+    "typescript": "^5.9.3",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taserjs/taserjs.git",
+    "directory": "packages/create-taserjs"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  }
+}

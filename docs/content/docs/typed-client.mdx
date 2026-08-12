@@ -1,0 +1,83 @@
+---
+title: Typed client
+description: Call your API with a client that matches your routes and response types.
+icon: WandSparkles
+---
+
+Taser can export a router type and use it to generate a typed client surface.
+
+The result is a client where route names, request inputs, and response types stay in sync with your server.
+
+## Export the router type
+
+From the file where you create the app:
+
+```ts
+import { routeManifest } from './routeManifest.gen'
+import { t } from './taser'
+
+export const app = t.create(routeManifest)
+export type TaserAppRouter = typeof app
+```
+
+## Create a client
+
+Install:
+
+```bash
+npm install @taserjs/router-client
+```
+
+Create the client:
+
+```ts
+import { createClient } from '@taserjs/router-client'
+import type { TaserAppRouter } from './server'
+
+export const api = createClient<TaserAppRouter>({
+  baseUrl: 'http://localhost:3000/api',
+})
+```
+
+## Call routes
+
+If your server has a `GET /todo/:id` route, the client exposes a matching call:
+
+```ts
+const res = await api.todo.$id({ id: 'todo-1' }).$get()
+const json = await res.json()
+```
+
+## Query and body inputs
+
+If a route defines `query` and `body` schemas, the client expects the same shape:
+
+```ts
+const res = await api.index.$post({
+  query: { name: 'Jane' },
+  body: { name: 'Jane' },
+})
+```
+
+## Multipart forms
+
+For multipart requests, use `formBody`:
+
+```ts
+import { formBody } from '@taserjs/router-client'
+
+const res = await api.upload.$post({
+  body: formBody({
+    name: 'Jane',
+    file: new File([new Blob(['hello'])], 'hello.txt', { type: 'text/plain' }),
+  }),
+})
+```
+
+## Next steps
+
+<Cards>
+  <Card title="Responses and errors" href="/docs/responses-and-errors" description="Use returns maps and reply helpers for consistent APIs." />
+  <Card title="Adapters" href="/docs/adapters" description="Mount the same app on the server you already use." />
+</Cards>
+

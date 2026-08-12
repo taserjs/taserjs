@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./dist",
+    "types": ["node", "vitest/globals"],
+    "paths": {
+      "@taserjs/router": ["./src/index.ts"]
+    }
+  },
+  "include": ["src", "tests", "vite.config.ts"]
+}

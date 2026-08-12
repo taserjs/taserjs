@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  "files": [],
+  "references": [
+    { "path": "./packages/router" },
+    { "path": "./packages/router-generator" },
+    { "path": "./packages/router-cli" },
+    { "path": "./apps/express" },
+    { "path": "./apps/fastify" },
+    { "path": "./apps/hono" }
+  ]
+}
