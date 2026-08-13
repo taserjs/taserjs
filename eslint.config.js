@@ -18,6 +18,7 @@ export default tseslint.config(
       "docs/next-env.d.ts",
       "**/benchmarks/**",
       "**/scripts/**",
+      "docs/postcss.config.mjs",
     ],
   },
   eslint.configs.recommended,

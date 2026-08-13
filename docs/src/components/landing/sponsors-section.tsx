@@ -1,6 +1,5 @@
 'use client'
 
-import { Link } from '@tanstack/react-router'
 import { motion } from 'framer-motion'
 import { Heart, Sparkles } from 'lucide-react'
 
@@ -8,6 +7,7 @@ import { sponsorUrl } from '@/lib/shared'
 import { cn } from '@/lib/cn'
 import { SectionAccent, SectionHeader } from './section-header'
 import { SectionSeparator } from './section-separator'
+import Link from 'next/link'
 
 type SponsorTier = {
   id: string
@@ -148,7 +148,7 @@ export function SponsorsSection() {
                 Become a sponsor
               </a>
               <Link
-                to="/sponsor"
+                href="/sponsor"
                 className="inline-flex items-center justify-center rounded-xl border border-fd-border bg-fd-background px-5 py-3 text-sm font-medium transition-colors hover:bg-fd-accent"
               >
                 Why sponsor?

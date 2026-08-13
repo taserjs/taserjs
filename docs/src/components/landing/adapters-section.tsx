@@ -83,7 +83,12 @@ export function AdaptersSection() {
       <div className="mx-auto max-w-(--fd-layout-width) px-6 py-16 md:py-24">
         <SectionHeader
           className="mb-10"
-          title={<>Framework <SectionAccent>agnostic</SectionAccent></>}
+          title={(
+            <>
+              Framework
+              <SectionAccent>agnostic</SectionAccent>
+            </>
+          )}
           description="One router definition. Adapters for the runtime you already run."
         />
 
@@ -102,7 +107,12 @@ export function AdaptersSection() {
 
         <SectionHeader
           className="mt-16 mb-10"
-          title={<>Standard Schema <SectionAccent>compatible</SectionAccent></>}
+          title={(
+            <>
+              Standard Schema
+              <SectionAccent>compatible</SectionAccent>
+            </>
+          )}
           description="Bring your validator of choice — query, params, body, and returns all flow through Standard Schema."
         />
 

@@ -74,11 +74,15 @@ export function TestimonialsSection() {
         <SectionHeader
           className="mb-10"
           animated={false}
-          title={
+          title={(
             <>
-              What <SectionAccent>builders</SectionAccent> are saying
+              What
+              {' '}
+              <SectionAccent>builders</SectionAccent>
+              {' '}
+              are saying
             </>
-          }
+          )}
           description="Typed routes and a matching client change how APIs get reviewed and shipped."
         />
 

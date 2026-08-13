@@ -18,6 +18,13 @@
       "executor": "nx:run-script",
       "options": { "script": "types:check" }
     },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint .",
+        "cwd": "docs"
+      }
+    },
     "preview": {
       "executor": "nx:run-script",
       "options": { "script": "preview" },

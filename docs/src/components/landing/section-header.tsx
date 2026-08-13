@@ -27,16 +27,18 @@ export function SectionHeader({
         className,
       )}
     >
-      {eyebrow ? (
-        <p
-          className={cn(
-            'mb-3 text-sm font-medium tracking-wide text-fd-primary uppercase',
-            animated && 'landing-animate-in',
-          )}
-        >
-          {eyebrow}
-        </p>
-      ) : null}
+      {eyebrow
+        ? (
+            <p
+              className={cn(
+                'mb-3 text-sm font-medium tracking-wide text-fd-primary uppercase',
+                animated && 'landing-animate-in',
+              )}
+            >
+              {eyebrow}
+            </p>
+          )
+        : null}
       <h2
         className={cn(
           'text-2xl font-semibold tracking-tight md:text-3xl',
@@ -46,17 +48,19 @@ export function SectionHeader({
       >
         {title}
       </h2>
-      {description ? (
-        <p
-          className={cn(
-            'mt-3 text-fd-muted-foreground',
-            animated && 'landing-animate-in landing-delay-1',
-            animated && eyebrow && 'landing-delay-2',
-          )}
-        >
-          {description}
-        </p>
-      ) : null}
+      {description
+        ? (
+            <p
+              className={cn(
+                'mt-3 text-fd-muted-foreground',
+                animated && 'landing-animate-in landing-delay-1',
+                animated && eyebrow && 'landing-delay-2',
+              )}
+            >
+              {description}
+            </p>
+          )
+        : null}
     </div>
   )
 }

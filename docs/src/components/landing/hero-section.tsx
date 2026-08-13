@@ -1,16 +1,11 @@
-import { Link } from '@tanstack/react-router'
 import { ArrowRight, BookOpen, Sparkles } from 'lucide-react'
 
-import type { HeroHighlightedTabs } from '@/lib/hero-code-data'
 import { HeroVisual } from './hero-visual'
-import { Logo } from '../logo'
+import { Logo } from '@/components/logo'
 import { SectionSeparator } from './section-separator'
+import Link from 'next/link'
 
-interface HeroSectionProps {
-  highlightedTabs: HeroHighlightedTabs
-}
-
-export function HeroSection({ highlightedTabs }: HeroSectionProps) {
+export function HeroSection() {
   return (
     <section className="relative overflow-hidden">
       <div
@@ -41,16 +36,14 @@ export function HeroSection({ highlightedTabs }: HeroSectionProps) {
           </p>
           <div className="landing-animate-in landing-delay-3 mt-8 flex flex-wrap items-center gap-3">
             <Link
-              to="/docs/$"
-              params={{ _splat: '' }}
+              href="/docs"
               className="inline-flex items-center gap-2 rounded-xl bg-fd-primary px-4 py-2.5 text-sm font-medium text-fd-primary-foreground shadow-sm transition-all duration-300 hover:opacity-90 hover:shadow-md"
             >
               Getting Started
               <ArrowRight className="size-4" aria-hidden />
             </Link>
             <Link
-              to="/docs/$"
-              params={{ _splat: '' }}
+              href="/docs"
               className="inline-flex items-center gap-2 rounded-xl border border-fd-border bg-fd-background/80 px-4 py-2.5 text-sm font-medium backdrop-blur-sm transition-all duration-300 hover:bg-fd-accent hover:-translate-y-0.5"
             >
               <BookOpen className="size-4 text-fd-muted-foreground" aria-hidden />
@@ -59,7 +52,7 @@ export function HeroSection({ highlightedTabs }: HeroSectionProps) {
           </div>
         </div>
 
-        <HeroVisual highlightedTabs={highlightedTabs} />
+        <HeroVisual />
       </div>
       <SectionSeparator position="bottom" />
     </section>

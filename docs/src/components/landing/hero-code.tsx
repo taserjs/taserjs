@@ -3,16 +3,13 @@
 import { useState } from 'react'
 import { cn } from '@/lib/cn'
 import { Logo } from '@/components/logo'
-import { CodeBlockHtml } from '@/components/code-block'
-import type { HeroHighlightedTabs } from '@/lib/hero-code-data'
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock'
 import { heroCodeTabs } from './hero-code-sample'
 import { CodeXmlIcon } from 'lucide-react'
 
-interface HeroCodeProps {
-  highlightedTabs: HeroHighlightedTabs
-}
+import { heroTabSources } from '@/components/landing/hero-code-sample'
 
-export function HeroCode({ highlightedTabs }: HeroCodeProps) {
+export function HeroCode() {
   const [activeId, setActiveId] = useState('route')
 
   return (
@@ -46,10 +43,13 @@ export function HeroCode({ highlightedTabs }: HeroCodeProps) {
         ))}
       </div>
 
-      <CodeBlockHtml
-        html={highlightedTabs[activeId] ?? ''}
-        className="hero-code-block max-h-88 overflow-auto p-3 text-[11px] leading-relaxed md:text-xs [&_pre]:m-0 [&_pre]:bg-transparent! [&_code]:font-mono"
+      {/* <div className="hero-code-block max-h-88 overflow-auto text-[11px] leading-relaxed md:text-xs [&_pre]:m-0 [&_pre]:bg-transparent! [&_code]:font-mono"> */}
+      <DynamicCodeBlock
+        code={heroTabSources[activeId] ?? ''}
+        lang="ts"
+        codeblock={{ style: { borderRadius: 0 } }}
       />
+      {/* </div> */}
     </div>
   )
 }

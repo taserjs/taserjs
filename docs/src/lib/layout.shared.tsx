@@ -1,14 +1,9 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
-
-import { Logo } from '@/components/logo'
 import { gitConfig } from './shared'
+import { Logo } from '@/components/logo'
 import { BookOpenIcon, BrainIcon, HeartIcon } from 'lucide-react'
 
 export function baseOptions(): BaseLayoutProps {
-  const githubUrl = gitConfig.user && gitConfig.repo
-    ? `https://github.com/${gitConfig.user}/${gitConfig.repo}`
-    : undefined
-
   return {
     nav: {
       title: (
@@ -36,6 +31,6 @@ export function baseOptions(): BaseLayoutProps {
         url: '/sponsor',
       },
     ],
-    ...(githubUrl ? { githubUrl } : {}),
+    githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
   }
 }
