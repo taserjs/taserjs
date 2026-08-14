@@ -1,11 +1,14 @@
 {
+  "tasks": {
+    "release": {
+      "description": "Release the packages",
+      "command": "deno publish --token $JSR_TOKEN --no-check --allow-slow-types"
+    }
+  },
   "workspace": [
     "./packages/router-utils",
     "./packages/router-core",
     "./packages/router",
-    "./packages/adapter-express",
-    "./packages/adapter-fastify",
-    "./packages/adapter-node",
     "./packages/router-generator",
     "./packages/router-cli",
     "./packages/router-client",

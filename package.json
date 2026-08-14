@@ -17,7 +17,7 @@
     "docs:build": "nx run docs:build",
     "changeset": "changeset",
     "version-packages": "changeset version && node scripts/sync-jsr-versions.mjs",
-    "release": "nx run-many -t build --exclude=docs && changeset publish && deno publish"
+    "release": "nx run-many -t build --exclude=docs && changeset publish && deno task release"
   },
   "keywords": [],
   "author": "",
