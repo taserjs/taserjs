@@ -232,13 +232,25 @@ html > body[data-scroll-locked] {
   animation-play-state: paused;
 }
 
+.hero-code-tabs {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
 .hero-code-block {
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.hero-code-block pre,
+.hero-code-block code {
+  min-width: min-content;
 }
 
 .hero-code-block .shiki {
   background: transparent !important;
-  overflow: visible !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

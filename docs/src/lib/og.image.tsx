@@ -1,16 +1,19 @@
 import { ImageResponse } from 'takumi-js/response'
-import fs from 'fs/promises'
 import { OpenGraphTemplate, OpenGraphTemplateProps } from '@/components/og'
-import path from 'path'
+import wasmModule from 'takumi-js/wasm'
 
 export type OpenGraphImageProps = Omit<OpenGraphTemplateProps, 'assets'>
 
-const __dirname = path.dirname(new URL(import.meta.url).pathname)
+const links = {
+  heroGlow: 'https://raw.githubusercontent.com/taserjs/taserjs/refs/heads/main/docs/src/assets/hero-glow.svg',
+  logo: 'https://raw.githubusercontent.com/taserjs/taserjs/refs/heads/main/docs/src/assets/logo.svg',
+  css: 'https://raw.githubusercontent.com/taserjs/taserjs/refs/heads/main/docs/src/assets/og.css',
+}
 
 async function loadAssets() {
   const [heroGlow, logo] = await Promise.all([
-    fs.readFile(path.join(__dirname, '..', 'assets', 'hero-glow.svg'), 'base64'),
-    fs.readFile(path.join(__dirname, '..', 'assets', 'logo.svg'), 'base64'),
+    fetch(links.heroGlow).then((res) => res.arrayBuffer().then(b => Buffer.from(b).toString('base64'))),
+    fetch(links.logo).then((res) => res.arrayBuffer().then(b => Buffer.from(b).toString('base64'))),
   ])
   return {
     heroGlow,
@@ -18,8 +21,8 @@ async function loadAssets() {
   }
 }
 
-function loadStyles() {
-  return fs.readFile(path.join(__dirname, '..', 'assets', 'og.css'), 'utf-8')
+async function loadStyles() {
+  return fetch(links.css).then((res) => res.text())
 }
 
 export async function OpenGraphImage({ title, description }: OpenGraphImageProps) {
@@ -33,6 +36,7 @@ export async function OpenGraphImage({ title, description }: OpenGraphImageProps
       height: 630,
       format: 'webp',
       stylesheets: [styles],
+      module: wasmModule,
     },
   )
 }

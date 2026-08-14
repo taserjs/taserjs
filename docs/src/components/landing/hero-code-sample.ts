@@ -26,15 +26,16 @@ export const context = createContext({
 })`,
   layout: `import { t } from '../taser'
 import { cors } from '@taserjs/router/cors'
-import { secureHeaders } from '@taserjs/router/secure-headers'
 
 export const Middleware = t.middleware('/$')
-  .use(secureHeaders())
   .use(cors({ origin: ['https://app.example.com'] }))`,
   auth: `import { jwt } from '@taserjs/router/jwt'
 import { z } from 'zod'
 
-const payloadSchema = z.object({ sub: z.string(), role: z.string() })
+const payloadSchema = z.object({
+  sub: z.string(),
+  role: z.string(),
+})
 export const Middleware = t.middleware('dashboard')
   .use(
     jwt(payloadSchema, {

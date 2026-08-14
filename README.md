@@ -1,5 +1,5 @@
 <a href="https://taserjs.dev">
-  <img src="docs/public/logo.svg" alt="TaserJS" width="164" />
+  <img src="https://raw.githubusercontent.com/taserjs/taserjs/refs/heads/main/docs/src/assets/logo.svg" alt="TaserJS" width="164" />
 </a>
 
 <p align="center">

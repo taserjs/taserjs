@@ -13,7 +13,7 @@ export function HeroCode() {
   const [activeId, setActiveId] = useState('route')
 
   return (
-    <div className="overflow-hidden rounded-xl border border-fd-border bg-fd-card shadow-xl shadow-black/5 dark:shadow-black/40">
+    <div className="min-w-0 w-full overflow-hidden rounded-xl border border-fd-border bg-fd-card shadow-xl shadow-black/5 dark:shadow-black/40">
       <div className="flex items-center gap-2 border-b border-fd-border bg-fd-muted/40 px-3 py-2.5">
         <span className="size-2.5 rounded-full bg-red-500/80" />
         <span className="size-2.5 rounded-full bg-yellow-500/80" />
@@ -23,33 +23,32 @@ export function HeroCode() {
         </div>
       </div>
 
-      <div className="flex gap-1 overflow-x-auto border-b border-fd-border px-2 py-1.5">
+      <div className="hero-code-tabs flex gap-1 overflow-x-auto border-b border-fd-border px-2 py-1.5">
         {heroCodeTabs.map(tab => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveId(tab.id)}
             className={cn(
-              'shrink-0 flex items-center gap-2 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors',
+              'flex shrink-0 items-center gap-2 rounded-md px-2.5 py-1 text-[11px] font-medium whitespace-nowrap transition-colors',
               activeId === tab.id
                 ? 'bg-landing-accent-22 text-fd-accent-foreground'
                 : 'text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground',
             )}
           >
-            <CodeXmlIcon className="size-4" />
-            {' '}
+            <CodeXmlIcon className="size-4 shrink-0" />
             {tab.filename}
           </button>
         ))}
       </div>
 
-      {/* <div className="hero-code-block max-h-88 overflow-auto text-[11px] leading-relaxed md:text-xs [&_pre]:m-0 [&_pre]:bg-transparent! [&_code]:font-mono"> */}
-      <DynamicCodeBlock
-        code={heroTabSources[activeId] ?? ''}
-        lang="ts"
-        codeblock={{ style: { borderRadius: 0 } }}
-      />
-      {/* </div> */}
+      <div className="hero-code-block max-h-88">
+        <DynamicCodeBlock
+          code={heroTabSources[activeId] ?? ''}
+          lang="ts"
+          codeblock={{ style: { borderRadius: 0, width: '100%' } }}
+        />
+      </div>
     </div>
   )
 }

@@ -17,8 +17,8 @@ export function HeroSection() {
         aria-hidden
       />
 
-      <div className="relative mx-auto grid max-w-(--fd-layout-width) gap-12 px-6 py-16 md:py-24 lg:grid-cols-2 lg:items-center lg:gap-16 lg:py-28">
-        <div>
+      <div className="relative mx-auto grid min-w-0 max-w-(--fd-layout-width) gap-12 px-6 py-16 md:py-24 lg:grid-cols-2 lg:items-center lg:gap-16 lg:py-28">
+        <div className="min-w-0">
           <p className="landing-animate-in mb-4 flex w-fit items-center gap-1.5 rounded-full border border-fd-border bg-fd-background/70 px-3 py-1.5 text-xs font-medium tracking-wide text-fd-muted-foreground uppercase backdrop-blur-sm">
             <Sparkles className="size-3.5 text-violet-500 dark:text-violet-400" aria-hidden />
             Type-safe routing for APIs
