@@ -45,7 +45,7 @@ jobs:
           deno-version: v2.x
 
       - name: Build packages
-        run: nx run-many -t build --exclude=docs
+        run: pnpm build-packages
 
       - name: Test JSR publish (dry run)
         run: deno publish --dry-run
