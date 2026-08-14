@@ -34,7 +34,7 @@ export function createAuthMiddleware<TPayload>(
     state: asJwtPayloadStateSchema(payloadSchema),
     handler: (ctx, next) => {
       return createTaserCompatHandler(honoMw)(ctx, async () => {
-        const payload = (ctx.var as { jwtPayload?: unknown }).jwtPayload
+        const payload = (ctx as unknown as { var: { jwtPayload?: unknown } }).var.jwtPayload
         try {
           const validated = await validateSchema(payloadSchema, payload)
           return next({ state: { jwtPayload: validated } })

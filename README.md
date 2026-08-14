@@ -1,8 +1,9 @@
-<a href="https://taserjs.dev">
-  <img src="https://raw.githubusercontent.com/taserjs/taserjs/refs/heads/main/docs/src/assets/logo.svg" alt="TaserJS" width="164" />
-</a>
-
 <p align="center">
+  <a href="https://taserjs.dev">
+    <img src="https://raw.githubusercontent.com/taserjs/taserjs/refs/heads/main/docs/src/assets/logo.svg" alt="TaserJS" width="180" />
+  </a>
+  <hr />
+
   <a href="https://www.npmjs.com/package/@taserjs/router">
     <img alt="npm version" src="https://img.shields.io/npm/v/@taserjs/router?style=for-the-badge&logo=npm&logoColor=white&label=npm" />
   </a>
@@ -48,24 +49,23 @@ Define a route:
 
 ```ts
 import { reply } from '@taserjs/router'
-import { z } from 'zod'
+import { z } from 'zod' // or any other validation library
 import { t } from '../taser'
 
 export const Route = t.get('/search', {
   query: z.object({ q: z.string().min(1) }),
+}).handler((ctx) => {
+  return reply.json({ q: ctx.query.q })
 })
-  .returns({ 200: z.object({ q: z.string() }) })
-  .handler((ctx) => {
-    return reply.json({ q: ctx.query.q })
-  })
 ```
 
 Call it with the typed client:
 
 ```ts
+const client = createClient<TaserAppRouter>({ baseURL: 'https://api.example.com' })
 const response = await client.search.$get({ query: { q: 'taser' } })
 const json = await response.json()
-// json is inferred from returns[200]
+// json is inferred from the route's return type
 ```
 
 See the [full documentation](https://taserjs.dev) for routing, layouts and middleware, adapters, and the API reference.

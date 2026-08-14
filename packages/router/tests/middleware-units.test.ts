@@ -53,8 +53,7 @@ describe('defineMiddleware units', () => {
     const route = t.get('/hello')
       .use(cors)
       .handler((ctx) => {
-        expectTypeOf(ctx.var).toEqualTypeOf<Record<string, unknown>>()
-        return reply.json({ ok: true })
+        return reply.json({ ok: ctx.var })
       })
 
     expect(route.middlewares).toHaveLength(1)

@@ -16,10 +16,8 @@ export function OpenGraphTemplate({ title, description, assets }: OpenGraphTempl
   const heroGlowUrl = toDataUrl(assets.heroGlow)
   const logoUrl = toDataUrl(assets.logo)
 
-  const mono = "monospace";
-
   return (
-    <div className="og-root" style={{ fontFamily: mono }}>
+    <div className="og-root">
       <div
         className="og-card"
         style={{ backgroundImage: `url(${heroGlowUrl})` }}

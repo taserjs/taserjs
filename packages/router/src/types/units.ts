@@ -70,7 +70,7 @@ export type MiddlewareReturnFromParts<
   }
 }
 
-type UnitRuntimeContext = RuntimeContextFields<NativeContext>
+type UnitRuntimeContext = Omit<RuntimeContextFields<NativeContext>, 'var'>
 
 export type StandaloneMiddlewareContext<
   TQuery = unknown,

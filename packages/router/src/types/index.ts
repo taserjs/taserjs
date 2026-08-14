@@ -155,7 +155,7 @@ type RouteChainField<
   Field extends 'query' | 'params' | 'body' | 'state' | 'ctx',
 > = RouteResolvedField<Path, TMethod, Acc, Field>
 
-type UnitRuntimeContext = RuntimeContextFields<NativeContext>
+type UnitRuntimeContext = Omit<RuntimeContextFields<NativeContext>, 'var'>
 
 export type RouteChainContext<
   Path extends RoutePath,

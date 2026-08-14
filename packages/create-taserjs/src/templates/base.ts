@@ -16,8 +16,8 @@ export function packageJsonTemplate(projectName: string, scripts: Record<string,
       'dev:taser': 'taser watch',
       'start': 'tsx src/index.ts',
       'generate': 'taser generate',
-      'build': 'taser generate && tsdown build',
-      'serve': 'node dist/index.js',
+      'build': 'taser generate && tsdown',
+      'serve': 'node dist/index.mjs',
       'typecheck': 'tsc --noEmit -p tsconfig.json',
       ...scripts,
     },
@@ -31,9 +31,7 @@ export function tsdownConfigTemplate(): string {
 
 export default defineConfig({
   entry: ['./src/index.ts'],
-  format: 'esm',
   platform: 'node',
-  target: 'node20',
   outDir: 'dist',
   clean: true,
   sourcemap: true,
@@ -45,9 +43,7 @@ export function tsconfigTemplate(): string {
   return `${JSON.stringify({
     compilerOptions: {
       target: 'ES2022',
-      lib: ['ES2022', 'DOM'],
-      module: 'ESNext',
-      moduleResolution: 'bundler',
+      module: 'NodeNext',
       paths: {
         '#src/*': ['./src/*'],
       },
