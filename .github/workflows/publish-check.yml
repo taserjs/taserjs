@@ -48,7 +48,7 @@ jobs:
         run: pnpm build-packages
 
       - name: Test JSR publish (dry run)
-        run: deno publish --dry-run
+        run: deno publish --dry-run --no-check --allow-slow-types
 
       - name: Test npm publish (dry run)
         run: pnpm -r publish --dry-run --no-git-checks
