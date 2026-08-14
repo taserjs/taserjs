@@ -13,8 +13,8 @@ import {
   resolveScaffoldDefaults,
 } from '../core/parse-options.js'
 import { scaffoldProject } from '../core/scaffold-engine.js'
-import type { DbDriver, DbOdm, Framework, LoggerId, ScaffoldResult } from '../core/types.js'
-import { DB_DRIVERS, DB_ODMS, FRAMEWORKS, LOGGERS } from '../core/types.js'
+import type { DbDriver, DbOdm, Framework, LoggerId, ScaffoldResult, ValidatorId } from '../core/types.js'
+import { DB_DRIVERS, DB_ODMS, FRAMEWORKS, LOGGERS, VALIDATORS } from '../core/types.js'
 import { validateProjectName } from '../core/validate-project-name.js'
 import { resolveUserAgent, runScript } from '../core/package-manager.js'
 
@@ -32,6 +32,10 @@ function isDbDriver(value: unknown): value is DbDriver {
 
 function isLoggerId(value: unknown): value is LoggerId {
   return typeof value === 'string' && (LOGGERS as readonly string[]).includes(value)
+}
+
+function isValidatorId(value: unknown): value is ValidatorId {
+  return typeof value === 'string' && (VALIDATORS as readonly string[]).includes(value)
 }
 
 async function promptInteractiveOptions(
@@ -127,6 +131,25 @@ async function promptInteractiveOptions(
 
   const logger = loggerChoice === 'none' ? undefined : isLoggerId(loggerChoice) ? loggerChoice : undefined
 
+  const validatorChoice = args.validator
+    ?? await p.select({
+      message: 'Validator',
+      options: [
+        { value: 'none', label: 'None', hint: 'default' },
+        { value: 'zod', label: 'Zod' },
+        { value: 'arktype', label: 'Arktype' },
+        { value: 'valibot', label: 'Valibot' },
+      ],
+      initialValue: 'none',
+    })
+
+  if (p.isCancel(validatorChoice)) {
+    p.cancel('Scaffold cancelled.')
+    process.exit(0)
+  }
+
+  const validator = validatorChoice === 'none' ? undefined : isValidatorId(validatorChoice) ? validatorChoice : undefined
+
   return {
     projectName: String(projectName).trim(),
     framework,
@@ -135,6 +158,7 @@ async function promptInteractiveOptions(
     json: args.json,
     ...(db ? { db, driver: driver! } : {}),
     ...(logger ? { logger } : {}),
+    ...(validator ? { validator } : {}),
   }
 }
 

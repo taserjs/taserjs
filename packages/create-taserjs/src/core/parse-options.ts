@@ -9,6 +9,7 @@ import {
   type Framework,
   type LoggerId,
   type ScaffoldContext,
+  type ValidatorId,
 } from './types.js'
 
 export type ParsedCreateArgs = {
@@ -17,6 +18,7 @@ export type ParsedCreateArgs = {
   db?: DbOdm
   driver?: DbDriver
   logger?: LoggerId
+  validator?: ValidatorId
   yes: boolean
   noInstall: boolean
   json: boolean

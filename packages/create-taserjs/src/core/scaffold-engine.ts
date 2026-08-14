@@ -32,6 +32,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
     framework: options.framework,
     ...(options.db ? { db: options.db, driver: options.driver } : {}),
     ...(options.logger ? { logger: options.logger } : {}),
+    ...(options.validator ? { validator: options.validator } : {}),
   }
 
   const addons = resolveAddons(ctx)

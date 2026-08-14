@@ -10,10 +10,10 @@ export type FileWriter = (filePath: string, contents: string) => Promise<void>
 
 export type AddonDefinition = {
   id: string
-  category: 'database' | 'logger'
+  category: 'database' | 'logger' | 'validator'
   dependencies: (ctx: ScaffoldContext) => string[]
   devDependencies: (ctx: ScaffoldContext) => string[]
   scripts?: (ctx: ScaffoldContext) => Record<string, string>
-  bootBinding: (ctx: ScaffoldContext) => BootBinding
+  bootBinding?: (ctx: ScaffoldContext) => BootBinding
   apply: (ctx: ScaffoldContext, write: FileWriter) => Promise<void>
 }

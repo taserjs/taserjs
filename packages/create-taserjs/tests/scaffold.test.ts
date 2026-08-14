@@ -46,8 +46,8 @@ describe('scaffoldProject', () => {
         scripts: Record<string, string>
       }
       expect(pkg.imports?.['#src/*']).toBe('./src/*')
-      expect(pkg.scripts.build).toBe('taser generate && tsdown build')
-      expect(pkg.scripts.serve).toBe('node dist/index.js')
+      expect(pkg.scripts.build).toBe('taser generate && tsdown')
+      expect(pkg.scripts.serve).toBe('node dist/index.mjs')
 
       const tsdownConfig = await readFile(path.join(dir, 'tsdown.config.ts'), 'utf8')
       expect(tsdownConfig).toContain("entry: ['./src/index.ts']")
@@ -154,6 +154,24 @@ describe('scaffoldProject', () => {
     }
   })
 
+  it('scaffolds zod validator', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'create-taser-zod-'))
+    try {
+      await scaffoldProject({
+        projectName: 'demo-zod',
+        targetDir: dir,
+        framework: 'node',
+        validator: 'zod',
+        skipInstall: true,
+      })
+      const index = await readFile(path.join(dir, 'src/routes/index.get.ts'), 'utf8')
+      expect(index).toContain('import { z } from \'zod\'')
+    }
+    finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
   it('scaffolds express mount pattern', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'create-taser-express-'))
     try {
@@ -216,6 +234,7 @@ describe('getPackageGroups', () => {
       'tsdown',
       'tsx',
       'typescript',
+      '@types/node',
     ])
   })
 

@@ -9,6 +9,7 @@ function frameworkPackages(framework: Framework): PackageGroups {
     'tsdown',
     'tsx',
     'typescript',
+    '@types/node',
   ]
   const scripts: Record<string, string> = {}
 

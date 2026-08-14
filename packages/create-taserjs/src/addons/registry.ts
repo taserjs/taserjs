@@ -2,6 +2,7 @@ import { drizzleAddon } from './drizzle/index.js'
 import { kyselyAddon } from './kysely/index.js'
 import { pinoAddon } from './pino/index.js'
 import { prismaAddon } from './prisma/index.js'
+import { zodAddon } from './zod/index.js'
 import type { AddonDefinition } from './types.js'
 import { winstonAddon } from './winston/index.js'
 import type { CapabilitiesCatalog, ScaffoldContext } from '../core/types.js'
@@ -11,6 +12,7 @@ import {
   DEFAULT_DB_DRIVER,
   FRAMEWORKS,
   LOGGERS,
+  VALIDATORS,
 } from '../core/types.js'
 
 const ALL_ADDONS: AddonDefinition[] = [
@@ -19,10 +21,12 @@ const ALL_ADDONS: AddonDefinition[] = [
   kyselyAddon,
   pinoAddon,
   winstonAddon,
+  zodAddon,
 ]
 
 const DB_ADDONS = ALL_ADDONS.filter(addon => addon.category === 'database')
 const LOGGER_ADDONS = ALL_ADDONS.filter(addon => addon.category === 'logger')
+const VALIDATOR_ADDONS = ALL_ADDONS.filter(addon => addon.category === 'validator')
 
 export function getCapabilitiesCatalog(): CapabilitiesCatalog {
   return {
@@ -33,6 +37,7 @@ export function getCapabilitiesCatalog(): CapabilitiesCatalog {
       defaultDriver: DEFAULT_DB_DRIVER,
     },
     loggers: [...LOGGERS],
+    validators: [...VALIDATORS],
   }
 }
 
@@ -65,9 +70,24 @@ export function resolveAddons(ctx: ScaffoldContext): AddonDefinition[] {
     throw new Error('Only one logger addon can be selected')
   }
 
+  if (ctx.validator) {
+    const validatorAddon = VALIDATOR_ADDONS.find(addon => addon.id === ctx.validator)
+    if (!validatorAddon) {
+      throw new Error(`Unknown validator addon "${ctx.validator}"`)
+    }
+    selected.push(validatorAddon)
+  }
+
+  const validatorCount = selected.filter(addon => addon.category === 'validator').length
+  if (validatorCount > 1) {
+    throw new Error('Only one validator addon can be selected')
+  }
+
   return selected
 }
 
 export function collectBootBindings(ctx: ScaffoldContext) {
-  return resolveAddons(ctx).map(addon => addon.bootBinding(ctx))
+  return resolveAddons(ctx)
+    .map(addon => addon.bootBinding?.(ctx))
+    .filter((v): v is NonNullable<typeof v> => Boolean(v))
 }

@@ -18,6 +18,10 @@ export type LoggerId = 'pino' | 'winston'
 
 export const LOGGERS: readonly LoggerId[] = ['pino', 'winston']
 
+export type ValidatorId = 'zod' | 'arktype' | 'valibot'
+
+export const VALIDATORS: readonly ValidatorId[] = ['zod', 'arktype', 'valibot']
+
 export type PackageGroups = {
   dependencies: string[]
   devDependencies: string[]
@@ -31,6 +35,7 @@ export type ScaffoldContext = {
   db?: DbOdm
   driver?: DbDriver
   logger?: LoggerId
+  validator?: ValidatorId
 }
 
 export type ScaffoldOptions = ScaffoldContext & {
@@ -48,4 +53,5 @@ export type CapabilitiesCatalog = {
     defaultDriver: DbDriver
   }
   loggers: LoggerId[]
+  validators: ValidatorId[]
 }
