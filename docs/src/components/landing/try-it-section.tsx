@@ -69,7 +69,7 @@ export function TryItSection() {
             </div>
             <h3 className="text-lg font-semibold tracking-tight">New API scaffolded!</h3>
             <p className="mt-2 text-sm text-fd-muted-foreground">
-              Routes, adapters, CLI watch mode, and a typed client, all generated and ready
+              Power of file-based routing, full chain inference, CLI watch mode all generated and ready
               for
               {' '}
               <code className="rounded bg-fd-muted px-1.5 py-0.5 text-xs">pnpm dev</code>

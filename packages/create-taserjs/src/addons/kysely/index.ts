@@ -73,6 +73,18 @@ function driverPackages(driver: DbDriver): string[] {
   }
 }
 
+function driverDevPackages(driver: DbDriver): string[] {
+  switch (driver) {
+    case 'postgres':
+      return ['@types/pg']
+    case 'sqlite':
+      return ['@types/better-sqlite3']
+    case 'mysql':
+    default:
+      return []
+  }
+}
+
 function envExample(driver: DbDriver): string {
   switch (driver) {
     case 'postgres':
@@ -92,8 +104,9 @@ export const kyselyAddon: AddonDefinition = {
     const driver = ctx.driver ?? 'sqlite'
     return ['kysely', ...driverPackages(driver)]
   },
-  devDependencies() {
-    return []
+  devDependencies(ctx) {
+    const driver = ctx.driver ?? 'sqlite'
+    return driverDevPackages(driver)
   },
   bootBinding() {
     return {

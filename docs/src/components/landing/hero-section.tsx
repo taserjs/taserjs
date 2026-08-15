@@ -30,7 +30,7 @@ export function HeroSection() {
             <span className="landing-text-gradient-cool">Let types flow everywhere.</span>
           </h1>
           <p className="landing-animate-in landing-delay-2 mt-5 max-w-lg text-lg text-fd-muted-foreground text-pretty">
-            File-based routing for Node.js APIs. Compose layouts and middleware with full
+            File-based routing for REST APIs. Compose layouts and middleware with full
             inference, validate every input, and skip the type assertions after middleware
             already did the work.
           </p>

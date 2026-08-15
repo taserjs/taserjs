@@ -19,6 +19,10 @@ export async function writeProjectConfig(root: string, ctx: ScaffoldContext): Pr
     config.logger = ctx.logger
   }
 
+  if (ctx.validator) {
+    config.validator = ctx.validator
+  }
+
   await writeFile(
     path.join(root, '.taser.json'),
     `${JSON.stringify(config, null, 2)}\n`,

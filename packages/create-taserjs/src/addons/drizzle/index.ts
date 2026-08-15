@@ -112,6 +112,18 @@ function driverPackages(driver: DbDriver): string[] {
   }
 }
 
+function driverDevPackages(driver: DbDriver): string[] {
+  switch (driver) {
+    case 'postgres':
+      return ['@types/pg']
+    case 'sqlite':
+      return ['@types/better-sqlite3']
+    case 'mysql':
+    default:
+      return []
+  }
+}
+
 export const drizzleAddon: AddonDefinition = {
   id: 'drizzle',
   category: 'database',
@@ -119,8 +131,9 @@ export const drizzleAddon: AddonDefinition = {
     const driver = ctx.driver ?? 'sqlite'
     return ['drizzle-orm', ...driverPackages(driver)]
   },
-  devDependencies() {
-    return ['drizzle-kit']
+  devDependencies(ctx) {
+    const driver = ctx.driver ?? 'sqlite'
+    return ['drizzle-kit', ...driverDevPackages(driver)]
   },
   scripts() {
     return {

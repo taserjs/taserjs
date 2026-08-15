@@ -6,17 +6,19 @@ import { cn } from '@/lib/cn'
 interface CheckListProps {
   items: string[]
   className?: string
+  icon?: ReactNode
 }
 
-export function CheckList({ items, className }: CheckListProps) {
+export function CheckList({ items, className, icon }: CheckListProps) {
   return (
     <ul className={cn('space-y-2.5', className)}>
       {items.map(item => (
         <li key={item} className="flex gap-2.5 text-sm text-fd-muted-foreground">
-          <Check
-            className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
-            aria-hidden
-          />
+          {icon ?? (<Check
+              className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+              aria-hidden
+            />
+          )}
           <span>{item}</span>
         </li>
       ))}

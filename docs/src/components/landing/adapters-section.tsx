@@ -113,7 +113,7 @@ export function AdaptersSection() {
               <SectionAccent>compatible</SectionAccent>
             </>
           )}
-          description="Bring your validator of choice — query, params, body, and returns all flow through Standard Schema."
+          description="Bring your validator of choice for query, params, body, and returns all flow through Standard Schema."
         />
 
         <div className="landing-animate-in landing-delay-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

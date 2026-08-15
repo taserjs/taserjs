@@ -6,7 +6,9 @@ import { describe, expect, it } from 'vitest'
 
 import { getCapabilitiesCatalog } from '../src/addons/registry.js'
 import { validateProjectName } from '../src/core/validate-project-name.js'
-import { resolveUserAgent } from '../src/core/package-manager.js'
+import { resolveInstallCommand, resolveUserAgent } from '../src/core/package-manager.js'
+import { parseValidatorFlag } from '../src/core/parse-options.js'
+import { buildParsedArgsFromCli } from '../src/commands/create.js'
 import { getPackageGroups, resolvePackages, scaffoldProject } from '../src/scaffold.js'
 
 describe('validateProjectName', () => {
@@ -80,7 +82,7 @@ describe('scaffoldProject', () => {
     }
   })
 
-  it('scaffolds drizzle postgres with db in context boot', async () => {
+  it('scaffolds drizzle postgres with db in context boot and includes @types/pg', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'create-taser-drizzle-'))
     try {
       await scaffoldProject({
@@ -105,6 +107,8 @@ describe('scaffoldProject', () => {
       })
       expect(packages.dependencies).toContain('drizzle-orm')
       expect(packages.dependencies).toContain('pg')
+      expect(packages.devDependencies).toContain('@types/pg')
+      expect(packages.devDependencies).toContain('drizzle-kit')
 
       await expect(readFile(path.join(dir, 'src/db/index.ts'), 'utf8')).resolves.toContain('createDb')
     }
@@ -113,7 +117,7 @@ describe('scaffoldProject', () => {
     }
   })
 
-  it('defaults drizzle driver to sqlite when only odm is set', async () => {
+  it('defaults drizzle driver to sqlite when only odm is set and includes @types/better-sqlite3', async () => {
     const packages = resolvePackages({
       projectName: 'demo',
       targetDir: '/tmp/demo',
@@ -122,6 +126,31 @@ describe('scaffoldProject', () => {
       driver: 'sqlite',
     })
     expect(packages.dependencies).toContain('better-sqlite3')
+    expect(packages.devDependencies).toContain('@types/better-sqlite3')
+  })
+
+  it('includes driver types for kysely postgres and sqlite', () => {
+    const pgPackages = resolvePackages({
+      projectName: 'demo-kysely-pg',
+      targetDir: '/tmp/demo',
+      framework: 'node',
+      db: 'kysely',
+      driver: 'postgres',
+    })
+    expect(pgPackages.dependencies).toContain('kysely')
+    expect(pgPackages.dependencies).toContain('pg')
+    expect(pgPackages.devDependencies).toContain('@types/pg')
+
+    const sqlitePackages = resolvePackages({
+      projectName: 'demo-kysely-sqlite',
+      targetDir: '/tmp/demo',
+      framework: 'node',
+      db: 'kysely',
+      driver: 'sqlite',
+    })
+    expect(sqlitePackages.dependencies).toContain('kysely')
+    expect(sqlitePackages.dependencies).toContain('better-sqlite3')
+    expect(sqlitePackages.devDependencies).toContain('@types/better-sqlite3')
   })
 
   it('scaffolds pino logger in context boot', async () => {
@@ -157,15 +186,81 @@ describe('scaffoldProject', () => {
   it('scaffolds zod validator', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'create-taser-zod-'))
     try {
-      await scaffoldProject({
+      const result = await scaffoldProject({
         projectName: 'demo-zod',
         targetDir: dir,
         framework: 'node',
         validator: 'zod',
         skipInstall: true,
       })
+      expect(result.validator).toBe('zod')
+
       const index = await readFile(path.join(dir, 'src/routes/index.get.ts'), 'utf8')
       expect(index).toContain('import { z } from \'zod\'')
+
+      const packages = resolvePackages({
+        projectName: 'demo-zod',
+        targetDir: dir,
+        framework: 'node',
+        validator: 'zod',
+      })
+      expect(packages.dependencies).toContain('zod')
+    }
+    finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('scaffolds arktype validator', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'create-taser-arktype-'))
+    try {
+      const result = await scaffoldProject({
+        projectName: 'demo-arktype',
+        targetDir: dir,
+        framework: 'node',
+        validator: 'arktype',
+        skipInstall: true,
+      })
+      expect(result.validator).toBe('arktype')
+
+      const index = await readFile(path.join(dir, 'src/routes/index.get.ts'), 'utf8')
+      expect(index).toContain('import { type } from \'arktype\'')
+
+      const packages = resolvePackages({
+        projectName: 'demo-arktype',
+        targetDir: dir,
+        framework: 'node',
+        validator: 'arktype',
+      })
+      expect(packages.dependencies).toContain('arktype')
+    }
+    finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('scaffolds valibot validator', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'create-taser-valibot-'))
+    try {
+      const result = await scaffoldProject({
+        projectName: 'demo-valibot',
+        targetDir: dir,
+        framework: 'node',
+        validator: 'valibot',
+        skipInstall: true,
+      })
+      expect(result.validator).toBe('valibot')
+
+      const index = await readFile(path.join(dir, 'src/routes/index.get.ts'), 'utf8')
+      expect(index).toContain('import * as v from \'valibot\'')
+
+      const packages = resolvePackages({
+        projectName: 'demo-valibot',
+        targetDir: dir,
+        framework: 'node',
+        validator: 'valibot',
+      })
+      expect(packages.dependencies).toContain('valibot')
     }
     finally {
       await rm(dir, { recursive: true, force: true })
@@ -189,7 +284,7 @@ describe('scaffoldProject', () => {
     }
   })
 
-  it('writes .taser.json project config', async () => {
+  it('writes .taser.json project config with validator', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'create-taser-config-'))
     try {
       await scaffoldProject({
@@ -199,6 +294,7 @@ describe('scaffoldProject', () => {
         db: 'prisma',
         driver: 'mysql',
         logger: 'winston',
+        validator: 'valibot',
         skipInstall: true,
       })
 
@@ -207,17 +303,37 @@ describe('scaffoldProject', () => {
         db: string
         driver: string
         logger: string
+        validator: string
       }
       expect(config).toEqual({
         framework: 'hono',
         db: 'prisma',
         driver: 'mysql',
         logger: 'winston',
+        validator: 'valibot',
       })
     }
     finally {
       await rm(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('cli validator parsing', () => {
+  it('parses valid validator flags', () => {
+    expect(parseValidatorFlag('zod')).toBe('zod')
+    expect(parseValidatorFlag('arktype')).toBe('arktype')
+    expect(parseValidatorFlag('valibot')).toBe('valibot')
+  })
+
+  it('rejects invalid validator flag', () => {
+    expect(() => parseValidatorFlag('yup')).toThrowError(/Invalid --validator/)
+  })
+
+  it('buildParsedArgsFromCli parses validator', () => {
+    const args = buildParsedArgsFromCli({ validator: 'arktype' }, ['test-app'])
+    expect(args.validator).toBe('arktype')
+    expect(args.projectName).toBe('test-app')
   })
 })
 
@@ -247,12 +363,13 @@ describe('getPackageGroups', () => {
 })
 
 describe('capabilities catalog', () => {
-  it('lists frameworks, db options, and loggers', () => {
+  it('lists frameworks, db options, loggers, and validators', () => {
     const catalog = getCapabilitiesCatalog()
     expect(catalog.frameworks).toContain('hono')
     expect(catalog.db.odms).toContain('drizzle')
     expect(catalog.db.defaultDriver).toBe('sqlite')
     expect(catalog.loggers).toContain('pino')
+    expect(catalog.validators).toEqual(['zod', 'arktype', 'valibot'])
   })
 })
 
@@ -273,5 +390,27 @@ describe('package manager', () => {
         process.env.npm_config_user_agent = previous
       }
     }
+  })
+
+  it('resolves install commands with -D flag for dev dependencies', () => {
+    const pnpmDev = resolveInstallCommand('pnpm', ['typescript', 'tsx'], true)
+    expect(pnpmDev.command).toBe('pnpm')
+    expect(pnpmDev.args).toEqual(['add', '-D', 'typescript', 'tsx'])
+
+    const pnpmProd = resolveInstallCommand('pnpm', ['express'], false)
+    expect(pnpmProd.command).toBe('pnpm')
+    expect(pnpmProd.args).toEqual(['add', 'express'])
+
+    const npmDev = resolveInstallCommand('npm', ['typescript'], true)
+    expect(npmDev.command).toBe('npm')
+    expect(npmDev.args).toEqual(['i', '-D', 'typescript'])
+
+    const yarnDev = resolveInstallCommand('yarn', ['typescript'], true)
+    expect(yarnDev.command).toBe('yarn')
+    expect(yarnDev.args).toEqual(['add', '-D', 'typescript'])
+
+    const bunDev = resolveInstallCommand('bun', ['typescript'], true)
+    expect(bunDev.command).toBe('bun')
+    expect(bunDev.args).toEqual(['add', '-D', 'typescript'])
   })
 })

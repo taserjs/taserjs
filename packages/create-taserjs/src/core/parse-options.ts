@@ -4,6 +4,7 @@ import {
   DEFAULT_DB_DRIVER,
   FRAMEWORKS,
   LOGGERS,
+  VALIDATORS,
   type DbDriver,
   type DbOdm,
   type Framework,
@@ -40,6 +41,10 @@ function isLoggerId(value: string): value is LoggerId {
   return (LOGGERS as readonly string[]).includes(value)
 }
 
+function isValidatorId(value: string): value is ValidatorId {
+  return (VALIDATORS as readonly string[]).includes(value)
+}
+
 export function parseDbFlag(value: string): { db: DbOdm, driver: DbDriver } {
   const [odm, driver] = value.split(':')
   if (!odm || !isDbOdm(odm)) {
@@ -61,6 +66,7 @@ export function resolveScaffoldDefaults(args: ParsedCreateArgs): ScaffoldContext
   const framework = args.framework ?? 'node'
   const db = args.db
   const logger = args.logger
+  const validator = args.validator
 
   if (!args.projectName) {
     throw new Error('Project name is required')
@@ -81,6 +87,10 @@ export function resolveScaffoldDefaults(args: ParsedCreateArgs): ScaffoldContext
     result.logger = logger
   }
 
+  if (validator) {
+    result.validator = validator
+  }
+
   return result
 }
 
@@ -94,6 +104,13 @@ export function parseFrameworkFlag(value: string): Framework {
 export function parseLoggerFlag(value: string): LoggerId {
   if (!isLoggerId(value)) {
     throw new Error(`Invalid --logger "${value}". Use pino or winston.`)
+  }
+  return value
+}
+
+export function parseValidatorFlag(value: string): ValidatorId {
+  if (!isValidatorId(value)) {
+    throw new Error(`Invalid --validator "${value}". Use zod, arktype, or valibot.`)
   }
   return value
 }

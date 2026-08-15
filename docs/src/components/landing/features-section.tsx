@@ -17,7 +17,7 @@ const features: { icon: ReactNode, title: string, description: string, iconTone:
   {
     icon: <FileCode2 />,
     title: 'File-Based Routes',
-    description: 'Drop route files and let Taser generate the manifest and keep paths in sync.',
+    description: 'Drop route files and let Taser generate the route tree and infer context.',
     iconTone: 'violet',
   },
   {
@@ -27,12 +27,6 @@ const features: { icon: ReactNode, title: string, description: string, iconTone:
     iconTone: 'sky',
   },
   {
-    icon: <Waypoints />,
-    title: 'Typed Client Included',
-    description: 'Export TaserAppRouter and call your API with the same types as your handlers.',
-    iconTone: 'emerald',
-  },
-  {
     icon: <Plug />,
     title: 'Framework Agnostic',
     description: 'Mount on Express, Hono, Fastify, or plain Node with one router definition.',
@@ -40,8 +34,8 @@ const features: { icon: ReactNode, title: string, description: string, iconTone:
   },
   {
     icon: <Layers />,
-    title: 'Layouts & Middleware',
-    description: 'Nested layouts and shared state composed with the same typing model.',
+    title: 'Validate with any Standard Schema',
+    description: 'Validate with any standard schema libraries of your choice like Zod, Arktype, Valibot, etc.',
     iconTone: 'indigo',
   },
   {
@@ -49,6 +43,12 @@ const features: { icon: ReactNode, title: string, description: string, iconTone:
     title: 'Codegen on Watch',
     description: 'The CLI regenerates manifests as you edit your routes. No manual route tables.',
     iconTone: 'rose',
+  },
+  {
+    icon: <Waypoints />,
+    title: 'Optional Typed Client',
+    description: 'Export TaserAppRouter and call your API with the same types as your handlers.',
+    iconTone: 'emerald',
   },
 ]
 

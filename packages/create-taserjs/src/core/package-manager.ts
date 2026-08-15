@@ -27,18 +27,15 @@ function runCommand(command: string, args: string[], cwd: string): Promise<void>
   })
 }
 
-const fallback = {
-  agent: 'npm',
-  install: (packages: string[], dev: boolean) => {
-    return ['install', ...packages, dev ? '-D' : '']
-  },
-}
-
-function resolveInstallCommand(agent: Agent, packages: string[], dev: boolean): ResolvedCommand {
-  const command = resolveCommand(agent, 'install', packages)
+export function resolveInstallCommand(agent: Agent, packages: string[], dev: boolean): ResolvedCommand {
+  const args = dev ? ['-D', ...packages] : packages
+  const command = resolveCommand(agent, 'add', args)
   if (command) return command
 
-  return { command: fallback.agent, args: fallback.install(packages, dev) }
+  return {
+    command: 'npm',
+    args: ['install', ...args],
+  }
 }
 
 export async function installPackages(

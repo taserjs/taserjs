@@ -1,18 +1,21 @@
 import {
+  AlertCircle,
   AlertTriangle,
   Braces,
   Copy,
+  FileBraces,
   Layers,
-  Lightbulb,
   Route as RouteIcon,
   ShieldCheck,
   Waypoints,
+  XCircle,
 } from 'lucide-react'
 
 import { CtaSection } from '@/components/landing/cta-section'
 import { FeatureCard } from '@/components/landing/feature-card'
 import { CalloutCard, CheckList, InfoCard } from '@/components/landing/info-card'
 import { PageHero, PageSection, SectionAccent } from '@/components/landing/page-section'
+import { RouterComparison } from '@/components/landing/router-comparison'
 import { SponsorsSection } from '@/components/landing/sponsors-section'
 import Link from 'next/link'
 import { motivationMetadata } from '@/lib/metadata'
@@ -38,7 +41,7 @@ export default function MotivationPage() {
             exists
           </>
         )}
-        description="Taser is inspired by the clarity of file based routing and the ergonomics of TanStack Router. It is built for APIs that grow past the demo stage."
+        description="Taser is inspired by the simplicity of file-based routing and the ergonomics of TanStack Router. It is built for APIs that grow beyond traditional CRUD endpoints."
         actions={(
           <>
             <Link
@@ -54,110 +57,116 @@ export default function MotivationPage() {
         )}
       />
 
+      {/* Side-by-side Showcase Section */}
       <PageSection
         muted
         title={(
           <>
-            Inspired by
+            Inspired by{' '}
             <SectionAccent>TanStack Router</SectionAccent>
           </>
         )}
-        description="Framework examples are often clean and minimal. That clarity is a great starting point."
+        description="TanStack Router proved how good route ergonomics can feel on the frontend. Taser brings that exact intuition, directory cascading, and type-safety to backend REST APIs."
       >
-        <CalloutCard icon={<Lightbulb aria-hidden />}>
-          TanStack Router showed how good route ergonomics can feel: file based routes, strong types, and a workflow
-          that stays out of your way. Taser takes that inspiration to backend APIs, where composition and validation
-          are not optional extras. They are the product.
-        </CalloutCard>
+        <RouterComparison />
+      </PageSection>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <InfoCard icon={<RouteIcon aria-hidden />} iconTone="violet" title="File based routes">
+      {/* Tailored to REST APIs Section */}
+      <PageSection
+        title={<>Built specifically for <SectionAccent>REST APIs</SectionAccent></>}
+        description="Every aspect of Taser is engineered to eliminate runtime drift and manual registration in backend services."
+      >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <InfoCard icon={<RouteIcon aria-hidden />} iconTone="violet" title="File-based routes">
             <p className="text-sm text-fd-muted-foreground">
-              Routes live in files. The manifest stays in sync as your API grows.
+              Routes live in files matching HTTP verbs. The manifest stays automatically in sync as your API expands.
             </p>
           </InfoCard>
           <InfoCard icon={<Braces aria-hidden />} iconTone="sky" title="Types that travel">
             <p className="text-sm text-fd-muted-foreground">
-              Query, params, body, and returns stay connected through middleware chains.
+              Context, query, params, and body types flow naturally down directory-level middleware chains.
             </p>
           </InfoCard>
-          <InfoCard icon={<Waypoints aria-hidden />} iconTone="emerald" title="A client that matches">
+          <InfoCard icon={<Waypoints aria-hidden />} iconTone="emerald" title="Framework agnostic">
             <p className="text-sm text-fd-muted-foreground">
-              Call your API with the same types your handlers use. Fewer surprises in production.
+              Mount the router with Express, Hono, Fastify, or Node HTTP without rewriting your domain logic.
+            </p>
+          </InfoCard>
+          <InfoCard icon={<FileBraces aria-hidden />} iconTone="amber" title="Standard Schema">
+            <p className="text-sm text-fd-muted-foreground">
+              Validate inputs and responses with any Standard Schema library: Zod, ArkType, Valibot, and more.
             </p>
           </InfoCard>
         </div>
       </PageSection>
 
+      {/* The Problem Section */}
       <PageSection
-        title={(
-          <>
-            The problem: APIs need
-            <SectionAccent>composition</SectionAccent>
-          </>
-        )}
-        description="Real APIs need shared behavior that stays consistent across hundreds of routes."
+        muted
+        title={<>The problem: APIs need <SectionAccent>composition</SectionAccent></>}
+        description="Real APIs need shared behavior that stays consistent across hundreds of routes without copy-paste drift."
       >
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           <InfoCard icon={<AlertTriangle aria-hidden />} iconTone="amber" title="What gets hard">
             <CheckList
+              icon={<AlertCircle aria-hidden className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />}
               items={[
-                'Auth and role checks spread across files',
-                'Shared context that becomes loosely typed over time',
-                'Validation that is duplicated or skipped in some routes',
-                'Return shapes that drift and surprise clients',
-                'Error handling that is inconsistent across the API',
+                'Auth and role checks spread inconsistently across endpoints',
+                'Shared request context becoming loosely typed or any-cast over time',
+                'Validation duplicated or inadvertently skipped on edge routes',
+                'Response shapes that drift and surprise downstream frontend clients',
+                'Inconsistent error handling and status code conventions across the API',
               ]}
             />
           </InfoCard>
           <InfoCard icon={<Copy aria-hidden />} iconTone="rose" title="What teams end up doing">
             <CheckList
+              icon={<XCircle aria-hidden className="mt-0.5 size-4 shrink-0 text-rose-600 dark:text-rose-400" />}
               items={[
-                'Manual route registries that fall out of date',
-                'Copy and paste middleware that no one wants to touch',
-                'Types that exist, but do not match runtime behavior',
-                'Ad hoc clients and handwritten response typing',
-                'Big refactors when the first real product needs arrive',
+                'Manual route registration files that constantly fall out of date',
+                'Fragile copy-and-paste middleware that developers fear touching',
+                'TypeScript types that exist on paper, but do not match runtime behavior',
+                'Ad hoc fetch wrappers and handwritten response type definitions',
+                'Massive breaking refactors whenever real enterprise requirements emerge',
               ]}
             />
           </InfoCard>
         </div>
       </PageSection>
 
+      {/* The Idea Section */}
       <PageSection
-        muted
         title={(
           <>
-            The idea: make composition
+            The solution: make composition
             <SectionAccent>type safe</SectionAccent>
           </>
         )}
-        description="Taser keeps file based ergonomics while giving teams tools to scale composition without losing correctness."
+        description="Taser keeps file-based ergonomics while giving teams tools to scale composition without losing correctness."
       >
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <FeatureCard
             icon={<Layers />}
             iconTone="indigo"
-            title="Layouts and middleware"
-            description="Compose shared behavior at the directory level. Types flow through the chain so each handler sees what middleware created."
+            title="Layouts & directory middleware"
+            description="Compose shared auth, logging, and headers at the folder level. Types flow down the chain so handlers safely receive exactly what middleware provides."
           />
           <FeatureCard
             icon={<ShieldCheck />}
             iconTone="emerald"
-            title="Runtime validation"
-            description="Inputs and outputs are validated with Standard Schema compatible libraries, so types reflect real runtime checks."
+            title="Runtime schema validation"
+            description="Query, params, headers, and body payloads are validated with Standard Schema libraries, guaranteeing that TypeScript types match real payload checks."
           />
           <FeatureCard
             icon={<Waypoints />}
             iconTone="sky"
-            title="Typed client"
-            description="Export your router types and call your API with a client that matches what handlers return."
+            title="End-to-end typed client"
+            description="Export your router's type definition and call your endpoints with an auto-generated client that knows exact route paths, methods, inputs, and returns."
           />
         </div>
 
         <CalloutCard className="mt-8">
-          Taser is our attempt to bring TanStack Router style ergonomics to backend APIs, where the hard part is not
-          defining a single route. It is keeping hundreds of routes consistent as the product evolves.
+          Taser brings TanStack Router&apos;s ergonomic revolution to the backend—where the true challenge isn&apos;t defining a single endpoint, but maintaining type safety and composability across hundreds of routes as your application evolves.
         </CalloutCard>
       </PageSection>
 

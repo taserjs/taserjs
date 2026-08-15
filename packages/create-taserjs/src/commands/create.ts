@@ -9,6 +9,7 @@ import {
   parseDbFlag,
   parseFrameworkFlag,
   parseLoggerFlag,
+  parseValidatorFlag,
   type ParsedCreateArgs,
   resolveScaffoldDefaults,
 } from '../core/parse-options.js'
@@ -245,6 +246,7 @@ export function buildParsedArgsFromCli(values: {
   framework?: string
   db?: string
   logger?: string
+  validator?: string
   y?: boolean
   noInstall?: boolean
   json?: boolean
@@ -271,6 +273,10 @@ export function buildParsedArgsFromCli(values: {
 
   if (values.logger) {
     args.logger = parseLoggerFlag(values.logger)
+  }
+
+  if (values.validator) {
+    args.validator = parseValidatorFlag(values.validator)
   }
 
   return args

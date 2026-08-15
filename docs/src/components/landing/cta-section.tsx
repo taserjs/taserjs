@@ -14,9 +14,9 @@ export function CtaSection() {
           className="mx-auto"
           title={(
             <>
-              Ready to try it on a
+              Ready to try it on
               {' '}
-              <SectionAccent>real route</SectionAccent>
+              <SectionAccent>for real</SectionAccent>
               ?
             </>
           )}

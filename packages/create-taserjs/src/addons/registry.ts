@@ -1,10 +1,12 @@
+import { arktypeAddon } from './arktype/index.js'
 import { drizzleAddon } from './drizzle/index.js'
 import { kyselyAddon } from './kysely/index.js'
 import { pinoAddon } from './pino/index.js'
 import { prismaAddon } from './prisma/index.js'
+import { valibotAddon } from './valibot/index.js'
+import { winstonAddon } from './winston/index.js'
 import { zodAddon } from './zod/index.js'
 import type { AddonDefinition } from './types.js'
-import { winstonAddon } from './winston/index.js'
 import type { CapabilitiesCatalog, ScaffoldContext } from '../core/types.js'
 import {
   DB_DRIVERS,
@@ -22,6 +24,8 @@ const ALL_ADDONS: AddonDefinition[] = [
   pinoAddon,
   winstonAddon,
   zodAddon,
+  arktypeAddon,
+  valibotAddon,
 ]
 
 const DB_ADDONS = ALL_ADDONS.filter(addon => addon.category === 'database')

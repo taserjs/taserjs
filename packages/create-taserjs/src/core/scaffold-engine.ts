@@ -64,6 +64,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
       framework: ctx.framework,
       ...(ctx.db ? { db: ctx.db, driver: ctx.driver } : {}),
       ...(ctx.logger ? { logger: ctx.logger } : {}),
+      ...(ctx.validator ? { validator: ctx.validator } : {}),
     }
   }
 
@@ -79,5 +80,6 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
     framework: ctx.framework,
     ...(ctx.db ? { db: ctx.db, driver: ctx.driver } : {}),
     ...(ctx.logger ? { logger: ctx.logger } : {}),
+    ...(ctx.validator ? { validator: ctx.validator } : {}),
   }
 }

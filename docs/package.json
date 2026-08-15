@@ -13,7 +13,10 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
+    "@base-ui/react": "^1.7.0",
+    "@fumadocs/base-ui": "^16.14.4",
     "@opennextjs/cloudflare": "^1.20.2",
+    "class-variance-authority": "^0.7.1",
     "cnfast": "^0.1.0",
     "framer-motion": "^13.1.0",
     "fumadocs-core": "16.14.3",
