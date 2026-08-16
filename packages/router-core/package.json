@@ -1,6 +1,6 @@
 {
   "name": "@taserjs/router-core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Taser Hono-backed Request/Response runtime pipeline",
   "type": "module",
   "sideEffects": false,

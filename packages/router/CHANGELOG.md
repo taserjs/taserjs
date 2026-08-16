@@ -1,5 +1,14 @@
 # @taserjs/router
 
+## 0.0.2
+
+### Patch Changes
+
+- c8d2b57: Create taser fix and bundle size optimization
+- Updated dependencies [c8d2b57]
+  - @taserjs/router-core@0.0.2
+  - @taserjs/router-utils@0.0.2
+
 ## 0.0.1
 
 ### Patch Changes
