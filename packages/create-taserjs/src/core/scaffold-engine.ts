@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { collectBootBindings, resolveAddons } from '../addons/registry.js'
@@ -53,6 +53,13 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
 
   for (const addon of addons) {
     await addon.apply(ctx, (filePath, contents) => write(path.join(root, filePath), contents))
+  }
+
+  try {
+    await copyFile(path.join(root, '.env.example'), path.join(root, '.env'))
+  }
+  catch {
+    // .env.example was not created
   }
 
   await writeProjectConfig(root, ctx)

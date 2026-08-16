@@ -3,7 +3,9 @@ import type { Framework } from '../core/types.js'
 export function indexTemplate(framework: Framework): string {
   switch (framework) {
     case 'express':
-      return `import express from 'express'
+      return `import 'dotenv/config'
+
+import express from 'express'
 import { createExpressHandler } from '@taserjs/adapter-express'
 
 import { routeManifest } from '#src/routeManifest.gen.js'
@@ -21,7 +23,9 @@ app.listen(port, () => {
 })
 `
     case 'hono':
-      return `import { serve } from '@hono/node-server'
+      return `import 'dotenv/config'
+
+import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 
 import { routeManifest } from '#src/routeManifest.gen.js'
@@ -39,7 +43,9 @@ serve({ fetch: app.fetch, port }, () => {
 })
 `
     case 'fastify':
-      return `import Fastify from 'fastify'
+      return `import 'dotenv/config'
+
+import Fastify from 'fastify'
 import { createFastifyHandler } from '@taserjs/adapter-fastify'
 
 import { routeManifest } from '#src/routeManifest.gen.js'
@@ -57,7 +63,9 @@ console.log(\`Fastify listening on http://localhost:\${port}\`)
 `
     case 'node':
     default:
-      return `import { createServer } from 'node:http'
+      return `import 'dotenv/config'
+
+import { createServer } from 'node:http'
 import { createNodeHandler } from '@taserjs/adapter-node'
 
 import { routeManifest } from '#src/routeManifest.gen.js'

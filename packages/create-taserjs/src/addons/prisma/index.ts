@@ -25,14 +25,111 @@ function envExample(driver: DbDriver): string {
   }
 }
 
+function driverPackages(driver: DbDriver): string[] {
+  switch (driver) {
+    case 'postgres':
+      return ['@prisma/adapter-pg', 'pg']
+    case 'mysql':
+      return ['@prisma/adapter-mariadb', 'mariadb']
+    case 'sqlite':
+    default:
+      return ['@prisma/adapter-better-sqlite3', 'better-sqlite3']
+  }
+}
+
+function driverDevPackages(driver: DbDriver): string[] {
+  switch (driver) {
+    case 'postgres':
+      return ['@types/pg']
+    case 'sqlite':
+      return ['@types/better-sqlite3']
+    case 'mysql':
+    default:
+      return []
+  }
+}
+
+function dbIndexSource(driver: DbDriver): string {
+  switch (driver) {
+    case 'postgres':
+      return `import { PrismaPg } from '@prisma/adapter-pg'
+
+import { PrismaClient } from './prisma/client.js'
+
+export function createDb() {
+  const adapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL,
+  })
+  return new PrismaClient({ adapter })
+}
+`
+    case 'mysql':
+      return `import { PrismaMariaDb } from '@prisma/adapter-mariadb'
+
+import { PrismaClient } from './prisma/client.js'
+
+export function createDb() {
+  const adapter = new PrismaMariaDb(process.env.DATABASE_URL ?? 'mariadb://root:@localhost:3306/mydb')
+  return new PrismaClient({ adapter })
+}
+`
+    case 'sqlite':
+    default:
+      return `import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+
+import { PrismaClient } from './prisma/client.js'
+
+export function createDb() {
+  const adapter = new PrismaBetterSqlite3({
+    url: process.env.DATABASE_URL ?? 'file:./local.db',
+  })
+  return new PrismaClient({ adapter })
+}
+`
+  }
+}
+
+function prismaConfigSource(): string {
+  return `import 'dotenv/config'
+import { defineConfig, env } from 'prisma/config'
+
+export default defineConfig({
+  schema: 'prisma/schema.prisma',
+  datasource: {
+    url: env('DATABASE_URL'),
+  },
+})
+`
+}
+
+function schemaSource(driver: DbDriver): string {
+  const provider = prismaProvider(driver)
+  return `generator client {
+  provider = "prisma-client"
+  output   = "../src/db/prisma"
+}
+
+datasource db {
+  provider = "${provider}"
+}
+
+model User {
+  id    Int    @id @default(autoincrement())
+  email String
+}
+`
+}
+
 export const prismaAddon: AddonDefinition = {
   id: 'prisma',
   category: 'database',
-  dependencies() {
-    return ['@prisma/client']
+  dependencies(ctx) {
+    const driver = ctx.driver ?? 'sqlite'
+    return ['@prisma/client', ...driverPackages(driver)]
   },
-  devDependencies() {
-    return ['prisma']
+  devDependencies(ctx) {
+    const driver = ctx.driver ?? 'sqlite'
+    return ['prisma', ...driverDevPackages(driver)]
   },
   scripts() {
     return {
@@ -49,33 +146,9 @@ export const prismaAddon: AddonDefinition = {
   },
   async apply(ctx, write) {
     const driver = ctx.driver ?? 'sqlite'
-    const provider = prismaProvider(driver)
-    await write(
-      'prisma/schema.prisma',
-      `generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "${provider}"
-  url      = env("DATABASE_URL")
-}
-
-model User {
-  id    Int    @id @default(autoincrement())
-  email String
-}
-`,
-    )
-    await write(
-      'src/db/index.ts',
-      `import { PrismaClient } from '@prisma/client'
-
-export function createDb() {
-  return new PrismaClient()
-}
-`,
-    )
+    await write('prisma.config.ts', prismaConfigSource())
+    await write('prisma/schema.prisma', schemaSource(driver))
+    await write('src/db/index.ts', dbIndexSource(driver))
     await write('.env.example', envExample(driver))
   },
 }

@@ -2,7 +2,7 @@ import { resolveAddons } from '../addons/registry.js'
 import type { PackageGroups, ScaffoldContext, Framework } from '../core/types.js'
 
 function frameworkPackages(framework: Framework): PackageGroups {
-  const dependencies = ['@taserjs/router']
+  const dependencies = ['@taserjs/router', 'dotenv']
   const devDependencies = [
     '@taserjs/router-cli',
     'npm-run-all2',

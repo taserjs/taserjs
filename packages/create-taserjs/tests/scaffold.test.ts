@@ -36,11 +36,14 @@ describe('scaffoldProject', () => {
       })
 
       const index = await readFile(path.join(dir, 'src/index.ts'), 'utf8')
+      expect(index).toContain('import \'dotenv/config\'')
       expect(index).not.toContain('TaserAppRouter')
       expect(index).not.toContain('@taserjs/router-client')
       expect(index).toContain('@taserjs/adapter-node')
       expect(index).toContain('#src/taser.js')
       expect(index).toContain('#src/routeManifest.gen.js')
+
+      await expect(readFile(path.join(dir, '.env'), 'utf8')).rejects.toThrow()
 
       const pkg = JSON.parse(await readFile(path.join(dir, 'package.json'), 'utf8')) as {
         dependencies?: Record<string, string>
@@ -111,6 +114,10 @@ describe('scaffoldProject', () => {
       expect(packages.devDependencies).toContain('drizzle-kit')
 
       await expect(readFile(path.join(dir, 'src/db/index.ts'), 'utf8')).resolves.toContain('createDb')
+      const env = await readFile(path.join(dir, '.env'), 'utf8')
+      const envExample = await readFile(path.join(dir, '.env.example'), 'utf8')
+      expect(env).toBe(envExample)
+      expect(env).toContain('DATABASE_URL=postgresql://')
     }
     finally {
       await rm(dir, { recursive: true, force: true })
@@ -125,6 +132,7 @@ describe('scaffoldProject', () => {
       db: 'drizzle',
       driver: 'sqlite',
     })
+    expect(packages.dependencies).toContain('dotenv')
     expect(packages.dependencies).toContain('better-sqlite3')
     expect(packages.devDependencies).toContain('@types/better-sqlite3')
   })
@@ -137,6 +145,7 @@ describe('scaffoldProject', () => {
       db: 'kysely',
       driver: 'postgres',
     })
+    expect(pgPackages.dependencies).toContain('dotenv')
     expect(pgPackages.dependencies).toContain('kysely')
     expect(pgPackages.dependencies).toContain('pg')
     expect(pgPackages.devDependencies).toContain('@types/pg')
@@ -148,9 +157,93 @@ describe('scaffoldProject', () => {
       db: 'kysely',
       driver: 'sqlite',
     })
+    expect(sqlitePackages.dependencies).toContain('dotenv')
     expect(sqlitePackages.dependencies).toContain('kysely')
     expect(sqlitePackages.dependencies).toContain('better-sqlite3')
     expect(sqlitePackages.devDependencies).toContain('@types/better-sqlite3')
+  })
+
+  it('scaffolds prisma with driver adapters and prisma config', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'create-taser-prisma-'))
+    try {
+      await scaffoldProject({
+        projectName: 'demo-prisma-pg',
+        targetDir: dir,
+        framework: 'node',
+        db: 'prisma',
+        driver: 'postgres',
+        skipInstall: true,
+      })
+
+      const prismaConfig = await readFile(path.join(dir, 'prisma.config.ts'), 'utf8')
+      expect(prismaConfig).toContain('defineConfig')
+      expect(prismaConfig).toContain('schema: \'prisma/schema.prisma\'')
+      expect(prismaConfig).toContain('url: env(\'DATABASE_URL\')')
+
+      const schema = await readFile(path.join(dir, 'prisma/schema.prisma'), 'utf8')
+      expect(schema).toContain('provider = "prisma-client"')
+      expect(schema).toContain('output   = "../src/db/prisma"')
+      expect(schema).toContain('provider = "postgresql"')
+
+      const dbIndex = await readFile(path.join(dir, 'src/db/index.ts'), 'utf8')
+      expect(dbIndex).toContain('import { PrismaPg } from \'@prisma/adapter-pg\'')
+      expect(dbIndex).toContain('import { PrismaClient } from \'./prisma/client.js\'')
+      expect(dbIndex).toContain('new PrismaPg({')
+
+      const env = await readFile(path.join(dir, '.env'), 'utf8')
+      const envExample = await readFile(path.join(dir, '.env.example'), 'utf8')
+      expect(env).toBe(envExample)
+      expect(env).toContain('DATABASE_URL=postgresql://')
+
+      const packages = resolvePackages({
+        projectName: 'demo-prisma-pg',
+        targetDir: dir,
+        framework: 'node',
+        db: 'prisma',
+        driver: 'postgres',
+      })
+      expect(packages.dependencies).toContain('dotenv')
+      expect(packages.dependencies).toContain('@prisma/client')
+      expect(packages.dependencies).toContain('@prisma/adapter-pg')
+      expect(packages.dependencies).toContain('pg')
+      expect(packages.devDependencies).toContain('prisma')
+      expect(packages.devDependencies).not.toContain('dotenv')
+      expect(packages.devDependencies).toContain('@types/pg')
+    }
+    finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('resolves prisma packages for sqlite and mysql drivers', () => {
+    const sqlitePackages = resolvePackages({
+      projectName: 'demo-prisma-sqlite',
+      targetDir: '/tmp/demo',
+      framework: 'node',
+      db: 'prisma',
+      driver: 'sqlite',
+    })
+    expect(sqlitePackages.dependencies).toContain('dotenv')
+    expect(sqlitePackages.dependencies).toContain('@prisma/client')
+    expect(sqlitePackages.dependencies).toContain('@prisma/adapter-better-sqlite3')
+    expect(sqlitePackages.dependencies).toContain('better-sqlite3')
+    expect(sqlitePackages.devDependencies).toContain('prisma')
+    expect(sqlitePackages.devDependencies).not.toContain('dotenv')
+    expect(sqlitePackages.devDependencies).toContain('@types/better-sqlite3')
+
+    const mysqlPackages = resolvePackages({
+      projectName: 'demo-prisma-mysql',
+      targetDir: '/tmp/demo',
+      framework: 'node',
+      db: 'prisma',
+      driver: 'mysql',
+    })
+    expect(mysqlPackages.dependencies).toContain('dotenv')
+    expect(mysqlPackages.dependencies).toContain('@prisma/client')
+    expect(mysqlPackages.dependencies).toContain('@prisma/adapter-mariadb')
+    expect(mysqlPackages.dependencies).toContain('mariadb')
+    expect(mysqlPackages.devDependencies).toContain('prisma')
+    expect(mysqlPackages.devDependencies).not.toContain('dotenv')
   })
 
   it('scaffolds pino logger in context boot', async () => {
@@ -342,6 +435,7 @@ describe('getPackageGroups', () => {
     const groups = getPackageGroups('node')
     expect(groups.dependencies).toEqual([
       '@taserjs/router',
+      'dotenv',
       '@taserjs/adapter-node',
     ])
     expect(groups.devDependencies).toEqual([
