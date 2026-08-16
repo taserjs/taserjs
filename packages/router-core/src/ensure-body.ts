@@ -1,27 +1,27 @@
-import type { Context } from 'hono'
+import type { Context } from "hono";
 
-import type { PipelineContext } from './run-middleware.js'
-import { parseRequestBody } from './parse-body.js'
+import type { PipelineContext } from "./run-middleware.js";
+import { parseRequestBody } from "./parse-body.js";
 
-const bodyParsedKey = Symbol('taserBodyParsed')
+const bodyParsedKey = Symbol("taserBodyParsed");
 
 /**
  * Parse request body once and cache on context.
  * Safe to call multiple times; no-op after first parse.
  */
 export async function ensureBody(ctx: PipelineContext): Promise<void> {
-  const record = ctx as PipelineContext & { [bodyParsedKey]?: boolean }
+  const record = ctx as PipelineContext & { [bodyParsedKey]?: boolean };
   if (record[bodyParsedKey]) {
-    return
+    return;
   }
 
-  const hono = ctx.hono as Context | undefined
+  const hono = ctx.hono as Context | undefined;
   if (!hono) {
-    ctx.body = undefined
-    record[bodyParsedKey] = true
-    return
+    ctx.body = undefined;
+    record[bodyParsedKey] = true;
+    return;
   }
 
-  ctx.body = await parseRequestBody(hono.req)
-  record[bodyParsedKey] = true
+  ctx.body = await parseRequestBody(hono.req);
+  record[bodyParsedKey] = true;
 }

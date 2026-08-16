@@ -36,13 +36,12 @@ Taser routes are files under `src/routes/`. A route file ends with an HTTP metho
 Create `src/routes/hello.get.ts`:
 
 ```ts
-import { reply } from '@taserjs/router'
-import { t } from '../taser'
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
 
-export const Route = t.get('/hello')
-  .handler(() => {
-    return reply.json({ message: 'Hello from Taser' })
-  })
+export const Route = t.get("/hello").handler(() => {
+  return reply.json({ message: "Hello from Taser" });
+});
 ```
 
 Run your server, then request `GET /hello`.
@@ -83,19 +82,34 @@ npm run taser:watch
 Now import the manifest in your server entry and create the app:
 
 ```ts
-import { routeManifest } from './routeManifest.gen'
-import { t } from './taser'
+import { routeManifest } from "./routeManifest.gen";
+import { t } from "./taser";
 
-export const app = t.create(routeManifest)
-export type TaserAppRouter = typeof app
+export const app = t.create(routeManifest);
+export type TaserAppRouter = typeof app;
 ```
 
 ## Next steps
 
 <Cards>
-  <Card title="File-based routing" href="/docs/routing/file-based" description="Learn the route file naming rules and how URLs are derived." />
-  <Card title="Layouts and middleware" href="/docs/routing/layouts-and-middleware" description="Compose shared behavior and keep state typed across routes." />
-  <Card title="Adapters" href="/docs/adapters" description="Mount the same router on Express, Fastify, or Node." />
-  <Card title="Typed client" href="/docs/typed-client" description="Call your API with a client that matches your routes." />
+  <Card
+    title="File-based routing"
+    href="/docs/routing/file-based"
+    description="Learn the route file naming rules and how URLs are derived."
+  />
+  <Card
+    title="Layouts and middleware"
+    href="/docs/routing/layouts-and-middleware"
+    description="Compose shared behavior and keep state typed across routes."
+  />
+  <Card
+    title="Adapters"
+    href="/docs/adapters"
+    description="Mount the same router on Express, Fastify, or Node."
+  />
+  <Card
+    title="Typed client"
+    href="/docs/typed-client"
+    description="Call your API with a client that matches your routes."
+  />
 </Cards>
-

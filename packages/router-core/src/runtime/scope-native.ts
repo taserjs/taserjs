@@ -4,10 +4,10 @@ export function resolveScopeNative(
   executionCtx: unknown,
 ): unknown {
   if (boundNative !== undefined) {
-    return boundNative
+    return boundNative;
   }
   if (env !== undefined || executionCtx !== undefined) {
-    return { env, executionCtx }
+    return { env, executionCtx };
   }
-  return undefined
+  return undefined;
 }

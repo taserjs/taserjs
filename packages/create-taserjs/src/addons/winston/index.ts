@@ -1,24 +1,24 @@
-import type { AddonDefinition } from '../types.js'
+import type { AddonDefinition } from "../types.js";
 
 export const winstonAddon: AddonDefinition = {
-  id: 'winston',
-  category: 'logger',
+  id: "winston",
+  category: "logger",
   dependencies() {
-    return ['winston']
+    return ["winston"];
   },
   devDependencies() {
-    return []
+    return [];
   },
   bootBinding() {
     return {
-      key: 'logger',
-      importPath: './logger.js',
-      factoryName: 'createLogger',
-    }
+      key: "logger",
+      importPath: "./logger.js",
+      factoryName: "createLogger",
+    };
   },
   async apply(_ctx, write) {
     await write(
-      'src/logger.ts',
+      "src/logger.ts",
       `import winston from 'winston'
 
 export function createLogger() {
@@ -29,6 +29,6 @@ export function createLogger() {
   })
 }
 `,
-    )
+    );
   },
-}
+};

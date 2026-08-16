@@ -1,26 +1,26 @@
 #!/usr/bin/env node
-import { parseArgs } from 'node:util'
+import { parseArgs } from "node:util";
 
-import * as p from '@clack/prompts'
-import color from 'picocolors'
+import * as p from "@clack/prompts";
+import color from "picocolors";
 
-import { buildParsedArgsFromCli, runCreateCommand } from './commands/create.js'
-import { printJsonError } from './core/json-output.js'
+import { buildParsedArgsFromCli, runCreateCommand } from "./commands/create.js";
+import { printJsonError } from "./core/json-output.js";
 
 async function main(): Promise<void> {
   const { values, positionals } = parseArgs({
     args: process.argv.slice(2),
     options: {
-      framework: { type: 'string' },
-      db: { type: 'string' },
-      logger: { type: 'string' },
-      validator: { type: 'string' },
-      y: { type: 'boolean', short: 'y' },
-      noInstall: { type: 'boolean' },
-      json: { type: 'boolean' },
+      framework: { type: "string" },
+      db: { type: "string" },
+      logger: { type: "string" },
+      validator: { type: "string" },
+      y: { type: "boolean", short: "y" },
+      noInstall: { type: "boolean" },
+      json: { type: "boolean" },
     },
     allowPositionals: true,
-  })
+  });
 
   const parsed = buildParsedArgsFromCli(
     {
@@ -33,27 +33,26 @@ async function main(): Promise<void> {
       ...(values.json !== undefined ? { json: values.json } : {}),
     },
     positionals,
-  )
+  );
 
   if (!parsed.json) {
-    console.clear()
-    p.intro(color.bgCyan(color.black(' create-taser ')))
+    console.clear();
+    p.intro(color.bgCyan(color.black(" create-taser ")));
   }
 
   try {
-    await runCreateCommand(parsed)
-  }
-  catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
+    await runCreateCommand(parsed);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     if (parsed.json) {
-      printJsonError(message)
-      process.exit(1)
+      printJsonError(message);
+      process.exit(1);
     }
-    throw error
+    throw error;
   }
 }
 
 main().catch((error: unknown) => {
-  console.error(error)
-  process.exit(1)
-})
+  console.error(error);
+  process.exit(1);
+});

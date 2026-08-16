@@ -5,11 +5,13 @@ Type-safe Node.js router with runtime validation and middleware
 ## Installation
 
 **npm:**
+
 ```bash
 npm install @taserjs/router
 ```
 
 **JSR:**
+
 ```bash
 deno add jsr:@taserjs/router
 npx jsr add @taserjs/router

@@ -9,7 +9,7 @@
  */
 export function toUniversalMountPattern(expressPattern: string): string {
   return expressPattern
-    .replace(/\{\/\*(\w*)\}/, '/*')
-    .replace(/\/\{\*[^}]+\}$/, '/*')
-    .replace(/\/\*(\w+)$/, '/*')
+    .replace(/\{\/\*(\w*)\}/, "/*")
+    .replace(/\/\{\*[^}]+\}$/, "/*")
+    .replace(/\/\*(\w+)$/, "/*");
 }

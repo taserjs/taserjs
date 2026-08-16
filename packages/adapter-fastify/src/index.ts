@@ -1,31 +1,31 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest, RouteHandlerMethod } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest, RouteHandlerMethod } from "fastify";
 
-import { getRequestListener } from '@hono/node-server'
-import type { TaserApp, TaserHandler } from '@taserjs/router'
-import { resolveMountBase } from '@taserjs/router-utils'
+import { getRequestListener } from "@hono/node-server";
+import type { TaserApp, TaserHandler } from "@taserjs/router";
+import { resolveMountBase } from "@taserjs/router-utils";
 
-type FastifyNativeContext = { req: FastifyRequest, reply: FastifyReply }
+type FastifyNativeContext = { req: FastifyRequest; reply: FastifyReply };
 
 export function createFastifyHandler(taserApp: TaserApp): TaserHandler<FastifyInstance> {
   return {
     mount(pattern: string, app: FastifyInstance): void {
-      const mountBase = resolveMountBase(pattern)
-      const mounted = taserApp.base(mountBase)
+      const mountBase = resolveMountBase(pattern);
+      const mounted = taserApp.base(mountBase);
       const handler: RouteHandlerMethod = async (req, reply) => {
-        const fetcher = mounted.native({ req, reply })
-        await getRequestListener(request => fetcher.fetch(request))(req.raw, reply.raw)
-      }
+        const fetcher = mounted.native({ req, reply });
+        await getRequestListener((request) => fetcher.fetch(request))(req.raw, reply.raw);
+      };
 
-      app.all(pattern, handler)
-      if (mountBase !== '/' && mountBase !== pattern) {
-        app.all(mountBase, handler)
+      app.all(pattern, handler);
+      if (mountBase !== "/" && mountBase !== pattern) {
+        app.all(mountBase, handler);
       }
     },
-  }
+  };
 }
 
-declare module '@taserjs/router' {
+declare module "@taserjs/router" {
   interface RouterRegister {
-    NativeContext: FastifyNativeContext
+    NativeContext: FastifyNativeContext;
   }
 }

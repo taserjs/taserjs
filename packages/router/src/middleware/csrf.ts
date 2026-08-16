@@ -1,11 +1,11 @@
-import { csrf as honoCsrf } from 'hono/csrf'
+import { csrf as honoCsrf } from "hono/csrf";
 
-import { wrapHonoMiddleware } from './auth.js'
+import { wrapHonoMiddleware } from "./auth.js";
 
-const honoCsrfMiddleware = wrapHonoMiddleware(honoCsrf)
+const honoCsrfMiddleware = wrapHonoMiddleware(honoCsrf);
 
 export function csrf(...args: Parameters<typeof honoCsrf>) {
-  return honoCsrfMiddleware(...args)
+  return honoCsrfMiddleware(...args);
 }
 
-export type CsrfOptions = NonNullable<Parameters<typeof honoCsrf>[0]>
+export type CsrfOptions = NonNullable<Parameters<typeof honoCsrf>[0]>;

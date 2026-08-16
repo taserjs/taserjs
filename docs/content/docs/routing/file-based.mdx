@@ -58,13 +58,12 @@ src/routes/posts_.$id.edit.get.ts -> GET /posts/:id/edit
 Inside your handler, `ctx.params.id` is typed:
 
 ```ts
-import { reply } from '@taserjs/router'
-import { t } from '../taser'
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
 
-export const Route = t.get('/users/:id')
-  .handler((ctx) => {
-    return reply.json({ id: ctx.params.id })
-  })
+export const Route = t.get("/users/:id").handler((ctx) => {
+  return reply.json({ id: ctx.params.id });
+});
 ```
 
 ## Splats with `$`
@@ -106,10 +105,10 @@ This naming is handy when you want a layout file next to routes that share a pre
 When you run `taser generate` or `taser watch`, Taser writes a `routeManifest.gen.ts` file. Your server imports that manifest and creates the app:
 
 ```ts
-import { routeManifest } from './routeManifest.gen'
-import { t } from './taser'
+import { routeManifest } from "./routeManifest.gen";
+import { t } from "./taser";
 
-export const app = t.create(routeManifest)
+export const app = t.create(routeManifest);
 ```
 
 The manifest is a build artifact. Your source of truth is still the route files.
@@ -117,7 +116,14 @@ The manifest is a build artifact. Your source of truth is still the route files.
 ## Next steps
 
 <Cards>
-  <Card title="Layouts and middleware" href="/docs/routing/layouts-and-middleware" description="Compose shared behavior and keep state typed." />
-  <Card title="Adapters" href="/docs/adapters" description="Mount the same router on different servers." />
+  <Card
+    title="Layouts and middleware"
+    href="/docs/routing/layouts-and-middleware"
+    description="Compose shared behavior and keep state typed."
+  />
+  <Card
+    title="Adapters"
+    href="/docs/adapters"
+    description="Mount the same router on different servers."
+  />
 </Cards>
-

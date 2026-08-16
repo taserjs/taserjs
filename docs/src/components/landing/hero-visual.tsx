@@ -1,5 +1,5 @@
-import { HeroCode } from './hero-code'
-import heroGlow from '@/assets/hero-glow.svg'
+import { HeroCode } from "./hero-code";
+import heroGlow from "@/assets/hero-glow.svg";
 
 export function HeroVisual() {
   return (
@@ -17,5 +17,5 @@ export function HeroVisual() {
         </div>
       </div>
     </div>
-  )
+  );
 }

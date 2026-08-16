@@ -1,48 +1,46 @@
-'use client'
+"use client";
 
-import { motion } from 'framer-motion'
+import { motion } from "framer-motion";
 
-import { SectionAccent, SectionHeader } from './section-header'
-import { SectionSeparator } from './section-separator'
+import { SectionAccent, SectionHeader } from "./section-header";
+import { SectionSeparator } from "./section-separator";
 
 type Testimonial = {
-  quote: string
-  name: string
-  role: string
-  initials: string
-}
+  quote: string;
+  name: string;
+  role: string;
+  initials: string;
+};
 
 const testimonials: Testimonial[] = [
   {
     quote:
-      'We stopped writing OpenAPI by hand and still got a typed client. The route file is the contract.',
-    name: 'Maya Chen',
-    role: 'Staff engineer, API platform',
-    initials: 'MC',
+      "We stopped writing OpenAPI by hand and still got a typed client. The route file is the contract.",
+    name: "Maya Chen",
+    role: "Staff engineer, API platform",
+    initials: "MC",
   },
   {
     quote:
-      'Layouts plus middleware typing saved us from bugs we used to catch in staging. Query and body just show up on ctx.',
-    name: 'Priya Nair',
-    role: 'Senior engineer, fintech',
-    initials: 'PN',
+      "Layouts plus middleware typing saved us from bugs we used to catch in staging. Query and body just show up on ctx.",
+    name: "Priya Nair",
+    role: "Senior engineer, fintech",
+    initials: "PN",
   },
   {
     quote:
-      'Returns maps for 200 vs 404 made error handling honest. Reviewers stop arguing about response shapes.',
-    name: 'Chris Adeyemi',
-    role: 'Principal engineer',
-    initials: 'CA',
+      "Returns maps for 200 vs 404 made error handling honest. Reviewers stop arguing about response shapes.",
+    name: "Chris Adeyemi",
+    role: "Principal engineer",
+    initials: "CA",
   },
-]
+];
 
 function TestimonialCard({ item }: { item: Testimonial }) {
   return (
     <figure className="rounded-xl border border-fd-border bg-fd-card p-5 shadow-sm">
       <blockquote className="text-sm leading-relaxed text-fd-muted-foreground">
-        “
-        {item.quote}
-        ”
+        “{item.quote}”
       </blockquote>
       <figcaption className="mt-4 flex items-center gap-3">
         <span
@@ -57,7 +55,7 @@ function TestimonialCard({ item }: { item: Testimonial }) {
         </div>
       </figcaption>
     </figure>
-  )
+  );
 }
 
 export function TestimonialsSection() {
@@ -68,30 +66,26 @@ export function TestimonialsSection() {
         className="mx-auto max-w-(--fd-layout-width) px-6"
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-80px' }}
+        viewport={{ once: true, margin: "-80px" }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
         <SectionHeader
           className="mb-10"
           animated={false}
-          title={(
+          title={
             <>
-              What
-              {' '}
-              <SectionAccent>builders</SectionAccent>
-              {' '}
-              are saying
+              What <SectionAccent>builders</SectionAccent> are saying
             </>
-          )}
+          }
           description="Typed routes and a matching client change how APIs get reviewed and shipped."
         />
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {testimonials.map(item => (
+          {testimonials.map((item) => (
             <TestimonialCard key={item.name} item={item} />
           ))}
         </div>
       </motion.div>
     </section>
-  )
+  );
 }

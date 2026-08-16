@@ -1,7 +1,7 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 
-export type ManifestWriteResult = 'written' | 'skipped'
+export type ManifestWriteResult = "written" | "skipped";
 
 export async function writeManifestIfChanged(
   outputFile: string,
@@ -10,17 +10,16 @@ export async function writeManifestIfChanged(
 ): Promise<ManifestWriteResult> {
   if (!options?.force) {
     try {
-      const existing = await readFile(outputFile, 'utf8')
+      const existing = await readFile(outputFile, "utf8");
       if (existing === source) {
-        return 'skipped'
+        return "skipped";
       }
-    }
-    catch {
+    } catch {
       // file does not exist yet
     }
   }
 
-  await mkdir(dirname(outputFile), { recursive: true })
-  await writeFile(outputFile, source, 'utf8')
-  return 'written'
+  await mkdir(dirname(outputFile), { recursive: true });
+  await writeFile(outputFile, source, "utf8");
+  return "written";
 }

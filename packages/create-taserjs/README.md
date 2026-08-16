@@ -5,12 +5,14 @@ Scaffold a new Taser application
 ## Usage
 
 **npm:**
+
 ```bash
 npm create taserjs@latest
 pnpm create taserjs@latest
 ```
 
 **JSR:**
+
 ```bash
 npx jsr @taserjs/create
 ```

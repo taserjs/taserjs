@@ -1,15 +1,15 @@
 export type HeroCodeTab = {
-  id: string
-  label: string
-  filename: string
-}
+  id: string;
+  label: string;
+  filename: string;
+};
 
 export const heroCodeTabs: HeroCodeTab[] = [
-  { id: 'context', label: 'Context', filename: 'context.ts' },
-  { id: 'layout', label: 'Layout', filename: 'routes/$.ts' },
-  { id: 'auth', label: 'Auth', filename: 'routes/dashboard.ts' },
-  { id: 'route', label: 'Route', filename: 'routes/dashboard/users.get.ts' },
-]
+  { id: "context", label: "Context", filename: "context.ts" },
+  { id: "layout", label: "Layout", filename: "routes/$.ts" },
+  { id: "auth", label: "Auth", filename: "routes/dashboard.ts" },
+  { id: "route", label: "Route", filename: "routes/dashboard/users.get.ts" },
+];
 
 /** Human-readable per-tab sources for Shiki. */
 export const heroTabSources: Record<string, string> = {
@@ -63,4 +63,4 @@ export const Route = GET.handler(async (ctx) => {
   const users = await ctx.db.getUsers(page, limit)
   return reply.json({ sub, users })
 })`,
-}
+};

@@ -15,12 +15,11 @@ A layout file is a TypeScript file under `src/routes/` that does not include an 
 It exports `Middleware`:
 
 ```ts
-import { t } from '../taser'
+import { t } from "../taser";
 
-export const Middleware = t.middleware('some-layout')
-  .use({
-    handler: (_ctx, next) => next(),
-  })
+export const Middleware = t.middleware("some-layout").use({
+  handler: (_ctx, next) => next(),
+});
 ```
 
 Layout middleware runs before the route handler and can add typed state.
@@ -30,16 +29,15 @@ Layout middleware runs before the route handler and can add typed state.
 If you want middleware to apply to every route, create `src/routes/$.ts`:
 
 ```ts
-import { t } from '../taser'
-import { z } from 'zod'
+import { t } from "../taser";
+import { z } from "zod";
 
-export const Middleware = t.middleware('/$')
-  .use({
-    state: z.object({ requestId: z.string() }),
-    handler: (_ctx, next) => {
-      return next({ state: { requestId: crypto.randomUUID() } })
-    },
-  })
+export const Middleware = t.middleware("/$").use({
+  state: z.object({ requestId: z.string() }),
+  handler: (_ctx, next) => {
+    return next({ state: { requestId: crypto.randomUUID() } });
+  },
+});
 ```
 
 Now every handler sees `ctx.state.requestId` as a `string`.
@@ -79,19 +77,18 @@ Middleware can validate and inject state in a typed way.
 This example checks a header and injects `userId`:
 
 ```ts
-import { reply } from '@taserjs/router'
-import { t } from '../taser'
-import { z } from 'zod'
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+import { z } from "zod";
 
-export const Middleware = t.middleware('auth')
-  .use({
-    state: z.object({ userId: z.string() }),
-    handler: (ctx, next) => {
-      const userId = ctx.headers.get('x-user-id')
-      if (!userId) return reply.unauthorized({ message: 'Missing x-user-id header' })
-      return next({ state: { userId } })
-    },
-  })
+export const Middleware = t.middleware("auth").use({
+  state: z.object({ userId: z.string() }),
+  handler: (ctx, next) => {
+    const userId = ctx.headers.get("x-user-id");
+    if (!userId) return reply.unauthorized({ message: "Missing x-user-id header" });
+    return next({ state: { userId } });
+  },
+});
 ```
 
 Downstream route handlers can now rely on `ctx.state.userId`.
@@ -112,7 +109,14 @@ Use this to build predictable pipelines. Keep layouts focused, and prefer a smal
 ## Next steps
 
 <Cards>
-  <Card title="Validation" href="/docs/validation" description="Validate query and body inputs with runtime schemas." />
-  <Card title="Responses and errors" href="/docs/responses-and-errors" description="Return typed replies and handle errors consistently." />
+  <Card
+    title="Validation"
+    href="/docs/validation"
+    description="Validate query and body inputs with runtime schemas."
+  />
+  <Card
+    title="Responses and errors"
+    href="/docs/responses-and-errors"
+    description="Return typed replies and handle errors consistently."
+  />
 </Cards>
-

@@ -1,13 +1,12 @@
-import { AdaptersSection } from '@/components/landing/adapters-section'
-import { CtaSection } from '@/components/landing/cta-section'
-import { FeaturesSection } from '@/components/landing/features-section'
-import { HeroSection } from '@/components/landing/hero-section'
-import { SponsorsSection } from '@/components/landing/sponsors-section'
-import { TestimonialsSection } from '@/components/landing/testimonials-section'
-import { TryItSection } from '@/components/landing/try-it-section'
-import { homeMetadata } from '@/lib/metadata'
+import { AdaptersSection } from "@/components/landing/adapters-section";
+import { CtaSection } from "@/components/landing/cta-section";
+import { FeaturesSection } from "@/components/landing/features-section";
+import { HeroSection } from "@/components/landing/hero-section";
+import { SponsorsSection } from "@/components/landing/sponsors-section";
+import { TryItSection } from "@/components/landing/try-it-section";
+import { homeMetadata } from "@/lib/metadata";
 
-export const metadata = homeMetadata
+export const metadata = homeMetadata;
 
 export default function HomePage() {
   return (
@@ -20,5 +19,5 @@ export default function HomePage() {
       <SponsorsSection />
       <CtaSection />
     </>
-  )
+  );
 }

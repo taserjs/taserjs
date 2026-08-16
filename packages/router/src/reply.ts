@@ -1,8 +1,4 @@
-export {
-  errorReply,
-  reply,
-  successReply,
-} from '@taserjs/router-utils/reply'
+export { errorReply, reply, successReply } from "@taserjs/router-utils/reply";
 export type {
   BinaryBody,
   BodyKind,
@@ -12,4 +8,4 @@ export type {
   ReplyInit,
   ReplyOf,
   SuccessReplyData,
-} from '@taserjs/router-utils/reply'
+} from "@taserjs/router-utils/reply";

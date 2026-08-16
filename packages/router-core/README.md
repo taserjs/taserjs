@@ -5,11 +5,13 @@ Taser Hono-backed Request/Response runtime pipeline
 ## Installation
 
 **npm:**
+
 ```bash
 npm install @taserjs/router-core
 ```
 
 **JSR:**
+
 ```bash
 deno add jsr:@taserjs/router-core
 npx jsr add @taserjs/router-core

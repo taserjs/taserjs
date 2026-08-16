@@ -1,79 +1,82 @@
-import './register.js'
-import { describe, expect, expectTypeOf, it } from 'vitest'
-import { sign } from 'hono/jwt'
-import { z } from 'zod'
+import "./register.js";
+import { describe, expect, expectTypeOf, it } from "vitest";
+import { sign } from "hono/jwt";
+import { z } from "zod";
 
-import { createTaserRuntime } from '@taserjs/router-core'
+import { createTaserRuntime } from "@taserjs/router-core";
 
-import { cors } from '../src/middleware/cors.js'
-import { createTaserApp, reply } from '../src/index.js'
-import { jwt } from '../src/middleware/jwt.js'
+import { cors } from "../src/middleware/cors.js";
+import { createTaserApp, reply } from "../src/index.js";
+import { jwt } from "../src/middleware/jwt.js";
 
-describe('middleware subpath exports', () => {
-  const t = createTaserApp().context({})
+describe("middleware subpath exports", () => {
+  const t = createTaserApp().context({});
 
-  it('cors() returns a MiddlewareUnit with a handler', () => {
-    const unit = cors({ origin: '*' })
-    expect(typeof unit.handler).toBe('function')
-  })
+  it("cors() returns a MiddlewareUnit with a handler", () => {
+    const unit = cors({ origin: "*" });
+    expect(typeof unit.handler).toBe("function");
+  });
 
-  it('cors sets Access-Control-Allow-Origin at runtime', async () => {
-    const route = t.get('/hello')
-      .use(cors({ origin: '*' }))
-      .handler(() => reply.json({ ok: true }))
+  it("cors sets Access-Control-Allow-Origin at runtime", async () => {
+    const route = t
+      .get("/hello")
+      .use(cors({ origin: "*" }))
+      .handler(() => reply.json({ ok: true }));
 
     const manifest = {
       layouts: {},
       routes: {
-        '/hello': {
+        "/hello": {
           GET: {
             layoutChain: [],
             route,
           },
         },
       },
-    }
+    };
 
-    const response = await createTaserRuntime(manifest, () => ({}))
-      .fetch(new Request('http://localhost/hello'))
-    expect(response.status).toBe(200)
-    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*')
-  })
+    const response = await createTaserRuntime(manifest, () => ({})).fetch(
+      new Request("http://localhost/hello"),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+  });
 
-  it('jwt injects validated payload into ctx.state.jwtPayload', async () => {
-    const secret = 'test-secret'
-    const token = await sign({ sub: 'user-123' }, secret, 'HS256')
+  it("jwt injects validated payload into ctx.state.jwtPayload", async () => {
+    const secret = "test-secret";
+    const token = await sign({ sub: "user-123" }, secret, "HS256");
 
-    const route = t.get('/hello')
-      .use(jwt(z.object({ sub: z.string() }), { secret, alg: 'HS256' }))
+    const route = t
+      .get("/hello")
+      .use(jwt(z.object({ sub: z.string() }), { secret, alg: "HS256" }))
       .handler((ctx) => {
-        expectTypeOf(ctx.state.jwtPayload.sub).toEqualTypeOf<string>()
-        return reply.json({ sub: ctx.state.jwtPayload.sub })
-      })
+        expectTypeOf(ctx.state.jwtPayload.sub).toEqualTypeOf<string>();
+        return reply.json({ sub: ctx.state.jwtPayload.sub });
+      });
 
     const manifest = {
       layouts: {},
       routes: {
-        '/hello': {
+        "/hello": {
           GET: {
             layoutChain: [],
             route,
           },
         },
       },
-    }
+    };
 
-    const runtime = createTaserRuntime(manifest, () => ({}))
+    const runtime = createTaserRuntime(manifest, () => ({}));
 
-    const unauthorized = await runtime.fetch(new Request('http://localhost/hello'))
-    expect(unauthorized.status).toBe(401)
+    const unauthorized = await runtime.fetch(new Request("http://localhost/hello"));
+    expect(unauthorized.status).toBe(401);
 
     const authorized = await runtime.fetch(
-      new Request('http://localhost/hello', {
+      new Request("http://localhost/hello", {
         headers: { Authorization: `Bearer ${token}` },
       }),
-    )
-    expect(authorized.status).toBe(200)
-    expect(await authorized.json()).toEqual({ sub: 'user-123' })
-  })
-})
+    );
+    expect(authorized.status).toBe(200);
+    expect(await authorized.json()).toEqual({ sub: "user-123" });
+  });
+});

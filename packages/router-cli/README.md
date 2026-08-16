@@ -5,11 +5,13 @@ CLI for Taser route manifest generation
 ## Installation
 
 **npm:**
+
 ```bash
 npm install @taserjs/router-cli
 ```
 
 **JSR:**
+
 ```bash
 deno add jsr:@taserjs/router-cli
 npx jsr add @taserjs/router-cli

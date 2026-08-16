@@ -28,36 +28,61 @@ Pick **Express**, **Hono**, **Fastify**, or plain **Node**, then run your packag
 Define a route:
 
 ```ts
-import { reply } from '@taserjs/router'
-import { z } from 'zod'
-import { t } from '../taser'
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../taser";
 
-export const Route = t.get('/search', {
-  query: z.object({ q: z.string().min(1) }),
-})
+export const Route = t
+  .get("/search", {
+    query: z.object({ q: z.string().min(1) }),
+  })
   .returns({ 200: z.object({ q: z.string() }) })
   .handler((ctx) => {
-    return reply.json({ q: ctx.query.q })
-  })
+    return reply.json({ q: ctx.query.q });
+  });
 ```
 
 Call it with the typed client:
 
 ```ts
-const response = await client.search.$get({ query: { q: 'taser' } })
-const json = await response.json()
+const response = await client.search.$get({ query: { q: "taser" } });
+const json = await response.json();
 // json is inferred from returns[200]
 ```
 
 ## Explore the docs
 
 <Cards>
-  <Card title="Getting started" href="/docs/getting-started" description="Scaffold a project, add your first route, and generate the manifest." />
-  <Card title="File-based routing" href="/docs/routing/file-based" description="Learn how route files map to methods and URL paths." />
-  <Card title="Layouts and middleware" href="/docs/routing/layouts-and-middleware" description="Compose shared behavior and keep state typed." />
-  <Card title="Adapters" href="/docs/adapters" description="Mount the same app on Express, Fastify, Node, or Fetch runtimes." />
-  <Card title="Validation" href="/docs/validation" description="Validate inputs so types match runtime behavior." />
-  <Card title="Typed client" href="/docs/typed-client" description="Call your API with a client that matches your routes." />
+  <Card
+    title="Getting started"
+    href="/docs/getting-started"
+    description="Scaffold a project, add your first route, and generate the manifest."
+  />
+  <Card
+    title="File-based routing"
+    href="/docs/routing/file-based"
+    description="Learn how route files map to methods and URL paths."
+  />
+  <Card
+    title="Layouts and middleware"
+    href="/docs/routing/layouts-and-middleware"
+    description="Compose shared behavior and keep state typed."
+  />
+  <Card
+    title="Adapters"
+    href="/docs/adapters"
+    description="Mount the same app on Express, Fastify, Node, or Fetch runtimes."
+  />
+  <Card
+    title="Validation"
+    href="/docs/validation"
+    description="Validate inputs so types match runtime behavior."
+  />
+  <Card
+    title="Typed client"
+    href="/docs/typed-client"
+    description="Call your API with a client that matches your routes."
+  />
 </Cards>
 
 Ship handlers that are type-checked before the first request hits them. That is the bar Taser aims for.

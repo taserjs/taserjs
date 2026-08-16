@@ -1,8 +1,8 @@
-import type { Framework } from '../core/types.js'
+import type { Framework } from "../core/types.js";
 
 export function indexTemplate(framework: Framework): string {
   switch (framework) {
-    case 'express':
+    case "express":
       return `import 'dotenv/config'
 
 import express from 'express'
@@ -21,8 +21,8 @@ const port = Number(process.env.PORT ?? 3000)
 app.listen(port, () => {
   console.log(\`Express listening on http://localhost:\${port}\`)
 })
-`
-    case 'hono':
+`;
+    case "hono":
       return `import 'dotenv/config'
 
 import { serve } from '@hono/node-server'
@@ -41,8 +41,8 @@ const port = Number(process.env.PORT ?? 3000)
 serve({ fetch: app.fetch, port }, () => {
   console.log(\`Hono listening on http://localhost:\${port}\`)
 })
-`
-    case 'fastify':
+`;
+    case "fastify":
       return `import 'dotenv/config'
 
 import Fastify from 'fastify'
@@ -60,8 +60,8 @@ taser.mount('/api/*', app)
 const port = Number(process.env.PORT ?? 3000)
 await app.listen({ port })
 console.log(\`Fastify listening on http://localhost:\${port}\`)
-`
-    case 'node':
+`;
+    case "node":
     default:
       return `import 'dotenv/config'
 
@@ -81,12 +81,12 @@ const port = Number(process.env.PORT ?? 3000)
 app.listen(port, () => {
   console.log(\`Node listening on http://localhost:\${port}\`)
 })
-`
+`;
   }
 }
 
-export function taserTsTemplate(framework: Framework = 'node'): string {
-  if (framework === 'hono') {
+export function taserTsTemplate(framework: Framework = "node"): string {
+  if (framework === "hono") {
     return `import type { Context } from 'hono'
 import { createTaserApp, type InferAppContext } from '@taserjs/router'
 
@@ -103,7 +103,7 @@ export const t = createTaserApp({
 }).context(context)
 
 export type AppContext = InferAppContext<typeof context>
-`
+`;
   }
 
   return `import { createTaserApp, type InferAppContext } from '@taserjs/router'
@@ -115,5 +115,5 @@ export const t = createTaserApp({
 }).context(context)
 
 export type AppContext = InferAppContext<typeof context>
-`
+`;
 }

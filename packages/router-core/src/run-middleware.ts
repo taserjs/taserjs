@@ -1,29 +1,29 @@
-import type { StandardSchemaV1 } from '@standard-schema/spec'
-import { ensureReplyResult, type ReplyResult, validateSchema } from '@taserjs/router-utils'
+import type { StandardSchemaV1 } from "@standard-schema/spec";
+import { ensureReplyResult, type ReplyResult, validateSchema } from "@taserjs/router-utils";
 
-import { ensureBody } from './ensure-body.js'
-import { RESERVED_CONTEXT_KEYS } from './constants.js'
-import type { MiddlewareDefinition } from './types.js'
+import { ensureBody } from "./ensure-body.js";
+import { RESERVED_CONTEXT_KEYS } from "./constants.js";
+import type { MiddlewareDefinition } from "./types.js";
 
 export type PipelineContext = Record<string, unknown> & {
-  state: Record<string, unknown>
-}
+  state: Record<string, unknown>;
+};
 
 export type PipelineNextArgs = {
-  state?: unknown
-  ctx?: unknown
-}
+  state?: unknown;
+  ctx?: unknown;
+};
 
-export type PipelineNext = (args?: PipelineNextArgs) => Promise<ReplyResult>
+export type PipelineNext = (args?: PipelineNextArgs) => Promise<ReplyResult>;
 
 export type PipelineLayer = {
-  run: (ctx: PipelineContext, next: PipelineNext) => Promise<unknown>
-}
+  run: (ctx: PipelineContext, next: PipelineNext) => Promise<unknown>;
+};
 
-const reservedKeySet = new Set<string>(RESERVED_CONTEXT_KEYS)
+const reservedKeySet = new Set<string>(RESERVED_CONTEXT_KEYS);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /** Validate against a schema and merge defined keys back into the current value. */
@@ -31,25 +31,22 @@ export async function mergeValidatedField(
   schema: StandardSchemaV1,
   current: unknown,
 ): Promise<unknown> {
-  const validated = await validateSchema(schema, current)
+  const validated = await validateSchema(schema, current);
   if (isRecord(current) && isRecord(validated)) {
-    return { ...current, ...validated }
+    return { ...current, ...validated };
   }
-  return validated
+  return validated;
 }
 
-function assignInjectedCtx(
-  pipelineCtx: PipelineContext,
-  injected: unknown,
-): void {
-  if (typeof injected !== 'object' || injected === null) {
-    return
+function assignInjectedCtx(pipelineCtx: PipelineContext, injected: unknown): void {
+  if (typeof injected !== "object" || injected === null) {
+    return;
   }
   for (const [key, value] of Object.entries(injected as Record<string, unknown>)) {
     if (reservedKeySet.has(key)) {
-      continue
+      continue;
     }
-    pipelineCtx[key] = value
+    pipelineCtx[key] = value;
   }
 }
 
@@ -58,65 +55,60 @@ async function applyValidators(
   definition: MiddlewareDefinition,
 ): Promise<void> {
   if (definition.query !== undefined) {
-    ctx.query = await mergeValidatedField(definition.query as StandardSchemaV1, ctx.query)
+    ctx.query = await mergeValidatedField(definition.query as StandardSchemaV1, ctx.query);
   }
   if (definition.params !== undefined) {
-    ctx.params = await mergeValidatedField(definition.params as StandardSchemaV1, ctx.params)
+    ctx.params = await mergeValidatedField(definition.params as StandardSchemaV1, ctx.params);
   }
   if (definition.body !== undefined) {
-    await ensureBody(ctx)
-    ctx.body = await mergeValidatedField(definition.body as StandardSchemaV1, ctx.body)
+    await ensureBody(ctx);
+    ctx.body = await mergeValidatedField(definition.body as StandardSchemaV1, ctx.body);
   }
 }
 
-function createNext(
-  ctx: PipelineContext,
-  remainder: () => Promise<ReplyResult>,
-): PipelineNext {
+function createNext(ctx: PipelineContext, remainder: () => Promise<ReplyResult>): PipelineNext {
   return (args?: PipelineNextArgs) => {
     if (args?.state !== undefined) {
       ctx.state = {
         ...ctx.state,
         ...(args.state as Record<string, unknown>),
-      }
+      };
     }
     if (args?.ctx !== undefined) {
-      assignInjectedCtx(ctx, args.ctx)
+      assignInjectedCtx(ctx, args.ctx);
     }
-    return remainder()
-  }
+    return remainder();
+  };
 }
 
 export function middlewareToLayer(definition: MiddlewareDefinition): PipelineLayer {
   return {
     async run(ctx, next) {
-      await applyValidators(ctx, definition)
+      await applyValidators(ctx, definition);
 
-      let nextCalled = false
+      let nextCalled = false;
       const trackedNext: PipelineNext = (args) => {
-        nextCalled = true
-        return next(args)
-      }
+        nextCalled = true;
+        return next(args);
+      };
 
-      const out = await definition.handler(ctx, trackedNext)
+      const out = await definition.handler(ctx, trackedNext);
       // Preserve prefix-era behavior: nullish return without calling next continues the chain.
       if ((out === undefined || out === null) && !nextCalled) {
-        return next()
+        return next();
       }
-      return out
+      return out;
     },
-  }
+  };
 }
 
-export function schemaLayer(
-  apply: (ctx: PipelineContext) => Promise<void>,
-): PipelineLayer {
+export function schemaLayer(apply: (ctx: PipelineContext) => Promise<void>): PipelineLayer {
   return {
     async run(ctx, next) {
-      await apply(ctx)
-      return next()
+      await apply(ctx);
+      return next();
     },
-  }
+  };
 }
 
 /**
@@ -129,14 +121,14 @@ export function composePipeline(
 ): (ctx: PipelineContext) => Promise<ReplyResult> {
   const dispatch = (index: number, ctx: PipelineContext): Promise<ReplyResult> => {
     if (index >= layers.length) {
-      return Promise.resolve(terminal(ctx)).then(ensureReplyResult)
+      return Promise.resolve(terminal(ctx)).then(ensureReplyResult);
     }
 
-    const layer = layers[index]!
-    const next = createNext(ctx, () => dispatch(index + 1, ctx))
+    const layer = layers[index]!;
+    const next = createNext(ctx, () => dispatch(index + 1, ctx));
 
-    return Promise.resolve(layer.run(ctx, next)).then(ensureReplyResult)
-  }
+    return Promise.resolve(layer.run(ctx, next)).then(ensureReplyResult);
+  };
 
-  return ctx => dispatch(0, ctx)
+  return (ctx) => dispatch(0, ctx);
 }

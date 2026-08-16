@@ -1,19 +1,19 @@
-import type { LayoutId, MiddlewareBuilder } from './types/index.js'
-import type { MiddlewareDefinition } from './types/units.js'
+import type { LayoutId, MiddlewareBuilder } from "./types/index.js";
+import type { MiddlewareDefinition } from "./types/units.js";
 
 export function createMiddleware<const Layout extends LayoutId>(
   layout: Layout,
 ): MiddlewareBuilder<Layout, readonly []> {
-  const entries: MiddlewareDefinition[] = []
+  const entries: MiddlewareDefinition[] = [];
 
   const chain = {
     layout,
     middlewares: entries,
     use(definition: MiddlewareDefinition) {
-      entries.push(definition)
-      return chain
+      entries.push(definition);
+      return chain;
     },
-  }
+  };
 
-  return chain as unknown as MiddlewareBuilder<Layout, readonly []>
+  return chain as unknown as MiddlewareBuilder<Layout, readonly []>;
 }

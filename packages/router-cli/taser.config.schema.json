@@ -32,10 +32,7 @@
     "quotes": {
       "default": "single",
       "type": "string",
-      "enum": [
-        "single",
-        "double"
-      ]
+      "enum": ["single", "double"]
     },
     "semi": {
       "default": false,

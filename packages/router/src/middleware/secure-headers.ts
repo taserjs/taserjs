@@ -1,11 +1,11 @@
-import { secureHeaders as honoSecureHeaders } from 'hono/secure-headers'
+import { secureHeaders as honoSecureHeaders } from "hono/secure-headers";
 
-import { wrapHonoMiddleware } from './auth.js'
+import { wrapHonoMiddleware } from "./auth.js";
 
-const honoSecureHeadersMiddleware = wrapHonoMiddleware(honoSecureHeaders)
+const honoSecureHeadersMiddleware = wrapHonoMiddleware(honoSecureHeaders);
 
 export function secureHeaders(...args: Parameters<typeof honoSecureHeaders>) {
-  return honoSecureHeadersMiddleware(...args)
+  return honoSecureHeadersMiddleware(...args);
 }
 
-export type SecureHeadersOptions = NonNullable<Parameters<typeof honoSecureHeaders>[0]>
+export type SecureHeadersOptions = NonNullable<Parameters<typeof honoSecureHeaders>[0]>;

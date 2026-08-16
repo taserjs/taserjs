@@ -1,15 +1,15 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
+import Link from "next/link";
 
 export default function Error({
   error,
   reset,
 }: {
-  error: Error & { digest?: string }
-  reset: () => void
+  error: Error & { digest?: string };
+  reset: () => void;
 }) {
-  console.error(error)
+  console.error(error);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 py-12 text-white">
@@ -19,7 +19,8 @@ export default function Error({
         </p>
         <h1 className="text-3xl font-bold tracking-tight">This page crashed.</h1>
         <p className="mt-4 text-base text-slate-300">
-          An unexpected error occurred while rendering this page. You can try again or head back to the home page.
+          An unexpected error occurred while rendering this page. You can try again or head back to
+          the home page.
         </p>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -39,5 +40,5 @@ export default function Error({
         </div>
       </div>
     </main>
-  )
+  );
 }

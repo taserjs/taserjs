@@ -1,37 +1,36 @@
-import { isReplyResult, reply } from '@taserjs/router-utils'
+import { isReplyResult, reply } from "@taserjs/router-utils";
 
 /** True for Web Responses even after global.Response is replaced (e.g. @hono/node-server). */
 function isResponseLike(value: unknown): value is Response {
   if (isReplyResult(value) || value instanceof Response) {
-    return true
+    return true;
   }
   return (
-    typeof value === 'object'
-    && value !== null
-    && typeof (value as Response).arrayBuffer === 'function'
-    && typeof (value as Response).status === 'number'
-    && typeof (value as Response).headers === 'object'
-  )
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as Response).arrayBuffer === "function" &&
+    typeof (value as Response).status === "number" &&
+    typeof (value as Response).headers === "object"
+  );
 }
 
 /** Stage 2: strip ReplyResult subclass before handing to Hono/adapters. */
 export function toWireResponse(response: Response): Response {
-  return isReplyResult(response) ? response.getResponse() : response
+  return isReplyResult(response) ? response.getResponse() : response;
 }
 
 export function handlePipelineError(error: unknown): Response {
   if (isResponseLike(error)) {
-    return error
+    return error;
   }
 
   if (error instanceof Error) {
-    console.error(error)
-  }
-  else {
-    console.error('Unhandled pipeline error', error)
+    console.error(error);
+  } else {
+    console.error("Unhandled pipeline error", error);
   }
 
-  return reply.internalServerError()
+  return reply.internalServerError();
 }
 
 /**
@@ -42,20 +41,20 @@ export function handlePipelineError(error: unknown): Response {
  */
 export function toResponse(value: unknown): Response {
   if (isReplyResult(value)) {
-    return value
+    return value;
   }
 
   if (value instanceof Response) {
-    return value
+    return value;
   }
 
   if (isResponseLike(value)) {
-    return value
+    return value;
   }
 
   if (value === undefined || value === null) {
-    return reply.noContent()
+    return reply.noContent();
   }
 
-  return reply.json(value)
+  return reply.json(value);
 }

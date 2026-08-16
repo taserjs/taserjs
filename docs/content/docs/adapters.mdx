@@ -11,11 +11,11 @@ Taser builds an app that speaks the Web standard `Request` and `Response` types.
 Every adapter starts the same way:
 
 ```ts
-import { routeManifest } from './routeManifest.gen'
-import { t } from './taser'
+import { routeManifest } from "./routeManifest.gen";
+import { t } from "./taser";
 
-export const app = t.create(routeManifest)
-export type TaserAppRouter = typeof app
+export const app = t.create(routeManifest);
+export type TaserAppRouter = typeof app;
 ```
 
 ## Express
@@ -30,16 +30,16 @@ npm install @taserjs/adapter-express
 Mount:
 
 ```ts
-import express from 'express'
-import { createExpressHandler } from '@taserjs/adapter-express'
-import { app } from './app'
+import express from "express";
+import { createExpressHandler } from "@taserjs/adapter-express";
+import { app } from "./app";
 
-const server = express()
-const taser = createExpressHandler(app)
+const server = express();
+const taser = createExpressHandler(app);
 
-taser.mount('/api{/*splat}', server)
+taser.mount("/api{/*splat}", server);
 
-server.listen(3000)
+server.listen(3000);
 ```
 
 ## Fastify
@@ -54,16 +54,16 @@ npm install @taserjs/adapter-fastify
 Mount:
 
 ```ts
-import Fastify from 'fastify'
-import { createFastifyHandler } from '@taserjs/adapter-fastify'
-import { app } from './app'
+import Fastify from "fastify";
+import { createFastifyHandler } from "@taserjs/adapter-fastify";
+import { app } from "./app";
 
-const server = Fastify()
-const taser = createFastifyHandler(app)
+const server = Fastify();
+const taser = createFastifyHandler(app);
 
-taser.mount('/api/*', server)
+taser.mount("/api/*", server);
 
-await server.listen({ port: 3000 })
+await server.listen({ port: 3000 });
 ```
 
 ## Node HTTP server
@@ -77,16 +77,16 @@ npm install @taserjs/adapter-node
 Mount:
 
 ```ts
-import { createServer } from 'node:http'
-import { createNodeHandler } from '@taserjs/adapter-node'
-import { app } from './app'
+import { createServer } from "node:http";
+import { createNodeHandler } from "@taserjs/adapter-node";
+import { app } from "./app";
 
-const server = createServer()
-const taser = createNodeHandler(app)
+const server = createServer();
+const taser = createNodeHandler(app);
 
-taser.mount('/api', server)
+taser.mount("/api", server);
 
-server.listen(3000)
+server.listen(3000);
 ```
 
 ## Fetch runtimes (Hono style)
@@ -96,16 +96,23 @@ Because `app.fetch` already accepts a `Request`, you can run it in any runtime t
 For example in Node using `@hono/node-server`:
 
 ```ts
-import { serve } from '@hono/node-server'
-import { app } from './app'
+import { serve } from "@hono/node-server";
+import { app } from "./app";
 
-serve({ fetch: app.fetch, port: 3000 })
+serve({ fetch: app.fetch, port: 3000 });
 ```
 
 ## Next steps
 
 <Cards>
-  <Card title="File-based routing" href="/docs/routing/file-based" description="Learn how route files become URLs and methods." />
-  <Card title="Typed client" href="/docs/typed-client" description="Call the API with types derived from your router." />
+  <Card
+    title="File-based routing"
+    href="/docs/routing/file-based"
+    description="Learn how route files become URLs and methods."
+  />
+  <Card
+    title="Typed client"
+    href="/docs/typed-client"
+    description="Call the API with types derived from your router."
+  />
 </Cards>
-

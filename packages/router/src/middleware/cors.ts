@@ -1,11 +1,11 @@
-import { cors as honoCors } from 'hono/cors'
+import { cors as honoCors } from "hono/cors";
 
-import { wrapHonoMiddleware } from './auth.js'
+import { wrapHonoMiddleware } from "./auth.js";
 
-const honoCorsMiddleware = wrapHonoMiddleware(honoCors)
+const honoCorsMiddleware = wrapHonoMiddleware(honoCors);
 
 export function cors(...args: Parameters<typeof honoCors>) {
-  return honoCorsMiddleware(...args)
+  return honoCorsMiddleware(...args);
 }
 
-export type CorsOptions = NonNullable<Parameters<typeof honoCors>[0]>
+export type CorsOptions = NonNullable<Parameters<typeof honoCors>[0]>;

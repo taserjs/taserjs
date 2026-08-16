@@ -4,16 +4,8 @@
 
 :root {
   --landing-accent: #ff7f04;
-  --landing-accent-22: color-mix(
-    in oklab,
-    var(--landing-accent) 22%,
-    transparent
-  );
-  --landing-accent-40: color-mix(
-    in oklab,
-    var(--landing-accent) 40%,
-    transparent
-  );
+  --landing-accent-22: color-mix(in oklab, var(--landing-accent) 22%, transparent);
+  --landing-accent-40: color-mix(in oklab, var(--landing-accent) 40%, transparent);
 }
 
 html {
@@ -49,13 +41,7 @@ html > body[data-scroll-locked] {
 }
 
 .landing-border-gradient {
-  border-image: linear-gradient(
-      90deg,
-      transparent,
-      var(--landing-accent-40),
-      transparent
-    )
-    1;
+  border-image: linear-gradient(90deg, transparent, var(--landing-accent-40), transparent) 1;
 }
 
 .landing-section-separator {
@@ -63,20 +49,11 @@ html > body[data-scroll-locked] {
   position: absolute;
   inset-inline: 0;
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--landing-accent-40),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, var(--landing-accent-40), transparent);
 }
 
 .landing-hero-glow-warm {
-  background: radial-gradient(
-    ellipse 70% 50% at 20% -10%,
-    var(--landing-accent-22),
-    transparent
-  );
+  background: radial-gradient(ellipse 70% 50% at 20% -10%, var(--landing-accent-22), transparent);
 }
 
 .text-landing-accent {

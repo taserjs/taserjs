@@ -1,29 +1,32 @@
-import type { BootBinding } from '../addons/types.js'
-import type { ScaffoldContext } from '../core/types.js'
+import type { BootBinding } from "../addons/types.js";
+import type { ScaffoldContext } from "../core/types.js";
 
-export function packageJsonTemplate(projectName: string, scripts: Record<string, string> = {}): string {
+export function packageJsonTemplate(
+  projectName: string,
+  scripts: Record<string, string> = {},
+): string {
   const pkg = {
     name: projectName,
-    version: '1.0.0',
+    version: "1.0.0",
     private: true,
-    type: 'module',
+    type: "module",
     imports: {
-      '#src/*': './src/*',
+      "#src/*": "./src/*",
     },
     scripts: {
-      'dev': 'run-p dev:server dev:taser',
-      'dev:server': 'tsx watch src/index.ts',
-      'dev:taser': 'taser watch',
-      'start': 'tsx src/index.ts',
-      'generate': 'taser generate',
-      'build': 'taser generate && tsdown',
-      'serve': 'node dist/index.mjs',
-      'typecheck': 'tsc --noEmit -p tsconfig.json',
+      dev: "run-p dev:server dev:taser",
+      "dev:server": "tsx watch src/index.ts",
+      "dev:taser": "taser watch",
+      start: "tsx src/index.ts",
+      generate: "taser generate",
+      build: "taser generate && tsdown",
+      serve: "node dist/index.mjs",
+      typecheck: "tsc --noEmit -p tsconfig.json",
       ...scripts,
     },
-  }
+  };
 
-  return `${JSON.stringify(pkg, null, 2)}\n`
+  return `${JSON.stringify(pkg, null, 2)}\n`;
 }
 
 export function tsdownConfigTemplate(): string {
@@ -36,26 +39,30 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
 })
-`
+`;
 }
 
 export function tsconfigTemplate(): string {
-  return `${JSON.stringify({
-    compilerOptions: {
-      target: 'ES2022',
-      module: 'NodeNext',
-      paths: {
-        '#src/*': ['./src/*'],
+  return `${JSON.stringify(
+    {
+      compilerOptions: {
+        target: "ES2022",
+        module: "NodeNext",
+        paths: {
+          "#src/*": ["./src/*"],
+        },
+        strict: true,
+        skipLibCheck: true,
+        verbatimModuleSyntax: true,
+        isolatedModules: true,
+        noEmit: true,
+        types: ["node"],
       },
-      strict: true,
-      skipLibCheck: true,
-      verbatimModuleSyntax: true,
-      isolatedModules: true,
-      noEmit: true,
-      types: ['node'],
+      include: ["src"],
     },
-    include: ['src'],
-  }, null, 2)}\n`
+    null,
+    2,
+  )}\n`;
 }
 
 export function gitignoreTemplate(): string {
@@ -66,23 +73,22 @@ dist
 .env
 local.db
 drizzle
-`
+`;
 }
 
 export function contextTemplate(bindings: BootBinding[]): string {
   const imports = bindings.map(
-    binding => `import { ${binding.factoryName} } from '${binding.importPath}'`,
-  )
+    (binding) => `import { ${binding.factoryName} } from '${binding.importPath}'`,
+  );
 
-  const bootBody = bindings.length > 0
-    ? bindings.map(binding => `    ${binding.key}: ${binding.factoryName}(),`).join('\n')
-    : ''
+  const bootBody =
+    bindings.length > 0
+      ? bindings.map((binding) => `    ${binding.key}: ${binding.factoryName}(),`).join("\n")
+      : "";
 
-  const bootBlock = bindings.length > 0
-    ? `  boot: () => ({\n${bootBody}\n  }),`
-    : ''
+  const bootBlock = bindings.length > 0 ? `  boot: () => ({\n${bootBody}\n  }),` : "";
 
-  const importBlock = imports.length > 0 ? `${imports.join('\n')}\n\n` : ''
+  const importBlock = imports.length > 0 ? `${imports.join("\n")}\n\n` : "";
 
   return `${importBlock}import { createContext } from '@taserjs/router'
 
@@ -92,7 +98,7 @@ ${bootBlock}
     requestId: crypto.randomUUID(),
   }),
 })
-`
+`;
 }
 
 export function rootLayoutTemplate(): string {
@@ -104,7 +110,7 @@ import { t } from '#src/taser.js'
 export const Middleware = t.middleware('/$')
   .use(secureHeaders())
   .use(bodyLimit({ maxSize: 1_000_000 }))
-`
+`;
 }
 
 export function indexRouteTemplate(): string {
@@ -114,22 +120,22 @@ import { t } from '#src/taser.js'
 export const Route = t.get('/').handler(() => {
   return reply.json({ message: 'Welcome to Taser' })
 })
-`
+`;
 }
 
 export function healthRouteTemplate(ctx: ScaffoldContext): string {
-  const lines: string[] = []
+  const lines: string[] = [];
 
   if (ctx.logger) {
-    lines.push('  ctx.logger.info(\'health check\')')
+    lines.push("  ctx.logger.info('health check')");
   }
 
   if (ctx.db) {
-    lines.push('  // ctx.db is available from context boot')
+    lines.push("  // ctx.db is available from context boot");
   }
 
-  const body = lines.length > 0 ? `${lines.join('\n')}\n` : ''
-  const ctxArg = lines.length > 0 ? '(ctx)' : '()'
+  const body = lines.length > 0 ? `${lines.join("\n")}\n` : "";
+  const ctxArg = lines.length > 0 ? "(ctx)" : "()";
 
   return `import { reply } from '@taserjs/router'
 import { t } from '#src/taser.js'
@@ -137,7 +143,7 @@ import { t } from '#src/taser.js'
 export const Route = t.get('/health').handler(${ctxArg} => {
 ${body}  return reply.json({ ok: true })
 })
-`
+`;
 }
 
 /** Minimal placeholder until `taser generate` runs. */
@@ -204,5 +210,5 @@ declare module '@taserjs/router' {
     RouteByPathMethod: RouteByPathMethodGen
   }
 }
-`
+`;
 }

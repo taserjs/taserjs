@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode } from "react";
 import {
   Box,
   Braces,
@@ -9,72 +9,77 @@ import {
   ShieldCheck,
   Workflow,
   Zap,
-} from 'lucide-react'
+} from "lucide-react";
 
-import { FeatureCard } from './feature-card'
-import type { IconTone } from './feature-card'
-import { SectionAccent, SectionHeader } from './section-header'
-import { SectionSeparator } from './section-separator'
+import { FeatureCard } from "./feature-card";
+import type { IconTone } from "./feature-card";
+import { SectionAccent, SectionHeader } from "./section-header";
+import { SectionSeparator } from "./section-separator";
 
-const adapters: { name: string, description: string, icon: ReactNode, iconTone: IconTone }[] = [
+const adapters: { name: string; description: string; icon: ReactNode; iconTone: IconTone }[] = [
   {
-    name: 'Express',
-    description: 'Mount with Express splat patterns.',
+    name: "Express",
+    description: "Mount with Express splat patterns.",
     icon: <Server />,
-    iconTone: 'sky',
+    iconTone: "sky",
   },
   {
-    name: 'Hono',
-    description: 'Lightweight and edge-friendly.',
+    name: "Hono",
+    description: "Lightweight and edge-friendly.",
     icon: <Zap />,
-    iconTone: 'amber',
+    iconTone: "amber",
   },
   {
-    name: 'Fastify',
-    description: 'High-throughput Node servers.',
+    name: "Fastify",
+    description: "High-throughput Node servers.",
     icon: <Workflow />,
-    iconTone: 'cyan',
+    iconTone: "cyan",
   },
   {
-    name: 'Node',
-    description: 'Plain Node.js HTTP handler.',
+    name: "Node",
+    description: "Plain Node.js HTTP handler.",
     icon: <Box />,
-    iconTone: 'violet',
+    iconTone: "violet",
   },
   {
-    name: 'Fetch',
-    description: 'Web-standard Request / Response adapter.',
+    name: "Fetch",
+    description: "Web-standard Request / Response adapter.",
     icon: <Globe />,
-    iconTone: 'emerald',
+    iconTone: "emerald",
   },
-]
+];
 
-const schemaLibraries: { name: string, description: string, icon: ReactNode, iconTone: IconTone }[] = [
+const schemaLibraries: {
+  name: string;
+  description: string;
+  icon: ReactNode;
+  iconTone: IconTone;
+}[] = [
   {
-    name: 'Zod',
-    description: 'TypeScript-first schemas with rich inference.',
+    name: "Zod",
+    description: "TypeScript-first schemas with rich inference.",
     icon: <Braces />,
-    iconTone: 'indigo',
+    iconTone: "indigo",
   },
   {
-    name: 'Arktype',
-    description: 'TypeScript-native validation with deep inference.',
+    name: "Arktype",
+    description: "TypeScript-native validation with deep inference.",
     icon: <Hexagon />,
-    iconTone: 'violet',
+    iconTone: "violet",
   },
   {
-    name: 'Valibot',
-    description: 'Modular, tree-shakeable schema definitions.',
+    name: "Valibot",
+    description: "Modular, tree-shakeable schema definitions.",
     icon: <ShieldCheck />,
-    iconTone: 'emerald',
+    iconTone: "emerald",
   },
   {
-    name: 'And more',
-    description: 'Any library that implements Standard Schema.',
+    name: "And more",
+    description: "Any library that implements Standard Schema.",
     icon: <MoreHorizontal />,
-    iconTone: 'rose',
+    iconTone: "rose",
   },
-]
+];
 
 export function AdaptersSection() {
   return (
@@ -83,17 +88,17 @@ export function AdaptersSection() {
       <div className="mx-auto max-w-(--fd-layout-width) px-6 py-16 md:py-24">
         <SectionHeader
           className="mb-10"
-          title={(
+          title={
             <>
               Framework
               <SectionAccent>agnostic</SectionAccent>
             </>
-          )}
+          }
           description="One router definition. Adapters for the runtime you already run."
         />
 
         <div className="landing-animate-in landing-delay-2 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-          {adapters.map(adapter => (
+          {adapters.map((adapter) => (
             <FeatureCard
               key={adapter.name}
               icon={adapter.icon}
@@ -107,17 +112,17 @@ export function AdaptersSection() {
 
         <SectionHeader
           className="mt-16 mb-10"
-          title={(
+          title={
             <>
               Standard Schema
               <SectionAccent>compatible</SectionAccent>
             </>
-          )}
+          }
           description="Bring your validator of choice for query, params, body, and returns all flow through Standard Schema."
         />
 
         <div className="landing-animate-in landing-delay-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {schemaLibraries.map(library => (
+          {schemaLibraries.map((library) => (
             <FeatureCard
               key={library.name}
               icon={library.icon}
@@ -130,5 +135,5 @@ export function AdaptersSection() {
         </div>
       </div>
     </section>
-  )
+  );
 }

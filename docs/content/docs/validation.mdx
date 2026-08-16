@@ -13,22 +13,23 @@ To get there, Taser validates inputs at runtime using schema libraries that supp
 Add a `query` schema when defining a route:
 
 ```ts
-import { reply } from '@taserjs/router'
-import { z } from 'zod'
-import { t } from '../taser'
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../taser";
 
-export const Route = t.get('/search', {
-  query: z.object({
-    q: z.string().min(1),
-    page: z.coerce.number().int().min(1).default(1),
-  }),
-})
+export const Route = t
+  .get("/search", {
+    query: z.object({
+      q: z.string().min(1),
+      page: z.coerce.number().int().min(1).default(1),
+    }),
+  })
   .handler((ctx) => {
     return reply.json({
       q: ctx.query.q,
       page: ctx.query.page,
-    })
-  })
+    });
+  });
 ```
 
 `ctx.query` is typed from the schema, and the request is rejected if validation fails.
@@ -38,18 +39,19 @@ export const Route = t.get('/search', {
 Add a `body` schema for POST, PUT, or PATCH routes:
 
 ```ts
-import { reply } from '@taserjs/router'
-import { z } from 'zod'
-import { t } from '../taser'
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../taser";
 
-export const Route = t.post('/todo', {
-  body: z.object({
-    title: z.string().min(1),
-  }),
-})
-  .handler((ctx) => {
-    return reply.json({ title: ctx.body.title })
+export const Route = t
+  .post("/todo", {
+    body: z.object({
+      title: z.string().min(1),
+    }),
   })
+  .handler((ctx) => {
+    return reply.json({ title: ctx.body.title });
+  });
 ```
 
 ## Validate and inject state in middleware
@@ -57,19 +59,18 @@ export const Route = t.post('/todo', {
 Validation is not only for route inputs. Layout middleware can validate and inject shared state:
 
 ```ts
-import { reply } from '@taserjs/router'
-import { z } from 'zod'
-import { t } from '../taser'
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../taser";
 
-export const Middleware = t.middleware('auth')
-  .use({
-    state: z.object({ userId: z.string() }),
-    handler: (ctx, next) => {
-      const userId = ctx.headers.get('x-user-id')
-      if (!userId) return reply.unauthorized({ message: 'Missing x-user-id header' })
-      return next({ state: { userId } })
-    },
-  })
+export const Middleware = t.middleware("auth").use({
+  state: z.object({ userId: z.string() }),
+  handler: (ctx, next) => {
+    const userId = ctx.headers.get("x-user-id");
+    if (!userId) return reply.unauthorized({ message: "Missing x-user-id header" });
+    return next({ state: { userId } });
+  },
+});
 ```
 
 ## Handling validation failures
@@ -77,17 +78,17 @@ export const Middleware = t.middleware('auth')
 When validation fails, Taser throws a `ValidationError`. Handle it once in `src/taser.ts` using `onError`:
 
 ```ts
-import { createTaserApp, reply, ValidationError } from '@taserjs/router'
-import { context } from './context'
+import { createTaserApp, reply, ValidationError } from "@taserjs/router";
+import { context } from "./context";
 
 export const t = createTaserApp()
   .context(context)
   .onError((error) => {
     if (error instanceof ValidationError) {
-      return reply.unprocessableEntity({ errors: error.issues })
+      return reply.unprocessableEntity({ errors: error.issues });
     }
-    return reply.internalServerError({ message: 'Internal Server Error' })
-  })
+    return reply.internalServerError({ message: "Internal Server Error" });
+  });
 ```
 
 This keeps error handling consistent across your API.
@@ -95,7 +96,14 @@ This keeps error handling consistent across your API.
 ## Next steps
 
 <Cards>
-  <Card title="Responses and errors" href="/docs/responses-and-errors" description="Return typed replies, validate responses, and handle not found." />
-  <Card title="Typed client" href="/docs/typed-client" description="Call your API with types derived from your routes." />
+  <Card
+    title="Responses and errors"
+    href="/docs/responses-and-errors"
+    description="Return typed replies, validate responses, and handle not found."
+  />
+  <Card
+    title="Typed client"
+    href="/docs/typed-client"
+    description="Call your API with types derived from your routes."
+  />
 </Cards>
-

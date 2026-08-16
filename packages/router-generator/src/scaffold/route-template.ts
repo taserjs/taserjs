@@ -1,43 +1,37 @@
-import type { RouteFileMethod } from '../types/http.js'
-import { createRouteFactoryName } from '../scan/parse-route-source.js'
+import type { RouteFileMethod } from "../types/http.js";
+import { createRouteFactoryName } from "../scan/parse-route-source.js";
 
 export function routeImports(entry: string): string {
   return `import { reply } from '@taserjs/router'
 import { t } from '${entry}'
-`
+`;
 }
 
 export function routeBuilderConstName(method: RouteFileMethod): string {
-  return method
+  return method;
 }
 
-export function routeBuilderCall(
-  method: RouteFileMethod,
-  urlPath: string,
-): string {
-  const factoryName = createRouteFactoryName(method)
-  if (method === 'ANY') {
-    return `${factoryName}('${urlPath}', ['GET'])`
+export function routeBuilderCall(method: RouteFileMethod, urlPath: string): string {
+  const factoryName = createRouteFactoryName(method);
+  if (method === "ANY") {
+    return `${factoryName}('${urlPath}', ['GET'])`;
   }
-  return `${factoryName}('${urlPath}')`
+  return `${factoryName}('${urlPath}')`;
 }
 
-export function routeBuilderLine(
-  method: RouteFileMethod,
-  urlPath: string,
-): string {
-  const constName = routeBuilderConstName(method)
-  return `const ${constName} = ${routeBuilderCall(method, urlPath)}`
+export function routeBuilderLine(method: RouteFileMethod, urlPath: string): string {
+  const constName = routeBuilderConstName(method);
+  return `const ${constName} = ${routeBuilderCall(method, urlPath)}`;
 }
 
 export function routeContextExport(builderName: string): string {
-  return `export type RouteContext = typeof ${builderName}.$Infer.Context`
+  return `export type RouteContext = typeof ${builderName}.$Infer.Context`;
 }
 
 export function routeHandlerExport(builderName: string): string {
   return `export const Route = ${builderName}.handler((_ctx) => {
   return reply.json({ ok: true })
-})`
+})`;
 }
 
 export function routeScaffoldSource(
@@ -45,21 +39,21 @@ export function routeScaffoldSource(
   method: RouteFileMethod,
   entry: string,
 ): string {
-  const builderName = routeBuilderConstName(method)
+  const builderName = routeBuilderConstName(method);
   return `${routeImports(entry)}
 ${routeBuilderLine(method, urlPath)}
 
 ${routeContextExport(builderName)}
 ${routeHandlerExport(builderName)}
-`
+`;
 }
 
 export function layoutScaffoldSource(layoutId: string, entry: string): string {
-  const mountPath = layoutId === 'index' ? '/$' : layoutId === '/$' ? '/$' : layoutId
+  const mountPath = layoutId === "index" ? "/$" : layoutId === "/$" ? "/$" : layoutId;
   return `import { t } from '${entry}'
 
 export const Middleware = t.middleware('${mountPath}').use({
   handler: (_ctx, next) => next(),
 })
-`
+`;
 }

@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "build": "next build",
+    "clean": "rimraf .next .source .output",
     "dev": "next dev",
     "start": "next start",
-    "types:check": "next typegen && tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
+    "types:check": "pnpm run typecheck",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",

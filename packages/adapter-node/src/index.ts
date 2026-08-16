@@ -1,73 +1,71 @@
-import type { Server, IncomingMessage, ServerResponse, RequestListener } from 'node:http'
+import type { Server, IncomingMessage, ServerResponse, RequestListener } from "node:http";
 
-import { getRequestListener } from '@hono/node-server'
-import type { TaserApp, TaserHandler } from '@taserjs/router'
-import { resolveMountBase } from '@taserjs/router-utils'
+import { getRequestListener } from "@hono/node-server";
+import type { TaserApp, TaserHandler } from "@taserjs/router";
+import { resolveMountBase } from "@taserjs/router-utils";
 
-export type NodeNativeContext = { req: IncomingMessage, res: ServerResponse }
+export type NodeNativeContext = { req: IncomingMessage; res: ServerResponse };
 
-const mountedServers = new WeakSet<Server>()
+const mountedServers = new WeakSet<Server>();
 
 function parsePathname(url: string | undefined): string {
   if (!url) {
-    return '/'
+    return "/";
   }
   try {
-    return new URL(url, 'http://localhost').pathname
-  }
-  catch {
-    const queryIndex = url.indexOf('?')
-    return queryIndex === -1 ? url : url.slice(0, queryIndex)
+    return new URL(url, "http://localhost").pathname;
+  } catch {
+    const queryIndex = url.indexOf("?");
+    return queryIndex === -1 ? url : url.slice(0, queryIndex);
   }
 }
 
 function matchesMountPathname(pathname: string, mountBase: string): boolean {
-  if (mountBase === '/') {
-    return true
+  if (mountBase === "/") {
+    return true;
   }
-  return pathname === mountBase || pathname.startsWith(`${mountBase}/`)
+  return pathname === mountBase || pathname.startsWith(`${mountBase}/`);
 }
 
 function createMountedListener(taserApp: TaserApp, pattern: string): RequestListener {
-  const mountBase = resolveMountBase(pattern)
+  const mountBase = resolveMountBase(pattern);
 
-  const mounted = taserApp.base(mountBase)
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
+  const mounted = taserApp.base(mountBase);
   return async (req, res) => {
-    const fetcher = mounted.native({ req, res })
-    await getRequestListener(request => fetcher.fetch(request))(req, res)
-  }
+    const fetcher = mounted.native({ req, res });
+    await getRequestListener((request) => fetcher.fetch(request))(req, res);
+  };
 }
 
 export function createNodeHandler(taserApp: TaserApp): TaserHandler<Server> & {
-  requestListener(pattern: string): RequestListener
+  requestListener(pattern: string): RequestListener;
 } {
   return {
     requestListener(pattern: string): RequestListener {
-      return createMountedListener(taserApp, pattern)
+      return createMountedListener(taserApp, pattern);
     },
 
     mount(pattern: string, server: Server): void {
       if (mountedServers.has(server)) {
-        throw new Error('createNodeHandler().mount() was already called on this server')
+        throw new Error("createNodeHandler().mount() was already called on this server");
       }
-      mountedServers.add(server)
+      mountedServers.add(server);
 
-      const mountBase = resolveMountBase(pattern)
-      const listener = createMountedListener(taserApp, pattern)
+      const mountBase = resolveMountBase(pattern);
+      const listener = createMountedListener(taserApp, pattern);
 
-      server.on('request', (req, res) => {
-        const pathname = parsePathname(req.url)
+      server.on("request", (req, res) => {
+        const pathname = parsePathname(req.url);
         if (matchesMountPathname(pathname, mountBase)) {
-          listener(req, res)
+          listener(req, res);
         }
-      })
+      });
     },
-  }
+  };
 }
 
-declare module '@taserjs/router' {
+declare module "@taserjs/router" {
   interface RouterRegister {
-    NativeContext: NodeNativeContext
+    NativeContext: NodeNativeContext;
   }
 }
