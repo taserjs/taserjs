@@ -6,7 +6,7 @@ export {
   ReplyResult,
 } from './result.js'
 export type { ReplyBodyKind, ReplyOf, SuccessReplyData } from './result.js'
-export type { BinaryBody, BodyKind, FileReplyInit, ReplyInit } from './types.js'
+export type { BinaryBody, BodyKind, FileReplyInit, RedirectInit, ReplyInit } from './types.js'
 export { ensureReplyResult } from './ensure.js'
 
 import { errorReply } from './errors.js'

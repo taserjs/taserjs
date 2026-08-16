@@ -1,5 +1,4 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import { reply } from '@taserjs/router-utils'
 import type { Context } from 'hono'
 
 import { ensureBody } from '../ensure-body.js'
@@ -73,7 +72,6 @@ export async function buildPipelineContext(
     path,
     url,
     request: c.req.raw,
-    reply,
     native,
     hono,
     var: {},
@@ -105,7 +103,6 @@ export async function buildNotFoundContext(
     path: c.req.path,
     url,
     request: c.req.raw,
-    reply,
     native,
     hono,
     var: {},

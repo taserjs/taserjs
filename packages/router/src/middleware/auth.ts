@@ -1,5 +1,5 @@
 import { createTaserCompatHandler } from '@taserjs/router-core'
-import { validateSchema, ValidationError } from '@taserjs/router-utils'
+import { reply, validateSchema, ValidationError } from '@taserjs/router-utils'
 import type { MiddlewareHandler } from 'hono'
 
 import { defineMiddleware } from '../define/middleware.js'
@@ -41,7 +41,7 @@ export function createAuthMiddleware<TPayload>(
         }
         catch (error) {
           if (error instanceof ValidationError) {
-            return ctx.reply.forbidden({ error: 'Forbidden', issues: error.issues })
+            return reply.forbidden({ error: 'Forbidden', issues: error.issues })
           }
           throw error
         }

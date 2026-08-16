@@ -18,6 +18,26 @@
         "default": "./dist/cjs/index.cjs"
       }
     },
+    "./reply": {
+      "import": {
+        "types": "./dist/esm/reply.d.ts",
+        "default": "./dist/esm/reply.js"
+      },
+      "require": {
+        "types": "./dist/cjs/reply.d.cts",
+        "default": "./dist/cjs/reply.cjs"
+      }
+    },
+    "./stream": {
+      "import": {
+        "types": "./dist/esm/stream.d.ts",
+        "default": "./dist/esm/stream.js"
+      },
+      "require": {
+        "types": "./dist/cjs/stream.d.cts",
+        "default": "./dist/cjs/stream.cjs"
+      }
+    },
     "./body-limit": {
       "import": {
         "types": "./dist/esm/middleware/body-limit.d.ts",

@@ -19,11 +19,12 @@ export const VALIDATION_BLOCK_TEMPLATE: Record<ValidatorId, string> = {
 }`,
 }
 
-const ROUTE_TEMPLATE = (validator: ValidatorId) => `import { t } from '#src/taser.js'
+const ROUTE_TEMPLATE = (validator: ValidatorId) => `import { reply } from '@taserjs/router'
+import { t } from '#src/taser.js'
 ${IMPORT_LINES[validator]}
 
 export const Route = t.get('/'${VALIDATION_BLOCK_TEMPLATE[validator]}).handler((ctx) => {
-  return ctx.reply.json({ message: \`Hello, \${ctx.query.name}!\` })
+  return reply.json({ message: \`Hello, \${ctx.query.name}!\` })
 })
 `
 

@@ -4,7 +4,16 @@ import type { IndexLayout } from './fixtures/index-layout.js'
 
 declare module '@taserjs/router' {
   interface RouterRegister {
-    RoutePath: '/' | '/hello' | '/reports' | '/search'
+    RoutePath:
+      | '/'
+      | '/hello'
+      | '/reports'
+      | '/search'
+      | '/file'
+      | '/pipe'
+      | '/buffer'
+      | '/blob'
+      | '/check-ctx'
     LayoutId: 'index'
     LayoutTree: {
       index: { middlewares: typeof IndexLayout, parent: null }
@@ -20,6 +29,21 @@ declare module '@taserjs/router' {
         GET: { layoutChain: readonly [], route: unknown }
       }
       '/search': {
+        GET: { layoutChain: readonly [], route: unknown }
+      }
+      '/file': {
+        GET: { layoutChain: readonly [], route: unknown }
+      }
+      '/pipe': {
+        GET: { layoutChain: readonly [], route: unknown }
+      }
+      '/buffer': {
+        GET: { layoutChain: readonly [], route: unknown }
+      }
+      '/blob': {
+        GET: { layoutChain: readonly [], route: unknown }
+      }
+      '/check-ctx': {
         GET: { layoutChain: readonly [], route: unknown }
       }
     }

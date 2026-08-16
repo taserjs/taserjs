@@ -24,7 +24,7 @@ export const context = createContext({
     requestId: crypto.randomUUID(),
   }),
 })`,
-  layout: `import { t } from '../taser'
+  layout: `import { t } from '#src/taser'
 import { cors } from '@taserjs/router/cors'
 
 export const Middleware = t.middleware('/$')
@@ -43,7 +43,11 @@ export const Middleware = t.middleware('dashboard')
       alg: 'HS256',
     }),
   )`,
-  route: `const GET = t.get('/dashboard/users', {
+  route: `import { reply } from '@taserjs/router'
+import { t } from '#src/taser'
+import { z } from 'zod'
+
+const GET = t.get('/dashboard/users', {
   query: z.object({
     page: z.coerce.number().default(1),
     limit: z.coerce.number().default(10),
@@ -57,6 +61,6 @@ export const Route = GET.handler(async (ctx) => {
   // page: number
   const limit = ctx.query.limit
   const users = await ctx.db.getUsers(page, limit)
-  return ctx.reply.json({ sub, users })
+  return reply.json({ sub, users })
 })`,
 }

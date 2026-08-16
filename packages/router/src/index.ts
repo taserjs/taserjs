@@ -23,6 +23,7 @@ export type {
 export {
   isReplyResult,
   reply,
+  stream,
   ValidationError,
   validationErrorSchema,
 } from '@taserjs/router-utils'

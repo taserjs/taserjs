@@ -18,6 +18,26 @@
         "default": "./dist/cjs/index.cjs"
       }
     },
+    "./reply": {
+      "import": {
+        "types": "./dist/esm/reply.d.ts",
+        "default": "./dist/esm/reply.js"
+      },
+      "require": {
+        "types": "./dist/cjs/reply.d.cts",
+        "default": "./dist/cjs/reply.cjs"
+      }
+    },
+    "./stream": {
+      "import": {
+        "types": "./dist/esm/stream.d.ts",
+        "default": "./dist/esm/stream.js"
+      },
+      "require": {
+        "types": "./dist/cjs/stream.d.cts",
+        "default": "./dist/cjs/stream.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -33,11 +53,10 @@
   },
   "dependencies": {
     "@standard-schema/spec": "^1.1.0",
-    "mime-types": "^3.0.1"
+    "mrmime": "^2.0.1"
   },
   "devDependencies": {
     "@tanstack/vite-config": "^0.6.0",
-    "@types/mime-types": "^3.0.1",
     "publint": "^0.3.22",
     "vite": "^8.1.5",
     "vitest": "^4.1.10",

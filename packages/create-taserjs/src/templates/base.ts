@@ -108,10 +108,11 @@ export const Middleware = t.middleware('/$')
 }
 
 export function indexRouteTemplate(): string {
-  return `import { t } from '#src/taser.js'
+  return `import { reply } from '@taserjs/router'
+import { t } from '#src/taser.js'
 
-export const Route = t.get('/').handler((ctx) => {
-  return ctx.reply.json({ message: 'Welcome to Taser' })
+export const Route = t.get('/').handler(() => {
+  return reply.json({ message: 'Welcome to Taser' })
 })
 `
 }
@@ -128,11 +129,13 @@ export function healthRouteTemplate(ctx: ScaffoldContext): string {
   }
 
   const body = lines.length > 0 ? `${lines.join('\n')}\n` : ''
+  const ctxArg = lines.length > 0 ? '(ctx)' : '()'
 
-  return `import { t } from '#src/taser.js'
+  return `import { reply } from '@taserjs/router'
+import { t } from '#src/taser.js'
 
-export const Route = t.get('/health').handler((ctx) => {
-${body}  return ctx.reply.json({ ok: true })
+export const Route = t.get('/health').handler(${ctxArg} => {
+${body}  return reply.json({ ok: true })
 })
 `
 }

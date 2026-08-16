@@ -16,6 +16,8 @@ export default mergeConfig(
   tanstackViteConfig({
     entry: [
       './src/index.ts',
+      './src/reply.ts',
+      './src/stream.ts',
       './src/middleware/cors.ts',
       './src/middleware/body-limit.ts',
       './src/middleware/compress.ts',

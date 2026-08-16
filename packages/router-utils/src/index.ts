@@ -17,6 +17,13 @@ export type {
   ReplyOf,
   SuccessReplyData,
 } from './reply/index.js'
+export {
+  blob,
+  buffer,
+  file,
+  pipe,
+  stream,
+} from './stream/index.js'
 export type { SuccessStatusCode } from './http-status.js'
 export {
   hasInputSchemas,

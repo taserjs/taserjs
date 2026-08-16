@@ -80,7 +80,6 @@ export type RuntimeContextFields<TNative = unknown> = {
   url: URL
   headers: import('@taserjs/router-core').TaserHeaders
   cookies: import('@taserjs/router-core').TaserCookieJar
-  reply: typeof import('@taserjs/router-utils').reply
   var: Record<string, unknown>
   native?: TNative
 }

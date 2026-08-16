@@ -11,7 +11,6 @@ export const RESERVED_CONTEXT_KEYS = [
   'path',
   'url',
   'request',
-  'reply',
   'native',
   'hono',
   'var',
