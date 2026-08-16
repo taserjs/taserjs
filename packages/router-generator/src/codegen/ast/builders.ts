@@ -1,9 +1,9 @@
-import { AST_NODE_TYPES, type TSESTree } from '@typescript-eslint/types'
+import { AST_NODE_TYPES, type TSESTree } from "@typescript-eslint/types";
 
-type NodeFields = 'parent' | 'loc' | 'range'
+type NodeFields = "parent" | "loc" | "range";
 
 function asNode<T extends TSESTree.Node>(node: Omit<T, NodeFields>): T {
-  return node as T
+  return node as T;
 }
 
 export function id(name: string): TSESTree.Identifier {
@@ -13,7 +13,7 @@ export function id(name: string): TSESTree.Identifier {
     decorators: [],
     optional: false,
     typeAnnotation: undefined,
-  })
+  });
 }
 
 export function str(value: string): TSESTree.StringLiteral {
@@ -21,14 +21,14 @@ export function str(value: string): TSESTree.StringLiteral {
     type: AST_NODE_TYPES.Literal,
     value,
     raw: JSON.stringify(value),
-  })
+  });
 }
 
 export function tsLiteralType(value: string): TSESTree.TSLiteralType {
   return asNode<TSESTree.TSLiteralType>({
     type: AST_NODE_TYPES.TSLiteralType,
     literal: str(value),
-  })
+  });
 }
 
 export function tsTypeReference(name: string): TSESTree.TSTypeReference {
@@ -36,27 +36,27 @@ export function tsTypeReference(name: string): TSESTree.TSTypeReference {
     type: AST_NODE_TYPES.TSTypeReference,
     typeName: id(name),
     typeArguments: undefined,
-  })
+  });
 }
 
 export function tsUnionType(members: TSESTree.TypeNode[]): TSESTree.TypeNode {
   if (members.length === 0) {
-    return asNode<TSESTree.TSNeverKeyword>({ type: AST_NODE_TYPES.TSNeverKeyword })
+    return asNode<TSESTree.TSNeverKeyword>({ type: AST_NODE_TYPES.TSNeverKeyword });
   }
   if (members.length === 1) {
-    return members[0]!
+    return members[0]!;
   }
   return asNode<TSESTree.TSUnionType>({
     type: AST_NODE_TYPES.TSUnionType,
     types: members,
-  })
+  });
 }
 
 export function tsTypeAnnotation(type: TSESTree.TypeNode): TSESTree.TSTypeAnnotation {
   return asNode<TSESTree.TSTypeAnnotation>({
     type: AST_NODE_TYPES.TSTypeAnnotation,
     typeAnnotation: type,
-  })
+  });
 }
 
 export function tsPropertySignature(
@@ -72,24 +72,27 @@ export function tsPropertySignature(
     static: false,
     accessibility: undefined,
     typeAnnotation: tsTypeAnnotation(type),
-  })
+  });
 }
 
 export function tsTypeLiteral(members: TSESTree.TypeElement[]): TSESTree.TSTypeLiteral {
   return asNode<TSESTree.TSTypeLiteral>({
     type: AST_NODE_TYPES.TSTypeLiteral,
     members,
-  })
+  });
 }
 
-export function tsTypeAlias(name: string, type: TSESTree.TypeNode): TSESTree.TSTypeAliasDeclaration {
+export function tsTypeAlias(
+  name: string,
+  type: TSESTree.TypeNode,
+): TSESTree.TSTypeAliasDeclaration {
   return asNode<TSESTree.TSTypeAliasDeclaration>({
     type: AST_NODE_TYPES.TSTypeAliasDeclaration,
     declare: false,
     id: id(name),
     typeParameters: undefined,
     typeAnnotation: type,
-  })
+  });
 }
 
 export function tsTypeQuery(name: string): TSESTree.TSTypeQuery {
@@ -97,18 +100,18 @@ export function tsTypeQuery(name: string): TSESTree.TSTypeQuery {
     type: AST_NODE_TYPES.TSTypeQuery,
     exprName: id(name),
     typeArguments: undefined,
-  })
+  });
 }
 
 export function tsNullKeyword(): TSESTree.TSNullKeyword {
-  return asNode<TSESTree.TSNullKeyword>({ type: AST_NODE_TYPES.TSNullKeyword })
+  return asNode<TSESTree.TSNullKeyword>({ type: AST_NODE_TYPES.TSNullKeyword });
 }
 
 export function tsTupleType(elements: TSESTree.TypeNode[]): TSESTree.TSTupleType {
   return asNode<TSESTree.TSTupleType>({
     type: AST_NODE_TYPES.TSTupleType,
     elementTypes: elements,
-  })
+  });
 }
 
 export function objectProperty(
@@ -119,88 +122,100 @@ export function objectProperty(
     type: AST_NODE_TYPES.Property,
     key,
     value,
-    kind: 'init',
+    kind: "init",
     method: false,
     shorthand: false,
     computed: false,
     optional: false,
-  })
+  });
 }
 
-export function objectExpression(properties: TSESTree.PropertyNonComputedName[]): TSESTree.ObjectExpression {
+export function objectExpression(
+  properties: TSESTree.PropertyNonComputedName[],
+): TSESTree.ObjectExpression {
   return asNode<TSESTree.ObjectExpression>({
     type: AST_NODE_TYPES.ObjectExpression,
     properties,
-  })
+  });
 }
 
 export function arrayExpression(elements: TSESTree.Expression[]): TSESTree.ArrayExpression {
   return asNode<TSESTree.ArrayExpression>({
     type: AST_NODE_TYPES.ArrayExpression,
     elements,
-  })
+  });
 }
 
 export function importDeclaration(
   local: string,
   imported: string,
   source: string,
-  importKind: 'type' | 'value' = 'value',
+  importKind: "type" | "value" = "value",
 ): TSESTree.ImportDeclaration {
   return asNode<TSESTree.ImportDeclaration>({
     type: AST_NODE_TYPES.ImportDeclaration,
-    specifiers: [asNode<TSESTree.ImportSpecifier>({
-      type: AST_NODE_TYPES.ImportSpecifier,
-      imported: id(imported),
-      local: id(local),
-      importKind: 'value',
-    })],
+    specifiers: [
+      asNode<TSESTree.ImportSpecifier>({
+        type: AST_NODE_TYPES.ImportSpecifier,
+        imported: id(imported),
+        local: id(local),
+        importKind: "value",
+      }),
+    ],
     source: str(source),
     importKind,
     assertions: [],
     attributes: [],
     phase: null,
-  })
+  });
 }
 
-export function exportConst(name: string, init: TSESTree.Expression): TSESTree.ExportNamedDeclarationWithoutSourceWithSingle {
+export function exportConst(
+  name: string,
+  init: TSESTree.Expression,
+): TSESTree.ExportNamedDeclarationWithoutSourceWithSingle {
   return asNode<TSESTree.ExportNamedDeclarationWithoutSourceWithSingle>({
     type: AST_NODE_TYPES.ExportNamedDeclaration,
     declaration: asNode<TSESTree.ConstDeclaration>({
       type: AST_NODE_TYPES.VariableDeclaration,
-      kind: 'const',
+      kind: "const",
       declare: false,
-      declarations: [asNode<TSESTree.VariableDeclaratorMaybeInit>({
-        type: AST_NODE_TYPES.VariableDeclarator,
-        id: id(name),
-        init,
-        definite: false,
-      })],
+      declarations: [
+        asNode<TSESTree.VariableDeclaratorMaybeInit>({
+          type: AST_NODE_TYPES.VariableDeclarator,
+          id: id(name),
+          init,
+          definite: false,
+        }),
+      ],
     }),
     specifiers: [],
-    exportKind: 'value',
+    exportKind: "value",
     source: null,
     assertions: [],
     attributes: [],
-  })
+  });
 }
 
-export function exportTypeAlias(name: string, type: TSESTree.TypeNode): TSESTree.ExportNamedDeclarationWithoutSourceWithSingle {
+export function exportTypeAlias(
+  name: string,
+  type: TSESTree.TypeNode,
+): TSESTree.ExportNamedDeclarationWithoutSourceWithSingle {
   return asNode<TSESTree.ExportNamedDeclarationWithoutSourceWithSingle>({
     type: AST_NODE_TYPES.ExportNamedDeclaration,
     declaration: tsTypeAlias(name, type),
     specifiers: [],
-    exportKind: 'type',
+    exportKind: "type",
     source: null,
     assertions: [],
     attributes: [],
-  })
+  });
 }
 
 export function tsAsConst(expression: TSESTree.Expression): TSESTree.TSAsExpression {
   return asNode<TSESTree.TSAsExpression>({
     type: AST_NODE_TYPES.TSAsExpression,
     expression,
-    typeAnnotation: tsTypeReference('const'),
-  })
+    typeAnnotation: tsTypeReference("const"),
+  });
 }

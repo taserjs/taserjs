@@ -5,11 +5,13 @@ Express adapter for Taser router
 ## Installation
 
 **npm:**
+
 ```bash
 npm install @taserjs/adapter-express
 ```
 
 **JSR:**
+
 ```bash
 deno add jsr:@taserjs/adapter-express
 npx jsr add @taserjs/adapter-express

@@ -1,22 +1,22 @@
-import { resolve } from 'node:path'
+import { resolve } from "node:path";
 
-import { compileRouteFileIgnorePattern } from '@taserjs/router-generator'
-import type { ExtensionOption, GeneratorRunOptions } from '@taserjs/router-generator'
+import { compileRouteFileIgnorePattern } from "@taserjs/router-generator";
+import type { ExtensionOption, GeneratorRunOptions } from "@taserjs/router-generator";
 
 function parseExtension(value: string): ExtensionOption {
-  if (value === 'true') {
-    return true
+  if (value === "true") {
+    return true;
   }
-  if (value === 'false') {
-    return false
+  if (value === "false") {
+    return false;
   }
-  return value
+  return value;
 }
 
 export function buildOptions(argv: Record<string, unknown>): GeneratorRunOptions {
-  const ignorePattern = argv.ignorePattern as string | undefined
+  const ignorePattern = argv.ignorePattern as string | undefined;
   if (ignorePattern) {
-    compileRouteFileIgnorePattern(ignorePattern)
+    compileRouteFileIgnorePattern(ignorePattern);
   }
 
   return {
@@ -29,11 +29,11 @@ export function buildOptions(argv: Record<string, unknown>): GeneratorRunOptions
     ...(argv.extension !== undefined
       ? { extension: parseExtension(argv.extension as string) }
       : {}),
-    ...(argv.quotes ? { quotes: argv.quotes as 'single' | 'double' } : {}),
+    ...(argv.quotes ? { quotes: argv.quotes as "single" | "double" } : {}),
     ...(argv.semi !== undefined ? { semi: argv.semi as boolean } : {}),
     ...(argv.format !== undefined ? { format: argv.format as boolean } : {}),
     ...(argv.validate !== undefined ? { validate: argv.validate as boolean } : {}),
     ...(argv.quiet !== undefined ? { quiet: argv.quiet as boolean } : {}),
     ...(argv.force ? { force: true } : {}),
-  }
+  };
 }

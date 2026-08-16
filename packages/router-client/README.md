@@ -5,11 +5,13 @@ Type-safe HTTP client for Taser applications
 ## Installation
 
 **npm:**
+
 ```bash
 npm install @taserjs/router-client
 ```
 
 **JSR:**
+
 ```bash
 deno add jsr:@taserjs/router-client
 npx jsr add @taserjs/router-client

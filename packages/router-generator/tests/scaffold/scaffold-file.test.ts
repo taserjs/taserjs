@@ -1,90 +1,90 @@
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { tmpdir } from 'node:os'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from "vitest";
 
-import { CONFIG_FILE_NAME, DEFAULT_ENTRY } from '../../src/constants.js'
-import { Generator } from '../../src/generator/generator.js'
-import { scaffoldRouteFile, scaffoldRouteFileAtPath } from '../../src/scaffold/scaffold-file.js'
+import { CONFIG_FILE_NAME, DEFAULT_ENTRY } from "../../src/constants.js";
+import { Generator } from "../../src/generator/generator.js";
+import { scaffoldRouteFile, scaffoldRouteFileAtPath } from "../../src/scaffold/scaffold-file.js";
 
-const scaffoldOptions = { entry: DEFAULT_ENTRY }
+const scaffoldOptions = { entry: DEFAULT_ENTRY };
 
-describe('scaffoldRouteFile', () => {
-  it('writes route scaffold for empty files', async () => {
-    const routesDir = mkdtempSync(join(tmpdir(), 'taser-scaffold-route-'))
-    const routePath = join(routesDir, 'posts.get.ts')
-    writeFileSync(routePath, '')
+describe("scaffoldRouteFile", () => {
+  it("writes route scaffold for empty files", async () => {
+    const routesDir = mkdtempSync(join(tmpdir(), "taser-scaffold-route-"));
+    const routePath = join(routesDir, "posts.get.ts");
+    writeFileSync(routePath, "");
 
-    const result = await scaffoldRouteFile(routesDir, routePath, scaffoldOptions)
+    const result = await scaffoldRouteFile(routesDir, routePath, scaffoldOptions);
 
-    expect(result).toBe('written')
-    const source = readFileSync(routePath, 'utf8')
-    expect(source).toContain('const GET = t.get')
-    expect(source).toContain('export type RouteContext = typeof GET.$Infer.Context')
-    expect(source).toContain('export const Route = GET.handler(')
-  })
+    expect(result).toBe("written");
+    const source = readFileSync(routePath, "utf8");
+    expect(source).toContain("const GET = t.get");
+    expect(source).toContain("export type RouteContext = typeof GET.$Infer.Context");
+    expect(source).toContain("export const Route = GET.handler(");
+  });
 
-  it('skips non-empty route files with Route export', async () => {
-    const routesDir = mkdtempSync(join(tmpdir(), 'taser-scaffold-skip-'))
-    const routePath = join(routesDir, 'posts.get.ts')
-    writeFileSync(routePath, 'export const Route = t.get("/posts", {})\n')
+  it("skips non-empty route files with Route export", async () => {
+    const routesDir = mkdtempSync(join(tmpdir(), "taser-scaffold-skip-"));
+    const routePath = join(routesDir, "posts.get.ts");
+    writeFileSync(routePath, 'export const Route = t.get("/posts", {})\n');
 
-    const result = await scaffoldRouteFile(routesDir, routePath, scaffoldOptions)
+    const result = await scaffoldRouteFile(routesDir, routePath, scaffoldOptions);
 
-    expect(result).toBe('skipped')
-  })
+    expect(result).toBe("skipped");
+  });
 
-  it('writes layout scaffold for empty layout files', async () => {
-    const routesDir = mkdtempSync(join(tmpdir(), 'taser-scaffold-layout-'))
-    const layoutPath = join(routesDir, 'settings.ts')
-    writeFileSync(layoutPath, '')
+  it("writes layout scaffold for empty layout files", async () => {
+    const routesDir = mkdtempSync(join(tmpdir(), "taser-scaffold-layout-"));
+    const layoutPath = join(routesDir, "settings.ts");
+    writeFileSync(layoutPath, "");
 
-    const result = await scaffoldRouteFile(routesDir, layoutPath, scaffoldOptions)
+    const result = await scaffoldRouteFile(routesDir, layoutPath, scaffoldOptions);
 
-    expect(result).toBe('written')
-    expect(readFileSync(layoutPath, 'utf8')).toContain('t.middleware')
-    expect(readFileSync(layoutPath, 'utf8')).toContain('export const Middleware =')
-  })
+    expect(result).toBe("written");
+    expect(readFileSync(layoutPath, "utf8")).toContain("t.middleware");
+    expect(readFileSync(layoutPath, "utf8")).toContain("export const Middleware =");
+  });
 
-  it('rejects absolute paths outside routes directory', async () => {
-    const routesDir = mkdtempSync(join(tmpdir(), 'taser-scaffold-outside-'))
-    const outside = join(tmpdir(), 'outside.get.ts')
-    writeFileSync(outside, '')
+  it("rejects absolute paths outside routes directory", async () => {
+    const routesDir = mkdtempSync(join(tmpdir(), "taser-scaffold-outside-"));
+    const outside = join(tmpdir(), "outside.get.ts");
+    writeFileSync(outside, "");
     await expect(scaffoldRouteFile(routesDir, outside, scaffoldOptions)).rejects.toThrow(
-      'Scaffold path escapes routes directory',
-    )
-  })
-})
+      "Scaffold path escapes routes directory",
+    );
+  });
+});
 
-describe('scaffoldRouteFileAtPath', () => {
-  it('writes route scaffold at relative path', async () => {
-    const routesDir = mkdtempSync(join(tmpdir(), 'taser-scaffold-at-path-'))
-    const result = await scaffoldRouteFileAtPath(routesDir, 'users/$id.get.ts', scaffoldOptions)
-    expect(result).toBe('written')
-    const source = readFileSync(join(routesDir, 'users', '$id.get.ts'), 'utf8')
-    expect(source).toContain('export const Route = GET.handler(')
-  })
+describe("scaffoldRouteFileAtPath", () => {
+  it("writes route scaffold at relative path", async () => {
+    const routesDir = mkdtempSync(join(tmpdir(), "taser-scaffold-at-path-"));
+    const result = await scaffoldRouteFileAtPath(routesDir, "users/$id.get.ts", scaffoldOptions);
+    expect(result).toBe("written");
+    const source = readFileSync(join(routesDir, "users", "$id.get.ts"), "utf8");
+    expect(source).toContain("export const Route = GET.handler(");
+  });
 
-  it('rejects path traversal', async () => {
-    const routesDir = mkdtempSync(join(tmpdir(), 'taser-scaffold-traverse-'))
+  it("rejects path traversal", async () => {
+    const routesDir = mkdtempSync(join(tmpdir(), "taser-scaffold-traverse-"));
     await expect(
-      scaffoldRouteFileAtPath(routesDir, '../../outside.get.ts', scaffoldOptions),
-    ).rejects.toThrow('Scaffold path escapes routes directory')
-  })
-})
+      scaffoldRouteFileAtPath(routesDir, "../../outside.get.ts", scaffoldOptions),
+    ).rejects.toThrow("Scaffold path escapes routes directory");
+  });
+});
 
-describe('scaffold integration', () => {
-  it('scaffolds empty route before manifest generation', async () => {
-    const configDir = mkdtempSync(join(tmpdir(), 'taser-scaffold-manifest-'))
-    const routesDir = join(configDir, 'routes')
-    const outputFile = join(configDir, 'routeManifest.gen.ts')
-    mkdirSync(routesDir, { recursive: true })
+describe("scaffold integration", () => {
+  it("scaffolds empty route before manifest generation", async () => {
+    const configDir = mkdtempSync(join(tmpdir(), "taser-scaffold-manifest-"));
+    const routesDir = join(configDir, "routes");
+    const outputFile = join(configDir, "routeManifest.gen.ts");
+    mkdirSync(routesDir, { recursive: true });
 
-    const routePath = join(routesDir, 'hello.get.ts')
-    writeFileSync(routePath, '')
+    const routePath = join(routesDir, "hello.get.ts");
+    writeFileSync(routePath, "");
 
-    await scaffoldRouteFile(routesDir, routePath, scaffoldOptions)
+    await scaffoldRouteFile(routesDir, routePath, scaffoldOptions);
 
     const generator = new Generator({
       configFile: join(configDir, CONFIG_FILE_NAME),
@@ -92,11 +92,11 @@ describe('scaffold integration', () => {
       output: outputFile,
       validate: true,
       format: false,
-    })
-    const result = await generator.run()
+    });
+    const result = await generator.run();
 
-    expect(result.written).toBe(true)
-    const manifest = readFileSync(outputFile, 'utf8')
-    expect(manifest).toContain('/hello')
-  })
-})
+    expect(result.written).toBe(true);
+    const manifest = readFileSync(outputFile, "utf8");
+    expect(manifest).toContain("/hello");
+  });
+});

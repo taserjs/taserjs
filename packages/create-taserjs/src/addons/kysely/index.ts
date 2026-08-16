@@ -1,5 +1,5 @@
-import type { AddonDefinition } from '../types.js'
-import type { DbDriver } from '../../core/types.js'
+import type { AddonDefinition } from "../types.js";
+import type { DbDriver } from "../../core/types.js";
 
 function schemaTypesSource(): string {
   return `export interface UserTable {
@@ -10,12 +10,12 @@ function schemaTypesSource(): string {
 export interface DB {
   users: UserTable
 }
-`
+`;
 }
 
 function dbIndexSource(driver: DbDriver): string {
   switch (driver) {
-    case 'postgres':
+    case "postgres":
       return `import { Kysely, PostgresDialect } from 'kysely'
 import pg from 'pg'
 
@@ -29,8 +29,8 @@ export function createDb() {
     dialect: new PostgresDialect({ pool }),
   })
 }
-`
-    case 'mysql':
+`;
+    case "mysql":
       return `import { Kysely, MysqlDialect } from 'kysely'
 import { createPool } from 'mysql2'
 
@@ -42,8 +42,8 @@ export function createDb() {
     dialect: new MysqlDialect({ pool }),
   })
 }
-`
-    case 'sqlite':
+`;
+    case "sqlite":
     default:
       return `import Database from 'better-sqlite3'
 import { Kysely, SqliteDialect } from 'kysely'
@@ -57,68 +57,68 @@ export function createDb() {
     dialect: new SqliteDialect({ database }),
   })
 }
-`
+`;
   }
 }
 
 function driverPackages(driver: DbDriver): string[] {
   switch (driver) {
-    case 'postgres':
-      return ['pg']
-    case 'mysql':
-      return ['mysql2']
-    case 'sqlite':
+    case "postgres":
+      return ["pg"];
+    case "mysql":
+      return ["mysql2"];
+    case "sqlite":
     default:
-      return ['better-sqlite3']
+      return ["better-sqlite3"];
   }
 }
 
 function driverDevPackages(driver: DbDriver): string[] {
   switch (driver) {
-    case 'postgres':
-      return ['@types/pg']
-    case 'sqlite':
-      return ['@types/better-sqlite3']
-    case 'mysql':
+    case "postgres":
+      return ["@types/pg"];
+    case "sqlite":
+      return ["@types/better-sqlite3"];
+    case "mysql":
     default:
-      return []
+      return [];
   }
 }
 
 function envExample(driver: DbDriver): string {
   switch (driver) {
-    case 'postgres':
-      return 'DATABASE_URL=postgresql://user:password@localhost:5432/mydb\n'
-    case 'mysql':
-      return 'DATABASE_URL=mysql://user:password@localhost:3306/mydb\n'
-    case 'sqlite':
+    case "postgres":
+      return "DATABASE_URL=postgresql://user:password@localhost:5432/mydb\n";
+    case "mysql":
+      return "DATABASE_URL=mysql://user:password@localhost:3306/mydb\n";
+    case "sqlite":
     default:
-      return 'DATABASE_URL=file:./local.db\n'
+      return "DATABASE_URL=file:./local.db\n";
   }
 }
 
 export const kyselyAddon: AddonDefinition = {
-  id: 'kysely',
-  category: 'database',
+  id: "kysely",
+  category: "database",
   dependencies(ctx) {
-    const driver = ctx.driver ?? 'sqlite'
-    return ['kysely', ...driverPackages(driver)]
+    const driver = ctx.driver ?? "sqlite";
+    return ["kysely", ...driverPackages(driver)];
   },
   devDependencies(ctx) {
-    const driver = ctx.driver ?? 'sqlite'
-    return driverDevPackages(driver)
+    const driver = ctx.driver ?? "sqlite";
+    return driverDevPackages(driver);
   },
   bootBinding() {
     return {
-      key: 'db',
-      importPath: './db/index.js',
-      factoryName: 'createDb',
-    }
+      key: "db",
+      importPath: "./db/index.js",
+      factoryName: "createDb",
+    };
   },
   async apply(ctx, write) {
-    const driver = ctx.driver ?? 'sqlite'
-    await write('src/db/schema.ts', schemaTypesSource())
-    await write('src/db/index.ts', dbIndexSource(driver))
-    await write('.env.example', envExample(driver))
+    const driver = ctx.driver ?? "sqlite";
+    await write("src/db/schema.ts", schemaTypesSource());
+    await write("src/db/index.ts", dbIndexSource(driver));
+    await write(".env.example", envExample(driver));
   },
-}
+};

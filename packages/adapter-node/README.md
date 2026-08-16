@@ -5,11 +5,13 @@ Node.js HTTP server adapter for Taser router
 ## Installation
 
 **npm:**
+
 ```bash
 npm install @taserjs/adapter-node
 ```
 
 **JSR:**
+
 ```bash
 deno add jsr:@taserjs/adapter-node
 npx jsr add @taserjs/adapter-node

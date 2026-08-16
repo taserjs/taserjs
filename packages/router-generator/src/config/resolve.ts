@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { dirname, isAbsolute, join, resolve } from 'node:path'
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 
 import {
   CONFIG_FILE_NAME,
@@ -7,48 +7,48 @@ import {
   type GeneratorRunOptions,
   type ResolvedGeneratorConfig,
   generatorConfigSchema,
-} from './schema.js'
+} from "./schema.js";
 
 function readConfigFile(configFile: string): GeneratorConfigFile | null {
   if (!existsSync(configFile)) {
-    return null
+    return null;
   }
 
-  const raw = JSON.parse(readFileSync(configFile, 'utf8')) as unknown
-  return generatorConfigSchema.parse(raw)
+  const raw = JSON.parse(readFileSync(configFile, "utf8")) as unknown;
+  return generatorConfigSchema.parse(raw);
 }
 
 function resolvePath(baseDirectory: string, targetPath: string): string {
-  return isAbsolute(targetPath) ? targetPath : resolve(baseDirectory, targetPath)
+  return isAbsolute(targetPath) ? targetPath : resolve(baseDirectory, targetPath);
 }
 
 export function findConfigFile(startDirectory: string): string {
-  const start = resolve(startDirectory)
-  let current = start
-  let packageDirectory: string | undefined
+  const start = resolve(startDirectory);
+  let current = start;
+  let packageDirectory: string | undefined;
 
   while (true) {
-    const candidate = join(current, CONFIG_FILE_NAME)
+    const candidate = join(current, CONFIG_FILE_NAME);
     if (existsSync(candidate)) {
-      return candidate
+      return candidate;
     }
-    if (packageDirectory === undefined && existsSync(join(current, 'package.json'))) {
-      packageDirectory = current
+    if (packageDirectory === undefined && existsSync(join(current, "package.json"))) {
+      packageDirectory = current;
     }
-    const parent = dirname(current)
+    const parent = dirname(current);
     if (parent === current) {
-      return join(packageDirectory ?? start, CONFIG_FILE_NAME)
+      return join(packageDirectory ?? start, CONFIG_FILE_NAME);
     }
-    current = parent
+    current = parent;
   }
 }
 
 export function resolveGeneratorConfig(options: GeneratorRunOptions = {}): ResolvedGeneratorConfig {
   const configFile = options.configFile
     ? resolve(options.configFile)
-    : findConfigFile(process.cwd())
-  const configDir = dirname(configFile)
-  const fileConfig = readConfigFile(configFile)
+    : findConfigFile(process.cwd());
+  const configDir = dirname(configFile);
+  const fileConfig = readConfigFile(configFile);
 
   const merged = generatorConfigSchema.parse({
     ...fileConfig,
@@ -65,14 +65,14 @@ export function resolveGeneratorConfig(options: GeneratorRunOptions = {}): Resol
     footer: options.footer ?? fileConfig?.footer,
     format: options.format ?? fileConfig?.format,
     validate: options.validate ?? fileConfig?.validate,
-  })
+  });
 
   const routesDir = isAbsolute(merged.routes)
     ? merged.routes
-    : resolvePath(configDir, merged.routes)
+    : resolvePath(configDir, merged.routes);
   const outputFile = isAbsolute(merged.output)
     ? merged.output
-    : resolvePath(configDir, merged.output)
+    : resolvePath(configDir, merged.output);
 
   return {
     ...merged,
@@ -80,5 +80,5 @@ export function resolveGeneratorConfig(options: GeneratorRunOptions = {}): Resol
     configDir,
     routesDir,
     outputFile,
-  }
+  };
 }

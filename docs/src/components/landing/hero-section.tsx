@@ -1,17 +1,14 @@
-import { ArrowRight, BookOpen, Sparkles } from 'lucide-react'
+import { ArrowRight, BookOpen, Sparkles } from "lucide-react";
 
-import { HeroVisual } from './hero-visual'
-import { Logo } from '@/components/logo'
-import { SectionSeparator } from './section-separator'
-import Link from 'next/link'
+import { HeroVisual } from "./hero-visual";
+import { Logo } from "@/components/logo";
+import { SectionSeparator } from "./section-separator";
+import Link from "next/link";
 
 export function HeroSection() {
   return (
     <section className="relative overflow-hidden">
-      <div
-        className="landing-hero-glow-warm pointer-events-none absolute inset-0"
-        aria-hidden
-      />
+      <div className="landing-hero-glow-warm pointer-events-none absolute inset-0" aria-hidden />
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_80%_10%,var(--color-fd-primary),transparent)] opacity-[0.08]"
         aria-hidden
@@ -30,9 +27,9 @@ export function HeroSection() {
             <span className="landing-text-gradient-cool">Let types flow everywhere.</span>
           </h1>
           <p className="landing-animate-in landing-delay-2 mt-5 max-w-lg text-lg text-fd-muted-foreground text-pretty">
-            File-based routing for REST APIs. Compose layouts and middleware with full
-            inference, validate every input, and skip the type assertions after middleware
-            already did the work.
+            File-based routing for REST APIs. Compose layouts and middleware with full inference,
+            validate every input, and skip the type assertions after middleware already did the
+            work.
           </p>
           <div className="landing-animate-in landing-delay-3 mt-8 flex flex-wrap items-center gap-3">
             <Link
@@ -56,5 +53,5 @@ export function HeroSection() {
       </div>
       <SectionSeparator position="bottom" />
     </section>
-  )
+  );
 }

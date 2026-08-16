@@ -1,43 +1,44 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { performance } from 'node:perf_hooks'
+// oxlint-disable no-await-in-loop
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { performance } from "node:perf_hooks";
 
-import { reply } from '@taserjs/router-utils'
-import { timing } from 'hono/timing'
-import { z } from 'zod'
+import { reply } from "@taserjs/router-utils";
+import { timing } from "hono/timing";
+import { z } from "zod";
 
-import { createTaserCompatHandler, createTaserRuntime } from '../src/index.js'
+import { createTaserCompatHandler, createTaserRuntime } from "../src/index.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const RESULTS_DIR = join(__dirname, 'results')
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const RESULTS_DIR = join(__dirname, "results");
 
-const WARMUP_ITERATIONS = 500
-const MEASURE_ITERATIONS = 10_000
+const WARMUP_ITERATIONS = 500;
+const MEASURE_ITERATIONS = 10_000;
 
 function percentile(sorted, p) {
-  const index = Math.ceil((p / 100) * sorted.length) - 1
-  return sorted[Math.max(0, index)]
+  const index = Math.ceil((p / 100) * sorted.length) - 1;
+  return sorted[Math.max(0, index)];
 }
 
 async function measureScenario(name, run) {
   for (let i = 0; i < WARMUP_ITERATIONS; i++) {
-    await run()
+    await run();
   }
 
-  const samples = []
+  const samples = [];
   for (let i = 0; i < MEASURE_ITERATIONS; i++) {
-    const start = performance.now()
-    const response = await run()
+    const start = performance.now();
+    const response = await run();
     if (!response.ok && response.status !== 404) {
-      throw new Error(`Scenario "${name}" failed with status ${response.status}`)
+      throw new Error(`Scenario "${name}" failed with status ${response.status}`);
     }
-    samples.push(performance.now() - start)
+    samples.push(performance.now() - start);
   }
 
-  const sorted = [...samples].sort((a, b) => a - b)
-  const total = samples.reduce((sum, value) => sum + value, 0)
-  const meanMs = total / samples.length
+  const sorted = [...samples].sort((a, b) => a - b);
+  const total = samples.reduce((sum, value) => sum + value, 0);
+  const meanMs = total / samples.length;
 
   return {
     name,
@@ -46,34 +47,34 @@ async function measureScenario(name, run) {
     p50Ms: percentile(sorted, 50),
     p95Ms: percentile(sorted, 95),
     opsPerSec: 1000 / meanMs,
-  }
+  };
 }
 
 function buildManifests() {
   const layoutMiddleware = {
     handler: async (_ctx, next) => next(),
-  }
+  };
 
   const routeMiddleware = {
     handler: async (_ctx, next) => next(),
-  }
+  };
 
   const honoTimingMiddleware = {
     handler: createTaserCompatHandler(timing()),
-  }
+  };
 
-  const bodySchema = z.object({ name: z.string() })
+  const bodySchema = z.object({ name: z.string() });
 
   return {
-    'get-simple': {
+    "get-simple": {
       layouts: {},
       routes: {
-        '/hello': {
+        "/hello": {
           GET: {
             layoutChain: [],
             route: {
-              path: '/hello',
-              method: 'GET',
+              path: "/hello",
+              method: "GET",
               middlewares: [],
               handlerMiddlewares: [],
               handler: () => reply.json({ ok: true }),
@@ -82,17 +83,17 @@ function buildManifests() {
         },
       },
     },
-    'get-with-layout': {
+    "get-with-layout": {
       layouts: {
         root: { middlewares: { middlewares: [layoutMiddleware] } },
       },
       routes: {
-        '/hello': {
+        "/hello": {
           GET: {
-            layoutChain: ['root'],
+            layoutChain: ["root"],
             route: {
-              path: '/hello',
-              method: 'GET',
+              path: "/hello",
+              method: "GET",
               middlewares: [routeMiddleware],
               handlerMiddlewares: [],
               handler: () => reply.json({ ok: true }),
@@ -101,15 +102,15 @@ function buildManifests() {
         },
       },
     },
-    'post-no-body-schema': {
+    "post-no-body-schema": {
       layouts: {},
       routes: {
-        '/items': {
+        "/items": {
           POST: {
             layoutChain: [],
             route: {
-              path: '/items',
-              method: 'POST',
+              path: "/items",
+              method: "POST",
               middlewares: [],
               handlerMiddlewares: [],
               handler: () => reply.json({ ok: true }),
@@ -118,15 +119,15 @@ function buildManifests() {
         },
       },
     },
-    'post-with-body-schema': {
+    "post-with-body-schema": {
       layouts: {},
       routes: {
-        '/items': {
+        "/items": {
           POST: {
             layoutChain: [],
             route: {
-              path: '/items',
-              method: 'POST',
+              path: "/items",
+              method: "POST",
               middlewares: [],
               handlerMiddlewares: [],
               body: bodySchema,
@@ -136,17 +137,17 @@ function buildManifests() {
         },
       },
     },
-    'get-with-hono-mw': {
+    "get-with-hono-mw": {
       layouts: {
         root: { middlewares: { middlewares: [honoTimingMiddleware] } },
       },
       routes: {
-        '/hello': {
+        "/hello": {
           GET: {
-            layoutChain: ['root'],
+            layoutChain: ["root"],
             route: {
-              path: '/hello',
-              method: 'GET',
+              path: "/hello",
+              method: "GET",
               middlewares: [],
               handlerMiddlewares: [],
               handler: () => reply.json({ ok: true }),
@@ -155,64 +156,70 @@ function buildManifests() {
         },
       },
     },
-  }
+  };
 }
 
 function createScenarios() {
-  const manifests = buildManifests()
-  const postBody = JSON.stringify({ name: 'bench' })
+  const manifests = buildManifests();
+  const postBody = JSON.stringify({ name: "bench" });
 
-  const getSimpleRuntime = createTaserRuntime(manifests['get-simple'], () => ({}))
-  const getLayoutRuntime = createTaserRuntime(manifests['get-with-layout'], () => ({}))
-  const postNoBodyRuntime = createTaserRuntime(manifests['post-no-body-schema'], () => ({}))
-  const postBodyRuntime = createTaserRuntime(manifests['post-with-body-schema'], () => ({}))
-  const honoMwRuntime = createTaserRuntime(manifests['get-with-hono-mw'], () => ({}))
+  const getSimpleRuntime = createTaserRuntime(manifests["get-simple"], () => ({}));
+  const getLayoutRuntime = createTaserRuntime(manifests["get-with-layout"], () => ({}));
+  const postNoBodyRuntime = createTaserRuntime(manifests["post-no-body-schema"], () => ({}));
+  const postBodyRuntime = createTaserRuntime(manifests["post-with-body-schema"], () => ({}));
+  const honoMwRuntime = createTaserRuntime(manifests["get-with-hono-mw"], () => ({}));
 
   return [
     {
-      name: 'get-simple',
-      run: () => getSimpleRuntime.handle(new Request('http://localhost/hello')),
+      name: "get-simple",
+      run: () => getSimpleRuntime.handle(new Request("http://localhost/hello")),
     },
     {
-      name: 'get-with-layout',
-      run: () => getLayoutRuntime.handle(new Request('http://localhost/hello')),
+      name: "get-with-layout",
+      run: () => getLayoutRuntime.handle(new Request("http://localhost/hello")),
     },
     {
-      name: 'post-no-body-schema',
-      run: () => postNoBodyRuntime.handle(new Request('http://localhost/items', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: postBody,
-      })),
+      name: "post-no-body-schema",
+      run: () =>
+        postNoBodyRuntime.handle(
+          new Request("http://localhost/items", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: postBody,
+          }),
+        ),
     },
     {
-      name: 'post-with-body-schema',
-      run: () => postBodyRuntime.handle(new Request('http://localhost/items', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: postBody,
-      })),
+      name: "post-with-body-schema",
+      run: () =>
+        postBodyRuntime.handle(
+          new Request("http://localhost/items", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: postBody,
+          }),
+        ),
     },
     {
-      name: 'get-with-hono-mw',
-      run: () => honoMwRuntime.handle(new Request('http://localhost/hello')),
+      name: "get-with-hono-mw",
+      run: () => honoMwRuntime.handle(new Request("http://localhost/hello")),
     },
-  ]
+  ];
 }
 
 async function runBenchmark(label) {
-  const scenarios = createScenarios()
-  const results = []
+  const scenarios = createScenarios();
+  const results = [];
 
-  console.log(`Running runtime hot-path benchmark (${label})`)
-  console.log(`Warmup: ${WARMUP_ITERATIONS}, measure: ${MEASURE_ITERATIONS}`)
+  console.log(`Running runtime hot-path benchmark (${label})`);
+  console.log(`Warmup: ${WARMUP_ITERATIONS}, measure: ${MEASURE_ITERATIONS}`);
 
   for (const scenario of scenarios) {
-    const result = await measureScenario(scenario.name, scenario.run)
-    results.push(result)
+    const result = await measureScenario(scenario.name, scenario.run);
+    results.push(result);
     console.log(
       `${result.name}: mean=${result.meanMs.toFixed(4)}ms p50=${result.p50Ms.toFixed(4)}ms p95=${result.p95Ms.toFixed(4)}ms ops=${result.opsPerSec.toFixed(0)}`,
-    )
+    );
   }
 
   return {
@@ -222,60 +229,60 @@ async function runBenchmark(label) {
     warmupIterations: WARMUP_ITERATIONS,
     measureIterations: MEASURE_ITERATIONS,
     scenarios: results,
-  }
+  };
 }
 
 async function saveReport(label, report) {
-  await mkdir(RESULTS_DIR, { recursive: true })
-  const path = join(RESULTS_DIR, `${label}.json`)
-  await writeFile(path, `${JSON.stringify(report, null, 2)}\n`, 'utf8')
-  return path
+  await mkdir(RESULTS_DIR, { recursive: true });
+  const path = join(RESULTS_DIR, `${label}.json`);
+  await writeFile(path, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  return path;
 }
 
 function compareReports(before, after) {
-  console.log(`Comparing ${before.label} -> ${after.label}`)
+  console.log(`Comparing ${before.label} -> ${after.label}`);
   for (const beforeScenario of before.scenarios) {
-    const afterScenario = after.scenarios.find(s => s.name === beforeScenario.name)
+    const afterScenario = after.scenarios.find((s) => s.name === beforeScenario.name);
     if (!afterScenario) {
-      console.log(`${beforeScenario.name}: missing in after report`)
-      continue
+      console.log(`${beforeScenario.name}: missing in after report`);
+      continue;
     }
-    const deltaPct = ((afterScenario.meanMs - beforeScenario.meanMs) / beforeScenario.meanMs) * 100
-    const sign = deltaPct <= 0 ? '' : '+'
+    const deltaPct = ((afterScenario.meanMs - beforeScenario.meanMs) / beforeScenario.meanMs) * 100;
+    const sign = deltaPct <= 0 ? "" : "+";
     console.log(
       `${beforeScenario.name}: mean ${beforeScenario.meanMs.toFixed(4)}ms -> ${afterScenario.meanMs.toFixed(4)}ms (${sign}${deltaPct.toFixed(1)}%)`,
-    )
+    );
   }
 }
 
 async function main() {
-  const args = process.argv.slice(2)
-  const labelIndex = args.indexOf('--label')
-  const compareIndex = args.indexOf('--compare')
+  const args = process.argv.slice(2);
+  const labelIndex = args.indexOf("--label");
+  const compareIndex = args.indexOf("--compare");
 
   if (compareIndex !== -1) {
-    const beforeLabel = args[compareIndex + 1]
-    const afterLabel = args[compareIndex + 2]
+    const beforeLabel = args[compareIndex + 1];
+    const afterLabel = args[compareIndex + 2];
     if (!beforeLabel || !afterLabel) {
-      throw new Error('Usage: benchmark:runtime -- --compare <before> <after>')
+      throw new Error("Usage: benchmark:runtime -- --compare <before> <after>");
     }
-    const before = JSON.parse(await readFile(join(RESULTS_DIR, `${beforeLabel}.json`), 'utf8'))
-    const after = JSON.parse(await readFile(join(RESULTS_DIR, `${afterLabel}.json`), 'utf8'))
-    compareReports(before, after)
-    return
+    const before = JSON.parse(await readFile(join(RESULTS_DIR, `${beforeLabel}.json`), "utf8"));
+    const after = JSON.parse(await readFile(join(RESULTS_DIR, `${afterLabel}.json`), "utf8"));
+    compareReports(before, after);
+    return;
   }
 
-  const label = labelIndex !== -1 ? args[labelIndex + 1] : 'run'
+  const label = labelIndex !== -1 ? args[labelIndex + 1] : "run";
   if (!label) {
-    throw new Error('Usage: benchmark:runtime -- --label <name>')
+    throw new Error("Usage: benchmark:runtime -- --label <name>");
   }
 
-  const report = await runBenchmark(label)
-  const path = await saveReport(label, report)
-  console.log(`Saved ${path}`)
+  const report = await runBenchmark(label);
+  const path = await saveReport(label, report);
+  console.log(`Saved ${path}`);
 }
 
 main().catch((error) => {
-  console.error(error)
-  process.exit(1)
-})
+  console.error(error);
+  process.exit(1);
+});

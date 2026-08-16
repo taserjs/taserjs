@@ -1,9 +1,4 @@
-import type {
-  Client,
-  ClientRequestOptions,
-  ClientResponse,
-  CreateClientOptions,
-} from './types.js'
+import type { Client, ClientRequestOptions, ClientResponse, CreateClientOptions } from "./types.js";
 import {
   applyPathParams,
   buildSearchParams,
@@ -11,12 +6,12 @@ import {
   isClientMethod,
   joinUrl,
   resolveHeaders,
-} from './support/url.js'
+} from "./support/url.js";
 
 type CallbackOptions = {
-  path: string[]
-  args: unknown[]
-}
+  path: string[];
+  args: unknown[];
+};
 
 async function executeRequest(
   options: CreateClientOptions,
@@ -25,82 +20,81 @@ async function executeRequest(
   args: unknown[],
 ): Promise<ClientResponse> {
   const input = (args[0] ?? {}) as {
-    query?: Record<string, unknown>
-    param?: Record<string, string>
-    body?: unknown
-  }
-  const requestOptions = (args[1] ?? {}) as ClientRequestOptions
+    query?: Record<string, unknown>;
+    param?: Record<string, string>;
+    body?: unknown;
+  };
+  const requestOptions = (args[1] ?? {}) as ClientRequestOptions;
 
-  const pathSegments = applyPathParams(segments, input.param)
-  const url = `${joinUrl(options.baseUrl, pathSegments)}${buildSearchParams(input.query)}`
-  const method = clientMethodToHttp(methodKey)
+  const pathSegments = applyPathParams(segments, input.param);
+  const url = `${joinUrl(options.baseUrl, pathSegments)}${buildSearchParams(input.query)}`;
+  const method = clientMethodToHttp(methodKey);
 
-  const headers = await resolveHeaders(options.headers, requestOptions.headers)
-  let body: BodyInit | undefined
+  const headers = await resolveHeaders(options.headers, requestOptions.headers);
+  let body: BodyInit | undefined;
 
-  if (method !== 'GET' && method !== 'HEAD' && input.body !== undefined) {
+  if (method !== "GET" && method !== "HEAD" && input.body !== undefined) {
     if (input.body instanceof FormData) {
-      body = input.body
-    }
-    else {
-      body = JSON.stringify(input.body)
-      if (!headers['Content-Type'] && !headers['content-type']) {
-        headers['Content-Type'] = 'application/json'
+      body = input.body;
+    } else {
+      body = JSON.stringify(input.body);
+      if (!headers["Content-Type"] && !headers["content-type"]) {
+        headers["Content-Type"] = "application/json";
       }
     }
   }
 
-  const fetchImpl = requestOptions.fetch ?? options.fetch ?? globalThis.fetch
+  const fetchImpl = requestOptions.fetch ?? options.fetch ?? globalThis.fetch;
   const init: RequestInit = {
     ...requestOptions.init,
     method,
     headers,
-  }
+  };
   if (body !== undefined) {
-    init.body = body
+    init.body = body;
   }
 
-  const response = await fetchImpl(url, init)
+  const response = await fetchImpl(url, init);
 
-  return response
+  return response;
 }
 
 export function createClient<TApp>(options: CreateClientOptions): Client<TApp> {
-  const proxyCache = new Map<string, unknown>()
+  const proxyCache = new Map<string, unknown>();
 
   function createProxy(path: string[]): unknown {
-    const key = path.join('.')
-    const cached = proxyCache.get(key)
+    const key = path.join(".");
+    const cached = proxyCache.get(key);
     if (cached) {
-      return cached
+      return cached;
     }
 
     const proxy: unknown = new Proxy(() => {}, {
       get(_target, prop) {
-        if (typeof prop !== 'string' || prop === 'then') {
-          return undefined
+        if (typeof prop !== "string" || prop === "then") {
+          return undefined;
         }
-        return createProxy([...path, prop])
+        return createProxy([...path, prop]);
       },
       apply(_target, _thisArg, args) {
-        return callback({ path, args })
+        return callback({ path, args });
       },
-    })
-    proxyCache.set(key, proxy)
-    return proxy
+    });
+    proxyCache.set(key, proxy);
+    return proxy;
   }
 
   function callback(opts: CallbackOptions): unknown {
-    const parts = [...opts.path]
-    const methodKey = parts.at(-1)
+    const parts = [...opts.path];
+    const methodKey = parts.at(-1);
 
     if (!methodKey || !isClientMethod(methodKey)) {
-      throw new Error(`Invalid client method path: ${parts.join('.')}`)
+      throw new Error(`Invalid client method path: ${parts.join(".")}`);
     }
 
-    const segments = parts.slice(0, -1)
-    return executeRequest(options, segments, methodKey, opts.args)
+    const segments = parts.slice(0, -1);
+    return executeRequest(options, segments, methodKey, opts.args);
   }
 
-  return createProxy([]) as Client<TApp>
+  return createProxy([]) as Client<TApp>;
 }

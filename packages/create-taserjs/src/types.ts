@@ -6,4 +6,4 @@ export type {
   ScaffoldOptions,
   ScaffoldResult,
   PackageGroups,
-} from './core/types.js'
+} from "./core/types.js";

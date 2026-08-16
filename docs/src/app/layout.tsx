@@ -1,17 +1,17 @@
-import { RootProvider } from 'fumadocs-ui/provider/next'
-import './global.css'
-import { Inter } from 'next/font/google'
-import { rootMetadata } from '@/lib/metadata'
+import { RootProvider } from "fumadocs-ui/provider/next";
+import "./global.css";
+import { Inter } from "next/font/google";
+import { rootMetadata } from "@/lib/metadata";
 
 const inter = Inter({
-  subsets: ['latin'],
-})
+  subsets: ["latin"],
+});
 
-import favicon from '@/assets/favicon.svg'
+import favicon from "@/assets/favicon.svg";
 
-export const metadata = rootMetadata
+export const metadata = rootMetadata;
 
-export default function Layout({ children }: LayoutProps<'/'>) {
+export default function Layout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={inter.className} suppressHydrationWarning>
       <head>
@@ -21,5 +21,5 @@ export default function Layout({ children }: LayoutProps<'/'>) {
         <RootProvider>{children}</RootProvider>
       </body>
     </html>
-  )
+  );
 }

@@ -1,25 +1,25 @@
-import type { StandardSchemaV1 } from '@standard-schema/spec'
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-import { STATUS_BAD_GATEWAY } from './constants.js'
-import { createReplyResult, isReplyResult, type ReplyResult } from './reply/result.js'
+import { STATUS_BAD_GATEWAY } from "./constants.js";
+import { createReplyResult, isReplyResult, type ReplyResult } from "./reply/result.js";
 
 export type ResponseValidationFailureHandler = (args: {
-  issues: readonly StandardSchemaV1.Issue[]
-  request: Request
-}) => void
+  issues: readonly StandardSchemaV1.Issue[];
+  request: Request;
+}) => void;
 
 export type ValidateReplyOptions = {
-  request: Request
-  onValidationFailure?: ResponseValidationFailureHandler | undefined
-}
+  request: Request;
+  onValidationFailure?: ResponseValidationFailureHandler | undefined;
+};
 
 export class ValidationError extends Error {
   constructor(
     readonly issues: readonly StandardSchemaV1.Issue[],
-    message = 'Validation failed',
+    message = "Validation failed",
   ) {
-    super(message)
-    this.name = 'ValidationError'
+    super(message);
+    this.name = "ValidationError";
   }
 }
 
@@ -28,74 +28,74 @@ export const validationErrorSchema: StandardSchemaV1<
   { errors: readonly StandardSchemaV1.Issue[] },
   { errors: readonly StandardSchemaV1.Issue[] }
 > = {
-  '~standard': {
+  "~standard": {
     version: 1,
-    vendor: 'taser',
+    vendor: "taser",
     validate(value) {
       if (
-        typeof value === 'object'
-        && value !== null
-        && 'errors' in value
-        && Array.isArray((value).errors)
+        typeof value === "object" &&
+        value !== null &&
+        "errors" in value &&
+        Array.isArray(value.errors)
       ) {
-        return { value: value as { errors: readonly StandardSchemaV1.Issue[] } }
+        return { value: value as { errors: readonly StandardSchemaV1.Issue[] } };
       }
       return {
-        issues: [{ message: 'Expected validation error payload { errors: Issue[] }' }],
-      }
+        issues: [{ message: "Expected validation error payload { errors: Issue[] }" }],
+      };
     },
   },
-}
+};
 
 export type ReturnsMap = {
-  readonly [status: number]: StandardSchemaV1
-}
+  readonly [status: number]: StandardSchemaV1;
+};
 
 export function mergeReturnsMaps(
   ...maps: Array<ReturnsMap | Record<number, StandardSchemaV1> | undefined | null>
 ): Record<number, StandardSchemaV1> {
-  const result: Record<number, StandardSchemaV1> = {}
+  const result: Record<number, StandardSchemaV1> = {};
   for (const map of maps) {
     if (!map) {
-      continue
+      continue;
     }
     for (const [key, schema] of Object.entries(map)) {
       if (schema !== undefined) {
-        result[Number(key)] = schema
+        result[Number(key)] = schema;
       }
     }
   }
-  return result
+  return result;
 }
 
 export function hasInputSchemas(source: {
-  query?: unknown
-  params?: unknown
-  body?: unknown
-  handlerQuery?: unknown
-  handlerParams?: unknown
-  handlerBody?: unknown
-  middlewares?: readonly { query?: unknown, params?: unknown, body?: unknown }[]
-  handlerMiddlewares?: readonly { query?: unknown, params?: unknown, body?: unknown }[]
+  query?: unknown;
+  params?: unknown;
+  body?: unknown;
+  handlerQuery?: unknown;
+  handlerParams?: unknown;
+  handlerBody?: unknown;
+  middlewares?: readonly { query?: unknown; params?: unknown; body?: unknown }[];
+  handlerMiddlewares?: readonly { query?: unknown; params?: unknown; body?: unknown }[];
 }): boolean {
   if (
-    source.query !== undefined
-    || source.params !== undefined
-    || source.body !== undefined
-    || source.handlerQuery !== undefined
-    || source.handlerParams !== undefined
-    || source.handlerBody !== undefined
+    source.query !== undefined ||
+    source.params !== undefined ||
+    source.body !== undefined ||
+    source.handlerQuery !== undefined ||
+    source.handlerParams !== undefined ||
+    source.handlerBody !== undefined
   ) {
-    return true
+    return true;
   }
 
   for (const layer of [...(source.middlewares ?? []), ...(source.handlerMiddlewares ?? [])]) {
     if (layer.query !== undefined || layer.params !== undefined || layer.body !== undefined) {
-      return true
+      return true;
     }
   }
 
-  return false
+  return false;
 }
 
 export function withAuto422(
@@ -103,22 +103,22 @@ export function withAuto422(
   inject: boolean,
 ): Record<number, StandardSchemaV1> {
   if (!inject || returns[422] !== undefined) {
-    return returns
+    return returns;
   }
-  return { ...returns, 422: validationErrorSchema }
+  return { ...returns, 422: validationErrorSchema };
 }
 
 export async function validateSchema<S extends StandardSchemaV1>(
   schema: S,
   value: unknown,
 ): Promise<StandardSchemaV1.InferOutput<S>> {
-  const result = await schema['~standard'].validate(value)
+  const result = await schema["~standard"].validate(value);
 
   if (result.issues) {
-    throw new ValidationError(result.issues)
+    throw new ValidationError(result.issues);
   }
 
-  return result.value
+  return result.value;
 }
 
 function reportValidationFailure(
@@ -127,10 +127,10 @@ function reportValidationFailure(
   onValidationFailure?: ResponseValidationFailureHandler,
 ): void {
   if (onValidationFailure) {
-    onValidationFailure({ issues, request })
-    return
+    onValidationFailure({ issues, request });
+    return;
   }
-  console.error('Response validation failed', { url: request.url, issues })
+  console.error("Response validation failed", { url: request.url, issues });
 }
 
 /**
@@ -143,35 +143,35 @@ export async function validateReply(
   options: ValidateReplyOptions,
 ): Promise<Response> {
   if (!returnsMap || Object.keys(returnsMap).length === 0) {
-    return result
+    return result;
   }
 
   if (!isReplyResult(result)) {
-    return result
+    return result;
   }
 
-  const schema = returnsMap[result.status]
+  const schema = returnsMap[result.status];
   if (schema === undefined) {
-    return result
+    return result;
   }
 
-  const validated = await schema['~standard'].validate(result.data)
+  const validated = await schema["~standard"].validate(result.data);
   if (validated.issues) {
-    reportValidationFailure(validated.issues, options.request, options.onValidationFailure)
+    reportValidationFailure(validated.issues, options.request, options.onValidationFailure);
 
     return createReplyResult(
       result.body,
       {
         status: STATUS_BAD_GATEWAY,
-        statusText: 'Bad Gateway',
+        statusText: "Bad Gateway",
         headers: result.headers,
       },
       result.data,
       result.kind,
-    )
+    );
   }
 
-  return result
+  return result;
 }
 
-export type { ReplyResult }
+export type { ReplyResult };

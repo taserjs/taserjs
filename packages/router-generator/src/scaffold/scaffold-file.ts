@@ -1,27 +1,27 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import path, { relative } from 'node:path'
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path, { relative } from "node:path";
 
-import { classifyRouteFile, getMethodFromRouteFile } from '../scan/classify.js'
-import { normalizeRouteRel } from '../scan/normalize.js'
-import { buildUrlPath } from '../scan/url-path.js'
-import { layoutIdFromPath } from '../support/naming.js'
-import { ScanError } from '../support/errors.js'
-import { toPosixPath } from '../support/paths.js'
-import { fileNeedsScaffold } from './detect-exports.js'
-import { layoutScaffoldSource, routeScaffoldSource } from './route-template.js'
+import { classifyRouteFile, getMethodFromRouteFile } from "../scan/classify.js";
+import { normalizeRouteRel } from "../scan/normalize.js";
+import { buildUrlPath } from "../scan/url-path.js";
+import { layoutIdFromPath } from "../support/naming.js";
+import { ScanError } from "../support/errors.js";
+import { toPosixPath } from "../support/paths.js";
+import { fileNeedsScaffold } from "./detect-exports.js";
+import { layoutScaffoldSource, routeScaffoldSource } from "./route-template.js";
 
-export type ScaffoldResult = 'written' | 'skipped' | 'ignored'
+export type ScaffoldResult = "written" | "skipped" | "ignored";
 
 export type ScaffoldOptions = {
-  entry: string
-}
+  entry: string;
+};
 
 function assertPathUnderRoutesDir(routesDir: string, absolutePath: string): void {
-  const resolvedRoutesDir = path.resolve(routesDir)
-  const resolvedTarget = path.resolve(absolutePath)
-  const relativePath = path.relative(resolvedRoutesDir, resolvedTarget)
-  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-    throw new ScanError('Scaffold path escapes routes directory', absolutePath)
+  const resolvedRoutesDir = path.resolve(routesDir);
+  const resolvedTarget = path.resolve(absolutePath);
+  const relativePath = path.relative(resolvedRoutesDir, resolvedTarget);
+  if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+    throw new ScanError("Scaffold path escapes routes directory", absolutePath);
   }
 }
 
@@ -30,38 +30,37 @@ export async function scaffoldRouteFile(
   absolutePath: string,
   options: ScaffoldOptions,
 ): Promise<ScaffoldResult> {
-  assertPathUnderRoutesDir(routesDir, absolutePath)
+  assertPathUnderRoutesDir(routesDir, absolutePath);
 
-  const relativePath = toPosixPath(relative(routesDir, absolutePath))
-  const kind = classifyRouteFile(relativePath)
+  const relativePath = toPosixPath(relative(routesDir, absolutePath));
+  const kind = classifyRouteFile(relativePath);
 
   if (!kind) {
-    return 'ignored'
+    return "ignored";
   }
 
-  let source = ''
+  let source = "";
   try {
-    source = await readFile(absolutePath, 'utf8')
-  }
-  catch {
-    source = ''
+    source = await readFile(absolutePath, "utf8");
+  } catch {
+    source = "";
   }
 
   if (!fileNeedsScaffold(source, kind)) {
-    return 'skipped'
+    return "skipped";
   }
 
-  if (kind === 'layout') {
-    const layoutId = layoutIdFromPath(normalizeRouteRel(relativePath))
-    await writeFile(absolutePath, layoutScaffoldSource(layoutId, options.entry), 'utf8')
-    return 'written'
+  if (kind === "layout") {
+    const layoutId = layoutIdFromPath(normalizeRouteRel(relativePath));
+    await writeFile(absolutePath, layoutScaffoldSource(layoutId, options.entry), "utf8");
+    return "written";
   }
 
-  const routeRel = normalizeRouteRel(relativePath)
-  const method = getMethodFromRouteFile(routeRel)
-  const urlPath = buildUrlPath(routeRel)
-  await writeFile(absolutePath, routeScaffoldSource(urlPath, method, options.entry), 'utf8')
-  return 'written'
+  const routeRel = normalizeRouteRel(relativePath);
+  const method = getMethodFromRouteFile(routeRel);
+  const urlPath = buildUrlPath(routeRel);
+  await writeFile(absolutePath, routeScaffoldSource(urlPath, method, options.entry), "utf8");
+  return "written";
 }
 
 export async function scaffoldRouteFileAtPath(
@@ -69,8 +68,8 @@ export async function scaffoldRouteFileAtPath(
   relativePath: string,
   options: ScaffoldOptions,
 ): Promise<ScaffoldResult> {
-  const normalized = toPosixPath(relativePath)
-  const absolutePath = `${routesDir.replace(/\\/g, '/')}/${normalized}`.replace(/\/{2,}/g, '/')
-  await mkdir(path.dirname(absolutePath), { recursive: true })
-  return scaffoldRouteFile(routesDir, absolutePath, options)
+  const normalized = toPosixPath(relativePath);
+  const absolutePath = `${routesDir.replace(/\\/g, "/")}/${normalized}`.replace(/\/{2,}/g, "/");
+  await mkdir(path.dirname(absolutePath), { recursive: true });
+  return scaffoldRouteFile(routesDir, absolutePath, options);
 }

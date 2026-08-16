@@ -1,11 +1,11 @@
-import { bodyLimit as honoBodyLimit } from 'hono/body-limit'
+import { bodyLimit as honoBodyLimit } from "hono/body-limit";
 
-import { wrapHonoMiddleware } from './auth.js'
+import { wrapHonoMiddleware } from "./auth.js";
 
-const honoBodyLimitMiddleware = wrapHonoMiddleware(honoBodyLimit)
+const honoBodyLimitMiddleware = wrapHonoMiddleware(honoBodyLimit);
 
 export function bodyLimit(...args: Parameters<typeof honoBodyLimit>) {
-  return honoBodyLimitMiddleware(...args)
+  return honoBodyLimitMiddleware(...args);
 }
 
-export type BodyLimitOptions = Parameters<typeof honoBodyLimit>[0]
+export type BodyLimitOptions = Parameters<typeof honoBodyLimit>[0];

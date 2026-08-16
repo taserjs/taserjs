@@ -1,6 +1,6 @@
 export interface Logger {
-  info(message: string): void
-  error(message: string): void
+  info(message: string): void;
+  error(message: string): void;
 }
 
 export function createLogger(disabled: boolean): Logger {
@@ -8,17 +8,17 @@ export function createLogger(disabled: boolean): Logger {
     return {
       info() {},
       error(message: string) {
-        console.error(message)
+        console.error(message);
       },
-    }
+    };
   }
 
   return {
     info(message: string) {
-      console.log(message)
+      console.log(message);
     },
     error(message: string) {
-      console.error(message)
+      console.error(message);
     },
-  }
+  };
 }

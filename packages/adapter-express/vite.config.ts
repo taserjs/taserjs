@@ -1,15 +1,15 @@
-import { defineConfig, mergeConfig } from 'vitest/config'
-import { tanstackViteConfig } from '@tanstack/vite-config'
+import { defineConfig, mergeConfig } from "vitest/config";
+import { tanstackViteConfig } from "@tanstack/vite-config";
 
 export default mergeConfig(
   defineConfig({
     test: {
-      name: 'express-adapter',
-      dir: './tests',
-      environment: 'node',
+      name: "express-adapter",
+      dir: "./tests",
+      environment: "node",
       globals: true,
       watch: false,
     },
   }),
-  tanstackViteConfig({ entry: './src/index.ts', srcDir: './src' }),
-)
+  tanstackViteConfig({ entry: "./src/index.ts", srcDir: "./src" }),
+);

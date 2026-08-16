@@ -1,27 +1,30 @@
-import { writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { generatorConfigSchema } from '@taserjs/router-generator'
-import { z } from 'zod'
+import { generatorConfigSchema } from "@taserjs/router-generator";
+import { format } from "oxfmt";
+import { z } from "zod";
 
-const outputPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'taser.config.schema.json')
+const outputPath = join(dirname(fileURLToPath(import.meta.url)), "..", "taser.config.schema.json");
 
 const schema = z.toJSONSchema(generatorConfigSchema, {
-  target: 'draft-2020-12',
-  io: 'output',
-  reused: 'inline',
-  unrepresentable: 'any',
-})
+  target: "draft-2020-12",
+  io: "output",
+  reused: "inline",
+  unrepresentable: "any",
+});
 
 const document = {
-  $schema: 'https://json-schema.org/draft/2020-12/schema',
-  $id: 'https://taserjs.dev/schemas/taser.config.schema.json',
-  title: 'Taser Router CLI Config',
-  type: 'object',
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://taserjs.dev/schemas/taser.config.schema.json",
+  title: "Taser Router CLI Config",
+  type: "object",
   additionalProperties: false,
   ...schema,
-}
+};
 
-writeFileSync(outputPath, `${JSON.stringify(document, null, 2)}\n`, 'utf8')
-console.log(`Wrote ${outputPath}`)
+const rawJson = `${JSON.stringify(document, null, 2)}\n`;
+const formatted = await format(outputPath, rawJson);
+writeFileSync(outputPath, formatted.code ?? rawJson, "utf8");
+console.log(`Wrote ${outputPath}`);

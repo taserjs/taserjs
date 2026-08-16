@@ -1,30 +1,30 @@
-import type { AddonDefinition } from '../types.js'
+import type { AddonDefinition } from "../types.js";
 
 export const pinoAddon: AddonDefinition = {
-  id: 'pino',
-  category: 'logger',
+  id: "pino",
+  category: "logger",
   dependencies() {
-    return ['pino']
+    return ["pino"];
   },
   devDependencies() {
-    return []
+    return [];
   },
   bootBinding() {
     return {
-      key: 'logger',
-      importPath: './logger.js',
-      factoryName: 'createLogger',
-    }
+      key: "logger",
+      importPath: "./logger.js",
+      factoryName: "createLogger",
+    };
   },
   async apply(_ctx, write) {
     await write(
-      'src/logger.ts',
+      "src/logger.ts",
       `import pino from 'pino'
 
 export function createLogger() {
   return pino({ level: process.env.LOG_LEVEL ?? 'info' })
 }
 `,
-    )
+    );
   },
-}
+};

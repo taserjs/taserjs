@@ -5,11 +5,13 @@ Fastify adapter for Taser router
 ## Installation
 
 **npm:**
+
 ```bash
 npm install @taserjs/adapter-fastify
 ```
 
 **JSR:**
+
 ```bash
 deno add jsr:@taserjs/adapter-fastify
 npx jsr add @taserjs/adapter-fastify

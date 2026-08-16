@@ -1,62 +1,59 @@
-import type { StandardSchemaV1 } from '@standard-schema/spec'
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   collectReturnsFromDefinitions,
   hasInputSchemas,
   mergeReturnsMaps,
   withAuto422,
-} from '@taserjs/router-utils'
+} from "@taserjs/router-utils";
 
-import type { Method, RouteBuilder, RoutePath, ReturnsMap, ValidatorParts } from './types/index.js'
-import type { HttpMethod, MiddlewareDefinition } from './types/units.js'
-import { isHandlerUnit } from './types/units.js'
-import { HANDLER_SCHEMA_KEY_MAP } from './constants.js'
-import {
-  pickDefinedSchemas,
-  type SchemaValidators,
-} from './define/validators.js'
+import type { Method, RouteBuilder, RoutePath, ReturnsMap, ValidatorParts } from "./types/index.js";
+import type { HttpMethod, MiddlewareDefinition } from "./types/units.js";
+import { isHandlerUnit } from "./types/units.js";
+import { HANDLER_SCHEMA_KEY_MAP } from "./constants.js";
+import { pickDefinedSchemas, type SchemaValidators } from "./define/validators.js";
 
 function toUtilsMap(map: ReturnsMap | undefined): Record<number, StandardSchemaV1> {
   if (!map) {
-    return {}
+    return {};
   }
-  const out: Record<number, StandardSchemaV1> = {}
+  const out: Record<number, StandardSchemaV1> = {};
   for (const [key, schema] of Object.entries(map)) {
     if (schema !== undefined) {
-      out[Number(key)] = schema
+      out[Number(key)] = schema;
     }
   }
-  return out
+  return out;
 }
 
 function buildEffectiveReturns(args: {
-  middlewareReturns: ReturnsMap
-  routeReturns: ReturnsMap
-  handlerMiddlewareReturns: ReturnsMap
-  handlerReturns: ReturnsMap | undefined
+  middlewareReturns: ReturnsMap;
+  routeReturns: ReturnsMap;
+  handlerMiddlewareReturns: ReturnsMap;
+  handlerReturns: ReturnsMap | undefined;
   schemas: {
-    query?: unknown
-    params?: unknown
-    body?: unknown
-    handlerQuery?: unknown
-    handlerParams?: unknown
-    handlerBody?: unknown
-    middlewares?: readonly MiddlewareDefinition[]
-    handlerMiddlewares?: readonly MiddlewareDefinition[]
-  }
+    query?: unknown;
+    params?: unknown;
+    body?: unknown;
+    handlerQuery?: unknown;
+    handlerParams?: unknown;
+    handlerBody?: unknown;
+    middlewares?: readonly MiddlewareDefinition[];
+    handlerMiddlewares?: readonly MiddlewareDefinition[];
+  };
 }): Record<number, StandardSchemaV1> | undefined {
   const merged = mergeReturnsMaps(
     toUtilsMap(args.middlewareReturns),
     toUtilsMap(args.routeReturns),
     toUtilsMap(args.handlerMiddlewareReturns),
     toUtilsMap(args.handlerReturns),
-  )
-  const with422 = withAuto422(merged, hasInputSchemas(args.schemas))
-  return Object.keys(with422).length > 0 ? with422 : undefined
+  );
+  const with422 = withAuto422(merged, hasInputSchemas(args.schemas));
+  return Object.keys(with422).length > 0 ? with422 : undefined;
 }
 
 function buildRouteBase(
   path: string,
-  method: HttpMethod | 'ANY' | 'ALL',
+  method: HttpMethod | "ANY" | "ALL",
   methods: readonly HttpMethod[] | undefined,
   middlewares: MiddlewareDefinition[],
 ) {
@@ -65,36 +62,36 @@ function buildRouteBase(
     method,
     ...(methods ? { methods: [...methods] } : {}),
     middlewares: [...middlewares],
-  }
+  };
 }
 
 /** Shared internal builder — not part of the public `@taserjs/router` API. */
 export function createRouteBuilder(
   path: string,
-  method: HttpMethod | 'ANY' | 'ALL',
+  method: HttpMethod | "ANY" | "ALL",
   validators: SchemaValidators = {},
   methods?: readonly HttpMethod[],
 ): RouteBuilder<RoutePath, Method, readonly [], ValidatorParts> {
-  const middlewares: MiddlewareDefinition[] = []
-  let routeReturns: Record<number, StandardSchemaV1> = {}
+  const middlewares: MiddlewareDefinition[] = [];
+  let routeReturns: Record<number, StandardSchemaV1> = {};
 
   const builder = {
     path,
     method,
     returns(map: ReturnsMap) {
-      routeReturns = { ...routeReturns, ...toUtilsMap(map) }
-      return builder
+      routeReturns = { ...routeReturns, ...toUtilsMap(map) };
+      return builder;
     },
     use(definition: MiddlewareDefinition) {
-      middlewares.push(definition)
-      return builder
+      middlewares.push(definition);
+      return builder;
     },
     handler(fnOrUnit: ((ctx: unknown) => unknown) | unknown) {
-      const routeSchemas = pickDefinedSchemas(validators)
-      const base = buildRouteBase(path, method, methods, middlewares)
+      const routeSchemas = pickDefinedSchemas(validators);
+      const base = buildRouteBase(path, method, methods, middlewares);
 
       if (isHandlerUnit(fnOrUnit)) {
-        const handlerSchemas = pickDefinedSchemas(fnOrUnit, HANDLER_SCHEMA_KEY_MAP)
+        const handlerSchemas = pickDefinedSchemas(fnOrUnit, HANDLER_SCHEMA_KEY_MAP);
         const returns = buildEffectiveReturns({
           middlewareReturns: collectReturnsFromDefinitions(middlewares),
           routeReturns: routeReturns,
@@ -108,7 +105,7 @@ export function createRouteBuilder(
             middlewares,
             handlerMiddlewares: fnOrUnit.middlewares,
           },
-        })
+        });
 
         return {
           ...base,
@@ -117,7 +114,7 @@ export function createRouteBuilder(
           ...routeSchemas,
           ...handlerSchemas,
           ...(returns ? { returns } : {}),
-        }
+        };
       }
 
       const returns = buildEffectiveReturns({
@@ -129,7 +126,7 @@ export function createRouteBuilder(
           ...validators,
           middlewares,
         },
-      })
+      });
 
       return {
         ...base,
@@ -137,9 +134,9 @@ export function createRouteBuilder(
         handler: fnOrUnit as (ctx: unknown) => Response | Promise<Response>,
         ...routeSchemas,
         ...(returns ? { returns } : {}),
-      }
+      };
     },
-  }
+  };
 
-  return builder as unknown as RouteBuilder<RoutePath, Method, readonly [], ValidatorParts>
+  return builder as unknown as RouteBuilder<RoutePath, Method, readonly [], ValidatorParts>;
 }

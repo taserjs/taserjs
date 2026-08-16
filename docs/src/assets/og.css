@@ -23,11 +23,7 @@
 .og-glow-secondary {
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    ellipse 80% 60% at 15% 0%,
-    rgba(255, 127, 4, 0.12),
-    transparent 70%
-  );
+  background: radial-gradient(ellipse 80% 60% at 15% 0%, rgba(255, 127, 4, 0.12), transparent 70%);
 }
 
 .og-inner {
@@ -61,19 +57,14 @@
   font-size: 28px;
   line-height: 1.45;
   margin: 20px 0 0;
-  color: rgba(250, 250, 250, 0.90);
+  color: rgba(250, 250, 250, 0.9);
 }
 
 .og-separator {
   width: 100%;
   height: 1px;
   margin-top: 32px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 127, 4, 0.4),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 127, 4, 0.4), transparent);
 }
 
 .og-footer {

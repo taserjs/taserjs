@@ -1,12 +1,12 @@
-import { resolveImportExtension, type ExtensionOption } from '../config/schema.js'
+import { resolveImportExtension, type ExtensionOption } from "../config/schema.js";
 
 export function toModuleImportPath(
   routesImportPrefix: string,
   routeRel: string,
   extension: ExtensionOption = true,
 ): string {
-  const withoutExtension = routeRel.replace(/\.ts$/, '')
-  const base = `${routesImportPrefix}/${withoutExtension}`
-  const importExtension = resolveImportExtension(extension)
-  return importExtension ? `${base}${importExtension}` : base
+  const withoutExtension = routeRel.replace(/\.ts$/, "");
+  const base = `${routesImportPrefix}/${withoutExtension}`;
+  const importExtension = resolveImportExtension(extension);
+  return importExtension ? `${base}${importExtension}` : base;
 }

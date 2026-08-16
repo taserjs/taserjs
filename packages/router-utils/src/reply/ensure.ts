@@ -1,9 +1,5 @@
-import { jsonResponse, noContentResponse } from './build.js'
-import {
-  createReplyResult,
-  isReplyResult,
-  type ReplyResult,
-} from './result.js'
+import { jsonResponse, noContentResponse } from "./build.js";
+import { createReplyResult, isReplyResult, type ReplyResult } from "./result.js";
 
 /**
  * Coerce any pipeline node output to ReplyResult.
@@ -11,7 +7,7 @@ import {
  */
 export function ensureReplyResult(value: unknown): ReplyResult {
   if (isReplyResult(value)) {
-    return value
+    return value;
   }
 
   if (value instanceof Response) {
@@ -23,13 +19,13 @@ export function ensureReplyResult(value: unknown): ReplyResult {
         headers: value.headers,
       },
       null,
-      value.body ? 'stream' : 'empty',
-    )
+      value.body ? "stream" : "empty",
+    );
   }
 
   if (value === undefined || value === null) {
-    return noContentResponse()
+    return noContentResponse();
   }
 
-  return jsonResponse(value)
+  return jsonResponse(value);
 }

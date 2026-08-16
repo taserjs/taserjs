@@ -1,1 +1,1 @@
-export { blob, buffer, file, pipe, stream } from './stream/index.js'
+export { blob, buffer, file, pipe, stream } from "./stream/index.js";

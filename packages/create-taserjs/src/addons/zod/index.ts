@@ -1,3 +1,3 @@
-import { ValidatorAddon } from '../validators.js'
+import { ValidatorAddon } from "../validators.js";
 
-export const zodAddon = ValidatorAddon('zod')
+export const zodAddon = ValidatorAddon("zod");

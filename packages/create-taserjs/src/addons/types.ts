@@ -1,19 +1,19 @@
-import type { ScaffoldContext } from '../core/types.js'
+import type { ScaffoldContext } from "../core/types.js";
 
 export type BootBinding = {
-  key: string
-  importPath: string
-  factoryName: string
-}
+  key: string;
+  importPath: string;
+  factoryName: string;
+};
 
-export type FileWriter = (filePath: string, contents: string) => Promise<void>
+export type FileWriter = (filePath: string, contents: string) => Promise<void>;
 
 export type AddonDefinition = {
-  id: string
-  category: 'database' | 'logger' | 'validator'
-  dependencies: (ctx: ScaffoldContext) => string[]
-  devDependencies: (ctx: ScaffoldContext) => string[]
-  scripts?: (ctx: ScaffoldContext) => Record<string, string>
-  bootBinding?: (ctx: ScaffoldContext) => BootBinding
-  apply: (ctx: ScaffoldContext, write: FileWriter) => Promise<void>
-}
+  id: string;
+  category: "database" | "logger" | "validator";
+  dependencies: (ctx: ScaffoldContext) => string[];
+  devDependencies: (ctx: ScaffoldContext) => string[];
+  scripts?: (ctx: ScaffoldContext) => Record<string, string>;
+  bootBinding?: (ctx: ScaffoldContext) => BootBinding;
+  apply: (ctx: ScaffoldContext, write: FileWriter) => Promise<void>;
+};

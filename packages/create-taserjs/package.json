@@ -2,8 +2,12 @@
   "name": "create-taserjs",
   "version": "0.0.2",
   "description": "Scaffold a new Taser application",
-  "type": "module",
-  "sideEffects": false,
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taserjs/taserjs.git",
+    "directory": "packages/create-taserjs"
+  },
   "bin": {
     "create-taserjs": "./dist/esm/cli.js"
   },
@@ -11,6 +15,12 @@
     "dist",
     "src"
   ],
+  "type": "module",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
   "scripts": {
     "clean": "rimraf dist",
     "build": "vite build && publint --strict",
@@ -32,15 +42,5 @@
   },
   "engines": {
     "node": ">=20.19"
-  },
-  "license": "ISC",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/taserjs/taserjs.git",
-    "directory": "packages/create-taserjs"
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org"
   }
 }

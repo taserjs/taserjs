@@ -1,17 +1,13 @@
-import type { StandardSchemaV1 } from '@standard-schema/spec'
-import {
-  reply,
-  type ResponseValidationFailureHandler,
-  validateReply,
-} from '@taserjs/router-utils'
+import type { StandardSchemaV1 } from "@standard-schema/spec";
+import { reply, type ResponseValidationFailureHandler, validateReply } from "@taserjs/router-utils";
 
-import { toResponse } from '../error-handler.js'
-import type { TaserCookieJar } from '../taser-cookies.js'
+import { toResponse } from "../error-handler.js";
+import type { TaserCookieJar } from "../taser-cookies.js";
 
 export type FinalizeResponseOptions = {
-  validate: boolean
-  onValidationFailure?: ResponseValidationFailureHandler | undefined
-}
+  validate: boolean;
+  onValidationFailure?: ResponseValidationFailureHandler | undefined;
+};
 
 export async function finalizeReply(
   value: unknown,
@@ -20,7 +16,7 @@ export async function finalizeReply(
   request: Request,
   cookies: TaserCookieJar,
 ): Promise<Response> {
-  const response = toResponse(value)
+  const response = toResponse(value);
   const validated = responseOptions.validate
     ? await validateReply(response, returnsMap, {
         request,
@@ -28,8 +24,8 @@ export async function finalizeReply(
           ? { onValidationFailure: responseOptions.onValidationFailure }
           : {}),
       })
-    : response
-  return cookies.applyTo(validated)
+    : response;
+  return cookies.applyTo(validated);
 }
 
-export { reply }
+export { reply };

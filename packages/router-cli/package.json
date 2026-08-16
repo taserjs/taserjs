@@ -2,8 +2,12 @@
   "name": "@taserjs/router-cli",
   "version": "0.0.2",
   "description": "CLI for Taser route manifest generation",
-  "type": "module",
-  "sideEffects": false,
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taserjs/taserjs.git",
+    "directory": "packages/router-cli"
+  },
   "bin": {
     "taser": "./dist/esm/cli.js"
   },
@@ -12,9 +16,15 @@
     "src",
     "taser.config.schema.json"
   ],
+  "type": "module",
+  "sideEffects": false,
   "exports": {
     "./taser.config.schema.json": "./taser.config.schema.json",
     "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   },
   "scripts": {
     "clean": "rimraf dist",
@@ -32,6 +42,7 @@
   "devDependencies": {
     "@tanstack/vite-config": "^0.6.0",
     "@types/yargs": "^17.0.33",
+    "oxfmt": "^0.63.0",
     "publint": "^0.3.22",
     "typescript": "^5.9.3",
     "vite": "^8.1.5",
@@ -39,15 +50,5 @@
   },
   "engines": {
     "node": ">=20.19"
-  },
-  "license": "ISC",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/taserjs/taserjs.git",
-    "directory": "packages/router-cli"
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org"
   }
 }

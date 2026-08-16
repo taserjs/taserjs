@@ -48,23 +48,25 @@ npm create taserjs@latest
 Define a route:
 
 ```ts
-import { reply } from '@taserjs/router'
-import { z } from 'zod' // or any other validation library
-import { t } from '../taser'
+import { reply } from "@taserjs/router";
+import { z } from "zod"; // or any other validation library
+import { t } from "../taser";
 
-export const Route = t.get('/search', {
-  query: z.object({ q: z.string().min(1) }),
-}).handler((ctx) => {
-  return reply.json({ q: ctx.query.q })
-})
+export const Route = t
+  .get("/search", {
+    query: z.object({ q: z.string().min(1) }),
+  })
+  .handler((ctx) => {
+    return reply.json({ q: ctx.query.q });
+  });
 ```
 
 Call it with the typed client:
 
 ```ts
-const client = createClient<TaserAppRouter>({ baseURL: 'https://api.example.com' })
-const response = await client.search.$get({ query: { q: 'taser' } })
-const json = await response.json()
+const client = createClient<TaserAppRouter>({ baseURL: "https://api.example.com" });
+const response = await client.search.$get({ query: { q: "taser" } });
+const json = await response.json();
 // json is inferred from the route's return type
 ```
 

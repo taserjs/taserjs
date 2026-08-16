@@ -1,9 +1,9 @@
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2 } from "lucide-react";
 
-import { SectionAccent, SectionHeader } from './section-header'
-import { SectionSeparator } from './section-separator'
+import { SectionAccent, SectionHeader } from "./section-header";
+import { SectionSeparator } from "./section-separator";
 
-const adapters = ['Express', 'Hono', 'Fastify', 'Node', 'Fetch'] as const
+const adapters = ["Express", "Hono", "Fastify", "Node", "Fetch"] as const;
 
 export function TryItSection() {
   return (
@@ -12,8 +12,11 @@ export function TryItSection() {
       <div className="mx-auto max-w-(--fd-layout-width) px-6 py-16 md:py-24">
         <SectionHeader
           className="mb-10"
-          // eslint-disable-next-line @stylistic/jsx-one-expression-per-line
-          title={<>Try it <SectionAccent>out</SectionAccent></>}
+          title={
+            <>
+              Try it <SectionAccent>out</SectionAccent>
+            </>
+          }
           description="Scaffold a typed API in under a minute. Pick your adapter and start building."
         />
 
@@ -30,34 +33,29 @@ export function TryItSection() {
                 <span className="landing-line text-fd-muted-foreground">
                   # scaffold a project in under a minute
                 </span>
-                {'\n'}
+                {"\n"}
                 <span className="landing-line landing-line-delay-1">
-                  <span className="text-fd-muted-foreground">$</span>
-                  {' '}
-                  <span className="text-fd-primary">npm create taserjs@latest</span>
-                  {' '}
-                  my-api
+                  <span className="text-fd-muted-foreground">$</span>{" "}
+                  <span className="text-fd-primary">npm create taserjs@latest</span> my-api
                   <span className="landing-cursor align-[-0.1em] h-[1em]" aria-hidden />
                 </span>
-                {'\n\n'}
+                {"\n\n"}
                 <span className="landing-line landing-line-delay-2 text-fd-muted-foreground">
                   ◇ Project name
                 </span>
-                {'\n'}
+                {"\n"}
                 <span className="landing-line landing-line-delay-2">│ my-api</span>
-                {'\n'}
+                {"\n"}
                 <span className="landing-line landing-line-delay-3 text-fd-muted-foreground">
                   ◆ Choose a framework
                 </span>
-                {'\n'}
+                {"\n"}
                 <span className="landing-line landing-line-delay-3">
-                  │
-                  {' '}
-                  <span className="text-fd-primary">● Express</span>
+                  │ <span className="text-fd-primary">● Express</span>
                 </span>
-                {'\n'}
+                {"\n"}
                 <span className="landing-line landing-line-delay-4 text-fd-muted-foreground">
-                  │ ○ Hono  ○ Fastify  ○ Node
+                  │ ○ Hono ○ Fastify ○ Node
                 </span>
               </code>
             </pre>
@@ -69,14 +67,11 @@ export function TryItSection() {
             </div>
             <h3 className="text-lg font-semibold tracking-tight">New API scaffolded!</h3>
             <p className="mt-2 text-sm text-fd-muted-foreground">
-              Power of file-based routing, full chain inference, CLI watch mode all generated and ready
-              for
-              {' '}
-              <code className="rounded bg-fd-muted px-1.5 py-0.5 text-xs">pnpm dev</code>
-              .
+              Power of file-based routing, full chain inference, CLI watch mode all generated and
+              ready for <code className="rounded bg-fd-muted px-1.5 py-0.5 text-xs">pnpm dev</code>.
             </p>
             <ul className="mt-5 flex flex-wrap gap-2">
-              {adapters.map(name => (
+              {adapters.map((name) => (
                 <li
                   key={name}
                   className="rounded-full border border-fd-border bg-fd-card px-3 py-1 text-xs font-medium text-fd-muted-foreground transition-colors hover:border-fd-primary/40 hover:text-fd-foreground"
@@ -89,5 +84,5 @@ export function TryItSection() {
         </div>
       </div>
     </section>
-  )
+  );
 }

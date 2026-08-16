@@ -1,17 +1,17 @@
 export function normalizeRoutePrefix(prefix: string): string {
-  if (prefix === '' || prefix === '/') {
-    return '/'
+  if (prefix === "" || prefix === "/") {
+    return "/";
   }
-  return prefix.replace(/\/$/, '')
+  return prefix.replace(/\/$/, "");
 }
 
 export function joinRoutePrefix(prefix: string, path: string): string {
-  const normalized = normalizeRoutePrefix(prefix)
-  if (normalized === '/') {
-    return path
+  const normalized = normalizeRoutePrefix(prefix);
+  if (normalized === "/") {
+    return path;
   }
-  if (path === '/') {
-    return normalized
+  if (path === "/") {
+    return normalized;
   }
-  return `${normalized}${path}`
+  return `${normalized}${path}`;
 }

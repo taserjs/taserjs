@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from "react";
 import {
   FileCode2,
   Folder,
@@ -10,48 +10,48 @@ import {
   Server,
   Monitor,
   Code2,
-} from 'lucide-react'
-import { cn } from '@/lib/cn'
+} from "lucide-react";
+import { cn } from "@/lib/cn";
 
-type HttpVerb = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'MW' | 'LAYOUT' | 'PAGE'
+type HttpVerb = "GET" | "POST" | "PUT" | "DELETE" | "MW" | "LAYOUT" | "PAGE";
 
 interface MethodBadgeProps {
-  method: HttpVerb
+  method: HttpVerb;
 }
 
 function MethodBadge({ method }: MethodBadgeProps) {
   const styles: Record<HttpVerb, string> = {
-    GET: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
-    POST: 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30',
-    PUT: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
-    DELETE: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30',
-    MW: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30',
-    LAYOUT: 'bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/30',
-    PAGE: 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/30',
-  }
+    GET: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+    POST: "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30",
+    PUT: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+    DELETE: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
+    MW: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
+    LAYOUT: "bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/30",
+    PAGE: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/30",
+  };
 
   return (
     <span
       className={cn(
-        'inline-flex w-14 items-center justify-center rounded px-1 py-0.5 text-center font-mono text-[10px] font-semibold tracking-wider uppercase border',
+        "inline-flex w-14 items-center justify-center rounded px-1 py-0.5 text-center font-mono text-[10px] font-semibold tracking-wider uppercase border",
         styles[method],
       )}
     >
       {method}
     </span>
-  )
+  );
 }
 
 interface TreeItemProps {
-  name: string
-  route?: string
-  badge?: HttpVerb
-  role?: string
-  depth?: number
-  isFolder?: boolean
-  isOpen?: boolean
-  onToggle?: () => void
-  children?: ReactNode
+  name: string;
+  route?: string;
+  badge?: HttpVerb;
+  role?: string;
+  depth?: number;
+  isFolder?: boolean;
+  isOpen?: boolean;
+  onToggle?: () => void;
+  children?: ReactNode;
 }
 
 function TreeItem({
@@ -70,8 +70,8 @@ function TreeItem({
       <div
         onClick={isFolder ? onToggle : undefined}
         className={cn(
-          'group flex items-center gap-2 sm:gap-3 px-3 py-1.5 text-xs transition-colors rounded-lg select-none',
-          isFolder ? 'cursor-pointer hover:bg-fd-accent/60' : 'hover:bg-fd-accent/40',
+          "group flex items-center gap-2 sm:gap-3 px-3 py-1.5 text-xs transition-colors rounded-lg select-none",
+          isFolder ? "cursor-pointer hover:bg-fd-accent/60" : "hover:bg-fd-accent/40",
         )}
       >
         {/* Column 1: File Structure with indentation */}
@@ -88,7 +88,12 @@ function TreeItem({
           ) : (
             <FileCode2 className="size-3.5 shrink-0 text-fd-muted-foreground group-hover:text-fd-foreground transition-colors" />
           )}
-          <span className={cn('truncate', isFolder ? 'font-semibold text-fd-foreground' : 'text-fd-foreground/90')}>
+          <span
+            className={cn(
+              "truncate",
+              isFolder ? "font-semibold text-fd-foreground" : "text-fd-foreground/90",
+            )}
+          >
             {name}
           </span>
         </div>
@@ -109,30 +114,28 @@ function TreeItem({
 
         {/* Column 4: Role Description */}
         <div className="hidden w-24 sm:w-28 shrink-0 text-right lg:block truncate text-[11px] text-fd-muted-foreground/80">
-          {role ?? ''}
+          {role ?? ""}
         </div>
       </div>
 
       {isFolder && isOpen && (
-        <div className="relative ml-4 border-l border-fd-border/70 pl-0.5">
-          {children}
-        </div>
+        <div className="relative ml-4 border-l border-fd-border/70 pl-0.5">{children}</div>
       )}
     </div>
-  )
+  );
 }
 
 export function RouterComparison() {
-  const [activeTab, setActiveTab] = useState<'tanstack' | 'taser'>('taser')
+  const [activeTab, setActiveTab] = useState<"tanstack" | "taser">("taser");
   // Synchronized folder state across both trees
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
     posts: true,
     auth: true,
-  })
+  });
 
-  const toggleFolder = (folderKey: 'posts' | 'auth') => {
-    setOpenFolders(prev => ({ ...prev, [folderKey]: !prev[folderKey] }))
-  }
+  const toggleFolder = (folderKey: "posts" | "auth") => {
+    setOpenFolders((prev) => ({ ...prev, [folderKey]: !prev[folderKey] }));
+  };
 
   return (
     <div className="space-y-6">
@@ -141,12 +144,12 @@ export function RouterComparison() {
         <div className="inline-flex rounded-xl border border-fd-border bg-fd-muted/30 p-1">
           <button
             type="button"
-            onClick={() => setActiveTab('tanstack')}
+            onClick={() => setActiveTab("tanstack")}
             className={cn(
-              'flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors',
-              activeTab === 'tanstack'
-                ? 'bg-fd-background text-fd-foreground shadow-xs'
-                : 'text-fd-muted-foreground hover:text-fd-foreground',
+              "flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors",
+              activeTab === "tanstack"
+                ? "bg-fd-background text-fd-foreground shadow-xs"
+                : "text-fd-muted-foreground hover:text-fd-foreground",
             )}
           >
             <Monitor className="size-3.5 text-purple-500" />
@@ -154,12 +157,12 @@ export function RouterComparison() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('taser')}
+            onClick={() => setActiveTab("taser")}
             className={cn(
-              'flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors',
-              activeTab === 'taser'
-                ? 'bg-fd-background text-fd-foreground shadow-xs'
-                : 'text-fd-muted-foreground hover:text-fd-foreground',
+              "flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors",
+              activeTab === "taser"
+                ? "bg-fd-background text-fd-foreground shadow-xs"
+                : "text-fd-muted-foreground hover:text-fd-foreground",
             )}
           >
             <Server className="size-3.5 text-orange-500" />
@@ -173,8 +176,8 @@ export function RouterComparison() {
         {/* TanStack Router Card */}
         <div
           className={cn(
-            'overflow-hidden rounded-2xl border border-fd-border bg-fd-card shadow-lg shadow-black/5 dark:shadow-black/30 transition-all',
-            activeTab !== 'tanstack' ? 'hidden md:block' : 'block',
+            "overflow-hidden rounded-2xl border border-fd-border bg-fd-card shadow-lg shadow-black/5 dark:shadow-black/30 transition-all",
+            activeTab !== "tanstack" ? "hidden md:block" : "block",
           )}
         >
           {/* Window Chrome Header */}
@@ -203,39 +206,18 @@ export function RouterComparison() {
 
           {/* File Tree Rows */}
           <div className="space-y-0.5 p-2 sm:p-2.5 overflow-x-auto">
-            <TreeItem
-              name="_root.tsx"
-              route="/*"
-              badge="LAYOUT"
-              role="Root Layout"
-            />
-            <TreeItem
-              name="index.tsx"
-              route="/"
-              badge="PAGE"
-              role="Home Page"
-            />
-            <TreeItem
-              name="posts.tsx"
-              route="/posts/*"
-              badge="LAYOUT"
-              role="Posts Layout"
-            />
+            <TreeItem name="_root.tsx" route="/*" badge="LAYOUT" role="Root Layout" />
+            <TreeItem name="index.tsx" route="/" badge="PAGE" role="Home Page" />
+            <TreeItem name="posts.tsx" route="/posts/*" badge="LAYOUT" role="Posts Layout" />
 
             <TreeItem
               name="posts"
               route="/posts"
               isFolder
               isOpen={openFolders.posts}
-              onToggle={() => toggleFolder('posts')}
+              onToggle={() => toggleFolder("posts")}
             >
-              <TreeItem
-                name="index.tsx"
-                route="/posts"
-                badge="PAGE"
-                role="Posts Index"
-                depth={1}
-              />
+              <TreeItem name="index.tsx" route="/posts" badge="PAGE" role="Posts Index" depth={1} />
               <TreeItem
                 name="create.tsx"
                 route="/posts/create"
@@ -264,7 +246,7 @@ export function RouterComparison() {
                 isFolder
                 depth={1}
                 isOpen={openFolders.auth}
-                onToggle={() => toggleFolder('auth')}
+                onToggle={() => toggleFolder("auth")}
               >
                 <TreeItem
                   name="$postId.edit.tsx"
@@ -288,8 +270,8 @@ export function RouterComparison() {
         {/* Taser Card */}
         <div
           className={cn(
-            'overflow-hidden rounded-2xl border border-fd-border bg-fd-card shadow-lg shadow-black/5 dark:shadow-black/30 ring-1 ring-orange-500/20 transition-all',
-            activeTab !== 'taser' ? 'hidden md:block' : 'block',
+            "overflow-hidden rounded-2xl border border-fd-border bg-fd-card shadow-lg shadow-black/5 dark:shadow-black/30 ring-1 ring-orange-500/20 transition-all",
+            activeTab !== "taser" ? "hidden md:block" : "block",
           )}
         >
           {/* Window Chrome Header */}
@@ -318,31 +300,16 @@ export function RouterComparison() {
 
           {/* File Tree Rows */}
           <div className="space-y-0.5 p-2 sm:p-2.5 overflow-x-auto">
-            <TreeItem
-              name="$.ts"
-              route="/*"
-              badge="MW"
-              role="Root Middleware"
-            />
-            <TreeItem
-              name="index.get.ts"
-              route="/"
-              badge="GET"
-              role="Index Handler"
-            />
-            <TreeItem
-              name="posts.ts"
-              route="/posts/*"
-              badge="MW"
-              role="Posts Middleware"
-            />
+            <TreeItem name="$.ts" route="/*" badge="MW" role="Root Middleware" />
+            <TreeItem name="index.get.ts" route="/" badge="GET" role="Index Handler" />
+            <TreeItem name="posts.ts" route="/posts/*" badge="MW" role="Posts Middleware" />
 
             <TreeItem
               name="posts"
               route="/posts"
               isFolder
               isOpen={openFolders.posts}
-              onToggle={() => toggleFolder('posts')}
+              onToggle={() => toggleFolder("posts")}
             >
               <TreeItem
                 name="index.get.ts"
@@ -379,7 +346,7 @@ export function RouterComparison() {
                 isFolder
                 depth={1}
                 isOpen={openFolders.auth}
-                onToggle={() => toggleFolder('auth')}
+                onToggle={() => toggleFolder("auth")}
               >
                 <TreeItem
                   name="$postId.put.ts"
@@ -430,7 +397,27 @@ export function RouterComparison() {
               <span className="font-normal text-fd-muted-foreground">(Handlers)</span>
             </div>
             <p className="mt-2 text-xs leading-relaxed text-fd-muted-foreground">
-              Endpoints are segregated by method suffixes: <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">.get.ts</code>, <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">.post.ts</code>, <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">.put.ts</code>, <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">.delete.ts</code>, <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">.patch.ts</code>, and all standard HTTP verbs.
+              Endpoints are segregated by method suffixes:{" "}
+              <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">
+                .get.ts
+              </code>
+              ,{" "}
+              <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">
+                .post.ts
+              </code>
+              ,{" "}
+              <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">
+                .put.ts
+              </code>
+              ,{" "}
+              <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">
+                .delete.ts
+              </code>
+              ,{" "}
+              <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">
+                .patch.ts
+              </code>
+              , and all standard HTTP verbs.
             </p>
           </div>
 
@@ -444,11 +431,24 @@ export function RouterComparison() {
               <span className="font-normal text-fd-muted-foreground">(Middleware)</span>
             </div>
             <p className="mt-2 text-xs leading-relaxed text-fd-muted-foreground">
-              Files without a verb (e.g. <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">$.ts</code>, <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">posts.ts</code>, <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">_auth.ts</code>) act as scoped middleware. They run before child handlers and cascade typed context down the folder tree.
+              Files without a verb (e.g.{" "}
+              <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">
+                $.ts
+              </code>
+              ,{" "}
+              <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">
+                posts.ts
+              </code>
+              ,{" "}
+              <code className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[11px] text-fd-foreground">
+                _auth.ts
+              </code>
+              ) act as scoped middleware. They run before child handlers and cascade typed context
+              down the folder tree.
             </p>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
