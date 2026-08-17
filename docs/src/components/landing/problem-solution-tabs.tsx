@@ -93,8 +93,9 @@ adminRouter.get("/reports/:id", getReportHandler);
 //
 // src/routes/
 // ├── $.ts                      -> Root Middleware
+// ├── admin.ts                   -> Scoped /admin/* Middleware
 // └── admin/
-//     ├── _auth.ts              -> Scoped /admin/* Middleware
+//     ├── reports.ts              -> Scoped /admin/reports/* Middleware
 //     └── reports/
 //         ├── index.get.ts      -> GET  /admin/reports
 //         ├── create.post.ts    -> POST /admin/reports
@@ -248,7 +249,7 @@ export function ProblemSolutionTabs() {
 
           {/* Taser Card (The Solution) */}
           <WindowFrame
-            title="Taser REST Router"
+            title="Taser Router"
             tone="emerald"
             badge={
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">

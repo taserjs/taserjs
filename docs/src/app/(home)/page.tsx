@@ -1,4 +1,5 @@
 import { AdaptersSection } from "@/components/landing/adapters-section";
+import { AuthorSection } from "@/components/landing/author-section";
 import { CtaSection } from "@/components/landing/cta-section";
 import { FeaturesSection } from "@/components/landing/features-section";
 import { HeroSection } from "@/components/landing/hero-section";
@@ -23,6 +24,7 @@ export default function HomePage() {
       <RoadmapSection />
       <SponsorsSection />
       <CtaSection />
+      <AuthorSection />
     </>
   );
 }

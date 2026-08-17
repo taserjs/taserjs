@@ -124,6 +124,14 @@ export function createDocsPageMetadata(opts: {
 export const rootMetadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   applicationName: siteConfig.name,
+  icons: {
+    icon: [
+      {
+        url: "/favicon.svg",
+        type: "image/svg+xml",
+      },
+    ],
+  },
   robots: {
     index: true,
     follow: true,

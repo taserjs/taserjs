@@ -166,7 +166,7 @@ export function RouterComparison() {
             )}
           >
             <Server className="size-3.5 text-orange-500" />
-            Taser REST Router
+            Taser Router
           </button>
         </div>
       </div>
