@@ -1,5 +1,11 @@
 # create-taserjs
 
+## 0.0.3
+
+### Patch Changes
+
+- e7b55e9: Additional Runtime and Project Types
+
 ## 0.0.2
 
 ### Patch Changes
