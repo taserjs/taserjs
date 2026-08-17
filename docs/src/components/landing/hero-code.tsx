@@ -36,7 +36,7 @@ export function HeroCode() {
       }
       className="min-w-0 w-full shadow-xl shadow-black/5 dark:shadow-black/40"
     >
-      <div className="hero-code-block max-h-100">
+      <div className="hero-code-block">
         <DynamicCodeBlock
           code={heroTabSources[activeId] ?? ""}
           lang="ts"

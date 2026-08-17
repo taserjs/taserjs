@@ -4,7 +4,7 @@ import { SectionSeparator } from "./section-separator";
 
 export function MotivationSection() {
   return (
-    <section id="motivation" className="relative bg-fd-muted/20 scroll-mt-14">
+    <section id="motivation" className="relative scroll-mt-14">
       <SectionSeparator />
       <div className="mx-auto max-w-(--fd-layout-width) px-6 py-16 md:py-24">
         <SectionHeader

@@ -48,7 +48,7 @@ app.post("/private", validateBody(schema), (req, res) => {
     solutionBadge: "100% Inferred Context",
     solutionFilename: "routes/admin.ts + routes/admin/reports.post.ts",
     solutionCode: `// Middleware declares what it injects
-export const auth = defineMiddleware({
+export const Middleware = t.middleware('/admin').use({
   query: z.object({ token: z.string() }),
   state: z.object({ user: UserSchema }),
   handler: async (ctx, next) => {
@@ -177,7 +177,7 @@ export function ProblemSolutionTabs() {
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? tabs[0];
 
   return (
-    <section id="problem-solution" className="relative scroll-mt-14">
+    <section id="why-taser" className="relative bg-fd-muted/20 scroll-mt-14">
       <SectionSeparator />
       <div className="mx-auto max-w-(--fd-layout-width) px-6 py-16 md:py-24">
         <SectionHeader

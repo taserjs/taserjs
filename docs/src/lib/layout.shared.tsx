@@ -1,7 +1,7 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 import { gitConfig } from "./shared";
 import { Logo } from "@/components/logo";
-import { BookOpenIcon, BrainIcon, HeartIcon } from "lucide-react";
+import { BookOpenIcon, BrainIcon, HeartIcon, MapIcon } from "lucide-react";
 
 export function baseOptions(): BaseLayoutProps {
   return {
@@ -24,6 +24,11 @@ export function baseOptions(): BaseLayoutProps {
         icon: <BrainIcon />,
         text: "Motivation",
         url: "/#motivation",
+      },
+      {
+        icon: <MapIcon />,
+        text: "Roadmap",
+        url: "/#roadmap",
       },
       {
         icon: <HeartIcon />,

@@ -77,7 +77,7 @@ function TreeItem({
       >
         {/* Column 1: File Structure with indentation */}
         <div
-          className="flex flex-1 min-w-0 items-center gap-2 font-mono text-fd-foreground"
+          className="flex flex-1 min-w-44 items-center gap-2 font-mono text-fd-foreground"
           style={{ paddingLeft: `${depth * 14}px` }}
         >
           {isFolder ? (
@@ -182,75 +182,86 @@ export function RouterComparison() {
               Client UI Routing
             </span>
           }
-          subHeader={
-            <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-wider text-fd-muted-foreground">
-              <span className="flex-1 min-w-0">File Structure</span>
-              <span className="w-14 shrink-0 text-center">Type</span>
-              <span className="w-32 sm:w-36 shrink-0 text-left">Matched Route</span>
-              <span className="hidden w-24 sm:w-28 shrink-0 text-right lg:block">Role</span>
-            </div>
-          }
           className={activeTab !== "tanstack" ? "hidden md:block" : "block"}
         >
-          <div className="space-y-0.5 p-2 sm:p-2.5 overflow-x-auto">
-            <TreeItem name="_root.tsx" route="/*" badge="LAYOUT" role="Root Layout" />
-            <TreeItem name="index.tsx" route="/" badge="PAGE" role="Home Page" />
-            <TreeItem name="posts.tsx" route="/posts/*" badge="LAYOUT" role="Posts Layout" />
+          <div className="overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
+            <div className="min-w-[480px] sm:min-w-full">
+              {/* Column Subheader */}
+              <div className="flex items-center gap-2 sm:gap-3 border-b border-fd-border/60 bg-fd-muted/20 px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-wider text-fd-muted-foreground">
+                <span className="flex-1 min-w-44">File Structure</span>
+                <span className="w-14 shrink-0 text-center">Type</span>
+                <span className="w-32 sm:w-36 shrink-0 text-left">Matched Route</span>
+                <span className="hidden w-24 sm:w-28 shrink-0 text-right lg:block">Role</span>
+              </div>
 
-            <TreeItem
-              name="posts"
-              route="/posts"
-              isFolder
-              isOpen={openFolders.posts}
-              onToggle={() => toggleFolder("posts")}
-            >
-              <TreeItem name="index.tsx" route="/posts" badge="PAGE" role="Posts Index" depth={1} />
-              <TreeItem
-                name="create.tsx"
-                route="/posts/create"
-                badge="PAGE"
-                role="Create Post"
-                depth={1}
-              />
-              <TreeItem
-                name="$postId.tsx"
-                route="/posts/$postId"
-                badge="PAGE"
-                role="Post Detail"
-                depth={1}
-              />
-              <TreeItem
-                name="_auth.tsx"
-                route="/posts/*(_auth)"
-                badge="LAYOUT"
-                role="Auth Layout"
-                depth={1}
-              />
+              {/* File Tree Rows */}
+              <div className="space-y-0.5 p-2 sm:p-2.5">
+                <TreeItem name="_root.tsx" route="/*" badge="LAYOUT" role="Root Layout" />
+                <TreeItem name="index.tsx" route="/" badge="PAGE" role="Home Page" />
+                <TreeItem name="posts.tsx" route="/posts/*" badge="LAYOUT" role="Posts Layout" />
 
-              <TreeItem
-                name="_auth"
-                route="/posts"
-                isFolder
-                depth={1}
-                isOpen={openFolders.auth}
-                onToggle={() => toggleFolder("auth")}
-              >
                 <TreeItem
-                  name="$postId.edit.tsx"
-                  route="/posts/$postId/edit"
-                  badge="PAGE"
-                  role="Edit Post"
-                  depth={2}
-                />
-                <TreeItem
-                  name="$postId.delete.tsx"
-                  route="/posts/$postId/delete"
-                  badge="PAGE"
-                  role="Delete Post"
-                  depth={2}
-                />
-              </TreeItem>
-            </TreeItem>
+                  name="posts"
+                  route="/posts"
+                  isFolder
+                  isOpen={openFolders.posts}
+                  onToggle={() => toggleFolder("posts")}
+                >
+                  <TreeItem
+                    name="index.tsx"
+                    route="/posts"
+                    badge="PAGE"
+                    role="Posts Index"
+                    depth={1}
+                  />
+                  <TreeItem
+                    name="create.tsx"
+                    route="/posts/create"
+                    badge="PAGE"
+                    role="Create Post"
+                    depth={1}
+                  />
+                  <TreeItem
+                    name="$postId.tsx"
+                    route="/posts/$postId"
+                    badge="PAGE"
+                    role="Post Detail"
+                    depth={1}
+                  />
+                  <TreeItem
+                    name="_auth.tsx"
+                    route="/posts/*(_auth)"
+                    badge="LAYOUT"
+                    role="Auth Layout"
+                    depth={1}
+                  />
+
+                  <TreeItem
+                    name="_auth"
+                    route="/posts"
+                    isFolder
+                    depth={1}
+                    isOpen={openFolders.auth}
+                    onToggle={() => toggleFolder("auth")}
+                  >
+                    <TreeItem
+                      name="$postId.edit.tsx"
+                      route="/posts/$postId/edit"
+                      badge="PAGE"
+                      role="Edit Post"
+                      depth={2}
+                    />
+                    <TreeItem
+                      name="$postId.delete.tsx"
+                      route="/posts/$postId/delete"
+                      badge="PAGE"
+                      role="Delete Post"
+                      depth={2}
+                    />
+                  </TreeItem>
+                </TreeItem>
+              </div>
+            </div>
           </div>
         </WindowFrame>
 
@@ -264,81 +275,86 @@ export function RouterComparison() {
               Backend REST API
             </span>
           }
-          subHeader={
-            <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-wider text-fd-muted-foreground">
-              <span className="flex-1 min-w-0">File Structure</span>
-              <span className="w-14 shrink-0 text-center">Type</span>
-              <span className="w-32 sm:w-36 shrink-0 text-left">Matched Endpoint</span>
-              <span className="hidden w-24 sm:w-28 shrink-0 text-right lg:block">Role</span>
-            </div>
-          }
           className={activeTab !== "taser" ? "hidden md:block" : "block"}
         >
-          <div className="space-y-0.5 p-2 sm:p-2.5 overflow-x-auto">
-            <TreeItem name="$.ts" route="/*" badge="MW" role="Root Middleware" />
-            <TreeItem name="index.get.ts" route="/" badge="GET" role="Index Handler" />
-            <TreeItem name="posts.ts" route="/posts/*" badge="MW" role="Posts Middleware" />
+          <div className="overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
+            <div className="min-w-[480px] sm:min-w-full">
+              {/* Column Subheader */}
+              <div className="flex items-center gap-2 sm:gap-3 border-b border-fd-border/60 bg-fd-muted/20 px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-wider text-fd-muted-foreground">
+                <span className="flex-1 min-w-44">File Structure</span>
+                <span className="w-14 shrink-0 text-center">Type</span>
+                <span className="w-32 sm:w-36 shrink-0 text-left">Matched Endpoint</span>
+                <span className="hidden w-24 sm:w-28 shrink-0 text-right lg:block">Role</span>
+              </div>
 
-            <TreeItem
-              name="posts"
-              route="/posts"
-              isFolder
-              isOpen={openFolders.posts}
-              onToggle={() => toggleFolder("posts")}
-            >
-              <TreeItem
-                name="index.get.ts"
-                route="/posts"
-                badge="GET"
-                role="List Posts"
-                depth={1}
-              />
-              <TreeItem
-                name="create.post.ts"
-                route="/posts"
-                badge="POST"
-                role="Create Post"
-                depth={1}
-              />
-              <TreeItem
-                name="$postId.get.ts"
-                route="/posts/$postId"
-                badge="GET"
-                role="Get Post"
-                depth={1}
-              />
-              <TreeItem
-                name="_auth.ts"
-                route="/posts/*"
-                badge="MW"
-                role="Auth Middleware"
-                depth={1}
-              />
+              {/* File Tree Rows */}
+              <div className="space-y-0.5 p-2 sm:p-2.5">
+                <TreeItem name="$.ts" route="/*" badge="MW" role="Root Middleware" />
+                <TreeItem name="index.get.ts" route="/" badge="GET" role="Index Handler" />
+                <TreeItem name="posts.ts" route="/posts/*" badge="MW" role="Posts Middleware" />
 
-              <TreeItem
-                name="_auth"
-                route="/posts"
-                isFolder
-                depth={1}
-                isOpen={openFolders.auth}
-                onToggle={() => toggleFolder("auth")}
-              >
                 <TreeItem
-                  name="$postId.put.ts"
-                  route="/posts/$postId"
-                  badge="PUT"
-                  role="Update Post"
-                  depth={2}
-                />
-                <TreeItem
-                  name="$postId.delete.ts"
-                  route="/posts/$postId"
-                  badge="DELETE"
-                  role="Delete Post"
-                  depth={2}
-                />
-              </TreeItem>
-            </TreeItem>
+                  name="posts"
+                  route="/posts"
+                  isFolder
+                  isOpen={openFolders.posts}
+                  onToggle={() => toggleFolder("posts")}
+                >
+                  <TreeItem
+                    name="index.get.ts"
+                    route="/posts"
+                    badge="GET"
+                    role="List Posts"
+                    depth={1}
+                  />
+                  <TreeItem
+                    name="create.post.ts"
+                    route="/posts"
+                    badge="POST"
+                    role="Create Post"
+                    depth={1}
+                  />
+                  <TreeItem
+                    name="$postId.get.ts"
+                    route="/posts/$postId"
+                    badge="GET"
+                    role="Get Post"
+                    depth={1}
+                  />
+                  <TreeItem
+                    name="_auth.ts"
+                    route="/posts/*"
+                    badge="MW"
+                    role="Auth Middleware"
+                    depth={1}
+                  />
+
+                  <TreeItem
+                    name="_auth"
+                    route="/posts"
+                    isFolder
+                    depth={1}
+                    isOpen={openFolders.auth}
+                    onToggle={() => toggleFolder("auth")}
+                  >
+                    <TreeItem
+                      name="$postId.put.ts"
+                      route="/posts/$postId"
+                      badge="PUT"
+                      role="Update Post"
+                      depth={2}
+                    />
+                    <TreeItem
+                      name="$postId.delete.ts"
+                      route="/posts/$postId"
+                      badge="DELETE"
+                      role="Delete Post"
+                      depth={2}
+                    />
+                  </TreeItem>
+                </TreeItem>
+              </div>
+            </div>
           </div>
         </WindowFrame>
       </div>

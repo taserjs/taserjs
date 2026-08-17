@@ -216,9 +216,15 @@ html > body[data-scroll-locked] {
 }
 
 .hero-code-block {
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+}
+
+.hero-code-block figure,
+.hero-code-block .fd-scroll-container {
+  overflow-y: visible !important;
+  max-height: none !important;
 }
 
 .hero-code-block pre,
