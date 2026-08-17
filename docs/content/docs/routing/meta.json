@@ -1,4 +1,9 @@
 {
-  "title": "Routing",
-  "icon": "Waypoints"
+  "title": "Routing System",
+  "pages": [
+    "file-conventions",
+    "defining-routes",
+    "layouts-and-middleware",
+    "context-and-state"
+  ]
 }

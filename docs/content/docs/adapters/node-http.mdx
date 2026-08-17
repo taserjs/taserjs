@@ -1,0 +1,109 @@
+---
+title: Node HTTP Adapter
+description: Run your Taser application on native Node.js HTTP server without external framework dependencies using @taserjs/adapter-node.
+icon: Box
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+The `@taserjs/adapter-node` package enables you to run Taser directly on Node.js's built-in `http.createServer()` with zero external framework dependencies and minimal memory overhead.
+
+---
+
+## Installation
+
+```bash
+npm install @taserjs/adapter-node
+```
+
+---
+
+## Mounting on Node.js Server
+
+```ts title="src/index.ts"
+import { createServer } from "node:http";
+import { createNodeHandler } from "@taserjs/adapter-node";
+import { routeManifest } from "./routeManifest.gen";
+import { t } from "./taser";
+
+// 1. Initialize Taser application
+export const app = t.create(routeManifest);
+export type TaserAppRouter = typeof app;
+
+// 2. Create Node HTTP server
+const server = createServer();
+
+// 3. Mount Taser handler
+const taser = createNodeHandler(app);
+taser.mount("/api", server);
+
+// 4. Start listening
+const port = Number(process.env.PORT ?? 3000);
+server.listen(port, () => {
+  console.log(`Node HTTP server listening on http://localhost:${port}`);
+});
+```
+
+---
+
+## Direct RequestListener Pattern
+
+You can also extract a standard Node.js `RequestListener` function:
+
+```ts title="src/index.ts"
+import { createServer } from "node:http";
+import { createNodeHandler } from "@taserjs/adapter-node";
+import { app } from "./app";
+
+const taser = createNodeHandler(app);
+const listener = taser.requestListener("/api");
+
+const server = createServer((req, res) => {
+  if (req.url?.startsWith("/api")) {
+    return listener(req, res);
+  }
+
+  // Handle non-Taser endpoints:
+  res.writeHead(404, { "Content-Type": "text/plain" });
+  res.end("Not Found");
+});
+
+server.listen(3000);
+```
+
+---
+
+## Accessing Native Node `req` and `res`
+
+```ts title="src/routes/socket-info.get.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Route = t.get("/socket-info").handler((ctx) => {
+  const req = ctx.native.req; // IncomingMessage
+  const res = ctx.native.res; // ServerResponse
+
+  return reply.json({
+    remoteAddress: req.socket.remoteAddress,
+    remotePort: req.socket.remotePort,
+  });
+});
+```
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Hono & Edge Runtimes"
+    href="/docs/adapters/hono-and-edge"
+    description="Run on Hono, Cloudflare Workers, Bun, or Deno."
+  />
+  <Card
+    title="Typed Client SDK"
+    href="/docs/client"
+    description="Connect to your Node.js API with a typed client."
+  />
+</Cards>

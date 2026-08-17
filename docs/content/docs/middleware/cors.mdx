@@ -1,0 +1,129 @@
+---
+title: CORS Middleware
+description: Configure Cross-Origin Resource Sharing (CORS) with the built-in @taserjs/router/cors middleware.
+icon: Globe
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+Taser includes a high-performance CORS middleware exported from `@taserjs/router/cors` that handles origin matching, preflight `OPTIONS` requests, credentials, and custom headers.
+
+---
+
+## Basic Configuration
+
+Attach CORS to your root layout (`src/routes/$.ts`) to enable cross-origin requests across your entire API:
+
+```ts title="src/routes/$.ts"
+import { cors } from "@taserjs/router/cors";
+import { t } from "../taser";
+
+export const Middleware = t.middleware("/$").use(
+  cors({
+    origin: ["https://example.com", "https://app.example.com"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    exposeHeaders: ["Content-Length", "X-Request-Id"],
+    credentials: true,
+    maxAge: 86400,
+  })
+);
+```
+
+---
+
+## Dynamic Origin Resolution
+
+If your application supports multiple dynamic domains or customer vanity subdomains, pass a function to `origin`:
+
+```ts title="src/routes/$.ts"
+import { cors } from "@taserjs/router/cors";
+import { t } from "../taser";
+
+export const Middleware = t.middleware("/$").use(
+  cors({
+    origin: (origin) => {
+      // Allow localhost in development:
+      if (!origin || origin.includes("localhost")) {
+        return origin;
+      }
+
+      // Allow any *.example.com subdomain:
+      if (origin.endsWith(".example.com")) {
+        return origin;
+      }
+
+      // Disallow all other origins:
+      return null;
+    },
+    credentials: true,
+  })
+);
+```
+
+---
+
+<TypeTable
+  type={{
+    origin: {
+      description: "Allowed origin URL, array of URLs, or resolver function.",
+      type: "string | string[] | ((origin: string) => string | null)",
+      default: "'*'",
+    },
+    allowMethods: {
+      description: "Permitted HTTP methods for preflight response.",
+      type: "string[]",
+      default: "['GET', 'HEAD', 'PUT', 'POST', 'DELETE', 'PATCH']",
+    },
+    allowHeaders: {
+      description: "Allowed request headers during preflight requests.",
+      type: "string[]",
+      default: "[]",
+    },
+    exposeHeaders: {
+      description: "Response headers exposed to client JavaScript.",
+      type: "string[]",
+      default: "[]",
+    },
+    credentials: {
+      description: "Enables Access-Control-Allow-Credentials header for cookie and auth forwarding.",
+      type: "boolean",
+      default: "false",
+    },
+    maxAge: {
+      description: "Preflight response cache duration in seconds.",
+      type: "number",
+    },
+  }}
+/>
+
+---
+
+## Scoped CORS per Route Group
+
+You can apply different CORS policies to different parts of your API by placing the middleware in specific layout files:
+
+```
+src/routes/
+├── $.ts                 -> Global layout
+├── public.ts            -> cors({ origin: "*" }) for open public API
+└── internal.ts          -> cors({ origin: "https://admin.internal" }) for internal dashboard
+```
+
+---
+
+## Related Guides
+
+<Cards>
+  <Card
+    title="Security & Utilities"
+    href="/docs/middleware/security-and-utilities"
+    description="Add security headers, CSRF protection, and body size limits."
+  />
+  <Card
+    title="JWT & JWK Auth"
+    href="/docs/middleware/jwt-and-jwk"
+    description="Secure routes using JWT token verification."
+  />
+</Cards>

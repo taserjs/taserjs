@@ -1,0 +1,122 @@
+---
+title: Global Error Handling
+description: Catch unhandled exceptions and route misses centrally using .onError() and .notFound(). Standardize error envelopes across your entire API.
+icon: ShieldAlert
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+Taser features a centralized error handling architecture configured on the `createTaserApp()` builder in `src/taser.ts`.
+
+---
+
+## Centralized `onError` Boundary
+
+Any uncaught exception thrown during middleware execution, input validation, or route handlers is passed directly to `.onError()`:
+
+```ts title="src/taser.ts"
+import {
+  createTaserApp,
+  reply,
+  ValidationError,
+  type InferAppContext,
+} from "@taserjs/router";
+import { context } from "./context";
+
+export class ResourceNotFoundError extends Error {
+  constructor(public resource: string) {
+    super(`${resource} not found`);
+    this.name = "ResourceNotFoundError";
+  }
+}
+
+export const t = createTaserApp()
+  .context(context)
+  .onError((error, ctx) => {
+    // 1. Handle Schema Validation Errors
+    if (error instanceof ValidationError) {
+      return reply.unprocessableEntity({
+        status: 422,
+        error: "Unprocessable Entity",
+        issues: error.issues,
+      });
+    }
+
+    // 2. Handle Custom Domain Exceptions
+    if (error instanceof ResourceNotFoundError) {
+      return reply.notFound({
+        status: 404,
+        error: "Not Found",
+        message: error.message,
+      });
+    }
+
+    // 3. Handle Unexpected Server Exceptions
+    console.error(`[Error on ${ctx?.method} ${ctx?.path}]:`, error);
+
+    const isProduction = process.env.NODE_ENV === "production";
+    return reply.internalServerError({
+      status: 500,
+      error: "Internal Server Error",
+      message: isProduction ? "An unexpected error occurred" : (error as Error).message,
+    });
+  });
+```
+
+---
+
+## Customizing 404 Not Found Handling
+
+Use `.notFound()` to define a standardized response when an incoming request does not match any registered route:
+
+```ts title="src/taser.ts"
+export const t = createTaserApp()
+  .context(context)
+  .notFound((ctx) => {
+    return reply.notFound({
+      status: 404,
+      error: "Not Found",
+      message: `The endpoint ${ctx.method} ${ctx.path} does not exist on this server.`,
+    });
+  });
+```
+
+---
+
+## Throwing Errors in Route Handlers
+
+Because `.onError()` catches all unhandled exceptions, you can throw errors directly inside services or handlers without manual `try/catch` boilerplate:
+
+```ts title="src/routes/teams/$id.get.ts"
+import { reply } from "@taserjs/router";
+import { t, ResourceNotFoundError } from "../../taser";
+
+export const Route = t.get("/teams/:id").handler(async (ctx) => {
+  const team = await ctx.db.findTeam(ctx.params.id);
+
+  if (!team) {
+    // Automatically caught by .onError() and mapped to 404 JSON response:
+    throw new ResourceNotFoundError("Team");
+  }
+
+  return reply.json(team);
+});
+```
+
+---
+
+## Related Guides
+
+<Cards>
+  <Card
+    title="Handling Validation Errors"
+    href="/docs/validation/handling-errors"
+    description="Learn how to format ValidationError issue paths."
+  />
+  <Card
+    title="Reply Helpers"
+    href="/docs/responses/reply-helpers"
+    description="Explore status-specific response helpers."
+  />
+</Cards>

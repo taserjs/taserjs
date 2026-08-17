@@ -1,0 +1,263 @@
+---
+title: Cookie Management
+description: Read, set, sign, and delete HTTP cookies using ctx.cookies. Configure global cookie defaults and cryptographically signed session cookies.
+icon: Cookie
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
+Taser includes a built-in cookie jar accessible via `ctx.cookies`. It handles cookie parsing, serializing, signing, and automatic `Set-Cookie` header accumulation on outgoing responses without requiring external cookie-parser middleware.
+
+---
+
+## Reading Cookies
+
+Use `ctx.cookies.get()` to read an incoming cookie by name, or `ctx.cookies.getAll()` to retrieve all cookies as a key-value record:
+
+```ts title="src/routes/me.get.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Route = t.get("/me").handler((ctx) => {
+  // Read a single cookie:
+  const theme = ctx.cookies.get("theme") ?? "light";
+
+  // Read all cookies:
+  const allCookies = ctx.cookies.getAll();
+
+  return reply.json({ theme, allCookies });
+});
+```
+
+---
+
+## Setting Cookies
+
+Use `ctx.cookies.set()` to set cookies. Taser automatically handles options and appends `Set-Cookie` headers to your response:
+
+```ts title="src/routes/preferences.post.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../taser";
+
+export const Route = t
+  .post("/preferences", {
+    body: z.object({
+      theme: z.enum(["light", "dark", "system"]),
+    }),
+  })
+  .handler((ctx) => {
+    ctx.cookies.set("theme", ctx.body.theme, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+    });
+
+    return reply.json({ success: true });
+  });
+```
+
+---
+
+## Cryptographically Signed Cookies
+
+Signed cookies prevent client-side tampering by attaching an HMAC signature to the cookie value.
+
+### 1. Configure a Global Secret
+
+Set your signing secret in `src/taser.ts`:
+
+```ts title="src/taser.ts"
+import { createTaserApp } from "@taserjs/router";
+import { context } from "./context";
+
+export const t = createTaserApp({
+  cookies: {
+    secret: process.env.COOKIE_SECRET || "your-secure-secret-key-32-chars-long",
+    httpOnly: true,
+    sameSite: "Lax",
+    secure: process.env.NODE_ENV === "production",
+  },
+}).context(context);
+```
+
+### 2. Set and Verify Signed Cookies
+
+```ts title="src/routes/auth/login.post.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../../taser";
+
+export const Route = t
+  .post("/auth/login", {
+    body: z.object({
+      userId: z.string(),
+    }),
+  })
+  .handler(async (ctx) => {
+    // Sets a cryptographically signed cookie:
+    await ctx.cookies.setSigned("session_user", ctx.body.userId);
+
+    return reply.json({ message: "Logged in successfully" });
+  });
+```
+
+Verify and read the signed cookie in protected endpoints:
+
+```ts title="src/routes/auth/session.get.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../../taser";
+
+export const Route = t.get("/auth/session").handler(async (ctx) => {
+  // Returns the verified string value, or false/undefined if signature is invalid or missing:
+  const userId = await ctx.cookies.getSigned("session_user");
+
+  if (!userId) {
+    return reply.unauthorized({ message: "Invalid or expired session cookie" });
+  }
+
+  const user = await ctx.db.getUser(userId);
+  return reply.json(user);
+});
+```
+
+---
+
+## Deleting Cookies
+
+Use `ctx.cookies.delete()` to clear a cookie by setting its `maxAge` to `0`:
+
+```ts title="src/routes/auth/logout.post.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../../taser";
+
+export const Route = t.post("/auth/logout").handler((ctx) => {
+  // Deletes cookie and returns its prior value (if present):
+  const previousSession = ctx.cookies.delete("session_user", { path: "/" });
+
+  return reply.json({ message: "Logged out", previousSession });
+});
+```
+
+---
+
+## Secure Cookie Prefixes (`__Secure-` and `__Host-`)
+
+Taser natively supports browser cookie prefixes for enhanced transport security:
+
+- **`prefix: "secure"`**: Prepends `__Secure-` to the cookie name and enforces `secure: true`.
+- **`prefix: "host"`**: Prepends `__Host-` to the cookie name, enforces `secure: true`, `path: "/"`, and prohibits the `domain` attribute.
+
+```ts
+// Sets a cookie named "__Host-session":
+ctx.cookies.set("session", sessionId, {
+  prefix: "host",
+});
+
+// Reads the "__Host-session" cookie:
+const sessionId = ctx.cookies.get("session", "host");
+```
+
+---
+
+## Cookie Options Reference
+
+<TypeTable
+  type={{
+    path: {
+      description: "URL path where the cookie is accessible.",
+      type: "string",
+      default: "'/'",
+    },
+    httpOnly: {
+      description: "Prevents client-side scripts from accessing document.cookie.",
+      type: "boolean",
+      default: "true",
+    },
+    secure: {
+      description: "Restricts cookie transmission to HTTPS requests.",
+      type: "boolean",
+      default: "false",
+    },
+    sameSite: {
+      description: "Controls cross-site cookie behavior to mitigate CSRF attacks.",
+      type: "'Strict' | 'Lax' | 'None'",
+      default: "'Lax'",
+    },
+    domain: {
+      description: "Specifies which domain and subdomains can receive the cookie.",
+      type: "string",
+    },
+    maxAge: {
+      description: "Lifetime of the cookie in seconds relative to current time.",
+      type: "number",
+    },
+    expires: {
+      description: "Absolute expiration Date for the cookie.",
+      type: "Date",
+    },
+    prefix: {
+      description: "Browser security prefix enforcement ('secure' or 'host').",
+      type: "'secure' | 'host'",
+    },
+  }}
+/>
+
+---
+
+## `TaserCookieJar` Methods Reference
+
+<TypeTable
+  type={{
+    get: {
+      description: "Reads a plain cookie value by name.",
+      type: "(name: string, prefix?: 'secure' | 'host') => string | undefined",
+    },
+    getAll: {
+      description: "Returns all parsed incoming cookies as a key-value dictionary.",
+      type: "() => Record<string, string>",
+    },
+    getSigned: {
+      description: "Verifies HMAC signature and returns the signed cookie string value (or false if invalid).",
+      type: "(name: string, secret?: string, prefix?: 'secure' | 'host') => Promise<string | false | undefined>",
+    },
+    set: {
+      description: "Sets an HTTP cookie with options and schedules a Set-Cookie response header.",
+      type: "(name: string, value: string, options?: CookieOptions) => void",
+    },
+    setSigned: {
+      description: "Cryptographically signs a value and schedules a signed Set-Cookie response header.",
+      type: "(name: string, value: string, secret?: string, options?: CookieOptions) => Promise<void>",
+    },
+    delete: {
+      description: "Deletes a cookie by issuing a maxAge=0 expiration header and returns previous value.",
+      type: "(name: string, options?: CookieOptions) => string | undefined",
+    },
+  }}
+/>
+
+---
+
+## Related Guides
+
+<Cards>
+  <Card
+    title="Reply Helpers"
+    href="/docs/responses/reply-helpers"
+    description="Explore status reply helpers and custom header options."
+  />
+  <Card
+    title="Core Concepts"
+    href="/docs/getting-started/core-concepts"
+    description="Learn how context and cookie jars flow through handlers."
+  />
+  <Card
+    title="JWT and Auth Middleware"
+    href="/docs/middleware/jwt-and-jwk"
+    description="Authenticate requests with tokens or session cookies."
+  />
+</Cards>

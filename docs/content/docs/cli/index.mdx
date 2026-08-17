@@ -1,0 +1,177 @@
+---
+title: CLI & Configuration
+description: Automate route discovery, manifest generation, and file scaffolding with @taserjs/router-cli. Full reference for CLI commands and taser.config.json.
+icon: Terminal
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
+The `@taserjs/router-cli` package scans your `src/routes/` directory, resolves dynamic parameters and layouts, and compiles a type-safe `routeManifest.gen.ts` file.
+
+---
+
+## Installation
+
+```bash
+npm install -D @taserjs/router-cli
+```
+
+---
+
+## CLI Commands Reference
+
+### 1. `taser watch`
+
+Starts the CLI file watcher. It monitors your routes folder and regenerates `routeManifest.gen.ts` instantly on save:
+
+```bash
+npx taser watch
+```
+
+Flags:
+- `--routes <dir>`: Custom routes directory (default: `src/routes`).
+- `--output <file>`: Custom output manifest file path (default: `src/routeManifest.gen.ts`).
+- `--quiet`: Suppress routine console logs.
+
+---
+
+### 2. `taser generate`
+
+Performs a single-pass scan and generates the route manifest. Use this in your production build scripts:
+
+```bash
+npx taser generate
+```
+
+---
+
+### 3. `taser init`
+
+Creates a default `taser.config.json` file in your project root:
+
+```bash
+npx taser init
+```
+
+---
+
+### 4. `taser scaffold <path>`
+
+Scaffolds a new route or layout file with starter boilerplate:
+
+```bash
+npx taser scaffold users/$id.get.ts
+npx taser scaffold admin.ts
+```
+
+---
+
+## Configuration File (`taser.config.json`)
+
+You can customize code generation rules by placing a `taser.config.json` in your project root:
+
+```json title="taser.config.json"
+{
+  "$schema": "https://raw.githubusercontent.com/taserjs/taserjs/main/packages/router-cli/taser.config.schema.json",
+  "routes": "src/routes",
+  "output": "src/routeManifest.gen.ts",
+  "entry": "src/taser.ts",
+  "extension": true,
+  "ignorePrefix": "_",
+  "quotes": "single",
+  "semi": false,
+  "format": true,
+  "validate": true
+}
+```
+
+### Configuration Options Reference
+
+<TypeTable
+  type={{
+    routes: {
+      description: "Directory where route files are scanned.",
+      type: "string",
+      default: "'src/routes'",
+    },
+    output: {
+      description: "File path where the compiled route manifest is generated.",
+      type: "string",
+      default: "'src/routeManifest.gen.ts'",
+    },
+    entry: {
+      description: "Application entry file where the router instance (t) is configured.",
+      type: "string",
+      default: "'src/taser.ts'",
+    },
+    extension: {
+      description: "Controls file import extensions in the manifest. Use true for .js extensions in ESM, false for bundlers.",
+      type: "boolean | string",
+      default: "true",
+    },
+    ignorePrefix: {
+      description: "Filename prefix for files and directories that should be excluded from route generation.",
+      type: "string",
+      default: "'_'",
+    },
+    ignorePattern: {
+      description: "Optional regular expression pattern for ignoring test and mock files.",
+      type: "string",
+    },
+    quotes: {
+      description: "Quote style used for imports in generated manifests.",
+      type: "'single' | 'double'",
+      default: "'single'",
+    },
+    semi: {
+      description: "Whether to append semicolons to generated code.",
+      type: "boolean",
+      default: "false",
+    },
+    format: {
+      description: "Automatically runs code formatting on the generated manifest.",
+      type: "boolean",
+      default: "true",
+    },
+    validate: {
+      description: "Validates route exports and method signatures at generation time.",
+      type: "boolean",
+      default: "true",
+    },
+  }}
+/>
+
+---
+
+## Best Practices for CI / CD
+
+Add `taser generate` to your build script in `package.json` to guarantee the manifest is always synchronized in CI environments and production containers:
+
+```json title="package.json"
+{
+  "scripts": {
+    "dev": "concurrently \"taser watch\" \"tsx watch src/index.ts\"",
+    "build": "taser generate && tsc -b",
+    "start": "node dist/index.js"
+  }
+}
+```
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="API Reference"
+    href="/docs/api-reference/router"
+    description="Explore complete TypeScript API reference for Taser."
+  />
+  <Card
+    title="Typed Client SDK"
+    href="/docs/client"
+    description="Call your generated routes from the frontend."
+  />
+</Cards>

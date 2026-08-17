@@ -1,0 +1,222 @@
+---
+title: Defining Routes
+description: Learn how to define type-safe route endpoints using the t route builder. Configure query parameters, request bodies, route-level middlewares, and response contracts.
+icon: FileCode
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
+Every route file in `src/routes/` exports a `Route` constant created by invoking the router instance builder (`t`).
+
+---
+
+## Route Builders
+
+The `t` object provides builder methods corresponding to all standard HTTP methods:
+
+```ts
+t.get(path, options?)
+t.post(path, options?)
+t.put(path, options?)
+t.patch(path, options?)
+t.delete(path, options?)
+t.options(path, options?)
+t.head(path, options?)
+t.any(path, methods, options?)
+t.all(path, options?)
+```
+
+---
+
+## Defining a GET Route
+
+GET, DELETE, OPTIONS, and HEAD routes accept validation schemas for `query` and `params`:
+
+```ts title="src/routes/articles.get.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../taser";
+
+export const Route = t
+  .get("/articles", {
+    query: z.object({
+      category: z.string().optional(),
+      page: z.coerce.number().int().min(1).default(1),
+      limit: z.coerce.number().int().min(1).max(50).default(20),
+    }),
+  })
+  .returns({
+    200: z.object({
+      articles: z.array(
+        z.object({
+          id: z.string(),
+          title: z.string(),
+          category: z.string(),
+        })
+      ),
+      page: z.number(),
+      total: z.number(),
+    }),
+  })
+  .handler(async (ctx) => {
+    // ctx.query.category is typed as string | undefined
+    // ctx.query.page is typed as number
+    // ctx.query.limit is typed as number
+    const articles = await ctx.db.getArticles(ctx.query);
+
+    return reply.json({
+      articles,
+      page: ctx.query.page,
+      total: 100,
+    });
+  });
+```
+
+---
+
+## Defining a POST Route
+
+POST, PUT, and PATCH routes accept `body`, `query`, and `params` schemas:
+
+```ts title="src/routes/articles.post.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../taser";
+
+export const Route = t
+  .post("/articles", {
+    body: z.object({
+      title: z.string().min(3).max(120),
+      content: z.string().min(10),
+      tags: z.array(z.string()).default([]),
+    }),
+  })
+  .returns({
+    201: z.object({
+      id: z.string(),
+      title: z.string(),
+      createdAt: z.string(),
+    }),
+    400: z.object({ message: z.string() }),
+  })
+  .handler(async (ctx) => {
+    // ctx.body.title is typed as string
+    // ctx.body.content is typed as string
+    // ctx.body.tags is typed as string[]
+    const article = await ctx.db.createArticle(ctx.body);
+
+    return reply.json(article, { status: 201 });
+  });
+```
+
+<Callout type="info" title="JSON & Multipart / File Uploads">
+  The `body` schema validates both `application/json` payloads and `multipart/form-data` file uploads. See the [Standard Schema Validation Guide](/docs/validation/standard-schema#validating-multipart-form-data--file-uploads) for examples on validating `File` objects, file sizes, and MIME types.
+</Callout>
+
+---
+
+## Route-Level Middlewares
+
+In addition to folder layout middlewares, you can attach route-specific middleware using `.use()`:
+
+```ts title="src/routes/admin/purge.delete.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+import { verifySuperAdmin } from "../../middleware/super-admin";
+import { rateLimit } from "../../middleware/rate-limit";
+
+export const Route = t
+  .delete("/admin/purge")
+  .use(rateLimit({ max: 5, windowMs: 60000 }))
+  .use(verifySuperAdmin())
+  .handler(async (ctx) => {
+    await ctx.db.purgeDeletedRecords();
+    return reply.noContent();
+  });
+```
+
+---
+
+## Multi-Method Handlers (`t.any` and `t.all`)
+
+When an endpoint needs to handle multiple HTTP methods with shared logic, use `t.any()` or `t.all()`:
+
+```ts title="src/routes/webhooks/stripe.post.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+
+// Accepts GET and POST requests
+export const Route = t
+  .any("/webhooks/stripe", ["GET", "POST"])
+  .handler(async (ctx) => {
+    if (ctx.method === "GET") {
+      return reply.json({ status: "Stripe webhook endpoint active" });
+    }
+
+    const payload = ctx.body;
+    await handleStripeEvent(payload);
+    return reply.ok();
+  });
+```
+
+---
+
+## Standalone Handlers with `defineHandler`
+
+For large codebases where you prefer separating route definitions from business logic controllers, use `t.defineHandler()` or `defineHandler()`:
+
+```ts title="src/controllers/user-controller.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../taser";
+
+export const getUserDetailsHandler = t
+  .defineHandler({
+    params: z.object({ id: z.string() }),
+    query: z.object({ detailed: z.coerce.boolean().default(false) }),
+  })
+  .returns({
+    200: z.object({ id: z.string(), name: z.string() }),
+    404: z.object({ message: z.string() }),
+  })
+  .handler(async (ctx) => {
+    const user = await ctx.db.findUser(ctx.params.id);
+    if (!user) {
+      return reply.notFound({ message: "User not found" });
+    }
+    return reply.json(user);
+  });
+```
+
+Then mount the handler inside the route file:
+
+```ts title="src/routes/users/$id.get.ts"
+import { t } from "../taser";
+import { getUserDetailsHandler } from "../../controllers/user-controller";
+
+export const Route = t.get("/users/:id").handler(getUserDetailsHandler);
+```
+
+---
+
+## Related Guides
+
+<Cards>
+  <Card
+    title="Validation Guide"
+    href="/docs/validation/standard-schema"
+    description="Learn about schema coercion, default values, and transformations."
+  />
+  <Card
+    title="Responses and Errors"
+    href="/docs/responses/reply-helpers"
+    description="Explore reply helpers and response status codes."
+  />
+  <Card
+    title="Layouts and Middleware"
+    href="/docs/routing/layouts-and-middleware"
+    description="Compose layout middleware that wraps your routes."
+  />
+</Cards>

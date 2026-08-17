@@ -1,0 +1,129 @@
+---
+title: Hono & Edge Runtimes
+description: Run your Taser application on Hono, Cloudflare Workers, Bun, Deno, and AWS Lambda using standard Web Request and Response fetch handlers.
+icon: Zap
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
+Because Taser implements the Web Standard `Request` and `Response` fetch model, your application can run natively across edge runtimes without modifying any route business logic.
+
+---
+
+## Web Fetch Interface
+
+Every Taser application instance exposes a standard `fetch` method:
+
+```ts
+app.fetch(request: Request, env?: unknown, executionCtx?: unknown): Promise<Response>
+```
+
+---
+
+## Runtime Deployments
+
+<Tabs items={["Hono", "Cloudflare Workers", "Bun", "Deno", "AWS Lambda"]}>
+  <Tab value="Hono">
+    ```ts title="src/index.ts"
+    import { Hono } from "hono";
+    import { serve } from "@hono/node-server";
+    import { routeManifest } from "./routeManifest.gen";
+    import { t } from "./taser";
+
+    export const app = t.create(routeManifest);
+    export type TaserAppRouter = typeof app;
+
+    const hono = new Hono();
+
+    // Forward requests to Taser:
+    hono.all("/api/*", (c) => app.native(c).fetch(c.req.raw));
+
+    const port = Number(process.env.PORT ?? 3000);
+    serve({ fetch: hono.fetch, port }, () => {
+      console.log(`Hono server running on http://localhost:${port}`);
+    });
+    ```
+  </Tab>
+
+  <Tab value="Cloudflare Workers">
+    ```ts title="src/index.ts"
+    import { routeManifest } from "./routeManifest.gen";
+    import { t } from "./taser";
+
+    export const app = t.create(routeManifest);
+    export type TaserAppRouter = typeof app;
+
+    export default {
+      fetch(request: Request, env: unknown, ctx: unknown) {
+        return app.fetch(request, env, ctx);
+      },
+    };
+    ```
+  </Tab>
+
+  <Tab value="Bun">
+    ```ts title="src/index.ts"
+    import { routeManifest } from "./routeManifest.gen";
+    import { t } from "./taser";
+
+    export const app = t.create(routeManifest);
+    export type TaserAppRouter = typeof app;
+
+    export default {
+      port: 3000,
+      fetch(request: Request) {
+        return app.fetch(request);
+      },
+    };
+    ```
+  </Tab>
+
+  <Tab value="Deno">
+    ```ts title="src/index.ts"
+    import { routeManifest } from "./routeManifest.gen.js";
+    import { t } from "./taser.js";
+
+    export const app = t.create(routeManifest);
+    export type TaserAppRouter = typeof app;
+
+    const port = 8000;
+    Deno.serve({ port }, (request: Request) => app.fetch(request));
+    ```
+  </Tab>
+
+  <Tab value="AWS Lambda">
+    ```ts title="src/index.ts"
+    import { Hono } from "hono";
+    import { handle } from "hono/aws-lambda";
+    import { routeManifest } from "./routeManifest.gen";
+    import { t } from "./taser";
+
+    export const app = t.create(routeManifest);
+    export type TaserAppRouter = typeof app;
+
+    const server = new Hono();
+    server.all("/*", (c) => app.native(c).fetch(c.req.raw));
+
+    export const handler = handle(server);
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Typed Client SDK"
+    href="/docs/client"
+    description="Connect to your API from any client with zero drift."
+  />
+  <Card
+    title="CLI and Watch Mode"
+    href="/docs/cli"
+    description="Automate route manifest generation with the CLI."
+  />
+</Cards>

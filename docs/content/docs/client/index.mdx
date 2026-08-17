@@ -1,0 +1,166 @@
+---
+title: Typed Client SDK
+description: Connect to your Taser backend with full end-to-end type safety using @taserjs/router-client. Enjoy autocomplete for route paths, parameters, query inputs, and response payloads.
+icon: WandSparkles
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
+The `@taserjs/router-client` package generates an auto-completing, type-safe API client directly from your server's router type definition.
+
+---
+
+## 1. Export the Router Type from Your Server
+
+In your backend entry file, export the type of your initialized Taser app:
+
+```ts title="server/src/index.ts"
+import { routeManifest } from "./routeManifest.gen";
+import { t } from "./taser";
+
+export const app = t.create(routeManifest);
+
+// Export router type for the frontend:
+export type TaserAppRouter = typeof app;
+```
+
+---
+
+## 2. Initialize the Client in Your Frontend
+
+Install the client package in your frontend or mobile project:
+
+```bash
+npm install @taserjs/router-client
+```
+
+Initialize the client with your backend `baseUrl`:
+
+```ts title="client/src/lib/api.ts"
+import { createClient } from "@taserjs/router-client";
+import type { TaserAppRouter } from "../../../server/src/index";
+
+export const api = createClient<TaserAppRouter>({
+  baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api",
+  headers: async () => {
+    const token = localStorage.getItem("auth_token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  },
+});
+```
+
+---
+
+## Calling API Routes
+
+The client uses nested proxy property access mirroring your URL paths:
+
+### GET Request with Query Parameters
+
+```ts
+// Calls GET /api/products?category=electronics&page=1
+const response = await api.products.$get({
+  query: {
+    category: "electronics",
+    page: 1,
+  },
+});
+
+if (response.status === 200) {
+  const data = await response.json();
+  // data is 100% typed from the server's .returns({ 200: ... }) schema!
+  console.log(data.products);
+}
+```
+
+### Dynamic Path Parameters (`$param`)
+
+For parameterized routes like `src/routes/users/$id.get.ts`:
+
+```ts
+// Calls GET /api/users/user_456
+const response = await api.users.$id({ id: "user_456" }).$get();
+const user = await response.json();
+```
+
+### POST Request with JSON Body
+
+For routes like `src/routes/posts.post.ts`:
+
+```ts
+// Calls POST /api/posts with Content-Type: application/json
+const response = await api.posts.$post({
+  body: {
+    title: "Building type-safe APIs with Taser",
+    content: "Deterministic file routing with cascading context.",
+  },
+});
+
+const createdPost = await response.json();
+```
+
+---
+
+## Multipart File Uploads (`formBody`)
+
+Use `formBody()` to upload binary files and structured form fields with `multipart/form-data`:
+
+```ts
+import { formBody } from "@taserjs/router-client";
+
+const avatarFile = new File([blob], "avatar.png", { type: "image/png" });
+
+// Calls POST /api/users/user_123/avatar with multipart form payload:
+const response = await api.users.$id({ id: "user_123" }).avatar.$post({
+  body: formBody({
+    label: "Profile Picture",
+    file: avatarFile,
+  }),
+});
+```
+
+<Callout type="tip" title="Server-Side File Validation">
+  On the backend, your `body` schema validates incoming `File` objects with standard `instanceof File`, checking max size and allowed MIME types. Learn more in the [Multipart & File Validation Guide](/docs/validation/standard-schema#validating-multipart-form-data--file-uploads).
+</Callout>
+
+---
+
+## Configuration Options
+
+<TypeTable
+  type={{
+    baseUrl: {
+      description: "Base URL prefix for all API requests (for example, 'https://api.example.com/api').",
+      type: "string",
+      required: true,
+    },
+    headers: {
+      description: "Static header dictionary or async function resolving authentication tokens.",
+      type: "Record<string, string> | (() => Promise<Record<string, string>>)",
+    },
+    fetch: {
+      description: "Custom fetch implementation (useful for testing or custom caching).",
+      type: "typeof fetch",
+      default: "globalThis.fetch",
+    },
+  }}
+/>
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="CLI and Codegen"
+    href="/docs/cli"
+    description="Learn how the CLI watches files and generates router types."
+  />
+  <Card
+    title="Response Contracts"
+    href="/docs/responses/response-contracts"
+    description="Learn how server return schemas drive frontend types."
+  />
+</Cards>

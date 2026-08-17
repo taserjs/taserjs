@@ -2,11 +2,18 @@
   "title": "Documentation",
   "pages": [
     "index",
+    "---Getting Started---",
     "getting-started",
+    "---Core Features---",
     "routing",
     "validation",
-    "responses-and-errors",
+    "responses",
+    "middleware",
+    "---Ecosystem---",
     "adapters",
-    "typed-client"
+    "client",
+    "cli",
+    "---Reference---",
+    "api-reference"
   ]
 }

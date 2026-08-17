@@ -1,122 +1,221 @@
 ---
 title: Layouts and Middleware
-description: Compose shared auth, state, and validation with layout files. Taser keeps middleware state typed from outer layouts through to route handlers.
+description: Compose shared logic, authentication guards, and cascading typed state with layout files. Understand middleware execution ordering and state propagation.
 icon: Layers
 ---
 
-Layouts are how Taser scales beyond a handful of routes.
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
 
-Instead of copy and pasting auth checks, parsing, and shared state into every handler, you define middleware once in a layout file and let it apply to the routes underneath it.
+Layout files in Taser allow you to organize cross-cutting concerns (authentication, CORS, rate limiting, logging) and inject typed state into child routes without repeating code in every handler.
 
-## What is a layout file
+---
 
-A layout file is a TypeScript file under `src/routes/` that does not include an HTTP method suffix.
+## What is a Layout File?
 
-It exports `Middleware`:
+A layout file is any TypeScript file inside `src/routes/` that does not end with an HTTP method. It exports a `Middleware` constant initialized with `t.middleware(layoutId)`.
 
-```ts
-import { t } from "../taser";
-
-export const Middleware = t.middleware("some-layout").use({
-  handler: (_ctx, next) => next(),
-});
-```
-
-Layout middleware runs before the route handler and can add typed state.
-
-## Root layout
-
-If you want middleware to apply to every route, create `src/routes/$.ts`:
-
-```ts
-import { t } from "../taser";
-import { z } from "zod";
-
-export const Middleware = t.middleware("/$").use({
-  state: z.object({ requestId: z.string() }),
-  handler: (_ctx, next) => {
-    return next({ state: { requestId: crypto.randomUUID() } });
-  },
-});
-```
-
-Now every handler sees `ctx.state.requestId` as a `string`.
-
-## Directory layouts
-
-Layouts can also live in directories, so they only affect a subset of routes.
-
-Example structure:
-
-```
-src/routes/todo.ts
-src/routes/todo/index.get.ts
-src/routes/todo/index.post.ts
-src/routes/todo/$id.get.ts
-```
-
-`src/routes/todo.ts` applies to all `/todo/*` routes.
-
-## Pathless layouts for grouping
-
-If a segment starts with `_` (and does not end with `_`), it is pathless. It does not appear in the URL, but its middleware still runs.
-
-This is a good place for cross-cutting concerns like auth:
-
-```
-src/routes/todo/_auth.ts
-src/routes/todo/_auth/$id.get.ts
-```
-
-`_auth` does not appear in the URL. Your route stays `/todo/:id`, but auth runs for those files.
-
-## Add typed state in middleware
-
-Middleware can validate and inject state in a typed way.
-
-This example checks a header and injects `userId`:
-
-```ts
+```ts title="src/routes/admin.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
 import { z } from "zod";
+import { t } from "../taser";
 
-export const Middleware = t.middleware("auth").use({
-  state: z.object({ userId: z.string() }),
-  handler: (ctx, next) => {
-    const userId = ctx.headers.get("x-user-id");
-    if (!userId) return reply.unauthorized({ message: "Missing x-user-id header" });
-    return next({ state: { userId } });
+export const Middleware = t.middleware("admin").use({
+  state: z.object({
+    adminUser: z.object({
+      id: z.string(),
+      role: z.literal("admin"),
+    }),
+  }),
+  handler: async (ctx, next) => {
+    const authHeader = ctx.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return reply.unauthorized({ message: "Admin authorization required" });
+    }
+
+    const token = authHeader.slice(7);
+    const adminUser = await verifyAdminToken(token);
+    if (!adminUser) {
+      return reply.forbidden({ message: "Insufficient permissions" });
+    }
+
+    // Injects adminUser into ctx.state for all downstream routes
+    return next({
+      state: { adminUser },
+    });
   },
 });
 ```
 
-Downstream route handlers can now rely on `ctx.state.userId`.
+All route files in `src/routes/admin/` (or `src/routes/admin.*.ts`) automatically inherit this middleware and receive `ctx.state.adminUser` fully typed.
 
-## Layering layouts
+---
 
-Taser composes layouts from outer to inner.
+## Root Layout (`src/routes/$.ts`)
 
-In practice, this means:
+The root layout applies to every route in your application. It is the ideal place for global concerns like CORS, security headers, request timing, and tenant resolution:
 
-- Root layout runs first
-- Directory layout runs next
-- Pathless layouts and nested layouts run after that
-- The route handler runs last
+```ts title="src/routes/$.ts"
+import { cors } from "@taserjs/router/cors";
+import { secureHeaders } from "@taserjs/router/secure-headers";
+import { timing } from "@taserjs/router/timing";
+import { t } from "../taser";
 
-Use this to build predictable pipelines. Keep layouts focused, and prefer a small number of well named layouts over many tiny ones.
+export const Middleware = t
+  .middleware("/$")
+  .use(
+    cors({
+      origin: ["https://app.example.com", "https://admin.example.com"],
+      credentials: true,
+    })
+  )
+  .use(secureHeaders())
+  .use(timing());
+```
 
-## Next steps
+---
+
+## Nested Layout Hierarchy & Execution Order
+
+Taser executes layouts in a predictable cascading sequence from outermost to innermost:
+
+```
+src/routes/
+├── $.ts                          -> [1] Root Layout (Global)
+├── api.ts                        -> [2] Scoped /api Layout
+└── api/
+    ├── _auth.ts                  -> [3] Pathless Auth Layout
+    └── _auth/
+        ├── admin.ts              -> [4] Admin Role Layout
+        └── admin/
+            └── users.get.ts      -> [5] Route Handler (GET /api/users)
+```
+
+Execution sequence for `GET /api/users`:
+
+```
+[1. Root Layout: $.ts]
+          │
+          ▼
+[2. API Layout: api.ts]
+          │
+          ▼
+[3. Pathless Layout: _auth.ts]
+          │
+          ▼
+[4. Role Layout: admin.ts]
+          │
+          ▼
+[5. Route Handler: users.get.ts]
+```
+
+---
+
+## Injecting Typed State
+
+When middleware calls `next({ state: { ... } })`, the returned properties merge into `ctx.state`. Downstream handlers access these properties with complete TypeScript inference:
+
+<Tabs items={["Middleware", "Route Handler"]}>
+  <Tab value="Middleware">
+    ```ts title="src/routes/dashboard.ts"
+    import { reply } from "@taserjs/router";
+    import { z } from "zod";
+    import { t } from "../taser";
+
+    const SessionSchema = z.object({
+      userId: z.string(),
+      workspaceId: z.string(),
+    });
+
+    export const Middleware = t.middleware("dashboard").use({
+      state: z.object({ session: SessionSchema }),
+      handler: async (ctx, next) => {
+        const session = await getSession(ctx.headers.get("cookie"));
+        if (!session) {
+          return reply.unauthorized({ message: "Invalid session" });
+        }
+
+        return next({
+          state: { session },
+        });
+      },
+    });
+    ```
+  </Tab>
+  <Tab value="Route Handler">
+    ```ts title="src/routes/dashboard/metrics.get.ts"
+    import { reply } from "@taserjs/router";
+    import { t } from "../../taser";
+
+    export const Route = t.get("/dashboard/metrics").handler(async (ctx) => {
+      // ctx.state.session is 100% typed from dashboard.ts:
+      const { userId, workspaceId } = ctx.state.session;
+
+      const metrics = await ctx.db.getWorkspaceMetrics(workspaceId);
+      return reply.json({ userId, metrics });
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Standalone Middlewares with `defineMiddleware`
+
+To create reusable middlewares across different layout files or projects, use `defineMiddleware()`:
+
+```ts title="src/middleware/rate-limit.ts"
+import { defineMiddleware, reply } from "@taserjs/router";
+import { z } from "zod";
+
+export function rateLimiter(options: { maxRequests: number; windowSeconds: number }) {
+  return defineMiddleware({
+    state: z.object({ rateLimitRemaining: z.number() }),
+    handler: async (ctx, next) => {
+      const clientIp = ctx.headers.get("x-forwarded-for") ?? "127.0.0.1";
+      const remaining = await checkRateLimit(clientIp, options);
+
+      if (remaining <= 0) {
+        return reply.badRequest({ message: "Rate limit exceeded" });
+      }
+
+      return next({
+        state: { rateLimitRemaining: remaining },
+      });
+    },
+  });
+}
+```
+
+Attach it to any layout or route:
+
+```ts title="src/routes/api.ts"
+import { t } from "../taser";
+import { rateLimiter } from "../middleware/rate-limit";
+
+export const Middleware = t
+  .middleware("api")
+  .use(rateLimiter({ maxRequests: 100, windowSeconds: 60 }));
+```
+
+---
+
+## Related Guides
 
 <Cards>
   <Card
-    title="Validation"
-    href="/docs/validation"
-    description="Validate query and body inputs with runtime schemas."
+    title="Built-in Middlewares"
+    href="/docs/middleware/cors"
+    description="Learn how to use CORS, JWT, security headers, and compression."
   />
   <Card
-    title="Responses and errors"
-    href="/docs/responses-and-errors"
-    description="Return typed replies and handle errors consistently."
+    title="Context and State"
+    href="/docs/routing/context-and-state"
+    description="Understand the difference between context and middleware state."
+  />
+  <Card
+    title="Validation"
+    href="/docs/validation/middleware-validation"
+    description="Validate incoming headers and query params directly in middleware."
   />
 </Cards>

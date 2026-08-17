@@ -1,0 +1,359 @@
+---
+title: Standard Schema Validation
+description: Validate query parameters, path params, request bodies, and headers using Zod, ArkType, Valibot, or any Standard Schema library.
+icon: ShieldCheck
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
+Taser natively adheres to the **Standard Schema** specification (`@standard-schema/spec`). This means you have zero vendor lock-in. You can use **Zod**, **ArkType**, **Valibot**, or any other compliant validation library without adapters or wrappers.
+
+---
+
+## Validating Query Parameters
+
+HTTP query parameters always arrive as strings. Use your schema library to coerce numbers, booleans, and dates:
+
+<Tabs items={["Zod", "ArkType", "Valibot"]}>
+  <Tab value="Zod">
+    ```ts title="src/routes/products.get.ts"
+    import { reply } from "@taserjs/router";
+    import { z } from "zod";
+    import { t } from "../taser";
+
+    export const Route = t
+      .get("/products", {
+        query: z.object({
+          search: z.string().optional(),
+          category: z.enum(["electronics", "clothing", "books"]).optional(),
+          page: z.coerce.number().int().min(1).default(1),
+          limit: z.coerce.number().int().min(1).max(100).default(20),
+          inStockOnly: z.coerce.boolean().default(false),
+        }),
+      })
+      .handler(async (ctx) => {
+        // ctx.query.page is number
+        // ctx.query.inStockOnly is boolean
+        const results = await ctx.db.searchProducts(ctx.query);
+        return reply.json(results);
+      });
+    ```
+  </Tab>
+  <Tab value="ArkType">
+    ```ts title="src/routes/products.get.ts"
+    import { reply } from "@taserjs/router";
+    import { type } from "arktype";
+    import { t } from "../taser";
+
+    const QuerySchema = type({
+      "search?": "string",
+      "category?": "'electronics' | 'clothing' | 'books'",
+      "page?": "string.integer.parse >= 1 = 1",
+      "limit?": "string.integer.parse <= 100 = 20",
+    });
+
+    export const Route = t
+      .get("/products", { query: QuerySchema })
+      .handler(async (ctx) => {
+        const results = await ctx.db.searchProducts(ctx.query);
+        return reply.json(results);
+      });
+    ```
+  </Tab>
+  <Tab value="Valibot">
+    ```ts title="src/routes/products.get.ts"
+    import { reply } from "@taserjs/router";
+    import * as v from "valibot";
+    import { t } from "../taser";
+
+    const QuerySchema = v.object({
+      search: v.optional(v.string()),
+      page: v.fallback(v.pipe(v.string(), v.transform(Number), v.integer()), 1),
+      limit: v.fallback(v.pipe(v.string(), v.transform(Number), v.integer()), 20),
+    });
+
+    export const Route = t
+      .get("/products", { query: QuerySchema })
+      .handler(async (ctx) => {
+        const results = await ctx.db.searchProducts(ctx.query);
+        return reply.json(results);
+      });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Validating Path Parameters
+
+Path parameters declared in file names (for example, `$id.get.ts` or `$orgId/$repoId.get.ts`) can be validated with a `params` schema:
+
+```ts title="src/routes/organizations/$orgId/members/$memberId.get.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../../../taser";
+
+export const Route = t
+  .get("/organizations/:orgId/members/:memberId", {
+    params: z.object({
+      orgId: z.string().uuid(),
+      memberId: z.string().min(1),
+    }),
+  })
+  .handler(async (ctx) => {
+    // ctx.params.orgId is validated UUID string
+    // ctx.params.memberId is string
+    const member = await ctx.db.getMember(ctx.params.orgId, ctx.params.memberId);
+    return reply.json(member);
+  });
+```
+
+---
+
+## Validating Request Bodies (JSON)
+
+For POST, PUT, and PATCH routes, pass a `body` schema to validate incoming JSON payloads:
+
+```ts title="src/routes/posts.post.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../taser";
+
+const CreatePostSchema = z.object({
+  title: z.string().min(5).max(200),
+  slug: z.string().regex(/^[a-z0-9-]+$/),
+  content: z.string().min(20),
+  published: z.boolean().default(false),
+  tags: z.array(z.string()).max(5).default([]),
+});
+
+export const Route = t
+  .post("/posts", {
+    body: CreatePostSchema,
+  })
+  .returns({
+    201: z.object({ id: z.string(), slug: z.string() }),
+    422: z.object({ message: z.string(), issues: z.array(z.unknown()) }),
+  })
+  .handler(async (ctx) => {
+    // ctx.body is inferred directly from CreatePostSchema:
+    const newPost = await ctx.db.posts.create({
+      data: ctx.body,
+    });
+
+    return reply.json({ id: newPost.id, slug: newPost.slug }, { status: 201 });
+  });
+```
+
+---
+
+## Validating Multipart Form Data & File Uploads
+
+When requests arrive with `Content-Type: multipart/form-data` or `application/x-www-form-urlencoded`, Taser automatically parses both textual form fields and binary file uploads into standard JavaScript `File` objects.
+
+You can validate file presence, file size, and permitted MIME types using your schema validator:
+
+<Tabs items={["Zod", "ArkType", "Valibot"]}>
+  <Tab value="Zod">
+    ```ts title="src/routes/users/$id/avatar.post.ts"
+    import { reply } from "@taserjs/router";
+    import { z } from "zod";
+    import { t } from "../../../taser";
+
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+    const AvatarUploadSchema = z.object({
+      caption: z.string().optional(),
+      avatar: z
+        .custom<File>((file) => file instanceof File, "Avatar must be a valid file")
+        .refine((file) => file.size <= MAX_FILE_SIZE, "Max image size is 5MB")
+        .refine(
+          (file) => ACCEPTED_IMAGE_TYPES.includes(file.type),
+          "Only .jpg, .png, and .webp formats are supported"
+        ),
+    });
+
+    export const Route = t
+      .post("/users/:id/avatar", {
+        params: z.object({ id: z.string() }),
+        body: AvatarUploadSchema,
+      })
+      .returns({
+        200: z.object({ success: z.boolean(), fileName: z.string(), bytes: z.number() }),
+      })
+      .handler(async (ctx) => {
+        const { avatar, caption } = ctx.body;
+
+        // Access Web Standard File methods directly:
+        const fileBuffer = await avatar.arrayBuffer();
+        const fileName = avatar.name;
+        const fileSize = avatar.size;
+
+        await ctx.db.saveUserAvatar(ctx.params.id, fileBuffer, fileName);
+
+        return reply.json({
+          success: true,
+          fileName,
+          bytes: fileSize,
+        });
+      });
+    ```
+  </Tab>
+  <Tab value="ArkType">
+    ```ts title="src/routes/users/$id/avatar.post.ts"
+    import { reply } from "@taserjs/router";
+    import { type } from "arktype";
+    import { t } from "../../../taser";
+
+    const AvatarUploadSchema = type({
+      "caption?": "string",
+      avatar: type("instanceof.File").narrow((file, ctx) => {
+        if (file.size > 5 * 1024 * 1024) {
+          return ctx.mustBe("smaller than 5MB");
+        }
+        return true;
+      }),
+    });
+
+    export const Route = t
+      .post("/users/:id/avatar", {
+        body: AvatarUploadSchema,
+      })
+      .handler(async (ctx) => {
+        const { avatar } = ctx.body;
+        const fileBuffer = await avatar.arrayBuffer();
+        return reply.json({ success: true, fileName: avatar.name });
+      });
+    ```
+  </Tab>
+  <Tab value="Valibot">
+    ```ts title="src/routes/users/$id/avatar.post.ts"
+    import { reply } from "@taserjs/router";
+    import * as v from "valibot";
+    import { t } from "../../../taser";
+
+    const AvatarUploadSchema = v.object({
+      caption: v.optional(v.string()),
+      avatar: v.pipe(
+        v.instance(File, "Avatar must be a file"),
+        v.check((file) => file.size <= 5 * 1024 * 1024, "Max file size is 5MB")
+      ),
+    });
+
+    export const Route = t
+      .post("/users/:id/avatar", {
+        body: AvatarUploadSchema,
+      })
+      .handler(async (ctx) => {
+        const { avatar } = ctx.body;
+        const buffer = await avatar.arrayBuffer();
+        return reply.json({ success: true, fileName: avatar.name });
+      });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Multiple File Uploads
+
+When clients upload multiple files under the same form field name, validate them as an array of `File` objects:
+
+```ts title="src/routes/documents/upload.post.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../../taser";
+
+const MultiDocSchema = z.object({
+  folderId: z.string(),
+  // Handles single or multiple files seamlessly:
+  files: z
+    .union([z.custom<File>(), z.array(z.custom<File>())])
+    .transform((val) => (Array.isArray(val) ? val : [val])),
+});
+
+export const Route = t
+  .post("/documents/upload", {
+    body: MultiDocSchema,
+  })
+  .handler(async (ctx) => {
+    // ctx.body.files is typed as File[]:
+    for (const file of ctx.body.files) {
+      const content = await file.text();
+      console.log(`Uploaded file: ${file.name} (${file.size} bytes)`);
+    }
+
+    return reply.json({ uploadedCount: ctx.body.files.length });
+  });
+```
+
+---
+
+## Client-Side Uploads with `formBody()`
+
+When consuming your multipart endpoints using `@taserjs/router-client`, wrap your payload with `formBody()`:
+
+```ts
+import { formBody } from "@taserjs/router-client";
+import { api } from "./lib/api";
+
+const selectedFile = fileInput.files[0];
+
+// Automatically sets multipart/form-data boundary headers:
+const response = await api.users.$id({ id: "user_123" }).avatar.$post({
+  body: formBody({
+    caption: "My new profile picture",
+    avatar: selectedFile,
+  }),
+});
+```
+
+---
+
+## Schema Transformations and Inferred Types
+
+Taser respects schema transformations. If your schema takes a string and transforms it into a `Date` or trimmed string, `ctx` receives the transformed output type:
+
+```ts title="src/routes/events.post.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../taser";
+
+export const Route = t
+  .post("/events", {
+    body: z.object({
+      title: z.string().trim(),
+      scheduledAt: z.string().datetime().transform((str) => new Date(str)),
+    }),
+  })
+  .handler(async (ctx) => {
+    // ctx.body.scheduledAt is typed as Date, not string!
+    console.log(ctx.body.scheduledAt.getTime());
+    return reply.ok();
+  });
+```
+
+---
+
+## Related Guides
+
+<Cards>
+  <Card
+    title="Middleware Validation"
+    href="/docs/validation/middleware-validation"
+    description="Validate headers and auth tokens in layout middleware."
+  />
+  <Card
+    title="Handling Validation Errors"
+    href="/docs/validation/handling-errors"
+    description="Customize error responses when schema validation fails."
+  />
+  <Card
+    title="Response Contracts"
+    href="/docs/responses/response-contracts"
+    description="Validate outgoing response bodies with .returns()."
+  />
+</Cards>

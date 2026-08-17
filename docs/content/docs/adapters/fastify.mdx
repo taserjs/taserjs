@@ -1,0 +1,82 @@
+---
+title: Fastify Adapter
+description: Mount your Taser application on Fastify with @taserjs/adapter-fastify for high-throughput Node.js performance.
+icon: Workflow
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+The `@taserjs/adapter-fastify` package connects Taser to Fastify instances, taking advantage of Fastify's fast runtime performance.
+
+---
+
+## Installation
+
+```bash
+npm install @taserjs/adapter-fastify fastify
+```
+
+---
+
+## Mounting on Fastify
+
+```ts title="src/index.ts"
+import Fastify from "fastify";
+import { createFastifyHandler } from "@taserjs/adapter-fastify";
+import { routeManifest } from "./routeManifest.gen";
+import { t } from "./taser";
+
+// 1. Initialize Taser application
+export const app = t.create(routeManifest);
+export type TaserAppRouter = typeof app;
+
+// 2. Initialize Fastify server
+const server = Fastify({ logger: true });
+
+// 3. Mount Taser under /api prefix (or root with /*)
+const taser = createFastifyHandler(app);
+taser.mount("/api/*", server);
+
+// 4. Start listening
+const port = Number(process.env.PORT ?? 3000);
+await server.listen({ port });
+```
+
+---
+
+## Accessing Fastify Native Request & Reply
+
+In any Taser handler, `ctx.native` provides access to the underlying Fastify objects:
+
+```ts title="src/routes/fastify-info.get.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Route = t.get("/fastify-info").handler((ctx) => {
+  const fastifyReq = ctx.native.req;
+  const fastifyReply = ctx.native.reply;
+
+  return reply.json({
+    id: fastifyReq.id,
+    ip: fastifyReq.ip,
+  });
+});
+```
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Node HTTP Adapter"
+    href="/docs/adapters/node-http"
+    description="Run on plain Node.js HTTP server."
+  />
+  <Card
+    title="Hono & Edge Runtimes"
+    href="/docs/adapters/hono-and-edge"
+    description="Deploy to Cloudflare Workers, Bun, Deno, or AWS Lambda."
+  />
+</Cards>

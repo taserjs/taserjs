@@ -1,0 +1,138 @@
+---
+title: JWT and JWKS Authentication
+description: Verify JSON Web Tokens (JWT) and JWKS key sets with built-in typed authentication middlewares.
+icon: Key
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
+Taser includes built-in JWT and JWKS authentication middlewares that verify bearer tokens and inject typed claims directly into `ctx.state`.
+
+---
+
+## JWT Authentication (`@taserjs/router/jwt`)
+
+The `jwt()` middleware extracts the `Authorization: Bearer <token>` header, verifies the signature using your secret key, validates the payload against a schema, and attaches the payload to `ctx.state.jwtPayload`.
+
+```ts title="src/routes/dashboard.ts"
+import { jwt } from "@taserjs/router/jwt";
+import { z } from "zod";
+import { t } from "../taser";
+
+const JwtClaimsSchema = z.object({
+  sub: z.string(),
+  email: z.string().email(),
+  role: z.enum(["user", "admin"]),
+});
+
+export const Middleware = t.middleware("dashboard").use(
+  jwt(JwtClaimsSchema, {
+    secret: process.env.JWT_SECRET!,
+    alg: "HS256",
+  })
+);
+```
+
+### Accessing Claims in Downstream Routes
+
+Any route inside `src/routes/dashboard/` receives `ctx.state.jwtPayload` with complete type inference:
+
+```ts title="src/routes/dashboard/profile.get.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../../taser";
+
+export const Route = t.get("/dashboard/profile").handler(async (ctx) => {
+  // 100% typed from JwtClaimsSchema:
+  const userId = ctx.state.jwtPayload.sub;
+  const userEmail = ctx.state.jwtPayload.email;
+  const userRole = ctx.state.jwtPayload.role;
+
+  const user = await ctx.db.getUser(userId);
+  return reply.json(user);
+});
+```
+
+---
+
+## JWKS Authentication (`@taserjs/router/jwk`)
+
+For auth providers like Auth0, Clerk, Firebase, AWS Cognito, or Supabase, use `@taserjs/router/jwk` to verify tokens against remote JSON Web Key Sets:
+
+```ts title="src/routes/api.ts"
+import { jwk } from "@taserjs/router/jwk";
+import { z } from "zod";
+import { t } from "../taser";
+
+const ClerkPayloadSchema = z.object({
+  sub: z.string(),
+  iss: z.string().url(),
+  azp: z.string().optional(),
+});
+
+export const Middleware = t.middleware("api").use(
+  jwk(ClerkPayloadSchema, {
+    jwksUri: "https://clerk.your-domain.com/.well-known/jwks.json",
+  })
+);
+```
+
+---
+
+## Configuration Options
+
+### JWT Options
+
+<TypeTable
+  type={{
+    secret: {
+      description: "Secret key used to verify HMAC signatures.",
+      type: "string",
+      required: true,
+    },
+    alg: {
+      description: "Signature algorithm (for example, 'HS256', 'HS384', 'HS512').",
+      type: "string",
+      default: "'HS256'",
+    },
+    cookie: {
+      description: "Optional cookie name to inspect if Authorization header is missing.",
+      type: "string",
+    },
+  }}
+/>
+
+### JWK Options
+
+<TypeTable
+  type={{
+    jwksUri: {
+      description: "URL to the remote public .well-known/jwks.json endpoint.",
+      type: "string",
+      required: true,
+    },
+    cacheTtlMs: {
+      description: "Time to cache retrieved public keys in milliseconds.",
+      type: "number",
+      default: "600000",
+    },
+  }}
+/>
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Security & Utilities"
+    href="/docs/middleware/security-and-utilities"
+    description="Configure secure headers, CSRF, and compression."
+  />
+  <Card
+    title="Layouts and Middleware"
+    href="/docs/routing/layouts-and-middleware"
+    description="Learn how to nest and scope auth layouts."
+  />
+</Cards>

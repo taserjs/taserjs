@@ -1,0 +1,180 @@
+---
+title: Reply Helpers
+description: Use the reply utility object to create type-safe JSON, text, redirect, and status-specific HTTP responses.
+icon: MessageSquare
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
+Taser provides the `reply` helper object to construct standardized, type-safe HTTP responses. Every helper returns a `ReplyResult` with its HTTP status code embedded into the TypeScript return type.
+
+---
+
+## JSON Responses (`reply.json`)
+
+The `reply.json()` method serializes data into a JSON string and automatically sets the `Content-Type: application/json` header:
+
+```ts title="src/routes/users.get.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Route = t.get("/users").handler((ctx) => {
+  return reply.json([
+    { id: "1", name: "Alice" },
+    { id: "2", name: "Bob" },
+  ]);
+});
+```
+
+You can pass an optional second argument to customize the HTTP status code or set additional response headers:
+
+```ts
+return reply.json(
+  { message: "Created successfully", id: "user_123" },
+  {
+    status: 201,
+    headers: {
+      "X-Custom-Header": "ProductService",
+    },
+  }
+);
+```
+
+---
+
+## Plain Text Responses (`reply.text`)
+
+Use `reply.text()` to return raw strings with `Content-Type: text/plain; charset=utf-8`:
+
+```ts title="src/routes/robots.txt.get.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Route = t.get("/robots.txt").handler(() => {
+  return reply.text("User-agent: *\nDisallow: /admin/\n");
+});
+```
+
+---
+
+## Empty / No Content Responses (`reply.noContent`)
+
+For successful operations that do not return a payload (such as `DELETE` endpoints), use `reply.noContent()`. It sets HTTP status `204`:
+
+```ts title="src/routes/items/$id.delete.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Route = t.delete("/items/:id").handler(async (ctx) => {
+  await ctx.db.deleteItem(ctx.params.id);
+  return reply.noContent();
+});
+```
+
+---
+
+## Redirects (`reply.redirect`)
+
+Use `reply.redirect()` to send HTTP redirects (default: `302 Found`):
+
+```ts title="src/routes/old-docs.get.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Route = t.get("/old-docs").handler(() => {
+  // Permanent 301 redirect:
+  return reply.redirect("/docs/getting-started", { status: 301 });
+});
+```
+
+<Callout type="warn" title="External Redirect Protection">
+  By default, `reply.redirect()` prevents unintended external open redirects. If you need to redirect to external URLs, pass `{ allowExternal: true }`:
+  ```ts
+  return reply.redirect("https://github.com/taserjs/taserjs", { allowExternal: true });
+  ```
+</Callout>
+
+---
+
+## Status Code Helpers Reference
+
+Taser includes pre-configured helper methods for common HTTP status codes:
+
+| Helper Method | HTTP Status | Typical Usage |
+| :--- | :--- | :--- |
+| `reply.ok(data?, init?)` | `200 OK` | Generic success response |
+| `reply.badRequest(data?, init?)` | `400 Bad Request` | Client query or payload error |
+| `reply.unauthorized(data?, init?)` | `401 Unauthorized` | Missing or invalid authentication token |
+| `reply.forbidden(data?, init?)` | `403 Forbidden` | Authenticated user lacks permission |
+| `reply.notFound(data?, init?)` | `404 Not Found` | Resource or route does not exist |
+| `reply.unprocessableEntity(data?, init?)` | `422 Unprocessable Entity` | Schema validation error |
+| `reply.internalServerError(data?, init?)` | `500 Internal Server Error` | Unhandled exception |
+| `reply.badGateway(data?, init?)` | `502 Bad Gateway` | Upstream service failure |
+
+### Example Usage of Error Helpers
+
+```ts title="src/routes/documents/$id.get.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Route = t.get("/documents/:id").handler(async (ctx) => {
+  const user = ctx.state.user;
+  if (!user) {
+    return reply.unauthorized({ message: "Login required" });
+  }
+
+  const doc = await ctx.db.findDocument(ctx.params.id);
+  if (!doc) {
+    return reply.notFound({ message: "Document not found" });
+  }
+
+  if (doc.ownerId !== user.id) {
+    return reply.forbidden({ message: "You do not own this document" });
+  }
+
+  return reply.json(doc);
+});
+```
+
+---
+
+## Setting Cookies
+
+You can set, read, or delete cookies directly through `ctx.cookie` or by passing the `Set-Cookie` header in `ReplyInit`:
+
+```ts title="src/routes/auth/login.post.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Route = t.post("/auth/login").handler(async (ctx) => {
+  const sessionToken = await createSession();
+
+  return reply.json(
+    { success: true },
+    {
+      headers: {
+        "Set-Cookie": `session=${sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/`,
+      },
+    }
+  );
+});
+```
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Response Contracts"
+    href="/docs/responses/response-contracts"
+    description="Enforce compile-time return shape guarantees with .returns()."
+  />
+  <Card
+    title="Streaming and Files"
+    href="/docs/responses/streaming-and-files"
+    description="Stream large files and binary blobs safely."
+  />
+</Cards>

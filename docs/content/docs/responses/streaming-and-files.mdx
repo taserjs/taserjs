@@ -1,0 +1,148 @@
+---
+title: Streaming and Files
+description: Stream binary data, pipe readable streams, return Blob/Buffer payloads, and serve local files with path traversal security.
+icon: Binary
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+Taser includes first-class helpers for streaming responses, binary payloads, and secure file downloads without manual buffer management.
+
+---
+
+## Serving Local Files (`stream.file`)
+
+Use `stream.file()` (or `reply.file()`) to serve files from disk. It automatically looks up the correct MIME type based on file extension and streams the file using Node.js read streams:
+
+```ts title="src/routes/downloads/$file.get.ts"
+import { stream, reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../taser";
+import path from "node:path";
+
+export const Route = t
+  .get("/downloads/:file", {
+    params: z.object({ file: z.string() }),
+  })
+  .handler((ctx) => {
+    const publicStorageDir = path.resolve(process.cwd(), "storage/public");
+
+    // Serves the requested file safely constrained to publicStorageDir:
+    return stream.file(ctx.params.file, {
+      root: publicStorageDir,
+    });
+  });
+```
+
+<Callout type="warn" title="Path Traversal Protection">
+  When `root` is specified, Taser validates that the resolved file path does not escape the boundary directory, protecting your application against `../` directory traversal attacks.
+</Callout>
+
+---
+
+## Piping Readable Streams (`stream.pipe`)
+
+To stream dynamically generated data, AI completions, or proxy upstream streams, use `stream.pipe()`:
+
+```ts title="src/routes/ai/generate.post.ts"
+import { stream } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Route = t.post("/ai/generate").handler(async (ctx) => {
+  const encoder = new TextEncoder();
+
+  const customStream = new ReadableStream({
+    async start(controller) {
+      for (const word of ["Streaming", " live", " AI", " response", "..."]) {
+        controller.enqueue(encoder.encode(word));
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+      controller.close();
+    },
+  });
+
+  return stream.pipe(customStream, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Transfer-Encoding": "chunked",
+    },
+  });
+});
+```
+
+---
+
+## Binary Payloads (`stream.buffer` and `stream.blob`)
+
+When returning generated images, PDFs, or ZIP archives:
+
+```ts title="src/routes/export/pdf.get.ts"
+import { stream } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Route = t.get("/export/pdf").handler(async (ctx) => {
+  const pdfBytes: Uint8Array = await generateInvoicePdf(ctx.query);
+
+  return stream.buffer(pdfBytes, {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": 'attachment; filename="invoice.pdf"',
+    },
+  });
+});
+```
+
+---
+
+## Server-Sent Events (SSE)
+
+You can build Server-Sent Events (SSE) streams by piping formatted SSE message events:
+
+```ts title="src/routes/events/notifications.get.ts"
+import { stream } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Route = t.get("/events/notifications").handler((ctx) => {
+  const encoder = new TextEncoder();
+
+  const eventStream = new ReadableStream({
+    start(controller) {
+      const interval = setInterval(() => {
+        const payload = `data: ${JSON.stringify({ time: new Date().toISOString() })}\n\n`;
+        controller.enqueue(encoder.encode(payload));
+      }, 1000);
+
+      ctx.native?.req?.on?.("close", () => {
+        clearInterval(interval);
+        controller.close();
+      });
+    },
+  });
+
+  return stream.pipe(eventStream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+});
+```
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Reply Helpers"
+    href="/docs/responses/reply-helpers"
+    description="Learn all status code reply methods."
+  />
+  <Card
+    title="Error Handling"
+    href="/docs/responses/error-handling"
+    description="Configure global error handling and not found boundaries."
+  />
+</Cards>

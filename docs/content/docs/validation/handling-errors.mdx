@@ -1,0 +1,118 @@
+---
+title: Handling Validation Errors
+description: Catch and format input validation failures using ValidationError. Return structured JSON error envelopes with issue paths and messages.
+icon: TriangleAlert
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+When incoming request parameters, query strings, headers, or JSON bodies fail validation, Taser throws a `ValidationError`.
+
+---
+
+## Anatomy of a `ValidationError`
+
+The `ValidationError` class exposes the raw issues array returned by your schema validator:
+
+```ts
+class ValidationError extends Error {
+  readonly issues: readonly StandardSchemaV1.Issue[];
+}
+```
+
+Each issue typically contains:
+- `path`: Array of property keys or array indices indicating where the error occurred (for example, `["body", "email"]` or `["query", "page"]`).
+- `message`: Human-readable error description (for example, `"Invalid email address"`).
+
+---
+
+## Centralized Validation Error Handler
+
+Configure your error envelope once in `src/taser.ts` using `.onError()`:
+
+```ts title="src/taser.ts"
+import {
+  createTaserApp,
+  reply,
+  ValidationError,
+  type InferAppContext,
+} from "@taserjs/router";
+import { context } from "./context";
+
+export const t = createTaserApp()
+  .context(context)
+  .onError((error) => {
+    // 1. Handle Schema Validation Errors
+    if (error instanceof ValidationError) {
+      const formattedErrors: Record<string, string[]> = {};
+
+      for (const issue of error.issues) {
+        const fieldName = issue.path?.map(String).join(".") || "root";
+        if (!formattedErrors[fieldName]) {
+          formattedErrors[fieldName] = [];
+        }
+        formattedErrors[fieldName].push(issue.message);
+      }
+
+      return reply.unprocessableEntity({
+        status: 422,
+        message: "The given data was invalid.",
+        errors: formattedErrors,
+      });
+    }
+
+    // 2. Handle Unexpected Server Errors
+    console.error("[Unhandled Error]", error);
+    return reply.internalServerError({
+      status: 500,
+      message: "Internal Server Error",
+    });
+  });
+```
+
+---
+
+## Example Error Response
+
+Given a request with invalid query parameters:
+
+```bash
+curl "http://localhost:3000/products?page=-5&category=unknown"
+```
+
+The client receives a clean, structured `422 Unprocessable Entity` response:
+
+```json
+{
+  "status": 422,
+  "message": "The given data was invalid.",
+  "errors": {
+    "query.page": ["Number must be greater than or equal to 1"],
+    "query.category": ["Invalid enum value. Expected 'electronics' | 'clothing' | 'books'"]
+  }
+}
+```
+
+---
+
+## Auto-Generated 422 Response Schemas
+
+When you attach input schemas (`query`, `params`, `body`) to a route, Taser automatically documents a `422` error contract for that endpoint. The typed client SDK also understands that the route can return `422` validation issues.
+
+---
+
+## Related Guides
+
+<Cards>
+  <Card
+    title="Responses and Errors"
+    href="/docs/responses/error-handling"
+    description="Learn how to handle 404 Not Found and 500 Internal Server errors."
+  />
+  <Card
+    title="Reply Helpers"
+    href="/docs/responses/reply-helpers"
+    description="Discover status code helpers like reply.badRequest and reply.notFound."
+  />
+</Cards>

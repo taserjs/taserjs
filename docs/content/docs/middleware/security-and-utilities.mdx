@@ -1,0 +1,138 @@
+---
+title: Security and Utility Middlewares
+description: Discover built-in middlewares for security headers, CSRF defense, body size limits, ETags, Server-Timing, and response compression.
+icon: Shield
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+Taser bundles a suite of production-grade security and performance utility middlewares.
+
+---
+
+## Secure Headers (`@taserjs/router/secure-headers`)
+
+Sets standard HTTP security headers (HSTS, X-Content-Type-Options, X-Frame-Options, Content-Security-Policy):
+
+```ts title="src/routes/$.ts"
+import { secureHeaders } from "@taserjs/router/secure-headers";
+import { t } from "../taser";
+
+export const Middleware = t.middleware("/$").use(
+  secureHeaders({
+    contentSecurityPolicy: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+    },
+    strictTransportSecurity: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+    xFrameOptions: "DENY",
+    xContentTypeOptions: "nosniff",
+  })
+);
+```
+
+---
+
+## Body Size Limits (`@taserjs/router/body-limit`)
+
+Prevents denial-of-service memory exhaustion by enforcing maximum request body limits:
+
+```ts title="src/routes/uploads.ts"
+import { bodyLimit } from "@taserjs/router/body-limit";
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Middleware = t.middleware("uploads").use(
+  bodyLimit({
+    maxSize: 10 * 1024 * 1024, // 10MB limit
+    onError: () => {
+      return reply.badRequest({ message: "Payload too large. Maximum size is 10MB." });
+    },
+  })
+);
+```
+
+---
+
+## CSRF Defense (`@taserjs/router/csrf`)
+
+Validates incoming request origin against server origins to prevent cross-site request forgery attacks on state-changing requests (POST, PUT, PATCH, DELETE):
+
+```ts title="src/routes/$.ts"
+import { csrf } from "@taserjs/router/csrf";
+import { t } from "../taser";
+
+export const Middleware = t.middleware("/$").use(
+  csrf({
+    origin: ["https://app.example.com"],
+  })
+);
+```
+
+---
+
+## Automatic ETags (`@taserjs/router/etag`)
+
+Calculates cryptographic hash ETags for response bodies and automatically responds with `304 Not Modified` when clients send a matching `If-None-Match` header:
+
+```ts title="src/routes/$.ts"
+import { etag } from "@taserjs/router/etag";
+import { t } from "../taser";
+
+export const Middleware = t.middleware("/$").use(
+  etag({
+    weak: true,
+  })
+);
+```
+
+---
+
+## Server-Timing (`@taserjs/router/timing`)
+
+Adds standard `Server-Timing` headers to responses, enabling Chrome DevTools and observability platforms to measure internal route latency:
+
+```ts title="src/routes/$.ts"
+import { timing } from "@taserjs/router/timing";
+import { t } from "../taser";
+
+export const Middleware = t.middleware("/$").use(timing());
+```
+
+---
+
+## Response Compression (`@taserjs/router/compress`)
+
+Automatically compresses outgoing HTTP response payloads using `gzip`, `deflate`, or `brotli` based on client `Accept-Encoding`:
+
+```ts title="src/routes/$.ts"
+import { compress } from "@taserjs/router/compress";
+import { t } from "../taser";
+
+export const Middleware = t.middleware("/$").use(
+  compress({
+    threshold: 1024, // Compress responses larger than 1KB
+  })
+);
+```
+
+---
+
+## Summary of Built-in Middlewares
+
+| Middleware Import | Package | Primary Purpose |
+| :--- | :--- | :--- |
+| `cors` | `@taserjs/router/cors` | Cross-Origin Resource Sharing |
+| `jwt` | `@taserjs/router/jwt` | HMAC/RSA Bearer Token Verification |
+| `jwk` | `@taserjs/router/jwk` | Remote JSON Web Key Set Auth |
+| `secureHeaders` | `@taserjs/router/secure-headers` | CSP, HSTS, X-Frame-Options |
+| `bodyLimit` | `@taserjs/router/body-limit` | Memory protection payload limiting |
+| `csrf` | `@taserjs/router/csrf` | Cross-Site Request Forgery mitigation |
+| `etag` | `@taserjs/router/etag` | 304 Cache validation |
+| `timing` | `@taserjs/router/timing` | Server-Timing performance metrics |
+| `compress` | `@taserjs/router/compress` | Gzip / Deflate payload compression |

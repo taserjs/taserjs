@@ -1,0 +1,134 @@
+---
+title: Middleware Validation
+description: Validate incoming headers, query parameters, and session tokens in layout middleware before requests reach your route handlers.
+icon: ListFilter
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+Validation in Taser is not limited to route handlers. Layout middleware can validate incoming request data and declare the exact shape of state it injects into child routes.
+
+---
+
+## State Schema Declaration
+
+When defining a middleware, you can supply a `state` schema to enforce the structure of data passed down the pipeline:
+
+```ts title="src/routes/orgs.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../taser";
+
+const OrganizationSchema = z.object({
+  id: z.string().uuid(),
+  slug: z.string(),
+  plan: z.enum(["free", "pro", "enterprise"]),
+});
+
+export const Middleware = t.middleware("orgs").use({
+  state: z.object({
+    organization: OrganizationSchema,
+  }),
+  handler: async (ctx, next) => {
+    const orgSlug = ctx.headers.get("x-org-slug");
+    if (!orgSlug) {
+      return reply.badRequest({ message: "Missing x-org-slug header" });
+    }
+
+    const org = await ctx.db.findOrgBySlug(orgSlug);
+    if (!org) {
+      return reply.notFound({ message: "Organization not found" });
+    }
+
+    // TypeScript guarantees that the object passed to next matches OrganizationSchema:
+    return next({
+      state: { organization: org },
+    });
+  },
+});
+```
+
+---
+
+## Validating Query and Headers in Middleware
+
+Middleware can also declare `query`, `params`, or `body` schemas to reject invalid requests early before hitting child routes:
+
+```ts title="src/routes/api/v2.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../../taser";
+
+export const Middleware = t.middleware("api_v2").use({
+  query: z.object({
+    apiKey: z.string().min(32),
+  }),
+  state: z.object({
+    tier: z.enum(["standard", "premium"]),
+  }),
+  handler: async (ctx, next) => {
+    // ctx.query.apiKey is validated
+    const keyRecord = await ctx.db.findApiKey(ctx.query.apiKey);
+    if (!keyRecord) {
+      return reply.unauthorized({ message: "Invalid API key" });
+    }
+
+    return next({
+      state: { tier: keyRecord.tier },
+    });
+  },
+});
+```
+
+---
+
+## Multi-Step Middleware Pipelines
+
+You can chain multiple `.use()` calls on a layout middleware. Each step can enrich `ctx.state`:
+
+```ts title="src/routes/billing.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "../taser";
+
+export const Middleware = t
+  .middleware("billing")
+  // Step 1: Validate session
+  .use({
+    state: z.object({ userId: z.string() }),
+    handler: async (ctx, next) => {
+      const token = ctx.headers.get("authorization")?.replace("Bearer ", "");
+      if (!token) return reply.unauthorized();
+      return next({ state: { userId: "user_123" } });
+    },
+  })
+  // Step 2: Fetch subscription
+  .use({
+    state: z.object({ hasActiveSubscription: z.boolean() }),
+    handler: async (ctx, next) => {
+      // ctx.state.userId is available from Step 1!
+      const sub = await ctx.db.getSubscription(ctx.state.userId);
+      return next({
+        state: { hasActiveSubscription: Boolean(sub?.active) },
+      });
+    },
+  });
+```
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Handling Validation Errors"
+    href="/docs/validation/handling-errors"
+    description="Capture and format validation failure issues."
+  />
+  <Card
+    title="Built-in Auth Middlewares"
+    href="/docs/middleware/jwt-and-jwk"
+    description="Use pre-built JWT and JWKS middlewares for token auth."
+  />
+</Cards>

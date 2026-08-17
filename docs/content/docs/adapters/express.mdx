@@ -1,0 +1,116 @@
+---
+title: Express Adapter
+description: Mount your Taser application on Express with @taserjs/adapter-express. Seamlessly mix Taser routes with existing Express middlewares and controllers.
+icon: Server
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+The `@taserjs/adapter-express` package allows you to mount a Taser application directly onto an Express instance.
+
+---
+
+## Installation
+
+```bash
+npm install @taserjs/adapter-express express
+```
+
+---
+
+## Mounting on Express
+
+```ts title="src/index.ts"
+import express from "express";
+import { createExpressHandler } from "@taserjs/adapter-express";
+import { routeManifest } from "./routeManifest.gen";
+import { t } from "./taser";
+
+// 1. Initialize Taser application
+export const app = t.create(routeManifest);
+export type TaserAppRouter = typeof app;
+
+// 2. Create Express server
+const server = express();
+
+// 3. Mount Taser under /api prefix (or root with /{*splat})
+const taser = createExpressHandler(app);
+taser.mount("/api{/*splat}", server);
+
+// 4. Start listening
+const port = Number(process.env.PORT ?? 3000);
+server.listen(port, () => {
+  console.log(`Express server running on http://localhost:${port}`);
+});
+```
+
+---
+
+## Mounting at Root vs Subpath
+
+- **Subpath Mounting**: `taser.mount("/api{/*splat}", server)` routes all `/api/*` traffic to Taser.
+- **Root Mounting**: `taser.mount("/{*splat}", server)` routes all root traffic to Taser.
+
+---
+
+## Accessing Express Native Request & Response
+
+Inside any Taser handler or context function, `ctx.native` provides access to the underlying Express objects:
+
+```ts title="src/routes/session.get.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Route = t.get("/session").handler((ctx) => {
+  // Access Express native objects:
+  const expressReq = ctx.native.req;
+  const expressRes = ctx.native.res;
+
+  console.log("Client IP from Express:", expressReq.ip);
+  return reply.json({ ip: expressReq.ip });
+});
+```
+
+---
+
+## Using Express Middleware
+
+You can use existing Express middlewares before mounting Taser:
+
+```ts title="src/index.ts"
+import express from "express";
+import morgan from "morgan";
+import cookieParser from "cookie-parser";
+import { createExpressHandler } from "@taserjs/adapter-express";
+import { app } from "./app";
+
+const server = express();
+
+// Global Express middlewares:
+server.use(morgan("dev"));
+server.use(cookieParser());
+
+// Mount Taser:
+const taser = createExpressHandler(app);
+taser.mount("/api{/*splat}", server);
+
+server.listen(3000);
+```
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Fastify Adapter"
+    href="/docs/adapters/fastify"
+    description="Explore high-throughput routing with Fastify."
+  />
+  <Card
+    title="Node HTTP Adapter"
+    href="/docs/adapters/node-http"
+    description="Run on native Node.js without extra framework overhead."
+  />
+</Cards>

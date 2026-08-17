@@ -1,0 +1,245 @@
+---
+title: File Conventions
+description: Master TanStack Router-style file-based routing conventions tailored for Taser backend APIs. Learn flat and directory routes, path parameters, pathless layouts, and layout breakout routes.
+icon: Route
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
+Taser adopts modern **TanStack Router-style file routing conventions** tailored specifically for REST APIs. Your filesystem serves as the single source of truth for URL endpoints, HTTP methods, and cascading middleware pipelines.
+
+---
+
+## Route Files vs Layout Files
+
+Under your `src/routes/` directory, files are classified into two distinct types:
+
+1. **Route Files**: Filenames containing an HTTP verb before `.ts` (such as `users.get.ts`, `posts.post.ts`, `items.$id.delete.ts`). Route files export a `Route` definition created with `t.get()`, `t.post()`, etc.
+2. **Layout Files**: Filenames ending in `.ts` without an HTTP verb (such as `$.ts`, `admin.ts`, `_auth.ts`). Layout files export a `Middleware` pipeline created with `t.middleware()`.
+
+---
+
+## HTTP Method Suffixes
+
+Taser determines the HTTP verb from the final extension segment before `.ts`:
+
+| File Name | HTTP Method | Endpoint URL |
+| :--- | :--- | :--- |
+| `src/routes/users.get.ts` | `GET` | `/users` |
+| `src/routes/users.post.ts` | `POST` | `/users` |
+| `src/routes/users.put.ts` | `PUT` | `/users` |
+| `src/routes/users.patch.ts` | `PATCH` | `/users` |
+| `src/routes/users.delete.ts` | `DELETE` | `/users` |
+| `src/routes/users.options.ts` | `OPTIONS` | `/users` |
+| `src/routes/users.head.ts` | `HEAD` | `/users` |
+
+---
+
+## Flat Routes vs Directory Routes
+
+Taser supports both **flat dot notation** and **nested directory structures**. You can use either style or mix them based on your team's preference:
+
+<Tabs items={["Flat Dot Notation", "Directory Folders", "Resolved URL"]}>
+  <Tab value="Flat Dot Notation">
+    ```
+    src/routes/
+    ├── posts.index.get.ts          -> GET /posts
+    ├── posts.$id.get.ts            -> GET /posts/:id
+    └── posts.$id.edit.put.ts       -> PUT /posts/:id/edit
+    ```
+  </Tab>
+  <Tab value="Directory Folders">
+    ```
+    src/routes/
+    └── posts/
+        ├── index.get.ts            -> GET /posts
+        ├── $id.get.ts              -> GET /posts/:id
+        └── $id/
+            └── edit.put.ts         -> PUT /posts/:id/edit
+    ```
+  </Tab>
+  <Tab value="Resolved URL">
+    ```
+    GET /posts
+    GET /posts/:id
+    PUT /posts/:id/edit
+    ```
+  </Tab>
+</Tabs>
+
+Both conventions produce identical route trees, parameter types, and runtime performance.
+
+---
+
+## Index Routes (`index.<method>.ts`)
+
+An `index` file targets the root of its parent directory without appending `/index` to the URL:
+
+```
+src/routes/
+├── index.get.ts                    -> GET /
+├── api.index.get.ts                -> GET /api
+└── products/
+    ├── index.get.ts                -> GET /products
+    └── index.post.ts               -> POST /products
+```
+
+---
+
+## Dynamic Path Parameters (`$param`)
+
+Prefixing a segment with `$` denotes a named URL path parameter:
+
+```
+src/routes/
+├── users.$id.get.ts                -> GET /users/:id
+└── orgs.$orgId.repos.$repoId.get.ts -> GET /orgs/:orgId/repos/:repoId
+```
+
+Inside your route handler, parameters are typed and accessible on `ctx.params`:
+
+```ts title="src/routes/users/$id.get.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "#src/taser.js";
+
+export const Route = t
+  .get("/users/:id", {
+    params: z.object({ id: z.string().uuid() }),
+  })
+  .handler((ctx) => {
+    // ctx.params.id is strictly typed as a UUID string
+    return reply.json({ userId: ctx.params.id });
+  });
+```
+
+---
+
+## Wildcard Catch-All Splats (`$`)
+
+A standalone `$` segment captures wildcard rest segments (splats):
+
+```
+src/routes/
+└── files.$.get.ts                  -> GET /files/*
+```
+
+In your handler, the remaining path is captured as a splat wildcard.
+
+---
+
+## Root Layout Middleware (`$.ts`)
+
+A top-level file named `src/routes/$.ts` (or `src/routes/__root.ts`) serves as the **Root Layout Middleware**. It runs before every route in your application:
+
+```ts title="src/routes/$.ts"
+import { bodyLimit } from "@taserjs/router/body-limit";
+import { secureHeaders } from "@taserjs/router/secure-headers";
+import { t } from "#src/taser.js";
+
+export const Middleware = t
+  .middleware("/$")
+  .use(secureHeaders())
+  .use(bodyLimit({ maxSize: 1_000_000 }));
+```
+
+---
+
+## Pathless Layouts (Leading Underscore `_layout`)
+
+A segment starting with an underscore `_` (like `_auth.ts` or `_auth/`) is **pathless**. It wraps child routes with scoped middleware without adding any prefix to the public URL:
+
+```
+src/routes/
+├── _auth.ts                        -> Layout middleware for authenticated routes
+├── _auth/
+│   ├── dashboard.get.ts            -> GET /dashboard (inherits _auth.ts)
+│   └── profile.get.ts              -> GET /profile   (inherits _auth.ts)
+└── login.post.ts                   -> POST /login    (does NOT inherit _auth.ts)
+```
+
+In flat dot notation, write:
+```
+src/routes/_auth.dashboard.get.ts   -> GET /dashboard (under _auth layout)
+src/routes/_auth.profile.get.ts     -> GET /profile   (under _auth layout)
+```
+
+Notice that `_auth` is completely omitted from the public URL path `/dashboard`.
+
+---
+
+## Layout Breakout Routes (Trailing Underscore `segment_`)
+
+A segment ending with an underscore `_` is a **breakout route** (un-nested route). It targets the expected URL path, but **breaks out of the parent layout hierarchy** so it does not inherit the parent layout's middleware.
+
+### The Problem Breakout Routes Solve
+
+Suppose you have an authenticated `/posts` layout in `src/routes/posts.ts` that enforces user login. You want `/posts/:id/preview` to be publicly viewable without requiring authentication.
+
+By adding a trailing underscore to `posts_`, the route maps to `/posts/:id/preview` but **skips** `src/routes/posts.ts`:
+
+<Tabs items={["File Layout", "URL Resolution & Middleware Inheritance"]}>
+  <Tab value="File Layout">
+    ```
+    src/routes/
+    ├── $.ts                        -> Root Layout (Global CORS & logging)
+    ├── posts.ts                    -> Posts Layout (Enforces auth for all /posts routes)
+    ├── posts/
+    │   ├── index.get.ts            -> GET /posts (runs $.ts + posts.ts)
+    │   └── $id.get.ts              -> GET /posts/:id (runs $.ts + posts.ts)
+    └── posts_.$id.preview.get.ts   -> GET /posts/:id/preview (BREAKOUT: runs $.ts, skips posts.ts)
+    ```
+  </Tab>
+  <Tab value="URL Resolution & Middleware Inheritance">
+    | File | URL Path | Layout Middleware Chain |
+    | :--- | :--- | :--- |
+    | `posts/index.get.ts` | `GET /posts` | `$.ts` → `posts.ts` |
+    | `posts/$id.get.ts` | `GET /posts/:id` | `$.ts` → `posts.ts` |
+    | `posts_.$id.preview.get.ts` | `GET /posts/:id/preview` | `$.ts` *(Breaks out of posts.ts)* |
+  </Tab>
+</Tabs>
+
+<Callout type="info" title="Trailing Underscore Mental Model">
+  - **Leading underscore (`_auth`)**: Pathless layout (adds middleware, removes segment from URL).
+  - **Trailing underscore (`posts_`)**: Breakout route (keeps segment in URL, removes parent layout from middleware chain).
+</Callout>
+
+---
+
+## Complete Conventions Summary
+
+| File Path in `src/routes/` | HTTP Method | Resolved API URL | Layout Inheritance | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `$.ts` | N/A | Global | Root | Root application layout |
+| `index.get.ts` | `GET` | `/` | `/$` | Root index route |
+| `posts.ts` | N/A | `/posts` | `/$` | Scoped layout for posts |
+| `posts.index.get.ts` | `GET` | `/posts` | `/$` → `posts` | Flat posts index |
+| `posts.$id.get.ts` | `GET` | `/posts/:id` | `/$` → `posts` | Flat parameterized route |
+| `posts_.$id.edit.get.ts` | `GET` | `/posts/:id/edit` | `/$` | **Breakout route**: skips `posts.ts` layout |
+| `files.$.get.ts` | `GET` | `/files/*` | `/$` | Wildcard splat handler |
+| `_auth.ts` | N/A | Scoped | `/$` | Pathless auth layout |
+| `_auth.settings.get.ts` | `GET` | `/settings` | `/$` → `_auth` | Pathless scoped route |
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Defining Routes"
+    href="/docs/routing/defining-routes"
+    description="Learn how to declare queries, bodies, and return maps on routes."
+  />
+  <Card
+    title="Layouts and Middleware"
+    href="/docs/routing/layouts-and-middleware"
+    description="Understand cascading layout state, nesting depth, and execution order."
+  />
+  <Card
+    title="Context and State"
+    href="/docs/routing/context-and-state"
+    description="Inject database clients, logger instances, and request IDs."
+  />
+</Cards>

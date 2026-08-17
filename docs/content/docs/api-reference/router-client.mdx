@@ -1,0 +1,119 @@
+---
+title: "@taserjs/router-client"
+description: Complete API reference for @taserjs/router-client functions, types, and configuration options.
+icon: WandSparkles
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+The `@taserjs/router-client` package provides an end-to-end typed client proxy SDK.
+
+---
+
+## Core Functions
+
+### `createClient<TApp>(options)`
+
+Creates an auto-completing typed proxy client bound to your backend router type:
+
+```ts
+function createClient<TApp>(options: CreateClientOptions): Client<TApp>;
+```
+
+#### Options (`CreateClientOptions`)
+
+<TypeTable
+  type={{
+    baseUrl: {
+      description: "Base URL prefix for all requests (for example, 'https://api.example.com/api').",
+      type: "string",
+      required: true,
+    },
+    headers: {
+      description: "Static header dictionary or async resolver function for dynamic Authorization headers.",
+      type: "Record<string, string> | (() => Promise<Record<string, string>>)",
+    },
+    fetch: {
+      description: "Custom fetch function (defaults to globalThis.fetch).",
+      type: "typeof fetch",
+      default: "globalThis.fetch",
+    },
+  }}
+/>
+
+---
+
+### `formBody(fields)`
+
+Encodes fields and file attachments into a `FormData` multipart payload:
+
+```ts
+function formBody(fields: Record<string, FormBodyField>): FormBody;
+```
+
+#### Field Types
+
+<TypeTable
+  type={{
+    "fields[key]": {
+      description: "Primitives (string, number, boolean) or binary attachments (Blob, File).",
+      type: "string | number | boolean | Blob | File | null | undefined",
+    },
+  }}
+/>
+
+---
+
+## Client Proxy Calling Signatures
+
+The client exposes methods named with `$<method>`:
+
+<TypeTable
+  type={{
+    $get: {
+      description: "Performs a GET request with optional query and path parameters.",
+      type: "(input?: { query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse>",
+    },
+    $post: {
+      description: "Performs a POST request with body, query, and path parameters.",
+      type: "(input?: { body?: unknown; query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse>",
+    },
+    $put: {
+      description: "Performs a PUT request with body, query, and path parameters.",
+      type: "(input?: { body?: unknown; query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse>",
+    },
+    $patch: {
+      description: "Performs a PATCH request with body, query, and path parameters.",
+      type: "(input?: { body?: unknown; query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse>",
+    },
+    $delete: {
+      description: "Performs a DELETE request with query and path parameters.",
+      type: "(input?: { query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse>",
+    },
+    $options: {
+      description: "Performs an OPTIONS request.",
+      type: "(input?: { query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse>",
+    },
+    $head: {
+      description: "Performs a HEAD request.",
+      type: "(input?: { query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse>",
+    },
+  }}
+/>
+
+---
+
+## TypeScript Types Reference
+
+```ts
+import type {
+  Client,
+  CreateClientOptions,
+  ClientRequestOptions,
+  ClientResponse,
+  FormBody,
+  InferRequestType,
+  InferResponseType,
+} from "@taserjs/router-client";
+```

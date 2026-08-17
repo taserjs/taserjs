@@ -1,0 +1,212 @@
+---
+title: Context and State
+description: Learn how to manage application singletons and request-scoped state with createContext. Understand boot context, request context, and native runtime interop.
+icon: Database
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
+Taser features a dual-layer dependency injection system created with `createContext()`. It separates long-lived application singletons (boot context) from ephemeral per-request metadata (request context).
+
+---
+
+## Dual-Layer Context Overview
+
+```ts title="src/context.ts"
+import { createContext } from "@taserjs/router";
+import { PrismaClient } from "@prisma/client";
+import { createClient as createRedisClient } from "redis";
+
+export const context = createContext({
+  // 1. Boot Context: Initialized once when the server starts
+  boot: async () => {
+    const db = new PrismaClient();
+    await db.$connect();
+
+    const redis = createRedisClient();
+    await redis.connect();
+
+    return {
+      db,
+      redis,
+      env: process.env.NODE_ENV ?? "development",
+    };
+  },
+
+  // 2. Request Context: Initialized on every incoming HTTP request
+  request: ({ native }) => {
+    const requestId = crypto.randomUUID();
+    const startTime = Date.now();
+
+    return {
+      requestId,
+      startTime,
+    };
+  },
+});
+```
+
+Attach your context in `src/taser.ts`:
+
+```ts title="src/taser.ts"
+import { createTaserApp, type InferAppContext } from "@taserjs/router";
+import { context } from "./context";
+
+export const t = createTaserApp().context(context);
+
+export type AppContext = InferAppContext<typeof context>;
+```
+
+---
+
+## Boot Context vs Request Context
+
+| Feature | Boot Context (`boot`) | Request Context (`request`) |
+| :--- | :--- | :--- |
+| **Execution** | Runs once when the application boots up | Runs once for each incoming request |
+| **Async Support** | Fully async (`async () => ({ ... })`) | Sync or async (`({ native }) => ({ ... })`) |
+| **Best Used For** | Database pools, Redis connections, SDK clients, configuration | Request IDs, timing markers, trace headers, tenancy IDs |
+| **Performance** | Zero per-request overhead | Lightweight object allocation per request |
+
+---
+
+## Accessing Context in Handlers
+
+Every route handler and middleware automatically receives the combined properties of `boot` and `request` context directly on the `ctx` object:
+
+```ts title="src/routes/users/$id.get.ts"
+import { reply } from "@taserjs/router";
+import { t } from "../taser";
+
+export const Route = t.get("/users/:id").handler(async (ctx) => {
+  // Available from boot context:
+  const user = await ctx.db.user.findUnique({
+    where: { id: ctx.params.id },
+  });
+
+  if (!user) {
+    return reply.notFound({ message: "User not found" });
+  }
+
+  // Available from request context:
+  const elapsed = Date.now() - ctx.startTime;
+  console.log(`[${ctx.requestId}] User ${user.id} fetched in ${elapsed}ms`);
+
+  return reply.json(user);
+});
+```
+
+---
+
+## Accessing Native Runtime Context (`native`)
+
+When running on top of Express, Fastify, or Node HTTP, your request context function receives the `native` argument containing platform-specific request/response objects:
+
+<Tabs items={["Express", "Fastify", "Node HTTP"]}>
+  <Tab value="Express">
+    ```ts title="src/context.ts"
+    import { createContext } from "@taserjs/router";
+    import type { ExpressNativeContext } from "@taserjs/adapter-express";
+
+    export const context = createContext({
+      request: ({ native }) => {
+        // native.req is Express.Request
+        // native.res is Express.Response
+        const ip = (native as ExpressNativeContext)?.req?.ip ?? "127.0.0.1";
+
+        return {
+          clientIp: ip,
+          requestId: crypto.randomUUID(),
+        };
+      },
+    });
+    ```
+  </Tab>
+  <Tab value="Fastify">
+    ```ts title="src/context.ts"
+    import { createContext } from "@taserjs/router";
+    import type { FastifyNativeContext } from "@taserjs/adapter-fastify";
+
+    export const context = createContext({
+      request: ({ native }) => {
+        // native.req is FastifyRequest
+        // native.reply is FastifyReply
+        const fastifyReq = (native as FastifyNativeContext)?.req;
+
+        return {
+          clientIp: fastifyReq?.ip ?? "127.0.0.1",
+          requestId: crypto.randomUUID(),
+        };
+      },
+    });
+    ```
+  </Tab>
+  <Tab value="Node HTTP">
+    ```ts title="src/context.ts"
+    import { createContext } from "@taserjs/router";
+    import type { NodeNativeContext } from "@taserjs/adapter-node";
+
+    export const context = createContext({
+      request: ({ native }) => {
+        // native.req is http.IncomingMessage
+        // native.res is http.ServerResponse
+        const req = (native as NodeNativeContext)?.req;
+
+        return {
+          clientIp: req?.socket.remoteAddress ?? "127.0.0.1",
+          requestId: crypto.randomUUID(),
+        };
+      },
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Reserved Context Keys
+
+To avoid collisions with internal routing properties, the following property names are reserved and cannot be returned by `createContext`:
+
+- `state`
+- `query`
+- `params`
+- `body`
+- `headers`
+- `cookies`
+- `method`
+- `path`
+- `url`
+- `request`
+- `native`
+
+If you attempt to return a reserved key from `createContext()`, TypeScript will generate a compiler error on the `createContext()` call.
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Cookie Management"
+    href="/docs/responses/cookies"
+    description="Read, set, and sign cookies with ctx.cookies."
+  />
+  <Card
+    title="Validation Guide"
+    href="/docs/validation/standard-schema"
+    description="Learn how to validate query params, bodies, and state."
+  />
+  <Card
+    title="Middlewares"
+    href="/docs/middleware/cors"
+    description="Explore built-in middlewares for CORS, auth, and security."
+  />
+  <Card
+    title="Server Adapters"
+    href="/docs/adapters/express"
+    description="Configure Express, Fastify, Hono, or Node HTTP adapters."
+  />
+</Cards>
