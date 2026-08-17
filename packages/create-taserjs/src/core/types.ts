@@ -1,8 +1,33 @@
 import type { Agent } from "package-manager-detector";
 
-export type Framework = "node" | "express" | "hono" | "fastify";
+export type ProjectType =
+  | "node"
+  | "express"
+  | "fastify"
+  | "hono"
+  | "bun"
+  | "deno"
+  | "aws-lambda"
+  | "cloudflare-workers"
+  | "netlify"
+  | "vercel"
+  | "azure-functions"
+  | "google-cloud-run";
 
-export const FRAMEWORKS: readonly Framework[] = ["node", "express", "hono", "fastify"];
+export const PROJECT_TYPES: readonly ProjectType[] = [
+  "node",
+  "express",
+  "fastify",
+  "hono",
+  "bun",
+  "deno",
+  "aws-lambda",
+  "cloudflare-workers",
+  "netlify",
+  "vercel",
+  "azure-functions",
+  "google-cloud-run",
+];
 
 export type DbOdm = "drizzle" | "prisma" | "kysely";
 
@@ -31,7 +56,7 @@ export type PackageGroups = {
 export type ScaffoldContext = {
   projectName: string;
   targetDir: string;
-  framework: Framework;
+  type: ProjectType;
   db?: DbOdm;
   driver?: DbDriver;
   logger?: LoggerId;
@@ -46,7 +71,7 @@ export type ScaffoldOptions = ScaffoldContext & {
 export type ScaffoldResult = ScaffoldContext;
 
 export type CapabilitiesCatalog = {
-  frameworks: Framework[];
+  types: ProjectType[];
   db: {
     odms: DbOdm[];
     drivers: DbDriver[];

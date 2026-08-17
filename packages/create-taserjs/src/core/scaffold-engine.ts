@@ -29,7 +29,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
   const ctx = {
     projectName: options.projectName,
     targetDir: root,
-    framework: options.framework,
+    type: options.type,
     ...(options.db ? { db: options.db, driver: options.driver } : {}),
     ...(options.logger ? { logger: options.logger } : {}),
     ...(options.validator ? { validator: options.validator } : {}),
@@ -47,12 +47,71 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
   await write(path.join(root, "tsdown.config.ts"), tsdownConfigTemplate());
   await write(path.join(root, ".gitignore"), gitignoreTemplate());
   await write(path.join(root, "src/context.ts"), contextTemplate(bootBindings));
-  await write(path.join(root, "src/taser.ts"), taserTsTemplate(options.framework));
-  await write(path.join(root, "src/index.ts"), indexTemplate(options.framework));
+  await write(path.join(root, "src/taser.ts"), taserTsTemplate(options.type));
+  await write(path.join(root, "src/index.ts"), indexTemplate(options.type));
   await write(path.join(root, "src/routes/$.ts"), rootLayoutTemplate());
   await write(path.join(root, "src/routes/index.get.ts"), indexRouteTemplate());
   await write(path.join(root, "src/routes/health.get.ts"), healthRouteTemplate(ctx));
   await write(path.join(root, "src/routeManifest.gen.ts"), starterManifestTemplate());
+
+  if (options.type === "cloudflare-workers") {
+    await write(
+      path.join(root, "wrangler.jsonc"),
+      JSON.stringify(
+        {
+          $schema: "node_modules/wrangler/config-schema.json",
+          name: options.projectName,
+          main: "src/index.ts",
+          compatibility_date: "2024-11-01",
+        },
+        null,
+        2,
+      ) + "\n",
+    );
+  }
+
+  if (options.type === "vercel") {
+    await write(
+      path.join(root, "vercel.json"),
+      JSON.stringify(
+        {
+          rewrites: [{ source: "/(.*)", destination: "/src/index.ts" }],
+        },
+        null,
+        2,
+      ) + "\n",
+    );
+  }
+
+  if (options.type === "azure-functions") {
+    await write(
+      path.join(root, "host.json"),
+      JSON.stringify(
+        {
+          version: "2.0",
+          logging: {
+            applicationInsights: {
+              samplingSettings: {
+                isEnabled: true,
+                excludedTypes: "Request",
+              },
+            },
+          },
+          extensionBundle: {
+            id: "Microsoft.Azure.Functions.ExtensionBundle",
+            version: "[4.*, 5.0.0)",
+          },
+          extensions: {
+            http: {
+              routePrefix: "",
+            },
+          },
+        },
+        null,
+        2,
+      ) + "\n",
+    );
+  }
 
   await Promise.all(
     addons.map(async (addon) => {
@@ -72,7 +131,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
     return {
       projectName: ctx.projectName,
       targetDir: root,
-      framework: ctx.framework,
+      type: ctx.type,
       ...(ctx.db ? { db: ctx.db, driver: ctx.driver } : {}),
       ...(ctx.logger ? { logger: ctx.logger } : {}),
       ...(ctx.validator ? { validator: ctx.validator } : {}),
@@ -88,7 +147,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
   return {
     projectName: ctx.projectName,
     targetDir: root,
-    framework: ctx.framework,
+    type: ctx.type,
     ...(ctx.db ? { db: ctx.db, driver: ctx.driver } : {}),
     ...(ctx.logger ? { logger: ctx.logger } : {}),
     ...(ctx.validator ? { validator: ctx.validator } : {}),

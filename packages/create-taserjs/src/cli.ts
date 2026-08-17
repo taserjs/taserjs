@@ -11,6 +11,7 @@ async function main(): Promise<void> {
   const { values, positionals } = parseArgs({
     args: process.argv.slice(2),
     options: {
+      type: { type: "string", short: "t" },
       framework: { type: "string" },
       db: { type: "string" },
       logger: { type: "string" },
@@ -24,6 +25,7 @@ async function main(): Promise<void> {
 
   const parsed = buildParsedArgsFromCli(
     {
+      ...(values.type !== undefined ? { type: values.type } : {}),
       ...(values.framework !== undefined ? { framework: values.framework } : {}),
       ...(values.db !== undefined ? { db: values.db } : {}),
       ...(values.logger !== undefined ? { logger: values.logger } : {}),

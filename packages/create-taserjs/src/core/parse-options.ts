@@ -2,20 +2,20 @@ import {
   DB_DRIVERS,
   DB_ODMS,
   DEFAULT_DB_DRIVER,
-  FRAMEWORKS,
   LOGGERS,
+  PROJECT_TYPES,
   VALIDATORS,
   type DbDriver,
   type DbOdm,
-  type Framework,
   type LoggerId,
+  type ProjectType,
   type ScaffoldContext,
   type ValidatorId,
 } from "./types.js";
 
 export type ParsedCreateArgs = {
   projectName?: string;
-  framework?: Framework;
+  type?: ProjectType;
   db?: DbOdm;
   driver?: DbDriver;
   logger?: LoggerId;
@@ -25,8 +25,8 @@ export type ParsedCreateArgs = {
   json: boolean;
 };
 
-function isFramework(value: string): value is Framework {
-  return (FRAMEWORKS as readonly string[]).includes(value);
+function isProjectType(value: string): value is ProjectType {
+  return (PROJECT_TYPES as readonly string[]).includes(value);
 }
 
 function isDbOdm(value: string): value is DbOdm {
@@ -65,7 +65,7 @@ export function parseDbFlag(value: string): { db: DbOdm; driver: DbDriver } {
 }
 
 export function resolveScaffoldDefaults(args: ParsedCreateArgs): ScaffoldContext {
-  const framework = args.framework ?? "node";
+  const type = args.type ?? "node";
   const db = args.db;
   const logger = args.logger;
   const validator = args.validator;
@@ -77,7 +77,7 @@ export function resolveScaffoldDefaults(args: ParsedCreateArgs): ScaffoldContext
   const result: ScaffoldContext = {
     projectName: args.projectName.trim(),
     targetDir: "",
-    framework,
+    type,
   };
 
   if (db) {
@@ -96,9 +96,9 @@ export function resolveScaffoldDefaults(args: ParsedCreateArgs): ScaffoldContext
   return result;
 }
 
-export function parseFrameworkFlag(value: string): Framework {
-  if (!isFramework(value)) {
-    throw new Error(`Invalid --framework "${value}". Use node, express, hono, or fastify.`);
+export function parseTypeFlag(value: string): ProjectType {
+  if (!isProjectType(value)) {
+    throw new Error(`Invalid --type "${value}". Use ${PROJECT_TYPES.join(", ")}.`);
   }
   return value;
 }

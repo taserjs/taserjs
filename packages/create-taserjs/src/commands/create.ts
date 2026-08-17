@@ -11,8 +11,8 @@ import {
 } from "../core/json-output.js";
 import {
   parseDbFlag,
-  parseFrameworkFlag,
   parseLoggerFlag,
+  parseTypeFlag,
   parseValidatorFlag,
   type ParsedCreateArgs,
   resolveScaffoldDefaults,
@@ -21,17 +21,17 @@ import { scaffoldProject } from "../core/scaffold-engine.js";
 import type {
   DbDriver,
   DbOdm,
-  Framework,
   LoggerId,
+  ProjectType,
   ScaffoldResult,
   ValidatorId,
 } from "../core/types.js";
-import { DB_DRIVERS, DB_ODMS, FRAMEWORKS, LOGGERS, VALIDATORS } from "../core/types.js";
+import { DB_DRIVERS, DB_ODMS, LOGGERS, PROJECT_TYPES, VALIDATORS } from "../core/types.js";
 import { validateProjectName } from "../core/validate-project-name.js";
 import { resolveUserAgent, runScript } from "../core/package-manager.js";
 
-function isFramework(value: unknown): value is Framework {
-  return typeof value === "string" && (FRAMEWORKS as readonly string[]).includes(value);
+function isProjectType(value: unknown): value is ProjectType {
+  return typeof value === "string" && (PROJECT_TYPES as readonly string[]).includes(value);
 }
 
 function isDbOdm(value: unknown): value is DbOdm {
@@ -67,20 +67,28 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
     process.exit(0);
   }
 
-  const framework =
-    args.framework ??
+  const type =
+    args.type ??
     (await p.select({
-      message: "Framework adapter",
+      message: "Project type (runtime / framework)",
       options: [
-        { value: "node", label: "Plain Node.js", hint: "default" },
+        { value: "node", label: "Node.js", hint: "default" },
         { value: "express", label: "Express" },
-        { value: "hono", label: "Hono" },
         { value: "fastify", label: "Fastify" },
+        { value: "hono", label: "Hono" },
+        { value: "bun", label: "Bun" },
+        { value: "deno", label: "Deno" },
+        { value: "aws-lambda", label: "AWS Lambda" },
+        { value: "cloudflare-workers", label: "Cloudflare Workers" },
+        { value: "netlify", label: "Netlify" },
+        { value: "vercel", label: "Vercel" },
+        { value: "azure-functions", label: "Azure Functions" },
+        { value: "google-cloud-run", label: "Google Cloud Run" },
       ],
       initialValue: "node",
     }));
 
-  if (p.isCancel(framework) || !isFramework(framework)) {
+  if (p.isCancel(type) || !isProjectType(type)) {
     p.cancel("Scaffold cancelled.");
     process.exit(0);
   }
@@ -174,7 +182,7 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
 
   return {
     projectName: String(projectName).trim(),
-    framework,
+    type,
     yes: args.yes,
     noInstall: args.noInstall,
     json: args.json,
@@ -199,7 +207,7 @@ export async function runCreateCommand(
     : {
         ...args,
         projectName: args.projectName?.trim(),
-        framework: args.framework ?? "node",
+        type: args.type ?? "node",
       };
 
   if (!resolved.projectName) {
@@ -260,6 +268,7 @@ export async function runCreateCommand(
 
 export function buildParsedArgsFromCli(
   values: {
+    type?: string;
     framework?: string;
     db?: string;
     logger?: string;
@@ -280,8 +289,9 @@ export function buildParsedArgsFromCli(
     args.projectName = positionals[0];
   }
 
-  if (values.framework) {
-    args.framework = parseFrameworkFlag(values.framework);
+  const typeFlag = values.type ?? values.framework;
+  if (typeFlag) {
+    args.type = parseTypeFlag(typeFlag);
   }
 
   if (values.db) {

@@ -1,13 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  FileText,
-  ShieldCheck,
-  Radio,
-  Blocks,
-  Sparkles,
-  CheckCircle2,
-  Clock,
-} from "lucide-react";
+import { FileText, ShieldCheck, Radio, Blocks, Sparkles, CheckCircle2, Clock } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { SectionAccent, SectionHeader } from "./section-header";
 import { SectionSeparator } from "./section-separator";

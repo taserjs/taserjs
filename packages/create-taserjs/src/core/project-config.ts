@@ -5,7 +5,7 @@ import type { ScaffoldContext } from "./types.js";
 
 export async function writeProjectConfig(root: string, ctx: ScaffoldContext): Promise<void> {
   const config: Record<string, string> = {
-    framework: ctx.framework,
+    type: ctx.type,
   };
 
   if (ctx.db) {

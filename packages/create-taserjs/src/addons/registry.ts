@@ -12,8 +12,8 @@ import {
   DB_DRIVERS,
   DB_ODMS,
   DEFAULT_DB_DRIVER,
-  FRAMEWORKS,
   LOGGERS,
+  PROJECT_TYPES,
   VALIDATORS,
 } from "../core/types.js";
 
@@ -34,7 +34,7 @@ const VALIDATOR_ADDONS = ALL_ADDONS.filter((addon) => addon.category === "valida
 
 export function getCapabilitiesCatalog(): CapabilitiesCatalog {
   return {
-    frameworks: [...FRAMEWORKS],
+    types: [...PROJECT_TYPES],
     db: {
       odms: [...DB_ODMS],
       drivers: [...DB_DRIVERS],

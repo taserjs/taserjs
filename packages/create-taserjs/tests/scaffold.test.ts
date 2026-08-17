@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { getCapabilitiesCatalog } from "../src/addons/registry.js";
 import { validateProjectName } from "../src/core/validate-project-name.js";
 import { resolveInstallCommand, resolveUserAgent } from "../src/core/package-manager.js";
-import { parseValidatorFlag } from "../src/core/parse-options.js";
+import { parseTypeFlag, parseValidatorFlag } from "../src/core/parse-options.js";
 import { buildParsedArgsFromCli } from "../src/commands/create.js";
 import { getPackageGroups, resolvePackages, scaffoldProject } from "../src/scaffold.js";
 
@@ -25,13 +25,13 @@ describe("validateProjectName", () => {
 });
 
 describe("scaffoldProject", () => {
-  it("writes a node project without router-client", async () => {
+  it("writes a node project mounted on root /* without router-client", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "create-taser-"));
     try {
       await scaffoldProject({
         projectName: "demo",
         targetDir: dir,
-        framework: "node",
+        type: "node",
         skipInstall: true,
       });
 
@@ -39,7 +39,9 @@ describe("scaffoldProject", () => {
       expect(index).toContain("import 'dotenv/config'");
       expect(index).not.toContain("TaserAppRouter");
       expect(index).not.toContain("@taserjs/router-client");
-      expect(index).toContain("@taserjs/adapter-node");
+      expect(index).toContain("@hono/node-server");
+      expect(index).toContain("serve({ fetch: router.fetch, port }, () => {");
+      expect(index).not.toContain("/api/*");
       expect(index).toContain("#src/taser.js");
       expect(index).toContain("#src/routeManifest.gen.js");
 
@@ -90,7 +92,7 @@ describe("scaffoldProject", () => {
       await scaffoldProject({
         projectName: "demo-db",
         targetDir: dir,
-        framework: "node",
+        type: "node",
         db: "drizzle",
         driver: "postgres",
         skipInstall: true,
@@ -103,7 +105,7 @@ describe("scaffoldProject", () => {
       const packages = resolvePackages({
         projectName: "demo-db",
         targetDir: dir,
-        framework: "node",
+        type: "node",
         db: "drizzle",
         driver: "postgres",
       });
@@ -128,7 +130,7 @@ describe("scaffoldProject", () => {
     const packages = resolvePackages({
       projectName: "demo",
       targetDir: "/tmp/demo",
-      framework: "node",
+      type: "node",
       db: "drizzle",
       driver: "sqlite",
     });
@@ -141,7 +143,7 @@ describe("scaffoldProject", () => {
     const pgPackages = resolvePackages({
       projectName: "demo-kysely-pg",
       targetDir: "/tmp/demo",
-      framework: "node",
+      type: "node",
       db: "kysely",
       driver: "postgres",
     });
@@ -153,7 +155,7 @@ describe("scaffoldProject", () => {
     const sqlitePackages = resolvePackages({
       projectName: "demo-kysely-sqlite",
       targetDir: "/tmp/demo",
-      framework: "node",
+      type: "node",
       db: "kysely",
       driver: "sqlite",
     });
@@ -169,7 +171,7 @@ describe("scaffoldProject", () => {
       await scaffoldProject({
         projectName: "demo-prisma-pg",
         targetDir: dir,
-        framework: "node",
+        type: "node",
         db: "prisma",
         driver: "postgres",
         skipInstall: true,
@@ -198,7 +200,7 @@ describe("scaffoldProject", () => {
       const packages = resolvePackages({
         projectName: "demo-prisma-pg",
         targetDir: dir,
-        framework: "node",
+        type: "node",
         db: "prisma",
         driver: "postgres",
       });
@@ -218,7 +220,7 @@ describe("scaffoldProject", () => {
     const sqlitePackages = resolvePackages({
       projectName: "demo-prisma-sqlite",
       targetDir: "/tmp/demo",
-      framework: "node",
+      type: "node",
       db: "prisma",
       driver: "sqlite",
     });
@@ -233,7 +235,7 @@ describe("scaffoldProject", () => {
     const mysqlPackages = resolvePackages({
       projectName: "demo-prisma-mysql",
       targetDir: "/tmp/demo",
-      framework: "node",
+      type: "node",
       db: "prisma",
       driver: "mysql",
     });
@@ -251,7 +253,7 @@ describe("scaffoldProject", () => {
       await scaffoldProject({
         projectName: "demo-log",
         targetDir: dir,
-        framework: "node",
+        type: "node",
         logger: "pino",
         skipInstall: true,
       });
@@ -265,7 +267,7 @@ describe("scaffoldProject", () => {
       const packages = resolvePackages({
         projectName: "demo-log",
         targetDir: dir,
-        framework: "node",
+        type: "node",
         logger: "pino",
       });
       expect(packages.dependencies).toContain("pino");
@@ -280,7 +282,7 @@ describe("scaffoldProject", () => {
       const result = await scaffoldProject({
         projectName: "demo-zod",
         targetDir: dir,
-        framework: "node",
+        type: "node",
         validator: "zod",
         skipInstall: true,
       });
@@ -292,7 +294,7 @@ describe("scaffoldProject", () => {
       const packages = resolvePackages({
         projectName: "demo-zod",
         targetDir: dir,
-        framework: "node",
+        type: "node",
         validator: "zod",
       });
       expect(packages.dependencies).toContain("zod");
@@ -307,7 +309,7 @@ describe("scaffoldProject", () => {
       const result = await scaffoldProject({
         projectName: "demo-arktype",
         targetDir: dir,
-        framework: "node",
+        type: "node",
         validator: "arktype",
         skipInstall: true,
       });
@@ -319,7 +321,7 @@ describe("scaffoldProject", () => {
       const packages = resolvePackages({
         projectName: "demo-arktype",
         targetDir: dir,
-        framework: "node",
+        type: "node",
         validator: "arktype",
       });
       expect(packages.dependencies).toContain("arktype");
@@ -334,7 +336,7 @@ describe("scaffoldProject", () => {
       const result = await scaffoldProject({
         projectName: "demo-valibot",
         targetDir: dir,
-        framework: "node",
+        type: "node",
         validator: "valibot",
         skipInstall: true,
       });
@@ -346,7 +348,7 @@ describe("scaffoldProject", () => {
       const packages = resolvePackages({
         projectName: "demo-valibot",
         targetDir: dir,
-        framework: "node",
+        type: "node",
         validator: "valibot",
       });
       expect(packages.dependencies).toContain("valibot");
@@ -355,29 +357,227 @@ describe("scaffoldProject", () => {
     }
   });
 
-  it("scaffolds express mount pattern", async () => {
+  it("scaffolds express with root mount pattern", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "create-taser-express-"));
     try {
       await scaffoldProject({
         projectName: "demo-express",
         targetDir: dir,
-        framework: "express",
+        type: "express",
         skipInstall: true,
       });
       const index = await readFile(path.join(dir, "src/index.ts"), "utf8");
-      expect(index).toContain("/api{/*splat}");
+      expect(index).toContain("taser.mount('/{*splat}', app)");
+      expect(index).not.toContain("/api{/*splat}");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
   });
 
-  it("writes .taser.json project config with validator", async () => {
+  it("scaffolds hono with root mount pattern", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "create-taser-hono-"));
+    try {
+      await scaffoldProject({
+        projectName: "demo-hono",
+        targetDir: dir,
+        type: "hono",
+        skipInstall: true,
+      });
+      const index = await readFile(path.join(dir, "src/index.ts"), "utf8");
+      expect(index).toContain("app.all('/*', c => router.native(c).fetch(c.req.raw))");
+      expect(index).not.toContain("/api/*");
+
+      const taserTs = await readFile(path.join(dir, "src/taser.ts"), "utf8");
+      expect(taserTs).toContain("import type { Context } from 'hono'");
+      expect(taserTs).toContain("NativeContext: Context");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("scaffolds bun runtime project", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "create-taser-bun-"));
+    try {
+      await scaffoldProject({
+        projectName: "demo-bun",
+        targetDir: dir,
+        type: "bun",
+        skipInstall: true,
+      });
+      const index = await readFile(path.join(dir, "src/index.ts"), "utf8");
+      expect(index).toContain("export default {");
+      expect(index).toContain("return router.fetch(request)");
+
+      const pkg = JSON.parse(await readFile(path.join(dir, "package.json"), "utf8")) as {
+        scripts: Record<string, string>;
+      };
+      expect(pkg.scripts["dev:server"]).toBe("bun --watch src/index.ts");
+      expect(pkg.scripts.start).toBe("bun src/index.ts");
+
+      const packages = resolvePackages({
+        projectName: "demo-bun",
+        targetDir: dir,
+        type: "bun",
+      });
+      expect(packages.devDependencies).toContain("@types/bun");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("scaffolds deno runtime project", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "create-taser-deno-"));
+    try {
+      await scaffoldProject({
+        projectName: "demo-deno",
+        targetDir: dir,
+        type: "deno",
+        skipInstall: true,
+      });
+      const index = await readFile(path.join(dir, "src/index.ts"), "utf8");
+      expect(index).toContain("Deno.serve(");
+      expect(index).toContain("router.fetch(request)");
+
+      const pkg = JSON.parse(await readFile(path.join(dir, "package.json"), "utf8")) as {
+        scripts: Record<string, string>;
+      };
+      expect(pkg.scripts["dev:server"]).toContain("deno run --watch");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("scaffolds cloudflare-workers runtime project with wrangler.jsonc", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "create-taser-cf-"));
+    try {
+      await scaffoldProject({
+        projectName: "demo-cf",
+        targetDir: dir,
+        type: "cloudflare-workers",
+        skipInstall: true,
+      });
+      const index = await readFile(path.join(dir, "src/index.ts"), "utf8");
+      expect(index).toContain("export default {");
+      expect(index).toContain("return router.fetch(request, env, ctx)");
+
+      const wrangler = JSON.parse(await readFile(path.join(dir, "wrangler.jsonc"), "utf8")) as {
+        name: string;
+        main: string;
+      };
+      expect(wrangler.name).toBe("demo-cf");
+      expect(wrangler.main).toBe("src/index.ts");
+
+      const pkg = JSON.parse(await readFile(path.join(dir, "package.json"), "utf8")) as {
+        scripts: Record<string, string>;
+      };
+      expect(pkg.scripts["dev:server"]).toBe("wrangler dev");
+      expect(pkg.scripts.deploy).toBe("wrangler deploy");
+
+      const packages = resolvePackages({
+        projectName: "demo-cf",
+        targetDir: dir,
+        type: "cloudflare-workers",
+      });
+      expect(packages.devDependencies).toContain("wrangler");
+      expect(packages.devDependencies).toContain("@cloudflare/workers-types");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("scaffolds vercel runtime project with vercel.json", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "create-taser-vercel-"));
+    try {
+      await scaffoldProject({
+        projectName: "demo-vercel",
+        targetDir: dir,
+        type: "vercel",
+        skipInstall: true,
+      });
+      const index = await readFile(path.join(dir, "src/index.ts"), "utf8");
+      expect(index).toContain("import { handle } from 'hono/vercel'");
+      expect(index).toContain("export default handle(app)");
+
+      const vercel = JSON.parse(await readFile(path.join(dir, "vercel.json"), "utf8")) as {
+        rewrites: { source: string; destination: string }[];
+      };
+      expect(vercel.rewrites[0]?.destination).toBe("/src/index.ts");
+
+      const packages = resolvePackages({
+        projectName: "demo-vercel",
+        targetDir: dir,
+        type: "vercel",
+      });
+      expect(packages.dependencies).toContain("hono");
+      expect(packages.devDependencies).toContain("@vercel/node");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("scaffolds aws-lambda, netlify, azure-functions, and google-cloud-run", async () => {
+    const lambdaPackages = resolvePackages({
+      projectName: "demo-lambda",
+      targetDir: "/tmp/demo",
+      type: "aws-lambda",
+    });
+    expect(lambdaPackages.dependencies).toContain("hono");
+    expect(lambdaPackages.devDependencies).toContain("@types/aws-lambda");
+
+    const netlifyPackages = resolvePackages({
+      projectName: "demo-netlify",
+      targetDir: "/tmp/demo",
+      type: "netlify",
+    });
+    expect(netlifyPackages.dependencies).toContain("hono");
+    expect(netlifyPackages.dependencies).toContain("@netlify/functions");
+
+    const azurePackages = resolvePackages({
+      projectName: "demo-azure",
+      targetDir: "/tmp/demo",
+      type: "azure-functions",
+    });
+    expect(azurePackages.dependencies).toContain("hono");
+    expect(azurePackages.dependencies).toContain("@azure/functions");
+    expect(azurePackages.dependencies).toContain("@marplex/hono-azurefunc-adapter");
+
+    const gcrPackages = resolvePackages({
+      projectName: "demo-gcr",
+      targetDir: "/tmp/demo",
+      type: "google-cloud-run",
+    });
+    expect(gcrPackages.dependencies).toContain("@hono/node-server");
+  });
+
+  it("scaffolds azure-functions with host.json and azureHonoHandler", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "create-taser-azure-"));
+    try {
+      await scaffoldProject({
+        projectName: "demo-azure",
+        targetDir: dir,
+        type: "azure-functions",
+        skipInstall: true,
+      });
+      const index = await readFile(path.join(dir, "src/index.ts"), "utf8");
+      expect(index).toContain("import { azureHonoHandler } from '@marplex/hono-azurefunc-adapter'");
+      expect(index).toContain("handler: azureHonoHandler(honoApp.fetch)");
+
+      const host = JSON.parse(await readFile(path.join(dir, "host.json"), "utf8")) as {
+        extensions?: { http?: { routePrefix?: string } };
+      };
+      expect(host.extensions?.http?.routePrefix).toBe("");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("writes .taser.json project config with type", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "create-taser-config-"));
     try {
       await scaffoldProject({
         projectName: "demo-config",
         targetDir: dir,
-        framework: "hono",
+        type: "hono",
         db: "prisma",
         driver: "mysql",
         logger: "winston",
@@ -386,14 +586,14 @@ describe("scaffoldProject", () => {
       });
 
       const config = JSON.parse(await readFile(path.join(dir, ".taser.json"), "utf8")) as {
-        framework: string;
+        type: string;
         db: string;
         driver: string;
         logger: string;
         validator: string;
       };
       expect(config).toEqual({
-        framework: "hono",
+        type: "hono",
         db: "prisma",
         driver: "mysql",
         logger: "winston",
@@ -405,7 +605,37 @@ describe("scaffoldProject", () => {
   });
 });
 
-describe("cli validator parsing", () => {
+describe("cli type & validator parsing", () => {
+  it("parses valid type flags", () => {
+    expect(parseTypeFlag("node")).toBe("node");
+    expect(parseTypeFlag("express")).toBe("express");
+    expect(parseTypeFlag("hono")).toBe("hono");
+    expect(parseTypeFlag("fastify")).toBe("fastify");
+    expect(parseTypeFlag("bun")).toBe("bun");
+    expect(parseTypeFlag("deno")).toBe("deno");
+    expect(parseTypeFlag("aws-lambda")).toBe("aws-lambda");
+    expect(parseTypeFlag("cloudflare-workers")).toBe("cloudflare-workers");
+    expect(parseTypeFlag("netlify")).toBe("netlify");
+    expect(parseTypeFlag("vercel")).toBe("vercel");
+    expect(parseTypeFlag("azure-functions")).toBe("azure-functions");
+    expect(parseTypeFlag("google-cloud-run")).toBe("google-cloud-run");
+  });
+
+  it("rejects invalid type flag", () => {
+    expect(() => parseTypeFlag("unknown-platform")).toThrowError(/Invalid --type/);
+  });
+
+  it("buildParsedArgsFromCli parses type flag", () => {
+    const args = buildParsedArgsFromCli({ type: "bun" }, ["test-app"]);
+    expect(args.type).toBe("bun");
+    expect(args.projectName).toBe("test-app");
+  });
+
+  it("buildParsedArgsFromCli falls back to framework for backward compatibility", () => {
+    const args = buildParsedArgsFromCli({ framework: "express" }, ["test-app"]);
+    expect(args.type).toBe("express");
+  });
+
   it("parses valid validator flags", () => {
     expect(parseValidatorFlag("zod")).toBe("zod");
     expect(parseValidatorFlag("arktype")).toBe("arktype");
@@ -426,7 +656,7 @@ describe("cli validator parsing", () => {
 describe("getPackageGroups", () => {
   it("groups node deps and devDeps", () => {
     const groups = getPackageGroups("node");
-    expect(groups.dependencies).toEqual(["@taserjs/router", "dotenv", "@taserjs/adapter-node"]);
+    expect(groups.dependencies).toEqual(["@taserjs/router", "dotenv", "@hono/node-server"]);
     expect(groups.devDependencies).toEqual([
       "@taserjs/router-cli",
       "npm-run-all2",
@@ -446,9 +676,11 @@ describe("getPackageGroups", () => {
 });
 
 describe("capabilities catalog", () => {
-  it("lists frameworks, db options, loggers, and validators", () => {
+  it("lists types, db options, loggers, and validators", () => {
     const catalog = getCapabilitiesCatalog();
-    expect(catalog.frameworks).toContain("hono");
+    expect(catalog.types).toContain("hono");
+    expect(catalog.types).toContain("bun");
+    expect(catalog.types).toContain("cloudflare-workers");
     expect(catalog.db.odms).toContain("drizzle");
     expect(catalog.db.defaultDriver).toBe("sqlite");
     expect(catalog.loggers).toContain("pino");

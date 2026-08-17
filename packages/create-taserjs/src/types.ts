@@ -1,9 +1,10 @@
 export type {
-  Framework,
-  DbOdm,
   DbDriver,
+  DbOdm,
   LoggerId,
+  PackageGroups,
+  ProjectType,
   ScaffoldOptions,
   ScaffoldResult,
-  PackageGroups,
+  ValidatorId,
 } from "./core/types.js";
