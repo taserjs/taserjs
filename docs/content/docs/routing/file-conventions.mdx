@@ -25,15 +25,15 @@ Under your `src/routes/` directory, files are classified into two distinct types
 
 Taser determines the HTTP verb from the final extension segment before `.ts`:
 
-| File Name | HTTP Method | Endpoint URL |
-| :--- | :--- | :--- |
-| `src/routes/users.get.ts` | `GET` | `/users` |
-| `src/routes/users.post.ts` | `POST` | `/users` |
-| `src/routes/users.put.ts` | `PUT` | `/users` |
-| `src/routes/users.patch.ts` | `PATCH` | `/users` |
-| `src/routes/users.delete.ts` | `DELETE` | `/users` |
-| `src/routes/users.options.ts` | `OPTIONS` | `/users` |
-| `src/routes/users.head.ts` | `HEAD` | `/users` |
+| File Name                     | HTTP Method | Endpoint URL |
+| :---------------------------- | :---------- | :----------- |
+| `src/routes/users.get.ts`     | `GET`       | `/users`     |
+| `src/routes/users.post.ts`    | `POST`      | `/users`     |
+| `src/routes/users.put.ts`     | `PUT`       | `/users`     |
+| `src/routes/users.patch.ts`   | `PATCH`     | `/users`     |
+| `src/routes/users.delete.ts`  | `DELETE`    | `/users`     |
+| `src/routes/users.options.ts` | `OPTIONS`   | `/users`     |
+| `src/routes/users.head.ts`    | `HEAD`      | `/users`     |
 
 ---
 
@@ -161,6 +161,7 @@ src/routes/
 ```
 
 In flat dot notation, write:
+
 ```
 src/routes/_auth.dashboard.get.ts   -> GET /dashboard (under _auth layout)
 src/routes/_auth.profile.get.ts     -> GET /profile   (under _auth layout)
@@ -202,25 +203,26 @@ By adding a trailing underscore to `posts_`, the route maps to `/posts/:id/previ
 </Tabs>
 
 <Callout type="info" title="Trailing Underscore Mental Model">
-  - **Leading underscore (`_auth`)**: Pathless layout (adds middleware, removes segment from URL).
-  - **Trailing underscore (`posts_`)**: Breakout route (keeps segment in URL, removes parent layout from middleware chain).
+  - **Leading underscore (`_auth`)**: Pathless layout (adds middleware, removes segment from URL). -
+  **Trailing underscore (`posts_`)**: Breakout route (keeps segment in URL, removes parent layout
+  from middleware chain).
 </Callout>
 
 ---
 
 ## Complete Conventions Summary
 
-| File Path in `src/routes/` | HTTP Method | Resolved API URL | Layout Inheritance | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `$.ts` | N/A | Global | Root | Root application layout |
-| `index.get.ts` | `GET` | `/` | `/$` | Root index route |
-| `posts.ts` | N/A | `/posts` | `/$` | Scoped layout for posts |
-| `posts.index.get.ts` | `GET` | `/posts` | `/$` → `posts` | Flat posts index |
-| `posts.$id.get.ts` | `GET` | `/posts/:id` | `/$` → `posts` | Flat parameterized route |
-| `posts_.$id.edit.get.ts` | `GET` | `/posts/:id/edit` | `/$` | **Breakout route**: skips `posts.ts` layout |
-| `files.$.get.ts` | `GET` | `/files/*` | `/$` | Wildcard splat handler |
-| `_auth.ts` | N/A | Scoped | `/$` | Pathless auth layout |
-| `_auth.settings.get.ts` | `GET` | `/settings` | `/$` → `_auth` | Pathless scoped route |
+| File Path in `src/routes/` | HTTP Method | Resolved API URL  | Layout Inheritance | Description                                 |
+| :------------------------- | :---------- | :---------------- | :----------------- | :------------------------------------------ |
+| `$.ts`                     | N/A         | Global            | Root               | Root application layout                     |
+| `index.get.ts`             | `GET`       | `/`               | `/$`               | Root index route                            |
+| `posts.ts`                 | N/A         | `/posts`          | `/$`               | Scoped layout for posts                     |
+| `posts.index.get.ts`       | `GET`       | `/posts`          | `/$` → `posts`     | Flat posts index                            |
+| `posts.$id.get.ts`         | `GET`       | `/posts/:id`      | `/$` → `posts`     | Flat parameterized route                    |
+| `posts_.$id.edit.get.ts`   | `GET`       | `/posts/:id/edit` | `/$`               | **Breakout route**: skips `posts.ts` layout |
+| `files.$.get.ts`           | `GET`       | `/files/*`        | `/$`               | Wildcard splat handler                      |
+| `_auth.ts`                 | N/A         | Scoped            | `/$`               | Pathless auth layout                        |
+| `_auth.settings.get.ts`    | `GET`       | `/settings`       | `/$` → `_auth`     | Pathless scoped route                       |
 
 ---
 

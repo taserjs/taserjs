@@ -63,12 +63,12 @@ export type AppContext = InferAppContext<typeof context>;
 
 ## Boot Context vs Request Context
 
-| Feature | Boot Context (`boot`) | Request Context (`request`) |
-| :--- | :--- | :--- |
-| **Execution** | Runs once when the application boots up | Runs once for each incoming request |
-| **Async Support** | Fully async (`async () => ({ ... })`) | Sync or async (`({ native }) => ({ ... })`) |
+| Feature           | Boot Context (`boot`)                                         | Request Context (`request`)                             |
+| :---------------- | :------------------------------------------------------------ | :------------------------------------------------------ |
+| **Execution**     | Runs once when the application boots up                       | Runs once for each incoming request                     |
+| **Async Support** | Fully async (`async () => ({ ... })`)                         | Sync or async (`({ native }) => ({ ... })`)             |
 | **Best Used For** | Database pools, Redis connections, SDK clients, configuration | Request IDs, timing markers, trace headers, tenancy IDs |
-| **Performance** | Zero per-request overhead | Lightweight object allocation per request |
+| **Performance**   | Zero per-request overhead                                     | Lightweight object allocation per request               |
 
 ---
 
@@ -123,6 +123,7 @@ When running on top of Express, Fastify, or Node HTTP, your request context func
       },
     });
     ```
+
   </Tab>
   <Tab value="Fastify">
     ```ts title="src/context.ts"
@@ -142,6 +143,7 @@ When running on top of Express, Fastify, or Node HTTP, your request context func
       },
     });
     ```
+
   </Tab>
   <Tab value="Node HTTP">
     ```ts title="src/context.ts"
@@ -161,6 +163,7 @@ When running on top of Express, Fastify, or Node HTTP, your request context func
       },
     });
     ```
+
   </Tab>
 </Tabs>
 

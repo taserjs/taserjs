@@ -222,7 +222,8 @@ const sessionId = ctx.cookies.get("session", "host");
       type: "() => Record<string, string>",
     },
     getSigned: {
-      description: "Verifies HMAC signature and returns the signed cookie string value (or false if invalid).",
+      description:
+        "Verifies HMAC signature and returns the signed cookie string value (or false if invalid).",
       type: "(name: string, secret?: string, prefix?: 'secure' | 'host') => Promise<string | false | undefined>",
     },
     set: {
@@ -230,11 +231,13 @@ const sessionId = ctx.cookies.get("session", "host");
       type: "(name: string, value: string, options?: CookieOptions) => void",
     },
     setSigned: {
-      description: "Cryptographically signs a value and schedules a signed Set-Cookie response header.",
+      description:
+        "Cryptographically signs a value and schedules a signed Set-Cookie response header.",
       type: "(name: string, value: string, secret?: string, options?: CookieOptions) => Promise<void>",
     },
     delete: {
-      description: "Deletes a cookie by issuing a maxAge=0 expiration header and returns previous value.",
+      description:
+        "Deletes a cookie by issuing a maxAge=0 expiration header and returns previous value.",
       type: "(name: string, options?: CookieOptions) => string | undefined",
     },
   }}

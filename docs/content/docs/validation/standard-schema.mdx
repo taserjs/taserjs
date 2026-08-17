@@ -40,6 +40,7 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
         return reply.json(results);
       });
     ```
+
   </Tab>
   <Tab value="ArkType">
     ```ts title="src/routes/products.get.ts"
@@ -61,6 +62,7 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
         return reply.json(results);
       });
     ```
+
   </Tab>
   <Tab value="Valibot">
     ```ts title="src/routes/products.get.ts"
@@ -81,6 +83,7 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
         return reply.json(results);
       });
     ```
+
   </Tab>
 </Tabs>
 
@@ -201,6 +204,7 @@ You can validate file presence, file size, and permitted MIME types using your s
         });
       });
     ```
+
   </Tab>
   <Tab value="ArkType">
     ```ts title="src/routes/users/$id/avatar.post.ts"
@@ -228,6 +232,7 @@ You can validate file presence, file size, and permitted MIME types using your s
         return reply.json({ success: true, fileName: avatar.name });
       });
     ```
+
   </Tab>
   <Tab value="Valibot">
     ```ts title="src/routes/users/$id/avatar.post.ts"
@@ -253,6 +258,7 @@ You can validate file presence, file size, and permitted MIME types using your s
         return reply.json({ success: true, fileName: avatar.name });
       });
     ```
+
   </Tab>
 </Tabs>
 
@@ -326,7 +332,10 @@ export const Route = t
   .post("/events", {
     body: z.object({
       title: z.string().trim(),
-      scheduledAt: z.string().datetime().transform((str) => new Date(str)),
+      scheduledAt: z
+        .string()
+        .datetime()
+        .transform((str) => new Date(str)),
     }),
   })
   .handler(async (ctx) => {

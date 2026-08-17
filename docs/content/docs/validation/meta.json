@@ -1,8 +1,4 @@
 {
   "title": "Validation",
-  "pages": [
-    "standard-schema",
-    "middleware-validation",
-    "handling-errors"
-  ]
+  "pages": ["standard-schema", "middleware-validation", "handling-errors"]
 }

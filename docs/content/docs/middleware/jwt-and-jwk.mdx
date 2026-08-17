@@ -31,7 +31,7 @@ export const Middleware = t.middleware("dashboard").use(
   jwt(JwtClaimsSchema, {
     secret: process.env.JWT_SECRET!,
     alg: "HS256",
-  })
+  }),
 );
 ```
 
@@ -74,7 +74,7 @@ const ClerkPayloadSchema = z.object({
 export const Middleware = t.middleware("api").use(
   jwk(ClerkPayloadSchema, {
     jwksUri: "https://clerk.your-domain.com/.well-known/jwks.json",
-  })
+  }),
 );
 ```
 

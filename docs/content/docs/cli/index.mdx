@@ -31,6 +31,7 @@ npx taser watch
 ```
 
 Flags:
+
 - `--routes <dir>`: Custom routes directory (default: `src/routes`).
 - `--output <file>`: Custom output manifest file path (default: `src/routeManifest.gen.ts`).
 - `--quiet`: Suppress routine console logs.
@@ -107,12 +108,14 @@ You can customize code generation rules by placing a `taser.config.json` in your
       default: "'src/taser.ts'",
     },
     extension: {
-      description: "Controls file import extensions in the manifest. Use true for .js extensions in ESM, false for bundlers.",
+      description:
+        "Controls file import extensions in the manifest. Use true for .js extensions in ESM, false for bundlers.",
       type: "boolean | string",
       default: "true",
     },
     ignorePrefix: {
-      description: "Filename prefix for files and directories that should be excluded from route generation.",
+      description:
+        "Filename prefix for files and directories that should be excluded from route generation.",
       type: "string",
       default: "'_'",
     },

@@ -16,12 +16,7 @@ Taser features a centralized error handling architecture configured on the `crea
 Any uncaught exception thrown during middleware execution, input validation, or route handlers is passed directly to `.onError()`:
 
 ```ts title="src/taser.ts"
-import {
-  createTaserApp,
-  reply,
-  ValidationError,
-  type InferAppContext,
-} from "@taserjs/router";
+import { createTaserApp, reply, ValidationError, type InferAppContext } from "@taserjs/router";
 import { context } from "./context";
 
 export class ResourceNotFoundError extends Error {

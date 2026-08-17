@@ -121,8 +121,7 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
     "Deploy Taser routes to Cloudflare Workers, Deno, Bun, Fastly, and AWS Lambda using the @taserjs/adapter-hono adapter.",
   client:
     "Auto-completing, end-to-end typed proxy client generated from your server router type with zero runtime drift.",
-  cli:
-    "Automate route discovery, manifest compilation, and file scaffolding using @taserjs/router-cli and taser.config.json.",
+  cli: "Automate route discovery, manifest compilation, and file scaffolding using @taserjs/router-cli and taser.config.json.",
   "api-reference/router":
     "Complete API reference for @taserjs/router: createTaserApp, createContext, TaserRouter, RouteBuilder, reply, and stream.",
   "api-reference/router-client":

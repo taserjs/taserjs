@@ -32,7 +32,7 @@ export const Middleware = t.middleware("/$").use(
     },
     xFrameOptions: "DENY",
     xContentTypeOptions: "nosniff",
-  })
+  }),
 );
 ```
 
@@ -53,7 +53,7 @@ export const Middleware = t.middleware("uploads").use(
     onError: () => {
       return reply.badRequest({ message: "Payload too large. Maximum size is 10MB." });
     },
-  })
+  }),
 );
 ```
 
@@ -70,7 +70,7 @@ import { t } from "../taser";
 export const Middleware = t.middleware("/$").use(
   csrf({
     origin: ["https://app.example.com"],
-  })
+  }),
 );
 ```
 
@@ -87,7 +87,7 @@ import { t } from "../taser";
 export const Middleware = t.middleware("/$").use(
   etag({
     weak: true,
-  })
+  }),
 );
 ```
 
@@ -117,7 +117,7 @@ import { t } from "../taser";
 export const Middleware = t.middleware("/$").use(
   compress({
     threshold: 1024, // Compress responses larger than 1KB
-  })
+  }),
 );
 ```
 
@@ -125,14 +125,14 @@ export const Middleware = t.middleware("/$").use(
 
 ## Summary of Built-in Middlewares
 
-| Middleware Import | Package | Primary Purpose |
-| :--- | :--- | :--- |
-| `cors` | `@taserjs/router/cors` | Cross-Origin Resource Sharing |
-| `jwt` | `@taserjs/router/jwt` | HMAC/RSA Bearer Token Verification |
-| `jwk` | `@taserjs/router/jwk` | Remote JSON Web Key Set Auth |
-| `secureHeaders` | `@taserjs/router/secure-headers` | CSP, HSTS, X-Frame-Options |
-| `bodyLimit` | `@taserjs/router/body-limit` | Memory protection payload limiting |
-| `csrf` | `@taserjs/router/csrf` | Cross-Site Request Forgery mitigation |
-| `etag` | `@taserjs/router/etag` | 304 Cache validation |
-| `timing` | `@taserjs/router/timing` | Server-Timing performance metrics |
-| `compress` | `@taserjs/router/compress` | Gzip / Deflate payload compression |
+| Middleware Import | Package                          | Primary Purpose                       |
+| :---------------- | :------------------------------- | :------------------------------------ |
+| `cors`            | `@taserjs/router/cors`           | Cross-Origin Resource Sharing         |
+| `jwt`             | `@taserjs/router/jwt`            | HMAC/RSA Bearer Token Verification    |
+| `jwk`             | `@taserjs/router/jwk`            | Remote JSON Web Key Set Auth          |
+| `secureHeaders`   | `@taserjs/router/secure-headers` | CSP, HSTS, X-Frame-Options            |
+| `bodyLimit`       | `@taserjs/router/body-limit`     | Memory protection payload limiting    |
+| `csrf`            | `@taserjs/router/csrf`           | Cross-Site Request Forgery mitigation |
+| `etag`            | `@taserjs/router/etag`           | 304 Cache validation                  |
+| `timing`          | `@taserjs/router/timing`         | Server-Timing performance metrics     |
+| `compress`        | `@taserjs/router/compress`       | Gzip / Deflate payload compression    |

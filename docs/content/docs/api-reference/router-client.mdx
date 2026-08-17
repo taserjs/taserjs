@@ -31,7 +31,8 @@ function createClient<TApp>(options: CreateClientOptions): Client<TApp>;
       required: true,
     },
     headers: {
-      description: "Static header dictionary or async resolver function for dynamic Authorization headers.",
+      description:
+        "Static header dictionary or async resolver function for dynamic Authorization headers.",
       type: "Record<string, string> | (() => Promise<Record<string, string>>)",
     },
     fetch: {

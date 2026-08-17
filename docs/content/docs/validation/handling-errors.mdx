@@ -22,6 +22,7 @@ class ValidationError extends Error {
 ```
 
 Each issue typically contains:
+
 - `path`: Array of property keys or array indices indicating where the error occurred (for example, `["body", "email"]` or `["query", "page"]`).
 - `message`: Human-readable error description (for example, `"Invalid email address"`).
 
@@ -32,12 +33,7 @@ Each issue typically contains:
 Configure your error envelope once in `src/taser.ts` using `.onError()`:
 
 ```ts title="src/taser.ts"
-import {
-  createTaserApp,
-  reply,
-  ValidationError,
-  type InferAppContext,
-} from "@taserjs/router";
+import { createTaserApp, reply, ValidationError, type InferAppContext } from "@taserjs/router";
 import { context } from "./context";
 
 export const t = createTaserApp()

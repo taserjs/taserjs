@@ -1,8 +1,4 @@
 {
   "title": "Built-in Middlewares",
-  "pages": [
-    "cors",
-    "jwt-and-jwk",
-    "security-and-utilities"
-  ]
+  "pages": ["cors", "jwt-and-jwk", "security-and-utilities"]
 }

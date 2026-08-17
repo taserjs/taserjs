@@ -54,7 +54,7 @@ export const Route = t
           id: z.string(),
           title: z.string(),
           category: z.string(),
-        })
+        }),
       ),
       page: z.number(),
       total: z.number(),
@@ -112,7 +112,10 @@ export const Route = t
 ```
 
 <Callout type="info" title="JSON & Multipart / File Uploads">
-  The `body` schema validates both `application/json` payloads and `multipart/form-data` file uploads. See the [Standard Schema Validation Guide](/docs/validation/standard-schema#validating-multipart-form-data--file-uploads) for examples on validating `File` objects, file sizes, and MIME types.
+  The `body` schema validates both `application/json` payloads and `multipart/form-data` file
+  uploads. See the [Standard Schema Validation
+  Guide](/docs/validation/standard-schema#validating-multipart-form-data--file-uploads) for examples
+  on validating `File` objects, file sizes, and MIME types.
 </Callout>
 
 ---
@@ -148,17 +151,15 @@ import { reply } from "@taserjs/router";
 import { t } from "../taser";
 
 // Accepts GET and POST requests
-export const Route = t
-  .any("/webhooks/stripe", ["GET", "POST"])
-  .handler(async (ctx) => {
-    if (ctx.method === "GET") {
-      return reply.json({ status: "Stripe webhook endpoint active" });
-    }
+export const Route = t.any("/webhooks/stripe", ["GET", "POST"]).handler(async (ctx) => {
+  if (ctx.method === "GET") {
+    return reply.json({ status: "Stripe webhook endpoint active" });
+  }
 
-    const payload = ctx.body;
-    await handleStripeEvent(payload);
-    return reply.ok();
-  });
+  const payload = ctx.body;
+  await handleStripeEvent(payload);
+  return reply.ok();
+});
 ```
 
 ---

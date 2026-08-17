@@ -27,7 +27,7 @@ export const Middleware = t.middleware("/$").use(
     exposeHeaders: ["Content-Length", "X-Request-Id"],
     credentials: true,
     maxAge: 86400,
-  })
+  }),
 );
 ```
 
@@ -58,7 +58,7 @@ export const Middleware = t.middleware("/$").use(
       return null;
     },
     credentials: true,
-  })
+  }),
 );
 ```
 
@@ -87,7 +87,8 @@ export const Middleware = t.middleware("/$").use(
       default: "[]",
     },
     credentials: {
-      description: "Enables Access-Control-Allow-Credentials header for cookie and auth forwarding.",
+      description:
+        "Enables Access-Control-Allow-Credentials header for cookie and auth forwarding.",
       type: "boolean",
       default: "false",
     },

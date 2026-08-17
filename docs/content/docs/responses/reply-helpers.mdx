@@ -38,7 +38,7 @@ return reply.json(
     headers: {
       "X-Custom-Header": "ProductService",
     },
-  }
+  },
 );
 ```
 
@@ -102,16 +102,16 @@ export const Route = t.get("/old-docs").handler(() => {
 
 Taser includes pre-configured helper methods for common HTTP status codes:
 
-| Helper Method | HTTP Status | Typical Usage |
-| :--- | :--- | :--- |
-| `reply.ok(data?, init?)` | `200 OK` | Generic success response |
-| `reply.badRequest(data?, init?)` | `400 Bad Request` | Client query or payload error |
-| `reply.unauthorized(data?, init?)` | `401 Unauthorized` | Missing or invalid authentication token |
-| `reply.forbidden(data?, init?)` | `403 Forbidden` | Authenticated user lacks permission |
-| `reply.notFound(data?, init?)` | `404 Not Found` | Resource or route does not exist |
-| `reply.unprocessableEntity(data?, init?)` | `422 Unprocessable Entity` | Schema validation error |
-| `reply.internalServerError(data?, init?)` | `500 Internal Server Error` | Unhandled exception |
-| `reply.badGateway(data?, init?)` | `502 Bad Gateway` | Upstream service failure |
+| Helper Method                             | HTTP Status                 | Typical Usage                           |
+| :---------------------------------------- | :-------------------------- | :-------------------------------------- |
+| `reply.ok(data?, init?)`                  | `200 OK`                    | Generic success response                |
+| `reply.badRequest(data?, init?)`          | `400 Bad Request`           | Client query or payload error           |
+| `reply.unauthorized(data?, init?)`        | `401 Unauthorized`          | Missing or invalid authentication token |
+| `reply.forbidden(data?, init?)`           | `403 Forbidden`             | Authenticated user lacks permission     |
+| `reply.notFound(data?, init?)`            | `404 Not Found`             | Resource or route does not exist        |
+| `reply.unprocessableEntity(data?, init?)` | `422 Unprocessable Entity`  | Schema validation error                 |
+| `reply.internalServerError(data?, init?)` | `500 Internal Server Error` | Unhandled exception                     |
+| `reply.badGateway(data?, init?)`          | `502 Bad Gateway`           | Upstream service failure                |
 
 ### Example Usage of Error Helpers
 
@@ -157,7 +157,7 @@ export const Route = t.post("/auth/login").handler(async (ctx) => {
       headers: {
         "Set-Cookie": `session=${sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/`,
       },
-    }
+    },
   );
 });
 ```

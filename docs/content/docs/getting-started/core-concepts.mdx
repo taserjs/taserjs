@@ -66,15 +66,20 @@ Client Request ──► Server Adapter (Express/Fastify/Node)
 ```
 
 ### 1. Adapter Resolution
+
 When an incoming request reaches your server (Express, Fastify, Hono, or Node HTTP), the adapter wraps the native request into a Web Standard `Request` object and invokes `taserApp.fetch()`.
 
 ### 2. Context Initialization
+
 Taser evaluates the application context configured in `src/context.ts`:
+
 - **Boot Context**: Singletons created once at application startup (database connections, Redis clients, external API clients).
 - **Request Context**: Properties created per request (unique `requestId`, incoming timestamp, user agent).
 
 ### 3. Cascading Middleware Execution
+
 Taser runs layout middleware from outermost to innermost:
+
 - Root layout (`src/routes/$.ts`)
 - Parent directory layouts (for example, `src/routes/admin.ts`)
 - Pathless layouts (for example, `src/routes/admin/_auth.ts`)
@@ -82,12 +87,15 @@ Taser runs layout middleware from outermost to innermost:
 Any state returned by middleware (such as `{ state: { user: currentUser } }`) merges cleanly into `ctx.state`.
 
 ### 4. Input Validation
+
 Before the route handler executes, Taser validates `params`, `query`, `headers`, and `body` against their schemas. If validation fails, a `ValidationError` is raised and caught by `.onError()`.
 
 ### 5. Handler Execution
+
 The route handler receives a fully typed context object containing all validated inputs, injected middleware state, and application singletons.
 
 ### 6. Response Contract Verification
+
 At compile time, TypeScript checks that the value returned from `reply.json()` satisfies the schema declared in `.returns()`. If runtime response validation is enabled, Taser also verifies outgoing payloads in development.
 
 ---
@@ -97,30 +105,32 @@ At compile time, TypeScript checks that the value returned from `reply.json()` s
 Within any route handler or middleware, the `ctx` argument provides structured, type-safe access to every aspect of the request:
 
 ```ts title="src/routes/admin/users/$id.get.ts"
-export const Route = t.get("/admin/users/:id", {
-  params: z.object({ id: z.string() }),
-  query: z.object({ detailed: z.coerce.boolean().default(false) }),
-}).handler(async (ctx) => {
-  // 1. Injected from Boot Context (src/context.ts)
-  const db = ctx.db;
+export const Route = t
+  .get("/admin/users/:id", {
+    params: z.object({ id: z.string() }),
+    query: z.object({ detailed: z.coerce.boolean().default(false) }),
+  })
+  .handler(async (ctx) => {
+    // 1. Injected from Boot Context (src/context.ts)
+    const db = ctx.db;
 
-  // 2. Injected from Request Context (src/context.ts)
-  const requestId = ctx.requestId;
+    // 2. Injected from Request Context (src/context.ts)
+    const requestId = ctx.requestId;
 
-  // 3. Injected from Layout Middlewares (src/routes/admin.ts)
-  const adminUser = ctx.state.currentUser;
+    // 3. Injected from Layout Middlewares (src/routes/admin.ts)
+    const adminUser = ctx.state.currentUser;
 
-  // 4. Validated Path Parameters
-  const userId = ctx.params.id;
+    // 4. Validated Path Parameters
+    const userId = ctx.params.id;
 
-  // 5. Validated Query Parameters
-  const isDetailed = ctx.query.detailed;
+    // 5. Validated Query Parameters
+    const isDetailed = ctx.query.detailed;
 
-  // 6. Native Runtime Access (Express/Fastify objects if needed)
-  const native = ctx.native;
+    // 6. Native Runtime Access (Express/Fastify objects if needed)
+    const native = ctx.native;
 
-  return reply.json({ userId, adminUser, requestId });
-});
+    return reply.json({ userId, adminUser, requestId });
+  });
 ```
 
 ### Context Field Reference
@@ -156,7 +166,8 @@ export const Route = t.get("/admin/users/:id", {
       type: "TaserCookieJar",
     },
     native: {
-      description: "Underlying server adapter context (for example, Express req/res or Fastify req/reply).",
+      description:
+        "Underlying server adapter context (for example, Express req/res or Fastify req/reply).",
       type: "NativeContext",
     },
   }}
@@ -172,7 +183,8 @@ It is important to know when to use Application Context versus Middleware State:
 - Use **Middleware State (`ctx.state`)** for business logic data produced conditionally during route traversal, such as authenticated session tokens, decoded JWT claims, rate limit remaining counters, or organization tenancy models.
 
 <Callout type="tip" title="No Global Interface Merging">
-  Unlike traditional Express where you must declare global `Express.Request` namespace overrides, Taser infers middleware types through lexical scope and folder hierarchies.
+  Unlike traditional Express where you must declare global `Express.Request` namespace overrides,
+  Taser infers middleware types through lexical scope and folder hierarchies.
 </Callout>
 
 ---

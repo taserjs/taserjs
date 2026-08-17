@@ -26,12 +26,14 @@ function createTaserApp(options?: CreateTaserAppOptions): TaserRouter;
 <TypeTable
   type={{
     "response.validate": {
-      description: "Enables runtime validation of outgoing response bodies against .returns() schemas.",
+      description:
+        "Enables runtime validation of outgoing response bodies against .returns() schemas.",
       type: "boolean",
       default: "true",
     },
     "response.onValidationFailure": {
-      description: "Custom callback triggered when a handler response does not match its declared schema.",
+      description:
+        "Custom callback triggered when a handler response does not match its declared schema.",
       type: "(info: { status: number; issues: unknown[]; data: unknown }) => void",
     },
     cookies: {
@@ -57,11 +59,13 @@ function createContext<TBoot, TReq>(definition: {
 <TypeTable
   type={{
     boot: {
-      description: "Executed once at server startup. Returns long-lived application singletons (database, Redis, loggers).",
+      description:
+        "Executed once at server startup. Returns long-lived application singletons (database, Redis, loggers).",
       type: "() => Promise<TBoot> | TBoot",
     },
     request: {
-      description: "Executed for every incoming HTTP request. Returns request-scoped state (requestId, startTime).",
+      description:
+        "Executed for every incoming HTTP request. Returns request-scoped state (requestId, startTime).",
       type: "(args: { native: unknown }) => Promise<TReq> | TReq",
     },
   }}
@@ -109,7 +113,8 @@ function defineMiddleware(options: {
       type: "(def: ContextDefinition) => TaserRouter",
     },
     onError: {
-      description: "Registers a global centralized error boundary for unhandled exceptions and validation errors.",
+      description:
+        "Registers a global centralized error boundary for unhandled exceptions and validation errors.",
       type: "(handler: (err: unknown, ctx: Context) => ReplyResult) => this",
     },
     notFound: {
@@ -281,7 +286,8 @@ function defineMiddleware(options: {
       type: "() => Record<string, string>",
     },
     "cookies.getSigned": {
-      description: "Verifies HMAC signature and returns the signed cookie string value (or false if signature mismatch).",
+      description:
+        "Verifies HMAC signature and returns the signed cookie string value (or false if signature mismatch).",
       type: "(name: string, secret?: string | BufferSource, prefix?: 'secure' | 'host') => Promise<string | false | undefined>",
     },
     "cookies.set": {
@@ -293,7 +299,8 @@ function defineMiddleware(options: {
       type: "(name: string, value: string, secret?: string | BufferSource, options?: CookieOptions) => Promise<void>",
     },
     "cookies.delete": {
-      description: "Deletes a cookie by issuing an immediate expiration header and returns previous value.",
+      description:
+        "Deletes a cookie by issuing an immediate expiration header and returns previous value.",
       type: "(name: string, options?: CookieOptions) => string | undefined",
     },
   }}

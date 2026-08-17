@@ -67,7 +67,7 @@ export const Middleware = t
     cors({
       origin: ["https://app.example.com", "https://admin.example.com"],
       credentials: true,
-    })
+    }),
   )
   .use(secureHeaders())
   .use(timing());
@@ -141,6 +141,7 @@ When middleware calls `next({ state: { ... } })`, the returned properties merge 
       },
     });
     ```
+
   </Tab>
   <Tab value="Route Handler">
     ```ts title="src/routes/dashboard/metrics.get.ts"
@@ -155,6 +156,7 @@ When middleware calls `next({ state: { ... } })`, the returned properties merge 
       return reply.json({ userId, metrics });
     });
     ```
+
   </Tab>
 </Tabs>
 

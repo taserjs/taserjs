@@ -96,7 +96,7 @@ export const t = createTaserApp({
     onValidationFailure: ({ status, issues, data }) => {
       console.error(
         `[Response Validation Error] Status ${status} payload did not match contract:`,
-        issues
+        issues,
       );
     },
   },
