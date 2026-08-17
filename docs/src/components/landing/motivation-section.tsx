@@ -10,13 +10,13 @@ export function MotivationSection() {
         <SectionHeader
           align="center"
           className="mb-10"
-          eyebrow="Motivation"
+          eyebrow="Mental Model"
           title={
             <>
-              Inspired by <SectionAccent>TanStack Router</SectionAccent>
+              Inspired by <SectionAccent>TanStack Router</SectionAccent>. Engineered for REST APIs.
             </>
           }
-          description="TanStack Router proved how good route ergonomics can feel on the frontend. Taser brings that exact intuition, directory cascading, and type-safety to backend REST APIs."
+          description="TanStack Router revolutionized client routing with file-system layouts and type inference. Taser brings that same intuition to backend HTTP servers: HTTP verb files for handlers, non-verb files for cascading directory middleware."
         />
 
         {/* Side-by-Side IDE Window Comparison */}

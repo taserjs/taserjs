@@ -9,41 +9,44 @@ import { SectionSeparator } from "./section-separator";
 const features: { icon: ReactNode; title: string; description: string; iconTone: IconTone }[] = [
   {
     icon: <FileCode2 />,
-    title: "File-Based Routes",
+    title: "File-Based Routing",
     description:
-      "Drop route files and let Taser generate the route tree and infer context automatically.",
+      "Drop .get.ts and .post.ts files to create typed endpoints automatically with zero manual route tables.",
     iconTone: "violet",
   },
   {
     icon: <Braces />,
-    title: "Types that Follow the Wire",
+    title: "Cascading Context",
     description:
-      "Query, params, body, and returns inferred end-to-end through your middleware chain.",
+      "Middleware state flows through directory layouts directly into ctx.state with zero type assertions.",
     iconTone: "sky",
   },
   {
     icon: <Plug />,
     title: "Framework Agnostic",
-    description: "Mount on Express, Hono, Fastify, or plain Node with a single router definition.",
+    description:
+      "Mount on Express, Hono, Fastify, or plain Node with a single portable router definition.",
     iconTone: "orange",
   },
   {
     icon: <Layers />,
-    title: "Validate with Standard Schema",
+    title: "Standard Schema",
     description:
-      "Validate with any Standard Schema library of your choice: Zod, ArkType, Valibot, and more.",
+      "Validate query, params, headers, and body with Zod, ArkType, Valibot, or any Standard Schema validator.",
     iconTone: "indigo",
   },
   {
     icon: <Sparkles />,
-    title: "Codegen on Watch",
-    description: "The CLI regenerates manifests as you edit your routes. Zero manual route tables.",
+    title: "Watch-Mode Codegen",
+    description:
+      "The CLI watch mode regenerates route manifests and TypeScript definitions instantly on save.",
     iconTone: "rose",
   },
   {
     icon: <Waypoints />,
-    title: "Optional Typed Client",
-    description: "Export TaserAppRouter and call your API with the exact types from your handlers.",
+    title: "Zero-Drift Typed Client",
+    description:
+      "Export router types and call endpoints with an auto-generated client that knows exact response shapes.",
     iconTone: "emerald",
   },
 ];
@@ -59,10 +62,11 @@ export function FeaturesSection() {
           eyebrow="Features"
           title={
             <>
-              Built for teams who hate <SectionAccent>manual type casting</SectionAccent>
+              Built for teams that refuse to{" "}
+              <SectionAccent>compromise on type safety</SectionAccent>
             </>
           }
-          description="Taser types the full request lifecycle and provides end-to-end server-side type safety that developers and agents love."
+          description="Taser types the full request lifecycle from file route discovery down to typed client generation."
         />
 
         <div className="landing-animate-in landing-delay-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

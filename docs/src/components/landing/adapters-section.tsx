@@ -19,13 +19,13 @@ import { SectionSeparator } from "./section-separator";
 const adapters: { name: string; description: string; icon: ReactNode; iconTone: IconTone }[] = [
   {
     name: "Express",
-    description: "Mount with Express splat patterns.",
+    description: "Mount seamlessly with Express splat routing.",
     icon: <Server />,
     iconTone: "sky",
   },
   {
     name: "Hono",
-    description: "Lightweight and edge-friendly.",
+    description: "High-performance and edge-ready.",
     icon: <Zap />,
     iconTone: "amber",
   },
@@ -37,7 +37,7 @@ const adapters: { name: string; description: string; icon: ReactNode; iconTone: 
   },
   {
     name: "Node",
-    description: "Plain Node.js HTTP handler.",
+    description: "Standard Node.js HTTP server handler.",
     icon: <Box />,
     iconTone: "violet",
   },
@@ -75,7 +75,7 @@ const schemaLibraries: {
   },
   {
     name: "And more",
-    description: "Any library that implements Standard Schema.",
+    description: "Any library implementing the Standard Schema spec.",
     icon: <MoreHorizontal />,
     iconTone: "rose",
   },
@@ -92,10 +92,10 @@ export function AdaptersSection() {
           eyebrow="Adapters"
           title={
             <>
-              Framework <SectionAccent>agnostic</SectionAccent>
+              Framework Agnostic. <SectionAccent>Runtime Universal</SectionAccent>.
             </>
           }
-          description="One router definition. Adapters for the runtime you already run."
+          description="Write your business logic once with Taser. Mount on Express, Hono, Fastify, or plain Node.js without rewriting a single handler."
         />
 
         <div className="landing-animate-in landing-delay-2 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
@@ -117,10 +117,10 @@ export function AdaptersSection() {
           eyebrow="Validation"
           title={
             <>
-              Standard Schema <SectionAccent>compatible</SectionAccent>
+              Standard Schema <SectionAccent>First</SectionAccent>
             </>
           }
-          description="Bring your validator of choice: query, params, body, and returns all validate seamlessly through Standard Schema."
+          description="Zero vendor lock-in. Validate params, headers, query, and payload schemas with any library conforming to the Standard Schema spec."
         />
 
         <div className="landing-animate-in landing-delay-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

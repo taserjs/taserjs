@@ -1,4 +1,4 @@
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Terminal as TerminalIcon } from "lucide-react";
 
 import { SectionAccent, SectionHeader } from "./section-header";
 import { SectionSeparator } from "./section-separator";
@@ -14,21 +14,30 @@ export function TryItSection() {
         <SectionHeader
           align="center"
           className="mb-10"
+          eyebrow="Quick Start"
           title={
             <>
-              Try it <SectionAccent>out</SectionAccent>
+              Scaffold a typed API <SectionAccent>in seconds</SectionAccent>
             </>
           }
-          description="Scaffold a typed API in under a minute. Pick your adapter and start building."
+          description="Choose your favorite framework adapter and get instant file routing, watch-mode manifest codegen, and full-chain inference out of the box."
         />
 
         <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
           <div className="landing-animate-in landing-delay-2">
-            <WindowFrame title="Terminal" className="h-full">
+            <WindowFrame
+              title={
+                <span className="flex items-center gap-1.5 font-mono text-xs font-semibold text-fd-foreground">
+                  <TerminalIcon className="size-3.5 text-fd-muted-foreground" />
+                  Terminal
+                </span>
+              }
+              className="h-full"
+            >
               <pre className="overflow-x-auto p-5 text-sm leading-relaxed min-h-44">
                 <code className="text-fd-foreground font-mono text-xs">
                   <span className="landing-line text-fd-muted-foreground">
-                    # scaffold a project in under a minute
+                    # scaffold a project in seconds
                   </span>
                   {"\n"}
                   <span className="landing-line landing-line-delay-1">
@@ -66,8 +75,8 @@ export function TryItSection() {
             </div>
             <h3 className="text-lg font-semibold tracking-tight">New API scaffolded!</h3>
             <p className="mt-2 text-sm leading-relaxed text-fd-muted-foreground">
-              File-based routing, full-chain inference, and CLI watch mode are all preconfigured and
-              ready for{" "}
+              Preconfigured with TypeScript strict mode, watch-mode manifest codegen, and full-chain
+              type inference. Ready for{" "}
               <code className="rounded bg-fd-muted px-1.5 py-0.5 font-mono text-xs text-fd-foreground">
                 pnpm dev
               </code>

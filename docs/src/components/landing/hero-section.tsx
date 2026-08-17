@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, Sparkles } from "lucide-react";
+import { ArrowRight, Brain, Sparkles } from "lucide-react";
 
 import { HeroVisual } from "./hero-visual";
 import { Logo } from "@/components/logo";
@@ -18,33 +18,33 @@ export function HeroSection() {
         <div className="min-w-0">
           <p className="landing-animate-in mb-4 flex w-fit items-center gap-1.5 rounded-full border border-fd-border bg-fd-background/70 px-3 py-1.5 text-xs font-medium tracking-wide text-fd-muted-foreground uppercase backdrop-blur-sm">
             <Sparkles className="size-3.5 text-violet-500 dark:text-violet-400" aria-hidden />
-            Type-safe routing for APIs
+            Type-Safe File-Based REST API Router
           </p>
           <Logo className="mb-4 w-56 shrink-0" />
           <h1 className="landing-animate-in landing-delay-1 max-w-xl text-4xl font-semibold tracking-tight text-balance md:text-5xl lg:leading-[1.1]">
             Define schemas once.
             <br />
-            <span className="landing-text-gradient-cool">Let types flow everywhere.</span>
+            <span className="landing-text-gradient-cool">Let types cascade everywhere.</span>
           </h1>
           <p className="landing-animate-in landing-delay-2 mt-5 max-w-lg text-lg text-fd-muted-foreground text-pretty">
-            File-based routing for REST APIs. Compose layouts and middleware with full inference,
-            validate every input, and skip the type assertions after middleware already did the
-            work.
+            File-based routing for TypeScript REST APIs. Compose scoped directory middleware with
+            full type inference, enforce compile-time return contracts, and eliminate type
+            assertions forever.
           </p>
           <div className="landing-animate-in landing-delay-3 mt-8 flex flex-wrap items-center gap-3">
             <Link
               href="/docs"
-              className="inline-flex items-center gap-2 rounded-xl bg-fd-primary px-4 py-2.5 text-sm font-medium text-fd-primary-foreground shadow-sm transition-all duration-300 hover:opacity-90 hover:shadow-md"
+              className="inline-flex items-center gap-2 rounded-xl bg-fd-primary px-5 py-3 text-sm font-medium text-fd-primary-foreground shadow-sm transition-all duration-300 hover:opacity-90 hover:shadow-md hover:-translate-y-0.5"
             >
-              Getting Started
+              Get Started
               <ArrowRight className="size-4" aria-hidden />
             </Link>
             <Link
-              href="/docs"
-              className="inline-flex items-center gap-2 rounded-xl border border-fd-border bg-fd-background/80 px-4 py-2.5 text-sm font-medium backdrop-blur-sm transition-all duration-300 hover:bg-fd-accent hover:-translate-y-0.5"
+              href="/#motivation"
+              className="inline-flex items-center gap-2 rounded-xl border border-fd-border bg-fd-background/80 px-5 py-3 text-sm font-medium backdrop-blur-sm transition-all duration-300 hover:bg-fd-accent hover:-translate-y-0.5"
             >
-              <BookOpen className="size-4 text-fd-muted-foreground" aria-hidden />
-              Documentation
+              <Brain className="size-4 text-fd-muted-foreground" aria-hidden />
+              Why Taser?
             </Link>
           </div>
         </div>

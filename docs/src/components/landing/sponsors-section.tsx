@@ -80,13 +80,13 @@ export function SponsorsSection() {
           <SectionHeader
             align="center"
             animated={false}
-            eyebrow="Open source forever"
+            eyebrow="Open Source & Independent"
             title={
               <span>
-                Made possible by <SectionAccent>you</SectionAccent>.
+                Backed by the community. <SectionAccent>Built for everyone</SectionAccent>.
               </span>
             }
-            description="Taser is built in the open. Sponsors keep the project dependable, well-maintained, and actively evolving."
+            description="Taser is 100% open source. Sponsoring funds continuous performance optimizations, runtime adapter parity, codegen tooling, and long-term maintenance."
           />
         </motion.div>
 
@@ -127,11 +127,11 @@ export function SponsorsSection() {
               <div className="mb-3 flex size-10 items-center justify-center rounded-lg border border-fd-border bg-fd-muted text-landing-accent">
                 <Heart className="size-5" aria-hidden />
               </div>
-              <h3 className="text-xl font-semibold tracking-tight">Become a sponsor</h3>
+              <h3 className="text-xl font-semibold tracking-tight">Sponsor Taser Development</h3>
               <p className="mt-2 text-sm text-fd-muted-foreground">
-                Support ongoing development of Taser, including core performance, framework
-                adapters, codegen reliability, and typed client inference. Sponsoring directly funds
-                open source maintenance.
+                Support sustainable open source tooling. Contributions directly support new runtime
+                adapters (Express, Hono, Fastify), instant watch-mode codegen improvements, and
+                first-class Standard Schema integrations.
               </p>
             </div>
             <div className="flex shrink-0 items-center">
@@ -139,7 +139,7 @@ export function SponsorsSection() {
                 href={sponsorUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-fd-primary px-6 py-3.5 text-sm font-medium text-fd-primary-foreground shadow-sm transition-all duration-300 hover:opacity-90 hover:shadow-md hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-fd-primary px-6 py-3.5 text-sm font-medium text-fd-primary-foreground shadow-sm transition-all duration-300 hover:opacity-90 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
               >
                 <Sparkles className="size-4" aria-hidden />
                 Sponsor on GitHub

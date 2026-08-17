@@ -29,8 +29,8 @@ const tabs: TabData[] = [
     label: "Middleware & Context",
     icon: Layers,
     problemTitle: "The Type Assertion Trap",
-    problemBadge: "as User Required",
-    problemFilename: "express-server.ts",
+    problemBadge: "Type Casting Required",
+    problemFilename: "server.ts",
     problemCode: `// Middleware attaches data to req
 app.use((req, res, next) => {
   req.user = getUser(req); // untyped assignment
@@ -46,7 +46,7 @@ app.post("/private", validateBody(schema), (req, res) => {
 });`,
     solutionTitle: "Cascading Typed Pipeline",
     solutionBadge: "100% Inferred Context",
-    solutionFilename: "routes/admin.ts + reports.post.ts",
+    solutionFilename: "routes/admin.ts + routes/admin/reports.post.ts",
     solutionCode: `// Middleware declares what it injects
 export const auth = defineMiddleware({
   query: z.object({ token: z.string() }),
@@ -88,7 +88,7 @@ adminRouter.get("/reports/:id", getReportHandler);
 // ⚠️ Easy to register in wrong order or miss auth!`,
     solutionTitle: "Deterministic File-Based Routing",
     solutionBadge: "Zero Manual Tables",
-    solutionFilename: "src/routes/admin/reports/",
+    solutionFilename: "src/routes",
     solutionCode: `// Directory paths match API endpoints automatically:
 //
 // src/routes/
@@ -114,7 +114,7 @@ adminRouter.get("/reports/:id", getReportHandler);
     problemCode: `app.get("/admin/reports", async (req, res) => {
   const reports = await db.reports.findMany();
 
-  // ⚠️ Nobody knows what shape this is.
+  // ⚠️ Nobody knows what shape this must match.
   // If the database schema or helper return changes,
   // response drifts silently and breaks production clients!
   res.json({ data: reports });
@@ -185,10 +185,10 @@ export function ProblemSolutionTabs() {
           eyebrow="The Problem & Solution"
           title={
             <>
-              Why traditional APIs <SectionAccent>break at scale</SectionAccent>
+              Why traditional Node.js routing <SectionAccent>breaks at scale</SectionAccent>
             </>
           }
-          description="Traditional Node.js routers force painful trade-offs between clean code and type safety. Here is how Taser fixes them."
+          description="Traditional routers force trade-offs between clean folder structures and real type safety. Taser eliminates the type assertion trap and guarantees runtime correctness from middleware to client."
         />
 
         {/* Tab Switcher */}

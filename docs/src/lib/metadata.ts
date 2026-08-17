@@ -11,7 +11,7 @@ const OG_IMAGE_HEIGHT = 630;
 
 export const defaultOgImage = {
   url: "/og/pages/home/image.webp",
-  alt: "Taser: Type-safe file-based routing for APIs",
+  alt: "Taser: Type-Safe File-Based Routing for REST APIs",
   width: OG_IMAGE_WIDTH,
   height: OG_IMAGE_HEIGHT,
 } as const;
@@ -63,43 +63,43 @@ export function createPageMetadata(opts: {
 }
 
 export const homeMetadata = createPageMetadata({
-  title: "Taser: Type-safe file-based routing for APIs",
+  title: "Taser: Type-Safe File-Based Routing for REST APIs",
   description:
-    "File-based routing for Node.js HTTP APIs. Compose layouts and middleware with full TypeScript inference, validate every input, and export a typed client that matches your handlers.",
+    "File-based routing for TypeScript REST APIs. Compose scoped directory middleware with full type inference, enforce compile-time return contracts, and eliminate type assertions forever.",
   openGraphDescription:
-    "Define schemas once. Let types flow through layouts, middleware, handlers, and your typed API client. Ship APIs that stay correct as they grow.",
+    "Define schemas once. Let types cascade through directory middleware, handlers, compile-time return checks, and your typed client with zero type casting.",
   path: "/",
   image: "/og/pages/home/image.webp",
-  imageAlt: "Taser: Type-safe file-based routing for APIs",
+  imageAlt: "Taser: Type-Safe File-Based Routing for REST APIs",
 });
 
 export const docsOpenGraphDescriptions: Record<string, string> = {
-  "": "Type-safe file-based routing for APIs. Quick start, routing guides, validation, adapters, and a typed client that matches your handlers.",
+  "": "Type-safe file-based routing for REST APIs. Quick start, routing guides, Standard Schema validation, runtime adapters, and auto-generated typed clients.",
   "getting-started":
-    "Scaffold a project, add your first route, and generate the route manifest. Pick Express, Fastify, Hono, or plain Node.",
+    "Scaffold a typed API in seconds, add your first route, and let watch-mode codegen generate the manifest. Mount on Express, Hono, Fastify, or Node.",
   "routing/file-based":
-    "Route files are the source of truth. Learn naming rules, URL mapping, params, splats, and how codegen keeps the manifest in sync.",
+    "HTTP verb files (.get.ts, .post.ts) define your endpoints. Learn URL mappings, parameters, splats, and automated manifest codegen.",
   "routing/layouts-and-middleware":
-    "Scale beyond a handful of routes. Define middleware once in layout files and let typed state flow to every handler underneath.",
+    "Scale API composition without losing types. Define scoped directory middleware and let typed context flow to every child handler automatically.",
   validation:
-    "Types should describe what your server accepts and returns. Validate inputs at runtime so inference matches real behavior.",
+    "Types that match real runtime behavior. Validate params, query, headers, and body with any Standard Schema library (Zod, ArkType, Valibot).",
   "responses-and-errors":
-    "Use reply.* helpers for consistent responses. Declare return shapes, validate outputs, and centralize error handling in one place.",
+    "Enforce exact response schemas with .returns(). Catch payload drift at compile time and centralize typed error replies with reply.* helpers.",
   adapters:
-    "Taser speaks Request/Response. Mount the same app on Express, Fastify, Node, or any Fetch handler with a single router definition.",
+    "Write once, run anywhere. Mount the exact same router on Express, Hono, Fastify, or plain Node without changing handler logic.",
   "typed-client":
-    "A client where route names, request inputs, and response types stay in sync with your server. No handwritten API types.",
+    "Auto-generated API client with complete type safety. Route paths, parameters, query, body, and return shapes stay permanently in sync.",
 };
 
 export const docsImageAlts: Record<string, string> = {
-  "": "Taser Docs: Introduction to type-safe API routing",
-  "getting-started": "Taser Docs: Getting Started with type-safe API routing",
-  "routing/file-based": "Taser Docs: File-based routing for Node.js APIs",
-  "routing/layouts-and-middleware": "Taser Docs: Layouts and middleware for type-safe APIs",
-  validation: "Taser Docs: Runtime validation for type-safe APIs",
-  "responses-and-errors": "Taser Docs: Typed responses and error handling",
-  adapters: "Taser Docs: Adapters for Express, Fastify, and Node",
-  "typed-client": "Taser Docs: Typed client for Taser APIs",
+  "": "Taser Docs: Introduction to Type-Safe REST API Routing",
+  "getting-started": "Taser Docs: Getting Started with Type-Safe API Routing",
+  "routing/file-based": "Taser Docs: File-Based Routing for REST APIs",
+  "routing/layouts-and-middleware": "Taser Docs: Cascading Middleware and Directory Layouts",
+  validation: "Taser Docs: Standard Schema Runtime Validation",
+  "responses-and-errors": "Taser Docs: Compile-Time Return Contracts and Error Replies",
+  adapters: "Taser Docs: Runtime Adapters for Express, Hono, Fastify, and Node",
+  "typed-client": "Taser Docs: End-to-End Typed API Client",
 };
 
 export function createDocsPageMetadata(opts: {
