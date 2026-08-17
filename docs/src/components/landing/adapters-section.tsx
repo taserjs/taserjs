@@ -62,7 +62,7 @@ const schemaLibraries: {
     iconTone: "indigo",
   },
   {
-    name: "Arktype",
+    name: "ArkType",
     description: "TypeScript-native validation with deep inference.",
     icon: <Hexagon />,
     iconTone: "violet",
@@ -83,15 +83,16 @@ const schemaLibraries: {
 
 export function AdaptersSection() {
   return (
-    <section className="relative bg-fd-muted/25">
+    <section id="adapters" className="relative scroll-mt-14">
       <SectionSeparator />
       <div className="mx-auto max-w-(--fd-layout-width) px-6 py-16 md:py-24">
         <SectionHeader
+          align="center"
           className="mb-10"
+          eyebrow="Adapters"
           title={
             <>
-              Framework
-              <SectionAccent>agnostic</SectionAccent>
+              Framework <SectionAccent>agnostic</SectionAccent>
             </>
           }
           description="One router definition. Adapters for the runtime you already run."
@@ -111,14 +112,15 @@ export function AdaptersSection() {
         </div>
 
         <SectionHeader
+          align="center"
           className="mt-16 mb-10"
+          eyebrow="Validation"
           title={
             <>
-              Standard Schema
-              <SectionAccent>compatible</SectionAccent>
+              Standard Schema <SectionAccent>compatible</SectionAccent>
             </>
           }
-          description="Bring your validator of choice for query, params, body, and returns all flow through Standard Schema."
+          description="Bring your validator of choice: query, params, body, and returns all validate seamlessly through Standard Schema."
         />
 
         <div className="landing-animate-in landing-delay-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

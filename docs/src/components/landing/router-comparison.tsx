@@ -12,6 +12,7 @@ import {
   Code2,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { WindowFrame } from "./window-frame";
 
 type HttpVerb = "GET" | "POST" | "PUT" | "DELETE" | "MW" | "LAYOUT" | "PAGE";
 
@@ -127,7 +128,6 @@ function TreeItem({
 
 export function RouterComparison() {
   const [activeTab, setActiveTab] = useState<"tanstack" | "taser">("taser");
-  // Synchronized folder state across both trees
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
     posts: true,
     auth: true,
@@ -146,7 +146,7 @@ export function RouterComparison() {
             type="button"
             onClick={() => setActiveTab("tanstack")}
             className={cn(
-              "flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors",
+              "flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer",
               activeTab === "tanstack"
                 ? "bg-fd-background text-fd-foreground shadow-xs"
                 : "text-fd-muted-foreground hover:text-fd-foreground",
@@ -159,7 +159,7 @@ export function RouterComparison() {
             type="button"
             onClick={() => setActiveTab("taser")}
             className={cn(
-              "flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors",
+              "flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer",
               activeTab === "taser"
                 ? "bg-fd-background text-fd-foreground shadow-xs"
                 : "text-fd-muted-foreground hover:text-fd-foreground",
@@ -173,38 +173,25 @@ export function RouterComparison() {
 
       {/* Side by Side Grid */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* TanStack Router Card */}
-        <div
-          className={cn(
-            "overflow-hidden rounded-2xl border border-fd-border bg-fd-card shadow-lg shadow-black/5 dark:shadow-black/30 transition-all",
-            activeTab !== "tanstack" ? "hidden md:block" : "block",
-          )}
-        >
-          {/* Window Chrome Header */}
-          <div className="flex items-center justify-between border-b border-fd-border bg-fd-muted/40 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <span className="size-3 rounded-full bg-red-500/80" />
-              <span className="size-3 rounded-full bg-yellow-500/80" />
-              <span className="size-3 rounded-full bg-green-500/80" />
-              <span className="ml-2 font-mono text-xs font-semibold text-fd-foreground">
-                TanStack Router
-              </span>
-            </div>
+        {/* TanStack Router Window */}
+        <WindowFrame
+          title="TanStack Router"
+          badge={
             <span className="inline-flex items-center gap-1 rounded-full border border-purple-500/20 bg-purple-500/10 px-2.5 py-0.5 text-[11px] font-medium text-purple-600 dark:text-purple-400">
               <Monitor className="size-3" />
               Client UI Routing
             </span>
-          </div>
-
-          {/* Column Subheader */}
-          <div className="flex items-center gap-2 sm:gap-3 border-b border-fd-border/60 bg-fd-muted/20 px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-wider text-fd-muted-foreground">
-            <span className="flex-1 min-w-0">File Structure</span>
-            <span className="w-14 shrink-0 text-center">Type</span>
-            <span className="w-32 sm:w-36 shrink-0 text-left">Matched Route</span>
-            <span className="hidden w-24 sm:w-28 shrink-0 text-right lg:block">Role</span>
-          </div>
-
-          {/* File Tree Rows */}
+          }
+          subHeader={
+            <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-wider text-fd-muted-foreground">
+              <span className="flex-1 min-w-0">File Structure</span>
+              <span className="w-14 shrink-0 text-center">Type</span>
+              <span className="w-32 sm:w-36 shrink-0 text-left">Matched Route</span>
+              <span className="hidden w-24 sm:w-28 shrink-0 text-right lg:block">Role</span>
+            </div>
+          }
+          className={activeTab !== "tanstack" ? "hidden md:block" : "block"}
+        >
           <div className="space-y-0.5 p-2 sm:p-2.5 overflow-x-auto">
             <TreeItem name="_root.tsx" route="/*" badge="LAYOUT" role="Root Layout" />
             <TreeItem name="index.tsx" route="/" badge="PAGE" role="Home Page" />
@@ -265,40 +252,28 @@ export function RouterComparison() {
               </TreeItem>
             </TreeItem>
           </div>
-        </div>
+        </WindowFrame>
 
-        {/* Taser Card */}
-        <div
-          className={cn(
-            "overflow-hidden rounded-2xl border border-fd-border bg-fd-card shadow-lg shadow-black/5 dark:shadow-black/30 ring-1 ring-orange-500/20 transition-all",
-            activeTab !== "taser" ? "hidden md:block" : "block",
-          )}
-        >
-          {/* Window Chrome Header */}
-          <div className="flex items-center justify-between border-b border-fd-border bg-fd-muted/40 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <span className="size-3 rounded-full bg-red-500/80" />
-              <span className="size-3 rounded-full bg-yellow-500/80" />
-              <span className="size-3 rounded-full bg-green-500/80" />
-              <span className="ml-2 font-mono text-xs font-semibold text-fd-foreground">
-                Taser Router
-              </span>
-            </div>
+        {/* Taser Window */}
+        <WindowFrame
+          title="Taser Router"
+          tone="orange"
+          badge={
             <span className="inline-flex items-center gap-1 rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-0.5 text-[11px] font-medium text-orange-600 dark:text-orange-400">
               <Server className="size-3" />
               Backend REST API
             </span>
-          </div>
-
-          {/* Column Subheader */}
-          <div className="flex items-center gap-2 sm:gap-3 border-b border-fd-border/60 bg-fd-muted/20 px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-wider text-fd-muted-foreground">
-            <span className="flex-1 min-w-0">File Structure</span>
-            <span className="w-14 shrink-0 text-center">Type</span>
-            <span className="w-32 sm:w-36 shrink-0 text-left">Matched Endpoint</span>
-            <span className="hidden w-24 sm:w-28 shrink-0 text-right lg:block">Role</span>
-          </div>
-
-          {/* File Tree Rows */}
+          }
+          subHeader={
+            <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-wider text-fd-muted-foreground">
+              <span className="flex-1 min-w-0">File Structure</span>
+              <span className="w-14 shrink-0 text-center">Type</span>
+              <span className="w-32 sm:w-36 shrink-0 text-left">Matched Endpoint</span>
+              <span className="hidden w-24 sm:w-28 shrink-0 text-right lg:block">Role</span>
+            </div>
+          }
+          className={activeTab !== "taser" ? "hidden md:block" : "block"}
+        >
           <div className="space-y-0.5 p-2 sm:p-2.5 overflow-x-auto">
             <TreeItem name="$.ts" route="/*" badge="MW" role="Root Middleware" />
             <TreeItem name="index.get.ts" route="/" badge="GET" role="Index Handler" />
@@ -365,7 +340,7 @@ export function RouterComparison() {
               </TreeItem>
             </TreeItem>
           </div>
-        </div>
+        </WindowFrame>
       </div>
 
       {/* Paradigm Translation Breakdown Callout */}

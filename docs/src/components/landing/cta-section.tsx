@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export function CtaSection() {
   return (
-    <section className="relative bg-fd-muted/30">
+    <section className="relative bg-fd-muted/20">
       <SectionSeparator />
       <div className="mx-auto max-w-(--fd-layout-width) px-6 py-16 text-center md:py-20">
         <SectionHeader
@@ -14,7 +14,7 @@ export function CtaSection() {
           className="mx-auto"
           title={
             <>
-              Ready to try it on <SectionAccent>for real</SectionAccent>?
+              Ready to try it <SectionAccent>for real</SectionAccent>?
             </>
           }
           description="Start with the docs, pick an adapter, and ship a handler that is type-checked before the first request hits it."

@@ -15,7 +15,7 @@ export function SectionHeader({
   eyebrow,
   title,
   description,
-  align = "left",
+  align = "center",
   className,
   animated = true,
 }: SectionHeaderProps) {

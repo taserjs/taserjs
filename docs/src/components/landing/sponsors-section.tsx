@@ -7,7 +7,6 @@ import { sponsorUrl } from "@/lib/shared";
 import { cn } from "@/lib/cn";
 import { SectionAccent, SectionHeader } from "./section-header";
 import { SectionSeparator } from "./section-separator";
-import Link from "next/link";
 
 type SponsorTier = {
   id: string;
@@ -68,7 +67,7 @@ function SponsorPlaceholder({ className }: { className: string }) {
 
 export function SponsorsSection() {
   return (
-    <section className="relative">
+    <section id="sponsors" className="relative scroll-mt-14">
       <SectionSeparator />
       <div className="mx-auto max-w-(--fd-layout-width) px-6 py-16 md:py-24">
         <motion.div
@@ -87,7 +86,7 @@ export function SponsorsSection() {
                 Made possible by <SectionAccent>you</SectionAccent>.
               </span>
             }
-            description="Taser is built in the open. Sponsors keep the project alive and the community thriving."
+            description="Taser is built in the open. Sponsors keep the project dependable, well-maintained, and actively evolving."
           />
         </motion.div>
 
@@ -130,25 +129,21 @@ export function SponsorsSection() {
               </div>
               <h3 className="text-xl font-semibold tracking-tight">Become a sponsor</h3>
               <p className="mt-2 text-sm text-fd-muted-foreground">
-                Support ongoing development of the project and the toolkit, including codegen,
-                adapters, and the typed client. Individuals and teams welcome. Get your logo here
-                and help keep the project thriving.
+                Support ongoing development of Taser, including core performance, framework
+                adapters, codegen reliability, and typed client inference. Sponsoring directly funds
+                open source maintenance.
               </p>
             </div>
-            <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex shrink-0 items-center">
               <a
                 href={sponsorUrl}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-fd-primary px-5 py-3 text-sm font-medium text-fd-primary-foreground shadow-sm transition-all duration-300 hover:opacity-90 hover:shadow-md hover:-translate-y-0.5"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-fd-primary px-6 py-3.5 text-sm font-medium text-fd-primary-foreground shadow-sm transition-all duration-300 hover:opacity-90 hover:shadow-md hover:-translate-y-0.5"
               >
                 <Sparkles className="size-4" aria-hidden />
-                Become a sponsor
+                Sponsor on GitHub
               </a>
-              <Link
-                href="/sponsor"
-                className="inline-flex items-center justify-center rounded-xl border border-fd-border bg-fd-background px-5 py-3 text-sm font-medium transition-colors hover:bg-fd-accent"
-              >
-                Why sponsor?
-              </Link>
             </div>
           </div>
         </motion.div>

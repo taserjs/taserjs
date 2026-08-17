@@ -23,12 +23,12 @@ export function baseOptions(): BaseLayoutProps {
       {
         icon: <BrainIcon />,
         text: "Motivation",
-        url: "/motivation",
+        url: "/#motivation",
       },
       {
         icon: <HeartIcon />,
         text: "Sponsor",
-        url: "/sponsor",
+        url: "/#sponsors",
       },
     ],
     githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,

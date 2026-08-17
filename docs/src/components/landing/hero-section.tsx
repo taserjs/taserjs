@@ -20,7 +20,7 @@ export function HeroSection() {
             <Sparkles className="size-3.5 text-violet-500 dark:text-violet-400" aria-hidden />
             Type-safe routing for APIs
           </p>
-          <Logo className="w-56 shrink-0" />
+          <Logo className="mb-4 w-56 shrink-0" />
           <h1 className="landing-animate-in landing-delay-1 max-w-xl text-4xl font-semibold tracking-tight text-balance md:text-5xl lg:leading-[1.1]">
             Define schemas once.
             <br />

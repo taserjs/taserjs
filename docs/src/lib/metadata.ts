@@ -11,7 +11,7 @@ const OG_IMAGE_HEIGHT = 630;
 
 export const defaultOgImage = {
   url: "/og/pages/home/image.webp",
-  alt: "Taser — Type-safe file-based routing for APIs",
+  alt: "Taser: Type-safe file-based routing for APIs",
   width: OG_IMAGE_WIDTH,
   height: OG_IMAGE_HEIGHT,
 } as const;
@@ -63,38 +63,14 @@ export function createPageMetadata(opts: {
 }
 
 export const homeMetadata = createPageMetadata({
-  title: "Taser — Type-safe file-based routing for APIs",
+  title: "Taser: Type-safe file-based routing for APIs",
   description:
     "File-based routing for Node.js HTTP APIs. Compose layouts and middleware with full TypeScript inference, validate every input, and export a typed client that matches your handlers.",
   openGraphDescription:
     "Define schemas once. Let types flow through layouts, middleware, handlers, and your typed API client. Ship APIs that stay correct as they grow.",
   path: "/",
   image: "/og/pages/home/image.webp",
-  imageAlt: "Taser — Type-safe file-based routing for APIs",
-});
-
-export const motivationMetadata = createPageMetadata({
-  title: "Why Taser exists — Type-safe API routing",
-  description:
-    "Taser brings TanStack Router-style ergonomics to backend APIs. Learn why file-based routes, typed middleware chains, and runtime validation matter when your API grows past the demo stage.",
-  openGraphTitle: "Why Taser exists",
-  openGraphDescription:
-    "Inspired by TanStack Router. Built for APIs that need composition, validation, and shared context without losing type safety.",
-  path: "/motivation",
-  image: "/og/pages/motivation/image.webp",
-  imageAlt: "Why Taser exists — Motivation for type-safe API routing",
-});
-
-export const sponsorMetadata = createPageMetadata({
-  title: "Sponsor Taser — Support open-source API routing",
-  description:
-    "Sponsor Taser to fund bug fixes, adapter parity, documentation, codegen improvements, and long-term maintenance of the type-safe file-based router for Node.js APIs.",
-  openGraphTitle: "Sponsor Taser",
-  openGraphDescription:
-    "Help keep Taser dependable. Your sponsorship funds quality, docs, tooling, and the maintainers building better APIs for everyone.",
-  path: "/sponsor",
-  image: "/og/pages/sponsor/image.webp",
-  imageAlt: "Sponsor Taser — Support open-source API routing",
+  imageAlt: "Taser: Type-safe file-based routing for APIs",
 });
 
 export const docsOpenGraphDescriptions: Record<string, string> = {
@@ -116,14 +92,14 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
 };
 
 export const docsImageAlts: Record<string, string> = {
-  "": "Taser Docs — Introduction to type-safe API routing",
-  "getting-started": "Taser Docs — Getting Started with type-safe API routing",
-  "routing/file-based": "Taser Docs — File-based routing for Node.js APIs",
-  "routing/layouts-and-middleware": "Taser Docs — Layouts and middleware for type-safe APIs",
-  validation: "Taser Docs — Runtime validation for type-safe APIs",
-  "responses-and-errors": "Taser Docs — Typed responses and error handling",
-  adapters: "Taser Docs — Adapters for Express, Fastify, and Node",
-  "typed-client": "Taser Docs — Typed client for Taser APIs",
+  "": "Taser Docs: Introduction to type-safe API routing",
+  "getting-started": "Taser Docs: Getting Started with type-safe API routing",
+  "routing/file-based": "Taser Docs: File-based routing for Node.js APIs",
+  "routing/layouts-and-middleware": "Taser Docs: Layouts and middleware for type-safe APIs",
+  validation: "Taser Docs: Runtime validation for type-safe APIs",
+  "responses-and-errors": "Taser Docs: Typed responses and error handling",
+  adapters: "Taser Docs: Adapters for Express, Fastify, and Node",
+  "typed-client": "Taser Docs: Typed client for Taser APIs",
 };
 
 export function createDocsPageMetadata(opts: {
@@ -141,7 +117,7 @@ export function createDocsPageMetadata(opts: {
     openGraphDescription: docsOpenGraphDescriptions[opts.slugKey] ?? opts.description,
     path: opts.slugKey ? `/docs/${opts.slugKey}` : "/docs",
     image: opts.image,
-    imageAlt: docsImageAlts[opts.slugKey] ?? `Taser Docs — ${opts.title}`,
+    imageAlt: docsImageAlts[opts.slugKey] ?? `Taser Docs | ${opts.title}`,
   });
 }
 
