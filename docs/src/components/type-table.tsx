@@ -77,11 +77,13 @@ export function TypeTable({
   );
 }
 
+const EMPTY_PARAMETERS: ParameterNode[] = [];
+
 function Item({
   parentId,
   name,
   item: {
-    parameters = [],
+    parameters = EMPTY_PARAMETERS,
     description,
     required = false,
     deprecated,
@@ -138,7 +140,7 @@ function Item({
         ) : (
           <span className="@max-xl:hidden">{type}</span>
         )}
-        <ChevronDown className="absolute inset-e-2 size-4 text-fd-muted-foreground transition-transform group-data-[open]:rotate-180" />
+        <ChevronDown className="absolute inset-e-2 size-4 text-fd-muted-foreground transition-transform group-data-open:rotate-180" />
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="grid grid-cols-[1fr_3fr] gap-y-4 text-sm p-3 overflow-auto fd-scroll-container border-t">
