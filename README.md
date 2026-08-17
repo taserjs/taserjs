@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://taserjs.dev">
-    <img src="https://raw.githubusercontent.com/tzsk/taser/main/docs/src/assets/logo.svg" alt="Taser" width="220" />
+    <img src="https://raw.githubusercontent.com/taserjs/taserjs/refs/heads/main/docs/src/assets/logo.svg" alt="Taser" width="220" />
   </a>
 </p>
 
@@ -35,7 +35,7 @@
 
 All guides, routing patterns, middleware architecture, adapter tutorials, and API references are available on the official documentation site:
 
-### 👉 [**Explore the Full Documentation & Guides →**](https://taserjs.dev/docs)
+### 👉 [**Explore the Full Documentation & Guides →**](https://taserjs.dev)
 
 <hr />
 
