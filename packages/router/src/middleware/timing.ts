@@ -1,6 +1,6 @@
 import { timing as honoTiming } from "hono/timing";
 
-import { wrapHonoMiddleware } from "./auth.js";
+import { wrapHonoMiddleware } from "./wrap-hono.js";
 
 const honoTimingMiddleware = wrapHonoMiddleware(honoTiming);
 

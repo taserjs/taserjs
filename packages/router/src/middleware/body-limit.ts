@@ -1,6 +1,6 @@
 import { bodyLimit as honoBodyLimit } from "hono/body-limit";
 
-import { wrapHonoMiddleware } from "./auth.js";
+import { wrapHonoMiddleware } from "./wrap-hono.js";
 
 const honoBodyLimitMiddleware = wrapHonoMiddleware(honoBodyLimit);
 

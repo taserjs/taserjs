@@ -1,7 +1,9 @@
+import { createTaserCompatHandler } from "@taserjs/router-core";
+import type { MiddlewareHandler } from "hono";
 import { jwk as honoJwk } from "hono/jwk";
 
-import { createAuthMiddleware, type AuthMiddlewareUnit } from "./auth.js";
-import type { InferOutput, Schema } from "../types/schema.js";
+import { defineMiddleware } from "../define/middleware.js";
+import type { JwtMiddlewareUnit, JwtPayloadState } from "./jwt.js";
 
 export type JwkOptions = Parameters<typeof honoJwk>[0];
 
@@ -25,14 +27,13 @@ function assertJwksScheme(jwksUri: string, allowInsecure: boolean): void {
 
 /**
  * JWK auth middleware. Invalid or missing tokens return **401** (Hono).
- * Valid tokens whose payload fails `payloadSchema` return **403**.
+ * Successfully decoded payload is placed in `ctx.state.jwtPayload`.
  * Static `jwks_uri` must use HTTPS unless `allowInsecure: true`.
  */
-export function jwk<TPayload>(
-  payloadSchema: Schema<TPayload>,
+export function jwk<TPayload = Record<string, unknown>>(
   options: JwkMiddlewareOptions,
   init?: JwkRequestInit,
-): AuthMiddlewareUnit<InferOutput<Schema<TPayload>>> {
+): JwtMiddlewareUnit<TPayload> {
   const jwksUri = options.jwks_uri;
   if (typeof jwksUri === "string") {
     assertJwksScheme(jwksUri, options.allowInsecure ?? false);
@@ -40,6 +41,14 @@ export function jwk<TPayload>(
 
   const { allowInsecure: _allowInsecure, ...honoOptions } = options;
   const safeInit = init?.headers !== undefined ? { headers: init.headers } : undefined;
+  const honoMw: MiddlewareHandler = honoJwk(honoOptions, safeInit);
 
-  return createAuthMiddleware(payloadSchema, honoJwk(honoOptions, safeInit));
+  return defineMiddleware<JwtPayloadState<TPayload>>({
+    handler: (ctx, next) => {
+      return createTaserCompatHandler(honoMw)(ctx, async () => {
+        const payload = (ctx as unknown as { var: { jwtPayload?: unknown } }).var.jwtPayload;
+        return next({ jwtPayload: payload as TPayload });
+      });
+    },
+  });
 }

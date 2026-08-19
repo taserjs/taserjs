@@ -1,6 +1,6 @@
 import { csrf as honoCsrf } from "hono/csrf";
 
-import { wrapHonoMiddleware } from "./auth.js";
+import { wrapHonoMiddleware } from "./wrap-hono.js";
 
 const honoCsrfMiddleware = wrapHonoMiddleware(honoCsrf);
 

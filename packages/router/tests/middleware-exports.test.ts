@@ -1,7 +1,6 @@
 import "./register.js";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { sign } from "hono/jwt";
-import { z } from "zod";
 
 import { createTaserRuntime } from "@taserjs/router-core";
 
@@ -48,7 +47,7 @@ describe("middleware subpath exports", () => {
 
     const route = t
       .get("/hello")
-      .use(jwt(z.object({ sub: z.string() }), { secret, alg: "HS256" }))
+      .use(jwt<{ sub: string }>({ secret, alg: "HS256" }))
       .handler((ctx) => {
         expectTypeOf(ctx.state.jwtPayload.sub).toEqualTypeOf<string>();
         return reply.json({ sub: ctx.state.jwtPayload.sub });

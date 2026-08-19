@@ -1,6 +1,6 @@
 import { cors as honoCors } from "hono/cors";
 
-import { wrapHonoMiddleware } from "./auth.js";
+import { wrapHonoMiddleware } from "./wrap-hono.js";
 
 const honoCorsMiddleware = wrapHonoMiddleware(honoCors);
 

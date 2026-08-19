@@ -1,17 +1,14 @@
 import "./register.js";
-import { describe, expect, it } from "vitest";
-import type { MiddlewareHandler } from "hono";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { sign } from "hono/jwt";
-import { z } from "zod";
 
 import { createTaserRuntime } from "@taserjs/router-core";
 
 import { createTaserApp, reply } from "../src/index.js";
 import { jwt } from "../src/middleware/jwt.js";
 import { jwk } from "../src/middleware/jwk.js";
-import { createAuthMiddleware } from "../src/middleware/auth.js";
 
-describe("auth middleware hardening", () => {
+describe("jwt and jwk middleware", () => {
   const t = createTaserApp().context({});
   const secret = "test-secret";
 
@@ -31,12 +28,30 @@ describe("auth middleware hardening", () => {
     return runtime.fetch(request);
   }
 
-  it("returns 403 when token is valid but payload fails schema", async () => {
-    const token = await sign({ sub: "user-123" }, secret, "HS256");
+  it("returns 401 when token is missing or invalid", async () => {
     const built = t
       .get("/hello")
-      .use(jwt(z.object({ sub: z.string(), role: z.string() }), { secret, alg: "HS256" }))
-      .handler(() => reply.json({ ok: true }));
+      .use(jwt({ secret, alg: "HS256" }))
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.jwtPayload).toEqualTypeOf<Record<string, unknown>>();
+        return reply.json({ ok: true });
+      });
+
+    const response = await runRoute(built, new Request("http://localhost/hello"));
+    expect(response.status).toBe(401);
+  });
+
+  it("supports typed generic payload", async () => {
+    type UserPayload = { sub: string; role: "admin" | "user" };
+    const token = await sign({ sub: "user-123", role: "admin" }, secret, "HS256");
+
+    const built = t
+      .get("/hello")
+      .use(jwt<UserPayload>({ secret, alg: "HS256" }))
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.jwtPayload).toEqualTypeOf<UserPayload>();
+        return reply.json({ sub: ctx.state.jwtPayload.sub, role: ctx.state.jwtPayload.role });
+      });
 
     const response = await runRoute(
       built,
@@ -44,25 +59,13 @@ describe("auth middleware hardening", () => {
         headers: { Authorization: `Bearer ${token}` },
       }),
     );
-    expect(response.status).toBe(403);
-  });
-
-  it("returns 403 when jwtPayload is missing and schema is required", async () => {
-    const passthroughMw: MiddlewareHandler = async (_c, next) => {
-      await next();
-    };
-    const built = t
-      .get("/hello")
-      .use(createAuthMiddleware(z.object({ sub: z.string() }), passthroughMw))
-      .handler(() => reply.json({ ok: true }));
-
-    const response = await runRoute(built, new Request("http://localhost/hello"));
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ sub: "user-123", role: "admin" });
   });
 
   it("jwk rejects http JWKS URLs by default", () => {
     expect(() =>
-      jwk(z.object({ sub: z.string() }), {
+      jwk({
         jwks_uri: "http://localhost:8080/jwks",
         alg: ["RS256"],
       }),
@@ -71,7 +74,7 @@ describe("auth middleware hardening", () => {
 
   it("jwk accepts https JWKS URLs", () => {
     expect(() =>
-      jwk(z.object({ sub: z.string() }), {
+      jwk({
         jwks_uri: "https://valid.example.com/.well-known/jwks.json",
         alg: ["RS256"],
       }),
@@ -80,7 +83,7 @@ describe("auth middleware hardening", () => {
 
   it("jwk allowInsecure permits http JWKS URLs", () => {
     expect(() =>
-      jwk(z.object({ sub: z.string() }), {
+      jwk({
         jwks_uri: "http://localhost:8080/jwks",
         alg: ["RS256"],
         allowInsecure: true,

@@ -1,6 +1,6 @@
 import { etag as honoEtag } from "hono/etag";
 
-import { wrapHonoMiddleware } from "./auth.js";
+import { wrapHonoMiddleware } from "./wrap-hono.js";
 
 const honoEtagMiddleware = wrapHonoMiddleware(honoEtag);
 

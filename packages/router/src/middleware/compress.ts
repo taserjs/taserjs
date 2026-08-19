@@ -1,6 +1,6 @@
 import { compress as honoCompress } from "hono/compress";
 
-import { wrapHonoMiddleware } from "./auth.js";
+import { wrapHonoMiddleware } from "./wrap-hono.js";
 
 const honoCompressMiddleware = wrapHonoMiddleware(honoCompress);
 

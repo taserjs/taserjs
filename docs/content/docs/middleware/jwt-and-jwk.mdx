@@ -14,21 +14,20 @@ Taser includes built-in JWT and JWKS authentication middlewares that verify bear
 
 ## JWT Authentication (`@taserjs/router/jwt`)
 
-The `jwt()` middleware extracts the `Authorization: Bearer <token>` header, verifies the signature using your secret key, validates the payload against a schema, and attaches the payload to `ctx.state.jwtPayload`.
+The `jwt()` middleware extracts the `Authorization: Bearer <token>` header, verifies the signature using your secret key, and attaches the typed payload to `ctx.state.jwtPayload`.
 
 ```ts title="src/routes/dashboard.ts"
 import { jwt } from "@taserjs/router/jwt";
-import { z } from "zod";
 import { t } from "../taser";
 
-const JwtClaimsSchema = z.object({
-  sub: z.string(),
-  email: z.string().email(),
-  role: z.enum(["user", "admin"]),
-});
+type JwtClaims = {
+  sub: string;
+  email: string;
+  role: "user" | "admin";
+};
 
 export const Middleware = t.middleware("dashboard").use(
-  jwt(JwtClaimsSchema, {
+  jwt<JwtClaims>({
     secret: process.env.JWT_SECRET!,
     alg: "HS256",
   }),
@@ -44,7 +43,7 @@ import { reply } from "@taserjs/router";
 import { t } from "../../taser";
 
 export const Route = t.get("/dashboard/profile").handler(async (ctx) => {
-  // 100% typed from JwtClaimsSchema:
+  // 100% typed from JwtClaims:
   const userId = ctx.state.jwtPayload.sub;
   const userEmail = ctx.state.jwtPayload.email;
   const userRole = ctx.state.jwtPayload.role;
@@ -62,18 +61,17 @@ For auth providers like Auth0, Clerk, Firebase, AWS Cognito, or Supabase, use `@
 
 ```ts title="src/routes/api.ts"
 import { jwk } from "@taserjs/router/jwk";
-import { z } from "zod";
 import { t } from "../taser";
 
-const ClerkPayloadSchema = z.object({
-  sub: z.string(),
-  iss: z.string().url(),
-  azp: z.string().optional(),
-});
+type ClerkPayload = {
+  sub: string;
+  iss: string;
+  azp?: string;
+};
 
 export const Middleware = t.middleware("api").use(
-  jwk(ClerkPayloadSchema, {
-    jwksUri: "https://clerk.your-domain.com/.well-known/jwks.json",
+  jwk<ClerkPayload>({
+    jwks_uri: "https://clerk.your-domain.com/.well-known/jwks.json",
   }),
 );
 ```

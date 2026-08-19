@@ -1,6 +1,6 @@
 import { secureHeaders as honoSecureHeaders } from "hono/secure-headers";
 
-import { wrapHonoMiddleware } from "./auth.js";
+import { wrapHonoMiddleware } from "./wrap-hono.js";
 
 const honoSecureHeadersMiddleware = wrapHonoMiddleware(honoSecureHeaders);
 
