@@ -1,5 +1,11 @@
 # @taserjs/router-generator
 
+## 0.0.3
+
+### Patch Changes
+
+- c6790d4: Generator Fixes & Performance Improvements with Rou3 Matcher
+
 ## 0.0.2
 
 ### Patch Changes

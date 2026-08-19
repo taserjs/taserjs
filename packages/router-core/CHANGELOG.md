@@ -1,5 +1,13 @@
 # @taserjs/router-core
 
+## 0.0.3
+
+### Patch Changes
+
+- c6790d4: Generator Fixes & Performance Improvements with Rou3 Matcher
+- Updated dependencies [c6790d4]
+  - @taserjs/router-utils@0.0.3
+
 ## 0.0.2
 
 ### Patch Changes
