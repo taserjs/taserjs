@@ -159,6 +159,24 @@ describe("createContext + createTaserApp", () => {
     expect(missing.status).toBe(404);
     expect(await missing.json()).toEqual({ missing: true });
   });
+
+  it("supports basePath option at app creation", async () => {
+    const t = createTaserApp({ basePath: "/api" });
+    const route = t.get("/hello").handler(() => reply.json({ ok: true }));
+    const manifest = {
+      layouts: {},
+      routes: {
+        "/hello": {
+          GET: { layoutChain: [], route },
+        },
+      },
+    } satisfies RouteManifestShape;
+
+    const app = t.create(manifest);
+    const response = await app.fetch(new Request("http://localhost/api/hello"));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+  });
 });
 
 describe("middleware state injection", () => {

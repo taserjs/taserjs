@@ -1,6 +1,6 @@
 export { errorReply } from "./errors.js";
 export { successReply } from "./success.js";
-export { createReplyResult, isReplyResult, ReplyResult } from "./result.js";
+export { createReplyResult, isReplyResult, ReplyResult, REPLY_DATA, REPLY_KIND } from "./result.js";
 export type { ReplyBodyKind, ReplyOf, SuccessReplyData } from "./result.js";
 export type { BinaryBody, BodyKind, FileReplyInit, RedirectInit, ReplyInit } from "./types.js";
 export { ensureReplyResult } from "./ensure.js";

@@ -24,8 +24,6 @@ export class TaserNativeBound {
   }
 }
 
-export class TaserMountedApp extends TaserServeView {}
-
 export class TaserApp<
   TManifest extends RouteManifestShape = RouteManifestShape,
 > extends TaserServeView {
@@ -36,10 +34,5 @@ export class TaserApp<
     if (manifest !== undefined) {
       this.__manifest = manifest;
     }
-  }
-
-  base(prefix: string): TaserMountedApp {
-    this.runtime.registerRoutePrefix(prefix);
-    return new TaserMountedApp(this.runtime);
   }
 }

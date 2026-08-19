@@ -54,7 +54,9 @@ describe("createNodeHandler", () => {
   });
 
   it("prefixes routes at /api/*", async () => {
-    server = createServer(createNodeHandler(createHelloApp()).requestListener("/api/*"));
+    server = createServer(
+      createNodeHandler(createHelloApp({ basePath: "/api" })).requestListener("/api/*"),
+    );
     const port = await listen(server);
 
     const response = await fetch(`http://127.0.0.1:${port}/api/hello`);
@@ -64,7 +66,7 @@ describe("createNodeHandler", () => {
 
   it("prefixes routes at /api/* via mount()", async () => {
     server = createServer();
-    createNodeHandler(createHelloApp()).mount("/api/*", server);
+    createNodeHandler(createHelloApp({ basePath: "/api" })).mount("/api/*", server);
     const port = await listen(server);
 
     const response = await fetch(`http://127.0.0.1:${port}/api/hello`);

@@ -10,17 +10,20 @@ export type ReplyBodyKind =
   | "blob"
   | "formData";
 
+export const REPLY_DATA = Symbol.for("taser.reply.data");
+export const REPLY_KIND = Symbol.for("taser.reply.kind");
+
 /**
  * Typed reply carrier that extends the Web Response.
  * Structured body lives on `data` for output validation — never re-parse the stream.
  * Call {@link ReplyResult.getResponse} before handing off to framework adapters.
  *
- * `data` / `kind` are non-enumerable so accidental JSON.stringify (or Hono treating a
+ * `data` / `kind` are stored as Symbols so accidental JSON.stringify (or Hono treating a
  * failed `instanceof Response` as a plain object) cannot emit an envelope body.
  */
 export class ReplyResult extends Response {
-  readonly data!: unknown;
-  readonly kind!: ReplyBodyKind;
+  [REPLY_DATA]: unknown;
+  [REPLY_KIND]: ReplyBodyKind;
 
   constructor(
     body: BodyInit | null,
@@ -29,18 +32,20 @@ export class ReplyResult extends Response {
     kind: ReplyBodyKind,
   ) {
     super(body, init);
-    Object.defineProperty(this, "data", {
-      value: data,
-      enumerable: false,
-      writable: false,
-      configurable: false,
-    });
-    Object.defineProperty(this, "kind", {
-      value: kind,
-      enumerable: false,
-      writable: false,
-      configurable: false,
-    });
+    this[REPLY_DATA] = data;
+    this[REPLY_KIND] = kind;
+  }
+
+  get data(): unknown {
+    return this[REPLY_DATA];
+  }
+
+  get kind(): ReplyBodyKind {
+    return this[REPLY_KIND];
+  }
+
+  toJSON(): Record<string, never> {
+    return {};
   }
 
   /** Plain Response for adapter/framework boundaries (no ReplyResult identity). */

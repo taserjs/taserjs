@@ -19,7 +19,9 @@ export function createTestRoute(
   };
 }
 
-export function createHelloApp(): TaserApp {
+export function createHelloApp(
+  options?: import("@taserjs/router").CreateTaserAppOptions,
+): TaserApp {
   const layout = createTestLayout("root");
   const route = createTestRoute("/hello", () => Promise.resolve(reply.json({ ok: true })));
 
@@ -34,7 +36,7 @@ export function createHelloApp(): TaserApp {
     },
   } satisfies RouteManifestShape;
 
-  return createTaserApp().context({}).create(manifest);
+  return createTaserApp(options).context({}).create(manifest);
 }
 
 export function createAfterHookApp(): TaserApp {

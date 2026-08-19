@@ -289,7 +289,7 @@ This guide walks you through adding Taser into an existing Express, Fastify, Hon
         export type TaserAppRouter = typeof taserRouter;
 
         // 2. Forward requests to Taser
-        app.all("/api/*", (c) => taserRouter.base("/api").native(c).fetch(c.req.raw));
+        app.all("/api/*", (c) => taserRouter.native(c).fetch(c.req.raw));
 
         // 3. Existing Hono routes
         app.get("/legacy", (c) => c.text("Legacy Hono endpoint"));

@@ -96,6 +96,13 @@ export function composePipeline(
   layers: readonly PipelineLayer[],
   terminal: (ctx: PipelineContext) => Promise<unknown>,
 ): (ctx: PipelineContext) => Promise<ReplyResult> {
+  if (layers.length === 0) {
+    return async (ctx) => {
+      const result = await terminal(ctx);
+      return ensureReplyResult(result);
+    };
+  }
+
   const dispatch = (index: number, ctx: PipelineContext): Promise<ReplyResult> => {
     if (index >= layers.length) {
       return Promise.resolve(terminal(ctx)).then(ensureReplyResult);

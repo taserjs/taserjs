@@ -11,10 +11,9 @@ type ExpressNativeContext = { req: Express.Request; res: Express.Response };
 export function createExpressHandler(taserApp: TaserApp): TaserHandler<Express> {
   return {
     mount(pattern: string, app: Express): void {
-      const mountBase = resolveMountBase(toUniversalMountPattern(pattern));
-      const mounted = taserApp.base(mountBase);
+      resolveMountBase(toUniversalMountPattern(pattern));
       const handler: RequestHandler = async (req, res) => {
-        const fetcher = mounted.native({ req, res });
+        const fetcher = taserApp.native({ req, res });
         await getRequestListener((request) => fetcher.fetch(request))(req, res);
       };
 

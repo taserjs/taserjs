@@ -1,5 +1,12 @@
 export { InvalidMountPatternError, resolveMountBase } from "./adapter.js";
-export { ensureReplyResult, isReplyResult, reply, ReplyResult } from "./reply/index.js";
+export {
+  ensureReplyResult,
+  isReplyResult,
+  reply,
+  ReplyResult,
+  REPLY_DATA,
+  REPLY_KIND,
+} from "./reply/index.js";
 export type {
   BinaryBody,
   BodyKind,

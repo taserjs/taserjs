@@ -31,7 +31,7 @@ describe("createFastifyHandler", () => {
 
   it("prefixes routes at /api/*", async () => {
     app = Fastify();
-    createFastifyHandler(createHelloApp()).mount("/api/*", app);
+    createFastifyHandler(createHelloApp({ basePath: "/api" })).mount("/api/*", app);
     await app.ready();
 
     const response = await app.inject({ method: "GET", url: "/api/hello" });
@@ -95,7 +95,10 @@ describe("createFastifyHandler", () => {
     } satisfies RouteManifestShape;
 
     app = Fastify();
-    createFastifyHandler(createTaserApp().context({}).create(manifest)).mount("/api/*", app);
+    createFastifyHandler(createTaserApp({ basePath: "/api" }).context({}).create(manifest)).mount(
+      "/api/*",
+      app,
+    );
     await app.ready();
 
     const response = await app.inject({ method: "GET", url: "/api" });

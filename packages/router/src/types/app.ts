@@ -5,6 +5,7 @@ import type { ReturnsMap } from "./returns.js";
 import type { Schema } from "./schema.js";
 
 export type CreateTaserAppOptions = {
+  basePath?: string;
   response?: {
     /** Validate handler replies against returns maps. Default true. */
     validate?: boolean;
@@ -59,4 +60,4 @@ export type { RouteManifestShape } from "@taserjs/router-core";
 
 export type { Schema };
 
-export type { TaserApp, TaserMountedApp, TaserNativeBound } from "../taser-app.js";
+export type { TaserApp, TaserNativeBound } from "../taser-app.js";

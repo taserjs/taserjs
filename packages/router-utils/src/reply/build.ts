@@ -1,6 +1,7 @@
 import { Readable } from "node:stream";
 
 import {
+  APPLICATION_JSON,
   APPLICATION_OCTET_STREAM,
   DEFAULT_HEADERS_BY_BODY_KIND,
   ERROR_MESSAGES,
@@ -10,25 +11,36 @@ import {
 import type { BinaryBody, BodyKind, ReplyInit } from "./types.js";
 import { createReplyResult, type ReplyBodyKind, type ReplyOf, type ReplyResult } from "./result.js";
 
+const JSON_HEADERS: Record<string, string> = {
+  "content-type": APPLICATION_JSON,
+};
+
 export function mergeHeaders(
   init: ReplyInit | undefined,
   kind: BodyKind,
   dynamic?: { contentType?: string },
 ): ReplyInit {
   const defaults = DEFAULT_HEADERS_BY_BODY_KIND[kind];
-  const defaultHeaders = defaults
-    ? { ...defaults }
-    : dynamic?.contentType
-      ? { "content-type": dynamic.contentType }
-      : {};
-
-  const headers = new Headers(defaultHeaders);
-
-  if (init?.headers) {
-    new Headers(init.headers).forEach((value, key) => {
-      headers.set(key, value);
-    });
+  if (!init || !init.headers) {
+    const defaultHeaders = defaults
+      ? { ...defaults }
+      : dynamic?.contentType
+        ? { "content-type": dynamic.contentType }
+        : {};
+    return { ...init, headers: defaultHeaders };
   }
+
+  const headers = new Headers(
+    defaults
+      ? defaults
+      : dynamic?.contentType
+        ? { "content-type": dynamic.contentType }
+        : undefined,
+  );
+
+  new Headers(init.headers).forEach((value, key) => {
+    headers.set(key, value);
+  });
 
   return { ...init, headers };
 }
@@ -116,13 +128,33 @@ export function toReplyResult(
   kind: ReplyBodyKind,
 ): ReplyResult {
   const status = init?.status ?? STATUS_OK;
-  const headers = new Headers(init?.headers);
-  return createReplyResult(body, { ...init, status, headers }, data, kind);
+  const responseInit: ResponseInit = {
+    status,
+    ...(init?.statusText !== undefined ? { statusText: init.statusText } : {}),
+    ...(init?.headers !== undefined ? { headers: init.headers } : {}),
+  };
+  return createReplyResult(body, responseInit, data, kind);
 }
 
 export function jsonResponse(data: unknown, init?: ReplyInit): ReplyResult {
-  const statusInit = { ...init, status: init?.status ?? STATUS_OK };
-  return toReplyResult(JSON.stringify(data), mergeHeaders(statusInit, "json"), data, "json");
+  if (!init) {
+    return createReplyResult(
+      JSON.stringify(data),
+      { status: STATUS_OK, headers: JSON_HEADERS },
+      data,
+      "json",
+    );
+  }
+  const status = init.status ?? STATUS_OK;
+  if (!init.headers) {
+    return createReplyResult(
+      JSON.stringify(data),
+      { ...init, status, headers: JSON_HEADERS },
+      data,
+      "json",
+    );
+  }
+  return toReplyResult(JSON.stringify(data), mergeHeaders(init, "json"), data, "json");
 }
 
 export function buildBodyResponse(body: unknown, init?: ReplyInit): ReplyResult {

@@ -10,9 +10,8 @@ export function createFastifyHandler(taserApp: TaserApp): TaserHandler<FastifyIn
   return {
     mount(pattern: string, app: FastifyInstance): void {
       const mountBase = resolveMountBase(pattern);
-      const mounted = taserApp.base(mountBase);
       const handler: RouteHandlerMethod = async (req, reply) => {
-        const fetcher = mounted.native({ req, reply });
+        const fetcher = taserApp.native({ req, reply });
         await getRequestListener((request) => fetcher.fetch(request))(req.raw, reply.raw);
       };
 

@@ -57,7 +57,7 @@ describe("createTaserRuntime", () => {
     const runtime = createTaserRuntime(manifest, () => ({}));
     const response = await runtime.fetch(new Request("http://localhost/test"));
     expect(response.status).toBe(200);
-    expect(response.constructor.name).toBe("Response");
+    expect(response instanceof Response).toBe(true);
     expect(await response.json()).toEqual({ ok: true });
     expect(order).toEqual([
       "layout-before",
@@ -236,14 +236,13 @@ describe("createTaserRuntime", () => {
       },
     };
 
-    const runtime = createTaserRuntime(manifest, () => ({}));
-    runtime.registerRoutePrefix("/api");
+    const runtime = createTaserRuntime(manifest, () => ({}), { basePath: "/api" });
     const response = await runtime.fetch(new Request("http://localhost/api/hello"));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
   });
 
-  it("fetch matches after registerRoutePrefix", async () => {
+  it("fetch matches route created with basePath", async () => {
     const manifest = {
       layouts: {},
       routes: {
@@ -262,37 +261,10 @@ describe("createTaserRuntime", () => {
       },
     };
 
-    const runtime = createTaserRuntime(manifest, () => ({}));
-    runtime.registerRoutePrefix("/api");
+    const runtime = createTaserRuntime(manifest, () => ({}), { basePath: "/api" });
     const response = await runtime.fetch(new Request("http://localhost/api/hello"));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-  });
-
-  it("registerRoutePrefix is idempotent", async () => {
-    const manifest = {
-      layouts: {},
-      routes: {
-        "/hello": {
-          GET: {
-            layoutChain: [],
-            route: {
-              path: "/hello",
-              method: "GET" as const,
-              middlewares: [],
-              handlerMiddlewares: [],
-              handler: () => reply.json({ ok: true }),
-            },
-          },
-        },
-      },
-    };
-
-    const runtime = createTaserRuntime(manifest, () => ({}));
-    runtime.registerRoutePrefix("/api");
-    runtime.registerRoutePrefix("/api");
-    const response = await runtime.fetch(new Request("http://localhost/api/hello"));
-    expect(response.status).toBe(200);
   });
 
   it("wires notFound and onError post-create", async () => {

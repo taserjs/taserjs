@@ -97,7 +97,7 @@ describe("createExpressHandler", () => {
 
   it("prefixes routes at /api/{*splat}", async () => {
     const expressApp = express();
-    createExpressHandler(createHelloApp()).mount("/api/{*splat}", expressApp);
+    createExpressHandler(createHelloApp({ basePath: "/api" })).mount("/api/{*splat}", expressApp);
 
     server = createServer(expressApp);
     const port = await listen(server);

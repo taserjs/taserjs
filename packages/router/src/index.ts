@@ -37,7 +37,7 @@ export type {
 
 export { createAnyRoute, createAllRoute } from "./factories.js";
 export { createTaserApp, TaserRouter } from "./taser-router.js";
-export { TaserApp, TaserMountedApp, TaserNativeBound } from "./taser-app.js";
+export { TaserApp, TaserNativeBound } from "./taser-app.js";
 export { createContext } from "./create-context.js";
 export { defineHandler } from "./define/handler.js";
 export { defineMiddleware } from "./define/middleware.js";

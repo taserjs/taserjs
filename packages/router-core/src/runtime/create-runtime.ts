@@ -65,51 +65,43 @@ function registerManifestRoutes(
       const honoPath = toHonoRegisterPath(joinRoutePrefix(normalizedPrefix, path));
 
       app.on(httpMethod, honoPath, async (c) => {
-        return requestScope.run(
-          {
-            native: requestScope.getStore()?.native,
-            hono: c,
-          },
-          async () => {
-            let ctx: PipelineContext | undefined;
-            let cookies: import("../taser-cookies.js").TaserCookieJar | undefined;
+        let ctx: PipelineContext | undefined;
+        let cookies: import("../taser-cookies.js").TaserCookieJar | undefined;
 
-            try {
-              const built = await buildPipelineContext(
-                c,
-                createContext,
-                path,
-                httpMethod,
-                cookieSecret,
-                cookieDefaults,
-              );
-              ctx = built.ctx;
-              cookies = built.cookies;
+        try {
+          const built = await buildPipelineContext(
+            c,
+            createContext,
+            path,
+            httpMethod,
+            cookieSecret,
+            cookieDefaults,
+          );
+          ctx = built.ctx;
+          cookies = built.cookies;
 
-              const result = await prepared.run(ctx);
-              return toWireResponse(
-                await finalizeReply(
-                  result,
-                  prepared.effectiveReturns,
-                  responseOptions,
-                  ctx.request as Request,
-                  cookies,
-                ),
-              );
-            } catch (error) {
-              return handleRouteError(error, {
-                effectiveReturns: prepared.effectiveReturns,
-                responseOptions,
-                cookies,
-                cookieSecret,
-                cookieDefaults,
-                ctx,
-                request: c.req.raw,
-                onErrorHandler: getOnErrorHandler(),
-              });
-            }
-          },
-        );
+          const result = await prepared.run(ctx);
+          return toWireResponse(
+            await finalizeReply(
+              result,
+              prepared.effectiveReturns,
+              responseOptions,
+              ctx.request as Request,
+              cookies,
+            ),
+          );
+        } catch (error) {
+          return handleRouteError(error, {
+            effectiveReturns: prepared.effectiveReturns,
+            responseOptions,
+            cookies,
+            cookieSecret,
+            cookieDefaults,
+            ctx,
+            request: c.req.raw,
+            onErrorHandler: getOnErrorHandler(),
+          });
+        }
       });
     }
   }
@@ -131,14 +123,14 @@ export function createTaserRuntime(
   const { secret: cookieSecret, defaults: cookieDefaults } = splitCookieRuntimeConfig(
     options.cookies,
   );
-  const registeredPrefixes = new Set<string>();
+  const basePath = options.basePath ?? "";
 
   const app = new Hono();
 
   registerManifestRoutes(
     app,
     manifest,
-    "",
+    basePath,
     createContext,
     responseOptions,
     cookieSecret,
@@ -155,36 +147,22 @@ export function createTaserRuntime(
     () => notFoundHandler,
   );
 
-  function runFetch(
+  async function runFetch(
     boundNative: unknown | undefined,
     request: Request,
     env?: unknown,
     executionCtx?: unknown,
   ): Promise<Response> {
     const native = resolveScopeNative(boundNative, env, executionCtx);
-    return Promise.resolve(
-      requestScope.run({ native }, () => app.fetch(request, env as never, executionCtx as never)),
+    if (native === undefined) {
+      return app.fetch(request, env as never, executionCtx as never);
+    }
+    return requestScope.run({ native }, () =>
+      app.fetch(request, env as never, executionCtx as never),
     );
   }
 
   const runtime: TaserRuntime = {
-    registerRoutePrefix(prefix: string) {
-      const normalized = normalizeRoutePrefix(prefix);
-      if (normalized === "/" || registeredPrefixes.has(normalized)) {
-        return;
-      }
-      registeredPrefixes.add(normalized);
-      registerManifestRoutes(
-        app,
-        manifest,
-        normalized,
-        createContext,
-        responseOptions,
-        cookieSecret,
-        cookieDefaults,
-        () => onErrorHandler,
-      );
-    },
     fetch(request, env, executionCtx) {
       return runFetch(undefined, request, env, executionCtx);
     },

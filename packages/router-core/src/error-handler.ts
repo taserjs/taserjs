@@ -14,9 +14,14 @@ function isResponseLike(value: unknown): value is Response {
   );
 }
 
-/** Stage 2: strip ReplyResult subclass before handing to Hono/adapters. */
+/** Stage 2: return wire Response. Strip ReplyResult subclass only if global.Response was monkey-patched. */
 export function toWireResponse(response: Response): Response {
-  return isReplyResult(response) ? response.getResponse() : response;
+  if (response instanceof globalThis.Response) {
+    return response;
+  }
+  return isReplyResult(response)
+    ? (response as import("@taserjs/router-utils").ReplyResult).getResponse()
+    : response;
 }
 
 export function handlePipelineError(error: unknown): Response {

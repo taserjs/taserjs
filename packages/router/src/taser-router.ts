@@ -130,27 +130,31 @@ export class TaserRouter<TAppContext extends Record<string, unknown> = AppContex
     const definition = this.state.contextDef;
     const validateResponse = this.state.options.response?.validate ?? true;
     const onValidationFailure = this.state.options.response?.onValidationFailure;
-    const bootPromise = Promise.resolve(definition.boot?.() ?? ({} as Record<string, unknown>));
+    const basePath = this.state.options.basePath;
 
-    const runtime = createTaserRuntime(
-      manifest,
-      async ({ native }) => {
-        const bootContext = await bootPromise;
-        const requestContext = (await definition.request?.({ native })) ?? {};
-        return { ...bootContext, ...requestContext };
+    const hasCustomContext = definition.boot !== undefined || definition.request !== undefined;
+    const bootPromise = hasCustomContext
+      ? Promise.resolve(definition.boot?.() ?? ({} as Record<string, unknown>))
+      : undefined;
+
+    const contextFactory = hasCustomContext
+      ? async ({ native }: { native?: unknown } = {}) => {
+          const bootContext = (await bootPromise) ?? {};
+          const requestContext = (await definition.request?.({ native: native as never })) ?? {};
+          return { ...bootContext, ...requestContext };
+        }
+      : () => ({});
+
+    const runtime = createTaserRuntime(manifest, contextFactory, {
+      ...(basePath !== undefined ? { basePath } : {}),
+      response: {
+        validate: validateResponse,
+        ...(onValidationFailure !== undefined ? { onValidationFailure } : {}),
       },
-      {
-        response: {
-          validate: validateResponse,
-          ...(onValidationFailure !== undefined ? { onValidationFailure } : {}),
-        },
-        ...(this.state.onError !== undefined ? { onError: this.state.onError } : {}),
-        ...(this.state.notFound !== undefined ? { notFound: this.state.notFound } : {}),
-        ...(this.state.options.cookies !== undefined
-          ? { cookies: this.state.options.cookies }
-          : {}),
-      },
-    );
+      ...(this.state.onError !== undefined ? { onError: this.state.onError } : {}),
+      ...(this.state.notFound !== undefined ? { notFound: this.state.notFound } : {}),
+      ...(this.state.options.cookies !== undefined ? { cookies: this.state.options.cookies } : {}),
+    });
 
     return new TaserApp(runtime, manifest);
   }

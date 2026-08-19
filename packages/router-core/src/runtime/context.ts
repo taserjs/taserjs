@@ -57,19 +57,34 @@ export async function buildPipelineContext(
     cookieSecret,
     cookieDefaults ?? {},
   );
-  const url = new URL(c.req.url);
+
+  let _url: URL | undefined;
+  let _query: Record<string, string | string[]> | undefined;
 
   const ctx: PipelineContext = {
     ...userContext,
     state: {},
-    query: parseQuery(url),
+    get query() {
+      if (_query === undefined) {
+        _query = parseQuery((_url ??= new URL(c.req.url)));
+      }
+      return _query;
+    },
+    set query(value: Record<string, string | string[]>) {
+      _query = value;
+    },
     params: buildParams(c),
     body: undefined,
     headers: createTaserHeaders(c.req.raw.headers),
     cookies,
     method,
     path,
-    url,
+    get url() {
+      if (_url === undefined) {
+        _url = new URL(c.req.url);
+      }
+      return _url;
+    },
     request: c.req.raw,
     native,
     hono,
@@ -88,19 +103,34 @@ export async function buildNotFoundContext(
   const native = scope?.native;
   const hono = scope?.hono ?? c;
   const userContext = await createContext({ native });
-  const url = new URL(c.req.url);
+
+  let _url: URL | undefined;
+  let _query: Record<string, string | string[]> | undefined;
 
   return {
     ...userContext,
     state: {},
-    query: parseQuery(url),
+    get query() {
+      if (_query === undefined) {
+        _query = parseQuery((_url ??= new URL(c.req.url)));
+      }
+      return _query;
+    },
+    set query(value: Record<string, string | string[]>) {
+      _query = value;
+    },
     params: {},
     body: undefined,
     headers: createTaserHeaders(c.req.raw.headers),
     cookies,
     method: c.req.method.toUpperCase(),
     path: c.req.path,
-    url,
+    get url() {
+      if (_url === undefined) {
+        _url = new URL(c.req.url);
+      }
+      return _url;
+    },
     request: c.req.raw,
     native,
     hono,
@@ -153,13 +183,21 @@ export function buildPipelineLayers(
     layers.push(middlewareToLayer(definition));
   }
 
-  layers.push(schemaLayer((ctx) => applyRouteSchemas(route, ctx, "route")));
+  if (route.query !== undefined || route.params !== undefined || route.body !== undefined) {
+    layers.push(schemaLayer((ctx) => applyRouteSchemas(route, ctx, "route")));
+  }
 
   for (const definition of route.handlerMiddlewares ?? []) {
     layers.push(middlewareToLayer(definition));
   }
 
-  layers.push(schemaLayer((ctx) => applyRouteSchemas(route, ctx, "handler")));
+  if (
+    route.handlerQuery !== undefined ||
+    route.handlerParams !== undefined ||
+    route.handlerBody !== undefined
+  ) {
+    layers.push(schemaLayer((ctx) => applyRouteSchemas(route, ctx, "handler")));
+  }
 
   return layers;
 }

@@ -28,11 +28,10 @@ function matchesMountPathname(pathname: string, mountBase: string): boolean {
 }
 
 function createMountedListener(taserApp: TaserApp, pattern: string): RequestListener {
-  const mountBase = resolveMountBase(pattern);
+  resolveMountBase(pattern);
 
-  const mounted = taserApp.base(mountBase);
   return async (req, res) => {
-    const fetcher = mounted.native({ req, res });
+    const fetcher = taserApp.native({ req, res });
     await getRequestListener((request) => fetcher.fetch(request))(req, res);
   };
 }

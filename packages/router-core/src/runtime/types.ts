@@ -12,6 +12,7 @@ export type TaserNativeBoundRuntime = {
 };
 
 export type CreateTaserRuntimeOptions = {
+  basePath?: string;
   onError?: OnErrorHandler;
   notFound?: NotFoundHandler;
   response?: {
@@ -35,7 +36,6 @@ export type CreateTaserRuntimeOptions = {
 export type NotFoundHandler = (ctx: PipelineContext) => Awaitable<unknown>;
 
 export type TaserRuntime = {
-  registerRoutePrefix(prefix: string): void;
   fetch(
     request: Request,
     env?: unknown,
