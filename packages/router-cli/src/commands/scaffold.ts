@@ -15,6 +15,8 @@ export async function runScaffold(argv: Record<string, unknown>): Promise<void> 
 
   const result = await scaffoldRouteFileAtPath(resolved.routesDir, targetPath, {
     entry: resolved.entry,
+    ignorePrefix: resolved.ignorePrefix,
+    ignorePattern: resolved.ignorePattern,
   });
   if (result === "written") {
     console.log(`Scaffolded ${targetPath}`);

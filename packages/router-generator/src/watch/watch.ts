@@ -9,6 +9,7 @@ import {
   type GeneratorEventType,
   type WatchRouteTreeHandle,
 } from "../generator/generator.js";
+import { shouldIgnoreRoutePath } from "../scan/filter.js";
 import { scaffoldRouteFile } from "../scaffold/scaffold-file.js";
 import { createLogger } from "../support/logger.js";
 import { toPosixPath } from "../support/paths.js";
@@ -40,19 +41,18 @@ export async function watchRouteTreeInternal(
       return;
     }
 
+    const posixPath = toPosixPath(filePath);
+    const relativePath = toPosixPath(relative(config.routesDir, posixPath));
+    if (shouldIgnoreRoutePath(relativePath, config)) {
+      return;
+    }
+
     const eventType = chokidarEventToGeneratorEvent(eventName);
     if (!eventType) {
       return;
     }
 
-    void handleWatchEvent(
-      generator,
-      config.routesDir,
-      config.entry,
-      eventType,
-      toPosixPath(filePath),
-      logger,
-    );
+    void handleWatchEvent(generator, config, eventType, posixPath, logger);
   });
 
   logger.info(`Watching ${relative(process.cwd(), config.routesDir)}`);
@@ -66,15 +66,23 @@ export async function watchRouteTreeInternal(
 
 async function handleWatchEvent(
   generator: Generator,
-  routesDir: string,
-  entry: string,
+  config: ReturnType<typeof resolveGeneratorConfig>,
   eventType: GeneratorEventType,
   filePath: string,
   logger: Pick<ReturnType<typeof createLogger>, "error">,
 ): Promise<void> {
   try {
+    const relativePath = toPosixPath(relative(config.routesDir, filePath));
+    if (shouldIgnoreRoutePath(relativePath, config)) {
+      return;
+    }
+
     if (eventType === "add") {
-      await scaffoldRouteFile(routesDir, filePath, { entry });
+      await scaffoldRouteFile(config.routesDir, filePath, {
+        entry: config.entry,
+        ignorePrefix: config.ignorePrefix,
+        ignorePattern: config.ignorePattern,
+      });
     }
 
     await generator.enqueue({ type: eventType, filePath });

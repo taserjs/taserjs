@@ -2,7 +2,7 @@ import { relative } from "node:path";
 
 import type { ResolvedGeneratorConfig } from "../config/schema.js";
 import { statFileMtimeMs, walkRouteFiles } from "./walk.js";
-import { shouldIgnoreRouteFile } from "../scan/filter.js";
+import { shouldIgnoreRoutePath } from "../scan/filter.js";
 import { classifyRouteFile } from "../scan/classify.js";
 import { toPosixPath } from "../support/paths.js";
 
@@ -71,12 +71,11 @@ export class FileIndex {
     routesDir: string,
     config: Pick<ResolvedGeneratorConfig, "ignorePrefix" | "ignorePattern">,
   ): Promise<"added" | "updated" | "unchanged" | "ignored"> {
-    const fileName = absolutePath.slice(absolutePath.replace(/\\/g, "/").lastIndexOf("/") + 1);
-    if (shouldIgnoreRouteFile(fileName, config)) {
+    const relativePath = toPosixPath(relative(routesDir, absolutePath));
+    if (shouldIgnoreRoutePath(relativePath, config)) {
       return "ignored";
     }
 
-    const relativePath = toPosixPath(relative(routesDir, absolutePath));
     const mtimeMs = await statFileMtimeMs(absolutePath);
     const existing = this.entries.get(relativePath);
 

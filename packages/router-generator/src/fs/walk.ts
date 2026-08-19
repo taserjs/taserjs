@@ -12,13 +12,13 @@ export async function walkRouteFiles(
   const nestedResults = await Promise.all(
     topLevelEntries.map(async (entry) => {
       const fullPath = join(routesDir, entry.name);
+      if (shouldIgnoreRouteFile(entry.name, config)) {
+        return [];
+      }
       if (entry.isDirectory()) {
         return walkRouteFiles(fullPath, config);
       }
       if (!entry.isFile() || !entry.name.endsWith(".ts")) {
-        return [];
-      }
-      if (shouldIgnoreRouteFile(entry.name, config)) {
         return [];
       }
       return [fullPath];

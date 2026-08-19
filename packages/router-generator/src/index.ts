@@ -8,7 +8,12 @@ export type {
 } from "./generator/generator.js";
 export { findConfigFile, resolveGeneratorConfig } from "./config/resolve.js";
 export { formatDefaultConfigFile, defaultConfigValues } from "./config/default-config.js";
-export { compileRouteFileIgnorePattern, shouldIgnoreRouteFile } from "./scan/filter.js";
+export {
+  compileRouteFileIgnorePattern,
+  shouldIgnoreRouteFile,
+  shouldIgnoreRoutePath,
+} from "./scan/filter.js";
+export type { RouteIgnoreConfig } from "./scan/filter.js";
 export { scaffoldRouteFileAtPath } from "./scaffold/scaffold-file.js";
 export type { ScaffoldResult } from "./scaffold/scaffold-file.js";
 export { generatorConfigSchema } from "./config/schema.js";

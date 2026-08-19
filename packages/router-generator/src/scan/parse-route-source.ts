@@ -56,25 +56,6 @@ function isTFactoryCall(node: OxcNode, member: string): boolean {
   return isIdentifier(node.property, member);
 }
 
-function walkNodes(root: OxcNode, visit: (node: OxcNode) => void): void {
-  const stack: OxcNode[] = [root];
-  while (stack.length > 0) {
-    const node = stack.pop()!;
-    visit(node);
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          if (item && typeof item === "object" && "type" in item) {
-            stack.push(item as OxcNode);
-          }
-        }
-      } else if (value && typeof value === "object" && "type" in value) {
-        stack.push(value as OxcNode);
-      }
-    }
-  }
-}
-
 function findExportedConst(program: OxcNode, exportName: string): OxcNode | null {
   const body = program.body as OxcNode[] | undefined;
   if (!body) {
@@ -101,10 +82,64 @@ function findExportedConst(program: OxcNode, exportName: string): OxcNode | null
   return null;
 }
 
+/**
+ * Traverses only top-level statement expressions and variable declarations,
+ * completely avoiding the expensive traversal of nested function bodies / route handler logic.
+ */
+function forEachTopLevelCall(program: OxcNode, callback: (callNode: OxcNode) => void): void {
+  const body = program.body as OxcNode[] | undefined;
+  if (!body) {
+    return;
+  }
+
+  function checkExpression(node: OxcNode | undefined): void {
+    if (!node) {
+      return;
+    }
+    if (node.type === "CallExpression") {
+      callback(node);
+      checkExpression(node.callee as OxcNode | undefined);
+      const args = node.arguments as OxcNode[] | undefined;
+      if (args) {
+        for (const arg of args) {
+          if (
+            arg &&
+            typeof arg === "object" &&
+            "type" in arg &&
+            arg.type !== "ArrowFunctionExpression" &&
+            arg.type !== "FunctionExpression"
+          ) {
+            checkExpression(arg as OxcNode);
+          }
+        }
+      }
+    } else if (node.type === "MemberExpression") {
+      checkExpression(node.object as OxcNode | undefined);
+    }
+  }
+
+  for (const statement of body) {
+    if (statement.type === "ExportNamedDeclaration") {
+      const declaration = statement.declaration as OxcNode | undefined;
+      if (declaration?.type === "VariableDeclaration") {
+        for (const declarator of (declaration.declarations as OxcNode[]) ?? []) {
+          checkExpression(declarator.init as OxcNode | undefined);
+        }
+      }
+    } else if (statement.type === "VariableDeclaration") {
+      for (const declarator of (statement.declarations as OxcNode[]) ?? []) {
+        checkExpression(declarator.init as OxcNode | undefined);
+      }
+    } else if (statement.type === "ExpressionStatement") {
+      checkExpression(statement.expression as OxcNode | undefined);
+    }
+  }
+}
+
 function containsFactoryCall(root: OxcNode, member: string): boolean {
   let found = false;
-  walkNodes(root, (node) => {
-    if (node.type === "CallExpression" && isTFactoryCall(node.callee as OxcNode, member)) {
+  forEachTopLevelCall(root, (node) => {
+    if (isTFactoryCall(node.callee as OxcNode, member)) {
       found = true;
     }
   });
@@ -115,8 +150,8 @@ function parseAnyMethodsFromSource(root: OxcNode, rawRel: string): ParseRouteSou
   const errors: ScanError[] = [];
   let methods: HttpVerb[] | undefined;
 
-  walkNodes(root, (node) => {
-    if (node.type !== "CallExpression" || !isTFactoryCall(node.callee as OxcNode, "any")) {
+  forEachTopLevelCall(root, (node) => {
+    if (!isTFactoryCall(node.callee as OxcNode, "any")) {
       return;
     }
 

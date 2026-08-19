@@ -2,11 +2,16 @@ import type { ResolvedGeneratorConfig } from "../config/schema.js";
 import type { ScanOptions } from "../scan/scan-routes.js";
 
 export function toScanOptions(
-  config: Pick<ResolvedGeneratorConfig, "extension" | "validate">,
+  config: Pick<
+    ResolvedGeneratorConfig,
+    "extension" | "validate" | "ignorePrefix" | "ignorePattern"
+  >,
 ): ScanOptions {
   return {
     extension: config.extension,
     validate: config.validate,
+    ignorePrefix: config.ignorePrefix,
+    ignorePattern: config.ignorePattern,
   };
 }
 

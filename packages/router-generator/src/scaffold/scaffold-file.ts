@@ -7,6 +7,7 @@ import { buildUrlPath } from "../scan/url-path.js";
 import { layoutIdFromPath } from "../support/naming.js";
 import { ScanError } from "../support/errors.js";
 import { toPosixPath } from "../support/paths.js";
+import { shouldIgnoreRoutePath } from "../scan/filter.js";
 import { fileNeedsScaffold } from "./detect-exports.js";
 import { layoutScaffoldSource, routeScaffoldSource } from "./route-template.js";
 
@@ -14,6 +15,8 @@ export type ScaffoldResult = "written" | "skipped" | "ignored";
 
 export type ScaffoldOptions = {
   entry: string;
+  ignorePrefix?: string | undefined;
+  ignorePattern?: string | undefined;
 };
 
 function assertPathUnderRoutesDir(routesDir: string, absolutePath: string): void {
@@ -33,6 +36,15 @@ export async function scaffoldRouteFile(
   assertPathUnderRoutesDir(routesDir, absolutePath);
 
   const relativePath = toPosixPath(relative(routesDir, absolutePath));
+  if (
+    shouldIgnoreRoutePath(relativePath, {
+      ignorePrefix: options.ignorePrefix ?? "-",
+      ignorePattern: options.ignorePattern,
+    })
+  ) {
+    return "ignored";
+  }
+
   const kind = classifyRouteFile(relativePath);
 
   if (!kind) {

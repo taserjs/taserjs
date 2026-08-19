@@ -47,6 +47,28 @@ describe("scaffoldRouteFile", () => {
     expect(readFileSync(layoutPath, "utf8")).toContain("export const Middleware =");
   });
 
+  it("ignores files starting with ignorePrefix", async () => {
+    const routesDir = mkdtempSync(join(tmpdir(), "taser-scaffold-ignore-file-"));
+    const ignoredPath = join(routesDir, "-helper.ts");
+    writeFileSync(ignoredPath, "");
+
+    const result = await scaffoldRouteFile(routesDir, ignoredPath, scaffoldOptions);
+    expect(result).toBe("ignored");
+    expect(readFileSync(ignoredPath, "utf8")).toBe("");
+  });
+
+  it("ignores files inside folders starting with ignorePrefix", async () => {
+    const routesDir = mkdtempSync(join(tmpdir(), "taser-scaffold-ignore-folder-"));
+    const folderPath = join(routesDir, "-components");
+    mkdirSync(folderPath);
+    const filePath = join(folderPath, "button.get.ts");
+    writeFileSync(filePath, "");
+
+    const result = await scaffoldRouteFile(routesDir, filePath, scaffoldOptions);
+    expect(result).toBe("ignored");
+    expect(readFileSync(filePath, "utf8")).toBe("");
+  });
+
   it("rejects absolute paths outside routes directory", async () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-scaffold-outside-"));
     const outside = join(tmpdir(), "outside.get.ts");

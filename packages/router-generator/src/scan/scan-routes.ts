@@ -2,6 +2,7 @@ import { relative } from "node:path";
 import { readFile } from "node:fs/promises";
 
 import type { ExtensionOption } from "../config/schema.js";
+import type { RouteFileMethod } from "../types/http.js";
 import type { LayoutFile, RouteEntry, ScanResult } from "../types/index.js";
 import {
   getMethodFromRouteFile,
@@ -23,6 +24,8 @@ import { analyzeLayoutFileSource, analyzeRouteFileSource } from "./parse-route-s
 export type ScanOptions = {
   extension?: ExtensionOption;
   validate?: boolean;
+  ignorePrefix?: string | undefined;
+  ignorePattern?: string | undefined;
 };
 
 async function readRouteSource(absolutePath: string): Promise<string> {
@@ -103,48 +106,79 @@ export async function scanRouteFiles(
   const layouts: LayoutFile[] = [];
   const routes: RouteEntry[] = [];
 
+  type PendingFile = {
+    absolutePath: string;
+    rawRel: string;
+    kind: "route" | "layout";
+    method?: RouteFileMethod;
+  };
+
+  const pending: PendingFile[] = [];
+
   for (const absolutePath of absoluteFiles) {
     const rawRel = toPosixPath(relative(routesDir, absolutePath));
 
     try {
       assertPhysicalRouteFile(rawRel);
+      if (isRouteFile(rawRel)) {
+        const method = getMethodFromRouteFile(normalizeRouteRel(rawRel));
+        pending.push({ absolutePath, rawRel, kind: "route", method });
+      } else if (isLayoutFile(rawRel)) {
+        pending.push({ absolutePath, rawRel, kind: "layout" });
+      }
     } catch (error) {
       if (error instanceof ScanError) {
         errors.push(error);
-        continue;
+      } else {
+        throw error;
       }
-      throw error;
     }
+  }
 
-    if (isRouteFile(rawRel)) {
-      try {
-        const method = getMethodFromRouteFile(normalizeRouteRel(rawRel));
-        let anyMethods: RouteEntry["anyMethods"] | undefined;
-        let source: string | undefined;
-
-        if (validate || method === "ANY") {
-          // oxlint-disable-next-line no-await-in-loop
-          source = await readRouteSource(absolutePath);
+  // Read all required route/layout sources in parallel across libuv thread pool
+  const sources = await Promise.all(
+    pending.map(async (file) => {
+      if (validate || (file.kind === "route" && file.method === "ANY")) {
+        try {
+          return await readRouteSource(file.absolutePath);
+        } catch {
+          return undefined;
         }
+      }
+      return undefined;
+    }),
+  );
+
+  for (let i = 0; i < pending.length; i++) {
+    const file = pending[i]!;
+    const source = sources[i];
+
+    if (file.kind === "route") {
+      try {
+        const method = file.method!;
+        let anyMethods: RouteEntry["anyMethods"] | undefined;
 
         if (validate && source) {
-          const analyzed = analyzeRouteFileSource(source, rawRel, method);
+          const analyzed = analyzeRouteFileSource(source, file.rawRel, method);
           errors.push(...analyzed.errors);
           anyMethods = analyzed.anyMethods;
         } else if (method === "ANY" && source) {
-          const analyzed = analyzeRouteFileSource(source, rawRel, method);
+          const analyzed = analyzeRouteFileSource(source, file.rawRel, method);
           if (analyzed.errors.length > 0) {
             throw new ScanErrorCollection(analyzed.errors);
           }
           anyMethods = analyzed.anyMethods;
         }
 
-        const entry = parseRouteEntry(rawRel, routesImportBase, extension, source, anyMethods);
+        const entry = parseRouteEntry(file.rawRel, routesImportBase, extension, source, anyMethods);
         routes.push(entry);
 
         for (const invalid of collectInvalidRouteParams(entry.routeRel)) {
           errors.push(
-            new ScanError(formatInvalidParamMessage(invalid.paramName, invalid.filePath), rawRel),
+            new ScanError(
+              formatInvalidParamMessage(invalid.paramName, invalid.filePath),
+              file.rawRel,
+            ),
           );
         }
       } catch (error) {
@@ -154,7 +188,7 @@ export async function scanRouteFiles(
           errors.push(
             new ScanError(
               error instanceof Error ? error.message : "Unable to parse route file",
-              rawRel,
+              file.rawRel,
             ),
           );
         }
@@ -162,16 +196,12 @@ export async function scanRouteFiles(
       continue;
     }
 
-    if (!isLayoutFile(rawRel)) {
-      continue;
-    }
+    if (file.kind === "layout") {
+      layouts.push(parseLayoutEntry(file.rawRel, routesImportBase, extension));
 
-    layouts.push(parseLayoutEntry(rawRel, routesImportBase, extension));
-
-    if (validate) {
-      // oxlint-disable-next-line no-await-in-loop
-      const source = await readRouteSource(absolutePath);
-      errors.push(...analyzeLayoutFileSource(source, rawRel).errors);
+      if (validate && source) {
+        errors.push(...analyzeLayoutFileSource(source, file.rawRel).errors);
+      }
     }
   }
 

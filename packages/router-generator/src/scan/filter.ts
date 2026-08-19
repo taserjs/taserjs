@@ -1,6 +1,6 @@
 import { basename } from "node:path";
 
-import type { ResolvedGeneratorConfig } from "../config/schema.js";
+import { DEFAULT_ROUTE_FILE_IGNORE_PREFIX } from "../constants.js";
 import { ScanError } from "../support/errors.js";
 
 const VIRTUAL_CONFIG_PATTERN = /^__virtual\.[mc]?[jt]s$/;
@@ -20,10 +20,12 @@ export function compileRouteFileIgnorePattern(pattern: string): RegExp {
   }
 }
 
-export function shouldIgnoreRouteFile(
-  fileName: string,
-  config: Pick<ResolvedGeneratorConfig, "ignorePrefix" | "ignorePattern">,
-): boolean {
+export type RouteIgnoreConfig = {
+  ignorePrefix?: string | undefined;
+  ignorePattern?: string | undefined;
+};
+
+export function shouldIgnoreRouteFile(fileName: string, config?: RouteIgnoreConfig): boolean {
   if (fileName.startsWith(".")) {
     return true;
   }
@@ -32,13 +34,31 @@ export function shouldIgnoreRouteFile(
     return true;
   }
 
-  if (config.ignorePrefix && fileName.startsWith(config.ignorePrefix)) {
+  const ignorePrefix = config
+    ? (config.ignorePrefix ?? DEFAULT_ROUTE_FILE_IGNORE_PREFIX)
+    : DEFAULT_ROUTE_FILE_IGNORE_PREFIX;
+  if (ignorePrefix && fileName.startsWith(ignorePrefix)) {
     return true;
   }
 
-  if (config.ignorePattern) {
+  if (config?.ignorePattern) {
     const pattern = compileRouteFileIgnorePattern(config.ignorePattern);
     if (pattern.test(fileName)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function shouldIgnoreRoutePath(relPath: string, config?: RouteIgnoreConfig): boolean {
+  const normalized = relPath.replace(/\\/g, "/");
+  const segments = normalized.split("/");
+  for (const segment of segments) {
+    if (!segment) {
+      continue;
+    }
+    if (shouldIgnoreRouteFile(segment, config)) {
       return true;
     }
   }
