@@ -1,6 +1,6 @@
 {
   "name": "@taserjs/adapter-node",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Node.js HTTP server adapter for Taser router",
   "license": "ISC",
   "repository": {
