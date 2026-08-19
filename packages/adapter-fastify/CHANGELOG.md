@@ -1,5 +1,14 @@
 # @taserjs/adapter-fastify
 
+## 0.0.4
+
+### Patch Changes
+
+- a0c7c58: feat: Additional Replies and Scoped Middlewares
+- Updated dependencies [a0c7c58]
+  - @taserjs/router@0.0.4
+  - @taserjs/router-utils@0.0.4
+
 ## 0.0.3
 
 ### Patch Changes

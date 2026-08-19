@@ -1,5 +1,11 @@
 # create-taserjs
 
+## 0.0.5
+
+### Patch Changes
+
+- a0c7c58: feat: Additional Replies and Scoped Middlewares
+
 ## 0.0.4
 
 ### Patch Changes
