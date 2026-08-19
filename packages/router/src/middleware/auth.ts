@@ -22,24 +22,19 @@ export type AuthMiddlewareUnit<TPayload> = MiddlewareUnit<
   MiddlewareReturnFromParts<unknown, unknown, unknown, JwtPayloadState<TPayload>>
 >;
 
-function asJwtPayloadStateSchema<TPayload>(
-  payloadSchema: Schema<TPayload>,
-): Schema<JwtPayloadState<InferOutput<Schema<TPayload>>>> {
-  return payloadSchema as unknown as Schema<JwtPayloadState<InferOutput<Schema<TPayload>>>>;
-}
-
 export function createAuthMiddleware<TPayload>(
   payloadSchema: Schema<TPayload>,
   honoMw: MiddlewareHandler,
 ): AuthMiddlewareUnit<InferOutput<Schema<TPayload>>> {
-  return defineMiddleware({
-    state: asJwtPayloadStateSchema(payloadSchema),
+  return defineMiddleware<JwtPayloadState<InferOutput<Schema<TPayload>>>>({
     handler: (ctx, next) => {
       return createTaserCompatHandler(honoMw)(ctx, async () => {
         const payload = (ctx as unknown as { var: { jwtPayload?: unknown } }).var.jwtPayload;
         try {
-          const validated = await validateSchema(payloadSchema, payload);
-          return next({ state: { jwtPayload: validated } });
+          const validated = (await validateSchema(payloadSchema, payload)) as InferOutput<
+            Schema<TPayload>
+          >;
+          return next({ jwtPayload: validated });
         } catch (error) {
           if (error instanceof ValidationError) {
             return reply.forbidden({ error: "Forbidden", issues: error.issues });

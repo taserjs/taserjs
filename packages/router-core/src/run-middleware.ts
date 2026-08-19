@@ -2,25 +2,17 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { ensureReplyResult, type ReplyResult, validateSchema } from "@taserjs/router-utils";
 
 import { ensureBody } from "./ensure-body.js";
-import { RESERVED_CONTEXT_KEYS } from "./constants.js";
 import type { MiddlewareDefinition } from "./types.js";
 
 export type PipelineContext = Record<string, unknown> & {
   state: Record<string, unknown>;
 };
 
-export type PipelineNextArgs = {
-  state?: unknown;
-  ctx?: unknown;
-};
-
-export type PipelineNext = (args?: PipelineNextArgs) => Promise<ReplyResult>;
+export type PipelineNext = (state?: Record<string, unknown>) => Promise<ReplyResult>;
 
 export type PipelineLayer = {
   run: (ctx: PipelineContext, next: PipelineNext) => Promise<unknown>;
 };
-
-const reservedKeySet = new Set<string>(RESERVED_CONTEXT_KEYS);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -36,18 +28,6 @@ export async function mergeValidatedField(
     return { ...current, ...validated };
   }
   return validated;
-}
-
-function assignInjectedCtx(pipelineCtx: PipelineContext, injected: unknown): void {
-  if (typeof injected !== "object" || injected === null) {
-    return;
-  }
-  for (const [key, value] of Object.entries(injected as Record<string, unknown>)) {
-    if (reservedKeySet.has(key)) {
-      continue;
-    }
-    pipelineCtx[key] = value;
-  }
 }
 
 async function applyValidators(
@@ -67,15 +47,12 @@ async function applyValidators(
 }
 
 function createNext(ctx: PipelineContext, remainder: () => Promise<ReplyResult>): PipelineNext {
-  return (args?: PipelineNextArgs) => {
-    if (args?.state !== undefined) {
+  return (state?: Record<string, unknown>) => {
+    if (state !== undefined && typeof state === "object" && state !== null) {
       ctx.state = {
         ...ctx.state,
-        ...(args.state as Record<string, unknown>),
+        ...state,
       };
-    }
-    if (args?.ctx !== undefined) {
-      assignInjectedCtx(ctx, args.ctx);
     }
     return remainder();
   };

@@ -21,8 +21,7 @@ describe("defineHandler units", () => {
 
   it("binds middleware Acc into handler context", () => {
     const auth = defineMiddleware({
-      state: z.object({ role: z.string() }),
-      handler: (_ctx, next) => next({ state: { role: "admin" } }),
+      handler: (_ctx, next) => next({ role: "admin" }),
     });
 
     const handler = defineHandler({
@@ -45,12 +44,10 @@ describe("defineHandler units", () => {
 
   it("composes route use then handler unit middlewares", () => {
     const routeMw = defineMiddleware({
-      state: z.object({ a: z.number() }),
-      handler: (_ctx, next) => next({ state: { a: 1 } }),
+      handler: (_ctx, next) => next({ a: 1 }),
     });
     const handlerMw = defineMiddleware({
-      state: z.object({ b: z.number() }),
-      handler: (_ctx, next) => next({ state: { b: 2 } }),
+      handler: (_ctx, next) => next({ b: 2 }),
     });
 
     const handler = defineHandler()

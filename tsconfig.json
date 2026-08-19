@@ -2,11 +2,14 @@
   "extends": "./tsconfig.base.json",
   "files": [],
   "references": [
+    { "path": "./packages/router-utils" },
+    { "path": "./packages/router-core" },
     { "path": "./packages/router" },
+    { "path": "./packages/router-client" },
     { "path": "./packages/router-generator" },
     { "path": "./packages/router-cli" },
-    { "path": "./apps/express" },
-    { "path": "./apps/fastify" },
-    { "path": "./apps/hono" }
+    { "path": "./packages/adapter-node" },
+    { "path": "./packages/adapter-express" },
+    { "path": "./packages/adapter-fastify" }
   ]
 }

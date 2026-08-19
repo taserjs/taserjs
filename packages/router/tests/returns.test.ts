@@ -57,11 +57,12 @@ describe("returns fluent API", () => {
       expectStatus: 404,
     },
     {
-      name: "fluent middleware",
+      name: "middleware with returns",
       build: () => {
-        const auth = defineMiddleware({})
-          .returns({ 401: z.object({ error: z.string() }) })
-          .handler((_ctx, next) => next());
+        const auth = defineMiddleware({
+          returns: { 401: z.object({ error: z.string() }) },
+          handler: (_ctx, next) => next(),
+        });
         return t
           .get("/hello")
           .use(auth)

@@ -17,16 +17,9 @@ A layout file is any TypeScript file inside `src/routes/` that does not end with
 
 ```ts title="src/routes/admin.ts"
 import { reply } from "@taserjs/router";
-import { z } from "zod";
 import { t } from "../taser";
 
 export const Middleware = t.middleware("admin").use({
-  state: z.object({
-    adminUser: z.object({
-      id: z.string(),
-      role: z.literal("admin"),
-    }),
-  }),
   handler: async (ctx, next) => {
     const authHeader = ctx.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -39,10 +32,8 @@ export const Middleware = t.middleware("admin").use({
       return reply.forbidden({ message: "Insufficient permissions" });
     }
 
-    // Injects adminUser into ctx.state for all downstream routes
-    return next({
-      state: { adminUser },
-    });
+    // Injects adminUser directly into ctx.state for all downstream routes
+    return next({ adminUser });
   },
 });
 ```
@@ -113,31 +104,22 @@ Execution sequence for `GET /api/users`:
 
 ## Injecting Typed State
 
-When middleware calls `next({ state: { ... } })`, the returned properties merge into `ctx.state`. Downstream handlers access these properties with complete TypeScript inference:
+When middleware calls `next({ session })`, the properties merge directly into `ctx.state`. Downstream handlers access these properties with complete TypeScript inference:
 
 <Tabs items={["Middleware", "Route Handler"]}>
   <Tab value="Middleware">
     ```ts title="src/routes/dashboard.ts"
     import { reply } from "@taserjs/router";
-    import { z } from "zod";
     import { t } from "../taser";
 
-    const SessionSchema = z.object({
-      userId: z.string(),
-      workspaceId: z.string(),
-    });
-
     export const Middleware = t.middleware("dashboard").use({
-      state: z.object({ session: SessionSchema }),
       handler: async (ctx, next) => {
         const session = await getSession(ctx.headers.get("cookie"));
         if (!session) {
           return reply.unauthorized({ message: "Invalid session" });
         }
 
-        return next({
-          state: { session },
-        });
+        return next({ session });
       },
     });
     ```
@@ -168,11 +150,9 @@ To create reusable middlewares across different layout files or projects, use `d
 
 ```ts title="src/middleware/rate-limit.ts"
 import { defineMiddleware, reply } from "@taserjs/router";
-import { z } from "zod";
 
 export function rateLimiter(options: { maxRequests: number; windowSeconds: number }) {
   return defineMiddleware({
-    state: z.object({ rateLimitRemaining: z.number() }),
     handler: async (ctx, next) => {
       const clientIp = ctx.headers.get("x-forwarded-for") ?? "127.0.0.1";
       const remaining = await checkRateLimit(clientIp, options);
@@ -181,9 +161,7 @@ export function rateLimiter(options: { maxRequests: number; windowSeconds: numbe
         return reply.badRequest({ message: "Rate limit exceeded" });
       }
 
-      return next({
-        state: { rateLimitRemaining: remaining },
-      });
+      return next({ rateLimitRemaining: remaining });
     },
   });
 }

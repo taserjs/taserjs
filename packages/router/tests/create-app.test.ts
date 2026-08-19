@@ -161,31 +161,28 @@ describe("createContext + createTaserApp", () => {
   });
 });
 
-describe("middleware ctx injection", () => {
+describe("middleware state injection", () => {
   const t = createTaserApp().context({});
 
-  it("types and merges ctx onto the handler context", () => {
+  it("types and merges state onto the handler context", () => {
     const withAdmin = defineMiddleware({
-      ctx: z.object({ adminDb: z.object({ name: z.string() }) }),
-      handler: (_ctx, next) => next({ ctx: { adminDb: { name: "admin" } } }),
+      handler: (_ctx, next) => next({ adminDb: { name: "admin" } }),
     });
 
     const route = t
       .get("/reports")
       .use(withAdmin)
       .handler((ctx) => {
-        expectTypeOf(ctx.adminDb).toEqualTypeOf<{ name: string }>();
-        return reply.json({ name: ctx.adminDb.name });
+        expectTypeOf(ctx.state.adminDb).toEqualTypeOf<{ name: string }>();
+        return reply.json({ name: ctx.state.adminDb.name });
       });
 
     expect(route.path).toBe("/reports");
   });
 
-  it("supports next({ state, ctx }) together", () => {
+  it("supports next({ userId, flag }) multiple fields", () => {
     const mw = defineMiddleware({
-      state: z.object({ userId: z.string() }),
-      ctx: z.object({ flag: z.boolean() }),
-      handler: (_ctx, next) => next({ state: { userId: "u1" }, ctx: { flag: true } }),
+      handler: (_ctx, next) => next({ userId: "u1", flag: true }),
     });
 
     const route = t
@@ -193,8 +190,8 @@ describe("middleware ctx injection", () => {
       .use(mw)
       .handler((ctx) => {
         expectTypeOf(ctx.state.userId).toEqualTypeOf<string>();
-        expectTypeOf(ctx.flag).toEqualTypeOf<boolean>();
-        return reply.json({ userId: ctx.state.userId, flag: ctx.flag });
+        expectTypeOf(ctx.state.flag).toEqualTypeOf<boolean>();
+        return reply.json({ userId: ctx.state.userId, flag: ctx.state.flag });
       });
 
     expect(route.path).toBe("/search");

@@ -3,15 +3,13 @@ export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS"
 export type Awaitable<T> = T | PromiseLike<T>;
 
 export type MiddlewareDefinition = {
-  state?: unknown;
-  ctx?: unknown;
   query?: unknown;
   params?: unknown;
   body?: unknown;
   returns?: Record<number, unknown>;
   handler: (
     ctx: unknown,
-    next: (args?: { state?: unknown; ctx?: unknown }) => Promise<unknown>,
+    next: (state?: Record<string, unknown>) => Promise<unknown>,
   ) => Awaitable<unknown>;
 };
 

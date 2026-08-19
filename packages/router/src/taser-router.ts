@@ -18,7 +18,6 @@ import {
   createPutRoute,
 } from "./factories.js";
 import { defineHandler } from "./define/handler.js";
-import { defineMiddleware } from "./define/middleware.js";
 import { createMiddleware } from "./middleware.js";
 import { TaserApp } from "./taser-app.js";
 import type { ContextDefinition, CreateTaserAppOptions, OnErrorOptions } from "./types/app.js";
@@ -125,10 +124,6 @@ export class TaserRouter<TAppContext extends Record<string, unknown> = AppContex
     return options === undefined
       ? defineHandler<TAppContext>()
       : defineHandler<TAppContext>(options);
-  }
-
-  defineMiddleware(): ReturnType<typeof defineMiddleware<TAppContext>> {
-    return defineMiddleware<TAppContext>();
   }
 
   create<const TManifest extends RouteManifestShape>(manifest: TManifest): TaserApp<TManifest> {

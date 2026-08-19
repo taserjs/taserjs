@@ -39,13 +39,30 @@ export type ValidatorParts = {
   bodyIn?: unknown;
 };
 
-export type MiddlewareNext = {
-  (args?: { state?: unknown; ctx?: unknown }): Promise<ReplyResult>;
+export declare const StateBrand: unique symbol;
+
+export type NextResult<TState = unknown> = ReplyResult & {
+  readonly [StateBrand]?: TState;
 };
 
+export type ExtractState<T> = [Extract<Awaited<T>, { [StateBrand]?: unknown }>] extends [never]
+  ? {}
+  : Extract<Awaited<T>, { [StateBrand]?: unknown }> extends { [StateBrand]?: infer S }
+    ? [S] extends [never]
+      ? {}
+      : S
+    : {};
+
+export type IsUnknown<T> = [unknown] extends [T] ? true : false;
+
+export type NextFn<TExpectedState = unknown> =
+  IsUnknown<TExpectedState> extends true
+    ? <S extends Record<string, unknown> = {}>(state?: S) => Promise<NextResult<S>>
+    : (state: TExpectedState) => Promise<NextResult<TExpectedState>>;
+
+export type MiddlewareNext = NextFn;
+
 export type MiddlewareDefinition = {
-  state?: unknown;
-  ctx?: unknown;
   query?: unknown;
   params?: unknown;
   body?: unknown;
@@ -58,7 +75,6 @@ export type MiddlewareReturnFromParts<
   TParams,
   TBody,
   TState,
-  TCtx = unknown,
   TQueryIn = TQuery,
   TParamsIn = TParams,
   TBodyIn = TBody,
@@ -67,7 +83,6 @@ export type MiddlewareReturnFromParts<
   params: Simplify<UnwrapPart<TParams>>;
   body: Simplify<UnwrapPart<TBody>>;
   state: Simplify<UnwrapPart<TState>>;
-  ctx: Simplify<UnwrapPart<TCtx>>;
   /** Pre-parse shapes merged into route `$Infer.Input`. */
   input: {
     query: RequestShape<TQueryIn, TQuery>;
@@ -101,8 +116,7 @@ export type HandlerContext<
   TAppContext extends Record<string, unknown> = AppContext,
 > = Simplify<
   TAppContext &
-    UnitRuntimeContext &
-    MergeMiddlewareField<Acc, "ctx"> & {
+    UnitRuntimeContext & {
       query: Simplify<
         MergePart<
           Validators extends { query?: infer Q } ? Q : unknown,
@@ -153,14 +167,22 @@ export type HandlerUnit<
   body?: Schema<unknown>;
 };
 
-export type InlineMiddlewareOptions = {
-  state?: Schema<unknown>;
-  ctx?: Schema<unknown>;
-  query?: Schema<unknown>;
-  params?: Schema<unknown>;
-  body?: Schema<unknown>;
-  returns?: ReturnsMap;
-  handler: (ctx: unknown, next: MiddlewareNext) => Awaitable<unknown>;
+export type InlineMiddlewareOptions<
+  Ctx = unknown,
+  TQuery = unknown,
+  TParams = unknown,
+  TBody = unknown,
+  TReturns extends ReturnsMap = {},
+  TQueryIn = unknown,
+  TParamsIn = unknown,
+  TBodyIn = unknown,
+  R = unknown,
+> = {
+  query?: Schema<TQuery, TQueryIn>;
+  params?: Schema<TParams, TParamsIn>;
+  body?: Schema<TBody, TBodyIn>;
+  returns?: TReturns;
+  handler: (ctx: Ctx, next: NextFn) => Awaitable<R>;
 };
 
 export function isHandlerUnit(

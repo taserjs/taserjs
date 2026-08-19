@@ -1,7 +1,7 @@
 export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";
 export type HttpMethod = Method;
 
-export type MiddlewareFieldName = "query" | "params" | "body" | "state" | "ctx";
+export type MiddlewareFieldName = "query" | "params" | "body" | "state";
 
 export type MiddlewareInputFieldName = "query" | "params" | "body";
 
@@ -50,11 +50,7 @@ export type MiddlewareField<Middleware, Field extends MiddlewareFieldName> = Fie
         ? Middleware extends { state: infer State }
           ? State
           : {}
-        : Field extends "ctx"
-          ? Middleware extends { ctx: infer Ctx }
-            ? Ctx
-            : {}
-          : {};
+        : {};
 
 export type MiddlewareInputField<
   Middleware,

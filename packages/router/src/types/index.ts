@@ -1,5 +1,4 @@
 import type { Awaitable, TaserCookieJar, TaserHeaders } from "@taserjs/router-core";
-import type { ReplyResult } from "@taserjs/router-utils";
 import type { RouterRegister } from "../register.js";
 import type {
   MergeMiddlewareField,
@@ -13,8 +12,10 @@ import type { ReturnsMap, ValidHandlerReply } from "./returns.js";
 import type { Schema } from "./schema.js";
 import type {
   AppContext,
+  ExtractState,
   HandlerContext,
   HandlerUnit,
+  InlineMiddlewareOptions,
   Method,
   MiddlewareDefinition,
   MiddlewareReturnFromParts,
@@ -53,17 +54,22 @@ export type {
 } from "./returns.js";
 export type {
   AppContext,
+  ExtractState,
   HandlerContext,
   HandlerUnit,
   HttpMethod,
   InlineMiddlewareOptions,
+  IsUnknown,
   Method,
   MiddlewareDefinition,
   MiddlewareNext,
   MiddlewareReturnFromParts,
   MiddlewareUnit,
   NativeContext,
+  NextFn,
+  NextResult,
   StandaloneMiddlewareContext,
+  StateBrand,
   ValidatorParts,
 } from "./units.js";
 
@@ -138,20 +144,15 @@ type RouteResolvedField<
   Path extends RoutePath,
   TMethod extends Method,
   Acc extends readonly unknown[],
-  Field extends "query" | "params" | "body" | "state" | "ctx",
+  Field extends "query" | "params" | "body" | "state",
 > = MergeMiddlewareField<ResolveLayoutChainMiddlewares<RouteLayoutChain<Path, TMethod>>, Field> &
   MergeMiddlewareField<Acc, Field>;
-
-type MiddlewareCtxField<
-  Layout extends LayoutId,
-  Field extends "query" | "params" | "body" | "state" | "ctx",
-> = MergeMiddlewareField<ResolveLayoutMiddlewares<LayoutParent<Layout>>, Field>;
 
 type RouteChainField<
   Path extends RoutePath,
   TMethod extends Method,
   Acc extends readonly unknown[],
-  Field extends "query" | "params" | "body" | "state" | "ctx",
+  Field extends "query" | "params" | "body" | "state",
 > = RouteResolvedField<Path, TMethod, Acc, Field>;
 
 type UnitRuntimeContext = Omit<RuntimeContextFields<NativeContext>, "var">;
@@ -166,8 +167,7 @@ export type RouteChainContext<
   TAppContext extends Record<string, unknown> = AppContext,
 > = Simplify<
   TAppContext &
-    UnitRuntimeContext &
-    RouteChainField<Path, TMethod, Acc, "ctx"> & {
+    UnitRuntimeContext & {
       query: Simplify<MergePart<TQuery, RouteChainField<Path, TMethod, Acc, "query">>>;
       params: Simplify<
         PathParams<Path> & MergePart<TParams, RouteChainField<Path, TMethod, Acc, "params">>
@@ -191,8 +191,7 @@ export type RouteHandleContext<
   TAppContext extends Record<string, unknown> = AppContext,
 > = Simplify<
   TAppContext &
-    UnitRuntimeContext &
-    RouteResolvedField<Path, TMethod, Acc, "ctx"> & {
+    UnitRuntimeContext & {
       path: Path;
       method: TMethod;
       query: Simplify<
@@ -231,8 +230,7 @@ export type RouteHandleContextWithoutBody<
   TAppContext extends Record<string, unknown> = AppContext,
 > = Simplify<
   TAppContext &
-    UnitRuntimeContext &
-    RouteResolvedField<Path, TMethod, Acc, "ctx"> & {
+    UnitRuntimeContext & {
       path: Path;
       method: TMethod;
       query: Simplify<
@@ -349,8 +347,9 @@ export type InferRouteInput<Path extends RoutePath, TMethod extends Method> =
 type MiddlewareChainField<
   Layout extends LayoutId,
   Acc extends readonly unknown[],
-  Field extends "query" | "params" | "body" | "state" | "ctx",
-> = MiddlewareCtxField<Layout, Field> & MergeMiddlewareField<Acc, Field>;
+  Field extends "query" | "params" | "body" | "state",
+> = MergeMiddlewareField<ResolveLayoutMiddlewares<LayoutParent<Layout>>, Field> &
+  MergeMiddlewareField<Acc, Field>;
 
 export type MiddlewareChainContext<
   Layout extends LayoutId,
@@ -361,8 +360,7 @@ export type MiddlewareChainContext<
   TAppContext extends Record<string, unknown> = AppContext,
 > = Simplify<
   TAppContext &
-    UnitRuntimeContext &
-    MiddlewareChainField<Layout, Acc, "ctx"> & {
+    UnitRuntimeContext & {
       query: Simplify<MergePart<TQuery, MiddlewareChainField<Layout, Acc, "query">>>;
       params: Simplify<MergePart<TParams, MiddlewareChainField<Layout, Acc, "params">>>;
       body: Simplify<MergePart<TBody, MiddlewareChainField<Layout, Acc, "body">>>;
@@ -371,94 +369,6 @@ export type MiddlewareChainContext<
       cookies: TaserCookieJar;
     }
 >;
-
-type StatefulUseOptions<
-  Ctx,
-  TState,
-  TQuery,
-  TParams,
-  TBody,
-  TReturns extends ReturnsMap = {},
-  TQueryIn = unknown,
-  TParamsIn = unknown,
-  TBodyIn = unknown,
-> = {
-  state: Schema<TState>;
-  query?: Schema<TQuery, TQueryIn>;
-  params?: Schema<TParams, TParamsIn>;
-  body?: Schema<TBody, TBodyIn>;
-  returns?: TReturns;
-  handler: (
-    ctx: Ctx,
-    next: (args: { state: TState }) => Promise<ReplyResult>,
-  ) => Awaitable<ReplyResult | Response | unknown>;
-};
-
-type CtxUseOptions<
-  Ctx,
-  TCtx,
-  TQuery,
-  TParams,
-  TBody,
-  TReturns extends ReturnsMap = {},
-  TQueryIn = unknown,
-  TParamsIn = unknown,
-  TBodyIn = unknown,
-> = {
-  ctx: Schema<TCtx>;
-  query?: Schema<TQuery, TQueryIn>;
-  params?: Schema<TParams, TParamsIn>;
-  body?: Schema<TBody, TBodyIn>;
-  returns?: TReturns;
-  handler: (
-    ctx: Ctx,
-    next: (args: { ctx: TCtx }) => Promise<ReplyResult>,
-  ) => Awaitable<ReplyResult | Response | unknown>;
-};
-
-type StateAndCtxUseOptions<
-  Ctx,
-  TState,
-  TCtx,
-  TQuery,
-  TParams,
-  TBody,
-  TReturns extends ReturnsMap = {},
-  TQueryIn = unknown,
-  TParamsIn = unknown,
-  TBodyIn = unknown,
-> = {
-  state: Schema<TState>;
-  ctx: Schema<TCtx>;
-  query?: Schema<TQuery, TQueryIn>;
-  params?: Schema<TParams, TParamsIn>;
-  body?: Schema<TBody, TBodyIn>;
-  returns?: TReturns;
-  handler: (
-    ctx: Ctx,
-    next: (args: { state: TState; ctx: TCtx }) => Promise<ReplyResult>,
-  ) => Awaitable<ReplyResult | Response | unknown>;
-};
-
-type StatelessUseOptions<
-  Ctx,
-  TQuery,
-  TParams,
-  TBody,
-  TReturns extends ReturnsMap = {},
-  TQueryIn = unknown,
-  TParamsIn = unknown,
-  TBodyIn = unknown,
-> = {
-  query?: Schema<TQuery, TQueryIn>;
-  params?: Schema<TParams, TParamsIn>;
-  body?: Schema<TBody, TBodyIn>;
-  returns?: TReturns;
-  handler: (
-    ctx: Ctx,
-    next: () => Promise<ReplyResult>,
-  ) => Awaitable<ReplyResult | Response | unknown>;
-};
 
 export type MiddlewareBuilder<
   Layout extends LayoutId,
@@ -474,8 +384,6 @@ export type MiddlewareBuilder<
     unit: MiddlewareUnit<TAcc, TReturns>,
   ): MiddlewareBuilder<Layout, readonly [...Acc, TAcc], TAppContext>;
   use<
-    TState,
-    TCtx,
     TQuery = unknown,
     TParams = unknown,
     TBody = unknown,
@@ -483,47 +391,18 @@ export type MiddlewareBuilder<
     TQueryIn = unknown,
     TParamsIn = unknown,
     TBodyIn = unknown,
+    R = unknown,
   >(
-    options: StateAndCtxUseOptions<
+    options: InlineMiddlewareOptions<
       MiddlewareChainContext<Layout, Acc, TQuery, TParams, TBody, TAppContext>,
-      TState,
-      TCtx,
       TQuery,
       TParams,
       TBody,
       TReturns,
       TQueryIn,
       TParamsIn,
-      TBodyIn
-    >,
-  ): MiddlewareBuilder<
-    Layout,
-    readonly [
-      ...Acc,
-      MiddlewareReturnFromParts<TQuery, TParams, TBody, TState, TCtx, TQueryIn, TParamsIn, TBodyIn>,
-    ],
-    TAppContext
-  >;
-  use<
-    TState,
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    TReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-  >(
-    options: StatefulUseOptions<
-      MiddlewareChainContext<Layout, Acc, TQuery, TParams, TBody, TAppContext>,
-      TState,
-      TQuery,
-      TParams,
-      TBody,
-      TReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn
+      TBodyIn,
+      R
     >,
   ): MiddlewareBuilder<
     Layout,
@@ -533,68 +412,11 @@ export type MiddlewareBuilder<
         TQuery,
         TParams,
         TBody,
-        TState,
-        unknown,
+        ExtractState<R>,
         TQueryIn,
         TParamsIn,
         TBodyIn
       >,
-    ],
-    TAppContext
-  >;
-  use<
-    TCtx,
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    TReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-  >(
-    options: CtxUseOptions<
-      MiddlewareChainContext<Layout, Acc, TQuery, TParams, TBody, TAppContext>,
-      TCtx,
-      TQuery,
-      TParams,
-      TBody,
-      TReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn
-    >,
-  ): MiddlewareBuilder<
-    Layout,
-    readonly [
-      ...Acc,
-      MiddlewareReturnFromParts<TQuery, TParams, TBody, {}, TCtx, TQueryIn, TParamsIn, TBodyIn>,
-    ],
-    TAppContext
-  >;
-  use<
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    TReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-  >(
-    options: StatelessUseOptions<
-      MiddlewareChainContext<Layout, Acc, TQuery, TParams, TBody, TAppContext>,
-      TQuery,
-      TParams,
-      TBody,
-      TReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn
-    >,
-  ): MiddlewareBuilder<
-    Layout,
-    readonly [
-      ...Acc,
-      MiddlewareReturnFromParts<TQuery, TParams, TBody, {}, unknown, TQueryIn, TParamsIn, TBodyIn>,
     ],
     TAppContext
   >;
@@ -678,8 +500,6 @@ export type RouteBuilder<
     TAppContext
   >;
   use<
-    TState,
-    TCtx,
     TQuery = unknown,
     TParams = unknown,
     TBody = unknown,
@@ -687,50 +507,18 @@ export type RouteBuilder<
     TQueryIn = unknown,
     TParamsIn = unknown,
     TBodyIn = unknown,
+    R = unknown,
   >(
-    options: StateAndCtxUseOptions<
+    options: InlineMiddlewareOptions<
       RouteChainContext<Path, TMethod, Acc, TQuery, TParams, TBody, TAppContext>,
-      TState,
-      TCtx,
       TQuery,
       TParams,
       TBody,
       UReturns,
       TQueryIn,
       TParamsIn,
-      TBodyIn
-    >,
-  ): RouteBuilder<
-    Path,
-    TMethod,
-    readonly [
-      ...Acc,
-      MiddlewareReturnFromParts<TQuery, TParams, TBody, TState, TCtx, TQueryIn, TParamsIn, TBodyIn>,
-    ],
-    Validators,
-    Omit<TReturns, keyof UReturns> & UReturns,
-    TAppContext
-  >;
-  use<
-    TState,
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    UReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-  >(
-    options: StatefulUseOptions<
-      RouteChainContext<Path, TMethod, Acc, TQuery, TParams, TBody, TAppContext>,
-      TState,
-      TQuery,
-      TParams,
-      TBody,
-      UReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn
+      TBodyIn,
+      R
     >,
   ): RouteBuilder<
     Path,
@@ -741,74 +529,11 @@ export type RouteBuilder<
         TQuery,
         TParams,
         TBody,
-        TState,
-        unknown,
+        ExtractState<R>,
         TQueryIn,
         TParamsIn,
         TBodyIn
       >,
-    ],
-    Validators,
-    Omit<TReturns, keyof UReturns> & UReturns,
-    TAppContext
-  >;
-  use<
-    TCtx,
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    UReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-  >(
-    options: CtxUseOptions<
-      RouteChainContext<Path, TMethod, Acc, TQuery, TParams, TBody, TAppContext>,
-      TCtx,
-      TQuery,
-      TParams,
-      TBody,
-      UReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn
-    >,
-  ): RouteBuilder<
-    Path,
-    TMethod,
-    readonly [
-      ...Acc,
-      MiddlewareReturnFromParts<TQuery, TParams, TBody, {}, TCtx, TQueryIn, TParamsIn, TBodyIn>,
-    ],
-    Validators,
-    Omit<TReturns, keyof UReturns> & UReturns,
-    TAppContext
-  >;
-  use<
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    UReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-  >(
-    options: StatelessUseOptions<
-      RouteChainContext<Path, TMethod, Acc, TQuery, TParams, TBody, TAppContext>,
-      TQuery,
-      TParams,
-      TBody,
-      UReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn
-    >,
-  ): RouteBuilder<
-    Path,
-    TMethod,
-    readonly [
-      ...Acc,
-      MiddlewareReturnFromParts<TQuery, TParams, TBody, {}, unknown, TQueryIn, TParamsIn, TBodyIn>,
     ],
     Validators,
     Omit<TReturns, keyof UReturns> & UReturns,
@@ -865,8 +590,6 @@ export type HandlerBuilder<
     TAppContext
   >;
   use<
-    TState,
-    TCtx,
     TQuery = unknown,
     TParams = unknown,
     TBody = unknown,
@@ -874,48 +597,18 @@ export type HandlerBuilder<
     TQueryIn = unknown,
     TParamsIn = unknown,
     TBodyIn = unknown,
+    R = unknown,
   >(
-    options: StateAndCtxUseOptions<
+    options: InlineMiddlewareOptions<
       HandlerContext<Acc, { query: TQuery; params: TParams; body: TBody }, TAppContext>,
-      TState,
-      TCtx,
       TQuery,
       TParams,
       TBody,
       UReturns,
       TQueryIn,
       TParamsIn,
-      TBodyIn
-    >,
-  ): HandlerBuilder<
-    readonly [
-      ...Acc,
-      MiddlewareReturnFromParts<TQuery, TParams, TBody, TState, TCtx, TQueryIn, TParamsIn, TBodyIn>,
-    ],
-    Validators,
-    Omit<TReturns, keyof UReturns> & UReturns,
-    TAppContext
-  >;
-  use<
-    TState,
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    UReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-  >(
-    options: StatefulUseOptions<
-      HandlerContext<Acc, { query: TQuery; params: TParams; body: TBody }, TAppContext>,
-      TState,
-      TQuery,
-      TParams,
-      TBody,
-      UReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn
+      TBodyIn,
+      R
     >,
   ): HandlerBuilder<
     readonly [
@@ -924,70 +617,11 @@ export type HandlerBuilder<
         TQuery,
         TParams,
         TBody,
-        TState,
-        unknown,
+        ExtractState<R>,
         TQueryIn,
         TParamsIn,
         TBodyIn
       >,
-    ],
-    Validators,
-    Omit<TReturns, keyof UReturns> & UReturns,
-    TAppContext
-  >;
-  use<
-    TCtx,
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    UReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-  >(
-    options: CtxUseOptions<
-      HandlerContext<Acc, { query: TQuery; params: TParams; body: TBody }, TAppContext>,
-      TCtx,
-      TQuery,
-      TParams,
-      TBody,
-      UReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn
-    >,
-  ): HandlerBuilder<
-    readonly [
-      ...Acc,
-      MiddlewareReturnFromParts<TQuery, TParams, TBody, {}, TCtx, TQueryIn, TParamsIn, TBodyIn>,
-    ],
-    Validators,
-    Omit<TReturns, keyof UReturns> & UReturns,
-    TAppContext
-  >;
-  use<
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    UReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-  >(
-    options: StatelessUseOptions<
-      HandlerContext<Acc, { query: TQuery; params: TParams; body: TBody }, TAppContext>,
-      TQuery,
-      TParams,
-      TBody,
-      UReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn
-    >,
-  ): HandlerBuilder<
-    readonly [
-      ...Acc,
-      MiddlewareReturnFromParts<TQuery, TParams, TBody, {}, unknown, TQueryIn, TParamsIn, TBodyIn>,
     ],
     Validators,
     Omit<TReturns, keyof UReturns> & UReturns,

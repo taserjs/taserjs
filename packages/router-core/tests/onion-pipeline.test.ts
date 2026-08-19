@@ -1,6 +1,5 @@
 import { reply, type ReplyResult } from "@taserjs/router-utils";
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
 
 import { composePipeline, middlewareToLayer } from "../src/run-middleware.js";
 
@@ -58,12 +57,11 @@ describe("onion composePipeline", () => {
     expect(result.status).toBe(401);
   });
 
-  it("merges state via next({ state }) and continues", async () => {
+  it("merges state via next(state) and continues", async () => {
     const run = composePipeline(
       [
         middlewareToLayer({
-          state: z.object({ userId: z.string() }),
-          handler: (_ctx, next) => next({ state: { userId: "u-1" } }),
+          handler: (_ctx, next) => next({ userId: "u-1" }),
         }),
       ],
       async (ctx) => reply.json({ userId: (ctx.state as { userId: string }).userId }),
@@ -73,52 +71,21 @@ describe("onion composePipeline", () => {
     expect(await result.json()).toEqual({ userId: "u-1" });
   });
 
-  it("merges next({ ctx }) onto the top-level pipeline context", async () => {
+  it("accumulates state across multiple sequential middlewares", async () => {
     const run = composePipeline(
       [
         middlewareToLayer({
-          handler: (_ctx, next) => next({ ctx: { adminDb: { name: "admin" } } }),
+          handler: (_ctx, next) => next({ a: 1 }),
+        }),
+        middlewareToLayer({
+          handler: (_ctx, next) => next({ b: "two" }),
         }),
       ],
-      async (ctx) => {
-        const adminDb = (ctx as unknown as { adminDb: { name: string } }).adminDb;
-        return reply.json({ name: adminDb.name });
-      },
+      async (ctx) => reply.json({ state: ctx.state }),
     );
 
     const result = await run({ state: {} });
-    expect(await result.json()).toEqual({ name: "admin" });
-  });
-
-  it("merges next({ state, ctx }) together and skips reserved ctx keys", async () => {
-    const run = composePipeline(
-      [
-        middlewareToLayer({
-          handler: (_ctx, next) =>
-            next({
-              state: { userId: "u-1" },
-              ctx: { flag: true, state: { hijacked: true }, query: "nope" },
-            }),
-        }),
-      ],
-      async (ctx) => {
-        const flagged = ctx as unknown as { flag: boolean };
-        return reply.json({
-          userId: (ctx.state as { userId: string }).userId,
-          flag: flagged.flag,
-          stateHijack: (ctx.state as { hijacked?: boolean }).hijacked ?? null,
-          query: ctx.query ?? null,
-        });
-      },
-    );
-
-    const result = await run({ state: {}, query: { keep: true } });
-    expect(await result.json()).toEqual({
-      userId: "u-1",
-      flag: true,
-      stateHijack: null,
-      query: { keep: true },
-    });
+    expect(await result.json()).toEqual({ state: { a: 1, b: "two" } });
   });
 
   it("lets outer middleware catch inner throws", async () => {
