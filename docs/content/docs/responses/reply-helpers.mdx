@@ -59,6 +59,21 @@ export const Route = t.get("/robots.txt").handler(() => {
 
 ---
 
+## HTML Responses (`reply.html`)
+
+Use `reply.html()` to return HTML documents or markup strings with `Content-Type: text/html; charset=utf-8`:
+
+```ts title="src/routes/index.get.ts"
+import { reply } from "@taserjs/router";
+import { t } from "#src/taser.js";
+
+export const Route = t.get("/").handler(() => {
+  return reply.html("<h1>Welcome to Taser!</h1>");
+});
+```
+
+---
+
 ## Empty / No Content Responses (`reply.noContent`)
 
 For successful operations that do not return a payload (such as `DELETE` endpoints), use `reply.noContent()`. It sets HTTP status `204`:
@@ -102,16 +117,27 @@ export const Route = t.get("/old-docs").handler(() => {
 
 Taser includes pre-configured helper methods for common HTTP status codes:
 
-| Helper Method                             | HTTP Status                 | Typical Usage                           |
-| :---------------------------------------- | :-------------------------- | :-------------------------------------- |
-| `reply.ok(data?, init?)`                  | `200 OK`                    | Generic success response                |
-| `reply.badRequest(data?, init?)`          | `400 Bad Request`           | Client query or payload error           |
-| `reply.unauthorized(data?, init?)`        | `401 Unauthorized`          | Missing or invalid authentication token |
-| `reply.forbidden(data?, init?)`           | `403 Forbidden`             | Authenticated user lacks permission     |
-| `reply.notFound(data?, init?)`            | `404 Not Found`             | Resource or route does not exist        |
-| `reply.unprocessableEntity(data?, init?)` | `422 Unprocessable Entity`  | Schema validation error                 |
-| `reply.internalServerError(data?, init?)` | `500 Internal Server Error` | Unhandled exception                     |
-| `reply.badGateway(data?, init?)`          | `502 Bad Gateway`           | Upstream service failure                |
+| Helper Method                              | HTTP Status                  | Typical Usage                            |
+| :----------------------------------------- | :--------------------------- | :--------------------------------------- |
+| `reply.ok(data?, init?)`                   | `200 OK`                     | Generic success response                 |
+| `reply.created(data?, init?)`              | `201 Created`                | Resource created successfully            |
+| `reply.accepted(data?, init?)`             | `202 Accepted`               | Async job accepted for processing        |
+| `reply.noContent(init?)`                   | `204 No Content`             | Success with empty payload               |
+| `reply.redirect(location, init?)`          | `302 Found`                  | Temporary redirection                    |
+| `reply.badRequest(data?, init?)`           | `400 Bad Request`            | Client query or payload error            |
+| `reply.unauthorized(data?, init?)`         | `401 Unauthorized`           | Missing or invalid authentication token  |
+| `reply.forbidden(data?, init?)`            | `403 Forbidden`              | Authenticated user lacks permission      |
+| `reply.notFound(data?, init?)`             | `404 Not Found`              | Resource or route does not exist         |
+| `reply.conflict(data?, init?)`             | `409 Conflict`               | Duplicate key or concurrency conflict    |
+| `reply.payloadTooLarge(data?, init?)`      | `413 Payload Too Large`      | Request body exceeds maximum size limit  |
+| `reply.unsupportedMediaType(data?, init?)` | `415 Unsupported Media Type` | Payload MIME/Content-Type is unsupported |
+| `reply.unprocessableEntity(data?, init?)`  | `422 Unprocessable Entity`   | Schema validation error                  |
+| `reply.tooManyRequests(data?, init?)`      | `429 Too Many Requests`      | Rate limit or quota exceeded             |
+| `reply.internalServerError(data?, init?)`  | `500 Internal Server Error`  | Unhandled exception                      |
+| `reply.notImplemented(data?, init?)`       | `501 Not Implemented`        | Endpoint/feature not supported           |
+| `reply.badGateway(data?, init?)`           | `502 Bad Gateway`            | Upstream service failure                 |
+| `reply.serviceUnavailable(data?, init?)`   | `503 Service Unavailable`    | Server maintenance or overloaded         |
+| `reply.gatewayTimeout(data?, init?)`       | `504 Gateway Timeout`        | Upstream gateway/proxy timed out         |
 
 ### Example Usage of Error Helpers
 

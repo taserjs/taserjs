@@ -175,4 +175,88 @@ describe("reply", () => {
       expect(await response.text()).toBe("q=test");
     });
   });
+
+  describe("new success helpers", () => {
+    it("builds created responses with 201 status", async () => {
+      const response = reply.created({ id: "user_123" });
+      expect(response.status).toBe(201);
+      expect(response.headers.get("content-type")).toBe("application/json; charset=utf-8");
+      expect(await response.json()).toEqual({ id: "user_123" });
+    });
+
+    it("builds accepted responses with 202 status", async () => {
+      const response = reply.accepted({ jobId: "job_999" });
+      expect(response.status).toBe(202);
+      expect(response.headers.get("content-type")).toBe("application/json; charset=utf-8");
+      expect(await response.json()).toEqual({ jobId: "job_999" });
+    });
+
+    it("builds html responses with 200 status and html content-type", async () => {
+      const markup = "<h1>Hello World</h1>";
+      const response = reply.html(markup);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
+      expect(await response.text()).toBe(markup);
+    });
+
+    it("supports custom status and headers in reply.html", async () => {
+      const markup = "<h1>Custom Status</h1>";
+      const response = reply.html(markup, {
+        status: 201,
+        headers: { "x-custom": "true" },
+      });
+      expect(response.status).toBe(201);
+      expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
+      expect(response.headers.get("x-custom")).toBe("true");
+      expect(await response.text()).toBe(markup);
+    });
+  });
+
+  describe("new error helpers", () => {
+    it("returns conflict (409) with default error message", async () => {
+      const response = reply.conflict();
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({ error: "Conflict" });
+    });
+
+    it("returns payloadTooLarge (413) with custom body", async () => {
+      const response = reply.payloadTooLarge({ message: "File exceeds 5MB limit" });
+      expect(response.status).toBe(413);
+      expect(await response.json()).toEqual({ message: "File exceeds 5MB limit" });
+    });
+
+    it("returns unsupportedMediaType (415) with default error message", async () => {
+      const response = reply.unsupportedMediaType();
+      expect(response.status).toBe(415);
+      expect(await response.json()).toEqual({ error: "Unsupported Media Type" });
+    });
+
+    it("returns tooManyRequests (429) with retry-after header and payload", async () => {
+      const response = reply.tooManyRequests(
+        { error: "Rate limit exceeded", retryAfter: 60 },
+        { headers: { "Retry-After": "60" } },
+      );
+      expect(response.status).toBe(429);
+      expect(response.headers.get("retry-after")).toBe("60");
+      expect(await response.json()).toEqual({ error: "Rate limit exceeded", retryAfter: 60 });
+    });
+
+    it("returns notImplemented (501) with default error message", async () => {
+      const response = reply.notImplemented();
+      expect(response.status).toBe(501);
+      expect(await response.json()).toEqual({ error: "Not Implemented" });
+    });
+
+    it("returns serviceUnavailable (503) with default error message", async () => {
+      const response = reply.serviceUnavailable();
+      expect(response.status).toBe(503);
+      expect(await response.json()).toEqual({ error: "Service Unavailable" });
+    });
+
+    it("returns gatewayTimeout (504) with default error message", async () => {
+      const response = reply.gatewayTimeout();
+      expect(response.status).toBe(504);
+      expect(await response.json()).toEqual({ error: "Gateway Timeout" });
+    });
+  });
 });

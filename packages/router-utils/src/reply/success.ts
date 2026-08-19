@@ -1,4 +1,10 @@
-import { STATUS_FOUND, STATUS_OK } from "../constants.js";
+import {
+  STATUS_ACCEPTED,
+  STATUS_CREATED,
+  STATUS_FOUND,
+  STATUS_OK,
+  TEXT_HTML,
+} from "../constants.js";
 import {
   buildBodyResponse,
   jsonResponse,
@@ -13,6 +19,20 @@ import type { RedirectInit, ReplyInit } from "./types.js";
 
 function ok(body?: unknown, init?: ReplyInit) {
   return buildBodyResponse(body, init);
+}
+
+function created<T = unknown>(body?: T, init?: ReplyInit): ReplyOf<201, T> {
+  return buildBodyResponse(body, { ...init, status: init?.status ?? STATUS_CREATED }) as ReplyOf<
+    201,
+    T
+  >;
+}
+
+function accepted<T = unknown>(body?: T, init?: ReplyInit): ReplyOf<202, T> {
+  return buildBodyResponse(body, { ...init, status: init?.status ?? STATUS_ACCEPTED }) as ReplyOf<
+    202,
+    T
+  >;
 }
 
 function json<T>(data: T): ReplyOf<200, T>;
@@ -37,6 +57,22 @@ function text(body: string, init?: ReplyInit): ReplyOf<number, string> {
     number,
     string
   >;
+}
+
+function html(body: string): ReplyOf<200, string>;
+function html<const S extends number>(
+  body: string,
+  init: Omit<ReplyInit, "status"> & { status: S },
+): ReplyOf<S, string>;
+function html(body: string, init?: ReplyInit): ReplyOf<number, string>;
+function html(body: string, init?: ReplyInit): ReplyOf<number, string> {
+  const statusInit = { ...init, status: init?.status ?? STATUS_OK };
+  return toReplyResult(
+    body,
+    mergeHeaders(statusInit, "empty", { contentType: TEXT_HTML }),
+    body,
+    "text",
+  ) as ReplyOf<number, string>;
 }
 
 function noContent(init?: ReplyInit): ReplyOf<204, null> {
@@ -66,8 +102,11 @@ const stream = pipe;
 
 export const successReply = {
   ok,
+  created,
+  accepted,
   json,
   text,
+  html,
   noContent,
   redirect,
   buffer,
