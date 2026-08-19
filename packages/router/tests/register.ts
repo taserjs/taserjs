@@ -14,9 +14,10 @@ declare module "@taserjs/router" {
       | "/buffer"
       | "/blob"
       | "/check-ctx";
-    LayoutId: "index";
+    LayoutId: "index" | "admin";
     LayoutTree: {
       index: { middlewares: typeof IndexLayout; parent: null };
+      admin: { middlewares: typeof IndexLayout; parent: null };
     };
     RouteByPathMethod: {
       "/": {
@@ -44,7 +45,7 @@ declare module "@taserjs/router" {
         GET: { layoutChain: readonly []; route: unknown };
       };
       "/check-ctx": {
-        GET: { layoutChain: readonly []; route: unknown };
+        GET: { layoutChain: readonly ["admin"]; route: unknown };
       };
     };
   }

@@ -7,6 +7,7 @@ import type {
   RequestShape,
   RuntimeContextFields,
   Simplify,
+  UnionToIntersection,
 } from "./type-utils.js";
 import type { ReturnsMap, ValidHandlerReply } from "./returns.js";
 import type { Schema } from "./schema.js";
@@ -110,6 +111,27 @@ type ResolveLayoutMiddlewares<Layout extends LayoutId | null> = Layout extends n
         ...LayoutTree[Layout]["middlewares"],
       ]
     : readonly [];
+
+export type ResolveLayoutIdChain<L extends LayoutId | null> = L extends null
+  ? readonly []
+  : L extends LayoutId
+    ? readonly [...ResolveLayoutIdChain<LayoutParent<L>>, L]
+    : readonly [];
+
+export type ResolveLayoutMiddlewaresState<Layout extends LayoutId | null> = Layout extends LayoutId
+  ? MergeMiddlewareField<ResolveLayoutMiddlewares<Layout>, "state">
+  : {};
+
+export type ResolveLayoutsState<Layouts extends LayoutId | readonly LayoutId[]> =
+  Layouts extends LayoutId
+    ? ResolveLayoutMiddlewaresState<Layouts>
+    : Layouts extends readonly LayoutId[]
+      ? UnionToIntersection<
+          Layouts[number] extends infer L extends LayoutId
+            ? ResolveLayoutMiddlewaresState<L>
+            : never
+        >
+      : {};
 
 /** Fold layout middleware Acc from a route's layoutChain (shallow → deep). */
 type ResolveLayoutChainMiddlewares<Chain extends readonly LayoutId[]> = Chain extends readonly [
@@ -268,6 +290,40 @@ type IsNever<T> = [T] extends [never] ? true : false;
 
 type IsEmptyObject<T> = [keyof T] extends [never] ? true : false;
 
+export type IsLayoutAllowed<TRequiredLayouts, TChain extends readonly LayoutId[]> = [
+  TRequiredLayouts,
+] extends [never]
+  ? true
+  : [unknown] extends [TRequiredLayouts]
+    ? true
+    : [null] extends [TRequiredLayouts]
+      ? true
+      : [undefined] extends [TRequiredLayouts]
+        ? true
+        : TRequiredLayouts extends LayoutId
+          ? TRequiredLayouts extends TChain[number]
+            ? true
+            : false
+          : TRequiredLayouts extends readonly LayoutId[]
+            ? [TRequiredLayouts[number] & TChain[number]] extends [never]
+              ? false
+              : true
+            : true;
+
+export type IsStateSatisfied<TActualState, TRequiredState> = [TRequiredState] extends [never]
+  ? true
+  : [unknown] extends [TRequiredState]
+    ? true
+    : [null] extends [TRequiredState]
+      ? true
+      : [undefined] extends [TRequiredState]
+        ? true
+        : [IsEmptyObject<TRequiredState>] extends [true]
+          ? true
+          : [TActualState] extends [TRequiredState]
+            ? true
+            : false;
+
 type InputFacet<T, K extends string> =
   IsNever<T> extends true ? {} : IsEmptyObject<T> extends true ? {} : { [Key in K]: T };
 
@@ -380,8 +436,22 @@ export type MiddlewareBuilder<
   readonly $Infer: {
     Context: MiddlewareChainContext<Layout, Acc, unknown, unknown, unknown, TAppContext>;
   };
-  use<TAcc, TReturns extends ReturnsMap = {}>(
-    unit: MiddlewareUnit<TAcc, TReturns>,
+  use<TAcc, TReturns extends ReturnsMap = {}, TRequiredLayouts = unknown, TRequiredState = unknown>(
+    unit: MiddlewareUnit<TAcc, TReturns, TRequiredLayouts, TRequiredState>,
+    ..._assert: [
+      IsLayoutAllowed<TRequiredLayouts, ResolveLayoutIdChain<Layout>>,
+      IsStateSatisfied<MiddlewareChainField<Layout, Acc, "state">, TRequiredState>,
+    ] extends [true, true]
+      ? []
+      : [
+          {
+            error: "Middleware cannot be attached to this layout";
+            requiredLayouts: TRequiredLayouts;
+            layoutChain: ResolveLayoutIdChain<Layout>;
+            requiredState: TRequiredState;
+            actualState: MiddlewareChainField<Layout, Acc, "state">;
+          },
+        ]
   ): MiddlewareBuilder<Layout, readonly [...Acc, TAcc], TAppContext>;
   use<
     TQuery = unknown,
@@ -489,8 +559,22 @@ export type RouteBuilder<
   returns<const M extends ReturnsMap>(
     map: M,
   ): RouteBuilder<Path, TMethod, Acc, Validators, Omit<TReturns, keyof M> & M, TAppContext>;
-  use<TAcc, UReturns extends ReturnsMap = {}>(
-    unit: MiddlewareUnit<TAcc, UReturns>,
+  use<TAcc, UReturns extends ReturnsMap = {}, TRequiredLayouts = unknown, TRequiredState = unknown>(
+    unit: MiddlewareUnit<TAcc, UReturns, TRequiredLayouts, TRequiredState>,
+    ..._assert: [
+      IsLayoutAllowed<TRequiredLayouts, RouteLayoutChain<Path, TMethod>>,
+      IsStateSatisfied<RouteResolvedField<Path, TMethod, Acc, "state">, TRequiredState>,
+    ] extends [true, true]
+      ? []
+      : [
+          {
+            error: "Middleware cannot be attached to this route";
+            requiredLayouts: TRequiredLayouts;
+            routeLayoutChain: RouteLayoutChain<Path, TMethod>;
+            requiredState: TRequiredState;
+            actualState: RouteResolvedField<Path, TMethod, Acc, "state">;
+          },
+        ]
   ): RouteBuilder<
     Path,
     TMethod,
@@ -581,8 +665,19 @@ export type HandlerBuilder<
   returns<const M extends ReturnsMap>(
     map: M,
   ): HandlerBuilder<Acc, Validators, Omit<TReturns, keyof M> & M, TAppContext>;
-  use<TAcc, UReturns extends ReturnsMap = {}>(
-    unit: MiddlewareUnit<TAcc, UReturns>,
+  use<TAcc, UReturns extends ReturnsMap = {}, TRequiredLayouts = unknown, TRequiredState = unknown>(
+    unit: MiddlewareUnit<TAcc, UReturns, TRequiredLayouts, TRequiredState>,
+    ..._assert: [IsStateSatisfied<MergeMiddlewareField<Acc, "state">, TRequiredState>] extends [
+      true,
+    ]
+      ? []
+      : [
+          {
+            error: "Middleware cannot be attached to this handler";
+            requiredState: TRequiredState;
+            actualState: MergeMiddlewareField<Acc, "state">;
+          },
+        ]
   ): HandlerBuilder<
     readonly [...Acc, TAcc],
     Validators,

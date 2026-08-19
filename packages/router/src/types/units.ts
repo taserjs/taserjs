@@ -98,13 +98,14 @@ export type StandaloneMiddlewareContext<
   TParams = unknown,
   TBody = unknown,
   TAppContext extends Record<string, unknown> = AppContext,
+  TState = {},
 > = Simplify<
   TAppContext &
     UnitRuntimeContext & {
       query: Simplify<UnwrapPart<TQuery>>;
       params: Simplify<UnwrapPart<TParams>>;
       body: Simplify<UnwrapPart<TBody>>;
-      state: {};
+      state: Simplify<UnwrapPart<TState>>;
       headers: TaserHeaders;
       cookies: TaserCookieJar;
     }
@@ -144,9 +145,13 @@ export type HandlerContext<
 export type MiddlewareUnit<
   TAcc = unknown,
   TReturns extends ReturnsMap = {},
+  TRequiredLayouts = unknown,
+  TRequiredState = unknown,
 > = MiddlewareDefinition & {
   readonly __middlewareAcc: TAcc;
   readonly __returns?: TReturns;
+  readonly __requiredLayouts?: TRequiredLayouts;
+  readonly __requiredState?: TRequiredState;
 };
 
 export type HandlerUnit<

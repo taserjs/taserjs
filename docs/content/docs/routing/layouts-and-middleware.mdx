@@ -146,7 +146,7 @@ When middleware calls `next({ session })`, the properties merge directly into `c
 
 ## Standalone Middlewares with `defineMiddleware`
 
-To create reusable middlewares across different layout files or projects, use `defineMiddleware()`:
+To create reusable, type-safe middlewares across layout files or projects, use `defineMiddleware()`:
 
 ```ts title="src/middleware/rate-limit.ts"
 import { defineMiddleware, reply } from "@taserjs/router";
@@ -176,6 +176,136 @@ import { rateLimiter } from "../middleware/rate-limit";
 export const Middleware = t
   .middleware("api")
   .use(rateLimiter({ maxRequests: 100, windowSeconds: 60 }));
+```
+
+---
+
+## Layout-Scoped Middlewares
+
+When creating middleware tailored for a specific route hierarchy, pass the layout identifier as the first argument to `defineMiddleware()`.
+
+### 1. Single Layout Binding
+
+Passing a layout identifier binds the middleware directly to that layout branch:
+
+```ts title="src/middleware/user-guard.ts"
+import { defineMiddleware, reply } from "@taserjs/router";
+
+export const requireActiveUser = defineMiddleware("users", {
+  handler: async (ctx, next) => {
+    // 1. ctx.state automatically inherits all state provided by the "users" layout chain:
+    const user = ctx.state.user;
+
+    if (!user.isActive) {
+      return reply.forbidden({ message: "User account suspended" });
+    }
+
+    // 2. Injects additional state downstream:
+    return next({ userTier: user.tier });
+  },
+});
+```
+
+#### Compile-Time Branch Safety
+
+TypeScript guarantees that `requireActiveUser` can only be attached to routes or layouts under the `"users"` branch:
+
+```ts title="src/routes/users/settings.get.ts"
+import { reply } from "@taserjs/router";
+import { t } from "#src/taser.js";
+import { requireActiveUser } from "../../middleware/user-guard";
+
+// Allowed: Route inherits "users" layout
+export const Route = t
+  .get("/users/settings")
+  .use(requireActiveUser)
+  .handler((ctx) => {
+    return reply.json({ tier: ctx.state.userTier });
+  });
+```
+
+If you attempt to mount it on an unrelated branch, TypeScript emits an immediate compile error:
+
+```ts title="src/routes/posts/$id.get.ts"
+// ❌ TypeScript Error: Cannot attach middleware scoped to "users" layout on "posts" branch
+export const Route = t
+  .get("/posts/:id")
+  .use(requireActiveUser)
+  .handler((ctx) => reply.ok());
+```
+
+---
+
+### 2. Multi-Layout Binding (Branch Union)
+
+If a middleware applies to multiple distinct layout branches (such as both `"dashboard"` and `"admin"`), pass an array of layout IDs:
+
+```ts title="src/middleware/tenant-guard.ts"
+import { defineMiddleware, reply } from "@taserjs/router";
+
+export const requireTenant = defineMiddleware(["dashboard", "admin"], {
+  handler: async (ctx, next) => {
+    // ctx.state receives the common state guaranteed across all specified layouts:
+    const session = ctx.state.session;
+
+    if (!session.tenantId) {
+      return reply.forbidden({ message: "Tenant required" });
+    }
+
+    return next({ tenantId: session.tenantId });
+  },
+});
+```
+
+This middleware can now be safely attached to routes inheriting either the `"dashboard"` or `"admin"` layout branches with total type safety.
+
+---
+
+## State-Requirement Generics (`defineMiddleware<TState, TRequires>`)
+
+For un-scoped middlewares that are not tied to a specific layout name but still require certain properties to exist in `ctx.state`, use the second generic parameter `TRequires`:
+
+```ts title="src/middleware/admin-guard.ts"
+import { defineMiddleware, reply } from "@taserjs/router";
+
+type RequiredState = {
+  user: {
+    id: string;
+    role: "admin" | "superadmin" | "user";
+  };
+};
+
+type InjectedState = {
+  isAdmin: boolean;
+};
+
+export const requireAdmin = defineMiddleware<InjectedState, RequiredState>({
+  handler: async (ctx, next) => {
+    // ctx.state.user is guaranteed by TypeScript to exist:
+    if (ctx.state.user.role !== "admin" && ctx.state.user.role !== "superadmin") {
+      return reply.forbidden({ message: "Administrator privileges required" });
+    }
+
+    return next({ isAdmin: true });
+  },
+});
+```
+
+### Compile-Time Precondition Validation
+
+When `.use(requireAdmin)` is added to a route or layout, TypeScript inspects the preceding middleware chain. If an upstream layout has not already injected `{ user: { ... } }`, TypeScript flags an error:
+
+```ts
+// ❌ TypeScript Error: Route state does not satisfy RequiredState { user: ... }
+t.get("/unprotected").use(requireAdmin);
+
+// Allowed: Upstream auth middleware provides { user: ... }
+t.get("/protected")
+  .use(authenticateUser)
+  .use(requireAdmin)
+  .handler((ctx) => {
+    return reply.json({ isAdmin: ctx.state.isAdmin });
+  });
 ```
 
 ---

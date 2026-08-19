@@ -135,4 +135,101 @@ describe("defineMiddleware units", () => {
 
     expect(route.middlewares).toHaveLength(1);
   });
+
+  it("supports single layout-scoped defineMiddleware with inherited state", () => {
+    const userMiddleware = defineMiddleware("index", {
+      handler: (ctx, next) => {
+        // Inherits user: string from "index" layout
+        expectTypeOf(ctx.state.user).toEqualTypeOf<string>();
+        return next({ role: "admin" });
+      },
+    });
+
+    const route = t
+      .post("/")
+      .use(userMiddleware)
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.user).toEqualTypeOf<string>();
+        expectTypeOf(ctx.state.role).toEqualTypeOf<string>();
+        return reply.json({ user: ctx.state.user, role: ctx.state.role });
+      });
+
+    expect(route.middlewares).toHaveLength(1);
+  });
+
+  it("supports multi-layout scoped defineMiddleware with common inherited state", () => {
+    const multiLayoutMiddleware = defineMiddleware(["index", "admin"], {
+      handler: (ctx, next) => {
+        // Both index and admin provide user: string
+        expectTypeOf(ctx.state.user).toEqualTypeOf<string>();
+        return next({ permission: "read" });
+      },
+    });
+
+    // Allowed on route inheriting "index"
+    const route1 = t
+      .post("/")
+      .use(multiLayoutMiddleware)
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.permission).toEqualTypeOf<string>();
+        return reply.json({ ok: true });
+      });
+
+    // Allowed on route inheriting "admin"
+    const route2 = t
+      .get("/check-ctx")
+      .use(multiLayoutMiddleware)
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.permission).toEqualTypeOf<string>();
+        return reply.json({ ok: true });
+      });
+
+    expect(route1.middlewares).toHaveLength(1);
+    expect(route2.middlewares).toHaveLength(1);
+  });
+
+  it("supports state-requirement generic on defineMiddleware", () => {
+    type RequiresUser = { user: string };
+
+    const requireUserMw = defineMiddleware<{ active: boolean }, RequiresUser>({
+      handler: (ctx, next) => {
+        expectTypeOf(ctx.state.user).toEqualTypeOf<string>();
+        return next({ active: true });
+      },
+    });
+
+    // Route under "/" inherits user: string from "index" layout
+    const route = t
+      .post("/")
+      .use(requireUserMw)
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.active).toEqualTypeOf<boolean>();
+        return reply.json({ active: ctx.state.active });
+      });
+
+    expect(route.middlewares).toHaveLength(1);
+  });
+
+  it("rejects layout-scoped middleware when attached to unrelated route branch", () => {
+    const indexOnlyMiddleware = defineMiddleware("index", {
+      handler: (_ctx, next) => next({ fromIndex: true }),
+    });
+
+    // @ts-expect-error - Route "/hello" does not inherit "index" layout
+    t.get("/hello").use(indexOnlyMiddleware);
+  });
+
+  it("rejects state-required middleware when route does not provide required state", () => {
+    type RequiresToken = { token: string };
+
+    const requireTokenMw = defineMiddleware<{ validated: boolean }, RequiresToken>({
+      handler: (ctx, next) => {
+        expectTypeOf(ctx.state.token).toEqualTypeOf<string>();
+        return next({ validated: true });
+      },
+    });
+
+    // @ts-expect-error - Route "/hello" does not have state.token
+    t.get("/hello").use(requireTokenMw);
+  });
 });

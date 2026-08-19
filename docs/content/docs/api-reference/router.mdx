@@ -87,21 +87,67 @@ function defineHandler(options?: {
 
 ---
 
-### `defineMiddleware(options)`
+### `defineMiddleware()`
 
-Constructs a standalone, reusable middleware unit.
+Constructs a standalone, reusable middleware unit with support for layout scoping, multi-layout branch unions, and state preconditions:
 
 ```ts
-function defineMiddleware<TState = unknown>(options: {
+// 1. Standard / Unscoped
+function defineMiddleware<TState = unknown, TRequires = {}>(options: {
   query?: Schema;
   params?: Schema;
   body?: Schema;
   returns?: Record<number, Schema>;
   handler: (
-    ctx: StandaloneMiddlewareContext,
+    ctx: StandaloneMiddlewareContext<unknown, unknown, unknown, AppContext, TRequires>,
     next: (state?: TState) => Promise<ReplyResult>,
   ) => unknown;
 }): MiddlewareUnit;
+
+// 2. Single Layout-Scoped (inherits layout state & enforces branch mounting)
+function defineMiddleware<Layout extends LayoutId, TState = unknown, TRequires = {}>(
+  layout: Layout,
+  options: {
+    query?: Schema;
+    params?: Schema;
+    body?: Schema;
+    returns?: Record<number, Schema>;
+    handler: (
+      ctx: StandaloneMiddlewareContext<
+        unknown,
+        unknown,
+        unknown,
+        AppContext,
+        ResolveLayoutMiddlewaresState<Layout> & TRequires
+      >,
+      next: (state?: TState) => Promise<ReplyResult>,
+    ) => unknown;
+  },
+): MiddlewareUnit;
+
+// 3. Multi-Layout Scoped (Branch Union)
+function defineMiddleware<Layouts extends readonly LayoutId[], TState = unknown, TRequires = {}>(
+  layouts: Layouts,
+  options: {
+    query?: Schema;
+    params?: Schema;
+    body?: Schema;
+    returns?: Record<number, Schema>;
+    handler: (
+      ctx: StandaloneMiddlewareContext<
+        unknown,
+        unknown,
+        unknown,
+        AppContext,
+        ResolveLayoutsState<Layouts> & TRequires
+      >,
+      next: (state?: TState) => Promise<ReplyResult>,
+    ) => unknown;
+  },
+): MiddlewareUnit;
+
+// 4. Hono Middleware Wrapper
+function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit;
 ```
 
 ---

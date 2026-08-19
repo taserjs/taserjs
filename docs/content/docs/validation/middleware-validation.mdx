@@ -104,6 +104,33 @@ export const Middleware = t
 
 ---
 
+## State Preconditions (`TRequires`)
+
+When writing reusable standalone middlewares that assume certain state was already produced upstream (e.g. an authenticated user or tenant ID), declare a state requirement type via `defineMiddleware<TState, TRequires>`:
+
+```ts title="src/middleware/require-subscription.ts"
+import { defineMiddleware, reply } from "@taserjs/router";
+
+type SubscriptionPrecondition = {
+  hasActiveSubscription: boolean;
+};
+
+export const requireActivePlan = defineMiddleware<{}, SubscriptionPrecondition>({
+  handler: (ctx, next) => {
+    // TypeScript ensures ctx.state.hasActiveSubscription exists:
+    if (!ctx.state.hasActiveSubscription) {
+      return reply.forbidden({ message: "Active subscription required" });
+    }
+
+    return next();
+  },
+});
+```
+
+If you attach `.use(requireActivePlan)` to a route or layout that has not initialized `hasActiveSubscription` upstream, TypeScript flags a compile-time type mismatch.
+
+---
+
 ## Next Steps
 
 <Cards>
