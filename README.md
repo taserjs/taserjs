@@ -48,7 +48,7 @@ Traditional Node.js routers force painful trade-offs between clean folder struct
 ### Core Highlights
 
 - **Deterministic File-Based Routing** — Endpoints live in HTTP verb files (`.get.ts`, `.post.ts`, `.put.ts`, `.delete.ts`); non-verb files act as directory-scoped middleware. Zero manual route registration tables.
-- **Cascading Typed Context** — State injected by middleware (`next({ state: { user } })`) flows into `ctx.state` with 100% compile-time inference and zero type assertions.
+- **Cascading Typed Context** — State injected by middleware (`next({ user })`) flows into `ctx.state` with 100% compile-time inference and zero type assertions.
 - **Compiler-Enforced Return Contracts** — `.returns({ 200: schema })` catches payload drift and prevents breaking changes before deployment.
 - **Framework Agnostic** — Mount on Express, Hono, Fastify, Bun, or plain Node.js without changing your handler logic.
 - **Standard Schema First** — Validate query, params, headers, and body with Zod, ArkType, Valibot, or any Standard Schema library.

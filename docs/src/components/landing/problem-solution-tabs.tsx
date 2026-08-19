@@ -47,22 +47,23 @@ app.post("/private", validateBody(schema), (req, res) => {
     solutionTitle: "Cascading Typed Pipeline",
     solutionBadge: "100% Inferred Context",
     solutionFilename: "routes/admin.ts + routes/admin/reports.post.ts",
-    solutionCode: `// Middleware declares what it injects
+    solutionCode: `// Middleware validates and passes state to next()
 export const Middleware = t.middleware('/admin').use({
   query: z.object({ token: z.string() }),
-  state: z.object({ user: UserSchema }),
   handler: async (ctx, next) => {
     const user = await getUser(ctx.query.token);
     if (!user) throw reply.unauthorized();
-    return next({ state: { user } });
+    return next({ user });
   }
 });
 
 // Handler receives fully-inferred ctx automatically
-export const Route = t.post("/admin/reports", {
+const POST = t.post("/admin/reports", {
   body: ReportInputSchema,
-}).handler(async (ctx) => {
-  const user = ctx.state.user; // ✓ Inferred User
+});
+
+export const Route = POST.handler(async (ctx) => {
+  const user = ctx.state.user; // ✓ Inferred User from next({ user })
   const body = ctx.body;       // ✓ Inferred ReportInput
   const token = ctx.query.token; // ✓ Inferred from middleware!
 });`,
@@ -158,16 +159,19 @@ const data = await res.json();
     solutionTitle: "End-to-End Typed Client",
     solutionBadge: "Auto-Completed SDK",
     solutionFilename: "frontend/client.ts",
-    solutionCode: `import { createApiClient } from "@taserjs/client";
-import type { AppRouter } from "../backend/router";
+    solutionCode: `import { createClient } from "@taserjs/router-client";
+import type { TaserAppRouter } from "../backend/server";
 
-const api = createApiClient<AppRouter>({ baseUrl: "/api" });
+const api = createClient<TaserAppRouter>({ baseUrl: "https://api.example.com" });
 
 // ✓ Full autocomplete for routes, query, body, and response:
-const { data, status } = await api.admin.reports.get({
+const res = await api.admin.reports.$get({
   query: { token: "xyz", limit: 10 },
 });
-// ✓ data.reports is fully typed!`,
+if (res.status === 200) {
+  const data = await res.json();
+  // ✓ data.reports is 100% typed!
+}`,
     takeaway:
       "Export your router types and call your backend with an auto-generated client that guarantees 1:1 parity with your server.",
   },

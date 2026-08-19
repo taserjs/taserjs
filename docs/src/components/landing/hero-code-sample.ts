@@ -24,28 +24,29 @@ export const context = createContext({
     requestId: crypto.randomUUID(),
   }),
 })`,
-  layout: `import { t } from '#src/taser'
-import { cors } from '@taserjs/router/cors'
+  layout: `import { cors } from '@taserjs/router/cors'
+import { t } from '#src/taser.js'
 
 export const Middleware = t.middleware('/$')
   .use(cors({ origin: ['https://app.example.com'] }))`,
   auth: `import { jwt } from '@taserjs/router/jwt'
-import { z } from 'zod'
+import { t } from '#src/taser.js'
 
-const payloadSchema = z.object({
-  sub: z.string(),
-  role: z.string(),
-})
+type JwtClaims = {
+  sub: string
+  role: string
+}
+
 export const Middleware = t.middleware('dashboard')
   .use(
-    jwt(payloadSchema, {
+    jwt<JwtClaims>({
       secret: process.env.JWT_SECRET!,
       alg: 'HS256',
     }),
   )`,
   route: `import { reply } from '@taserjs/router'
-import { t } from '#src/taser'
 import { z } from 'zod'
+import { t } from '#src/taser.js'
 
 const GET = t.get('/dashboard/users', {
   query: z.object({
@@ -56,10 +57,7 @@ const GET = t.get('/dashboard/users', {
 
 export const Route = GET.handler(async (ctx) => {
   const sub = ctx.state.jwtPayload.sub
-  // sub: string
-  const page = ctx.query.page
-  // page: number
-  const limit = ctx.query.limit
+  const { page, limit } = ctx.query
   const users = await ctx.db.getUsers(page, limit)
   return reply.json({ sub, users })
 })`,
