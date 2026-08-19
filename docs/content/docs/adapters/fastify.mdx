@@ -24,8 +24,8 @@ npm install @taserjs/adapter-fastify fastify
 ```ts title="src/index.ts"
 import Fastify from "fastify";
 import { createFastifyHandler } from "@taserjs/adapter-fastify";
-import { routeManifest } from "./routeManifest.gen";
-import { t } from "./taser";
+import { routeManifest } from "#src/routeManifest.gen.js";
+import { t } from "#src/taser.js";
 
 // 1. Initialize Taser application
 export const app = t.create(routeManifest);
@@ -51,7 +51,7 @@ In any Taser handler, `ctx.native` provides access to the underlying Fastify obj
 
 ```ts title="src/routes/fastify-info.get.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.get("/fastify-info").handler((ctx) => {
   const fastifyReq = ctx.native.req;

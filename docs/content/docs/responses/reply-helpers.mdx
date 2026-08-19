@@ -18,7 +18,7 @@ The `reply.json()` method serializes data into a JSON string and automatically s
 
 ```ts title="src/routes/users.get.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.get("/users").handler((ctx) => {
   return reply.json([
@@ -50,7 +50,7 @@ Use `reply.text()` to return raw strings with `Content-Type: text/plain; charset
 
 ```ts title="src/routes/robots.txt.get.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.get("/robots.txt").handler(() => {
   return reply.text("User-agent: *\nDisallow: /admin/\n");
@@ -65,7 +65,7 @@ For successful operations that do not return a payload (such as `DELETE` endpoin
 
 ```ts title="src/routes/items/$id.delete.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.delete("/items/:id").handler(async (ctx) => {
   await ctx.db.deleteItem(ctx.params.id);
@@ -81,7 +81,7 @@ Use `reply.redirect()` to send HTTP redirects (default: `302 Found`):
 
 ```ts title="src/routes/old-docs.get.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.get("/old-docs").handler(() => {
   // Permanent 301 redirect:
@@ -117,7 +117,7 @@ Taser includes pre-configured helper methods for common HTTP status codes:
 
 ```ts title="src/routes/documents/$id.get.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.get("/documents/:id").handler(async (ctx) => {
   const user = ctx.state.user;
@@ -146,7 +146,7 @@ You can set, read, or delete cookies directly through `ctx.cookie` or by passing
 
 ```ts title="src/routes/auth/login.post.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.post("/auth/login").handler(async (ctx) => {
   const sessionToken = await createSession();

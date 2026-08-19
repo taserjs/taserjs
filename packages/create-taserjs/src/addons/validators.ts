@@ -23,7 +23,10 @@ const ROUTE_TEMPLATE = (validator: ValidatorId) => `import { reply } from '@tase
 import { t } from '#src/taser.js'
 ${IMPORT_LINES[validator]}
 
-export const Route = t.get('/'${VALIDATION_BLOCK_TEMPLATE[validator]}).handler((ctx) => {
+const GET = t.get('/'${VALIDATION_BLOCK_TEMPLATE[validator]})
+
+export type RouteContext = typeof GET.$Infer.Context
+export const Route = GET.handler((ctx) => {
   return reply.json({ message: \`Hello, \${ctx.query.name}!\` })
 })
 `;

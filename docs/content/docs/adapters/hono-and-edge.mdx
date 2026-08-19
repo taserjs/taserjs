@@ -29,8 +29,8 @@ app.fetch(request: Request, env?: unknown, executionCtx?: unknown): Promise<Resp
     ```ts title="src/index.ts"
     import { Hono } from "hono";
     import { serve } from "@hono/node-server";
-    import { routeManifest } from "./routeManifest.gen";
-    import { t } from "./taser";
+    import { routeManifest } from "#src/routeManifest.gen.js";
+    import { t } from "#src/taser.js";
 
     export const app = t.create(routeManifest);
     export type TaserAppRouter = typeof app;
@@ -50,8 +50,8 @@ app.fetch(request: Request, env?: unknown, executionCtx?: unknown): Promise<Resp
 
   <Tab value="Cloudflare Workers">
     ```ts title="src/index.ts"
-    import { routeManifest } from "./routeManifest.gen";
-    import { t } from "./taser";
+    import { routeManifest } from "#src/routeManifest.gen.js";
+    import { t } from "#src/taser.js";
 
     export const app = t.create(routeManifest);
     export type TaserAppRouter = typeof app;
@@ -67,8 +67,8 @@ app.fetch(request: Request, env?: unknown, executionCtx?: unknown): Promise<Resp
 
   <Tab value="Bun">
     ```ts title="src/index.ts"
-    import { routeManifest } from "./routeManifest.gen";
-    import { t } from "./taser";
+    import { routeManifest } from "#src/routeManifest.gen.js";
+    import { t } from "#src/taser.js";
 
     export const app = t.create(routeManifest);
     export type TaserAppRouter = typeof app;
@@ -85,8 +85,8 @@ app.fetch(request: Request, env?: unknown, executionCtx?: unknown): Promise<Resp
 
   <Tab value="Deno">
     ```ts title="src/index.ts"
-    import { routeManifest } from "./routeManifest.gen.js";
-    import { t } from "./taser.js";
+    import { routeManifest } from "#src/routeManifest.gen.js";
+    import { t } from "#src/taser.js";
 
     export const app = t.create(routeManifest);
     export type TaserAppRouter = typeof app;
@@ -101,8 +101,8 @@ app.fetch(request: Request, env?: unknown, executionCtx?: unknown): Promise<Resp
     ```ts title="src/index.ts"
     import { Hono } from "hono";
     import { handle } from "hono/aws-lambda";
-    import { routeManifest } from "./routeManifest.gen";
-    import { t } from "./taser";
+    import { routeManifest } from "#src/routeManifest.gen.js";
+    import { t } from "#src/taser.js";
 
     export const app = t.create(routeManifest);
     export type TaserAppRouter = typeof app;

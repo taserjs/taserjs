@@ -92,13 +92,15 @@ function defineHandler(options?: {
 Constructs a standalone, reusable middleware unit.
 
 ```ts
-function defineMiddleware(options: {
-  state?: Schema;
-  ctx?: Schema;
+function defineMiddleware<TState = unknown>(options: {
   query?: Schema;
   params?: Schema;
   body?: Schema;
-  handler: (ctx: Context, next: (args?: { state?: unknown }) => Promise<ReplyResult>) => unknown;
+  returns?: Record<number, Schema>;
+  handler: (
+    ctx: StandaloneMiddlewareContext,
+    next: (state?: TState) => Promise<ReplyResult>,
+  ) => unknown;
 }): MiddlewareUnit;
 ```
 

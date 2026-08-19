@@ -20,7 +20,7 @@ Attach a `.returns()` map containing schemas keyed by HTTP status codes:
 ```ts title="src/routes/profile.get.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 const UserProfileSchema = z.object({
   id: z.string(),

@@ -17,7 +17,7 @@ A layout file is any TypeScript file inside `src/routes/` that does not end with
 
 ```ts title="src/routes/admin.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Middleware = t.middleware("admin").use({
   handler: async (ctx, next) => {
@@ -50,7 +50,7 @@ The root layout applies to every route in your application. It is the ideal plac
 import { cors } from "@taserjs/router/cors";
 import { secureHeaders } from "@taserjs/router/secure-headers";
 import { timing } from "@taserjs/router/timing";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Middleware = t
   .middleware("/$")
@@ -110,7 +110,7 @@ When middleware calls `next({ session })`, the properties merge directly into `c
   <Tab value="Middleware">
     ```ts title="src/routes/dashboard.ts"
     import { reply } from "@taserjs/router";
-    import { t } from "../taser";
+    import { t } from "#src/taser.js";
 
     export const Middleware = t.middleware("dashboard").use({
       handler: async (ctx, next) => {
@@ -128,7 +128,7 @@ When middleware calls `next({ session })`, the properties merge directly into `c
   <Tab value="Route Handler">
     ```ts title="src/routes/dashboard/metrics.get.ts"
     import { reply } from "@taserjs/router";
-    import { t } from "../../taser";
+    import { t } from "#src/taser.js";
 
     export const Route = t.get("/dashboard/metrics").handler(async (ctx) => {
       // ctx.state.session is 100% typed from dashboard.ts:
@@ -170,7 +170,7 @@ export function rateLimiter(options: { maxRequests: number; windowSeconds: numbe
 Attach it to any layout or route:
 
 ```ts title="src/routes/api.ts"
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 import { rateLimiter } from "../middleware/rate-limit";
 
 export const Middleware = t

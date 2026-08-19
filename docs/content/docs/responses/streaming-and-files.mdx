@@ -18,7 +18,7 @@ Use `stream.file()` (or `reply.file()`) to serve files from disk. It automatical
 ```ts title="src/routes/downloads/$file.get.ts"
 import { stream, reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 import path from "node:path";
 
 export const Route = t
@@ -48,7 +48,7 @@ To stream dynamically generated data, AI completions, or proxy upstream streams,
 
 ```ts title="src/routes/ai/generate.post.ts"
 import { stream } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.post("/ai/generate").handler(async (ctx) => {
   const encoder = new TextEncoder();
@@ -80,7 +80,7 @@ When returning generated images, PDFs, or ZIP archives:
 
 ```ts title="src/routes/export/pdf.get.ts"
 import { stream } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.get("/export/pdf").handler(async (ctx) => {
   const pdfBytes: Uint8Array = await generateInvoicePdf(ctx.query);
@@ -102,7 +102,7 @@ You can build Server-Sent Events (SSE) streams by piping formatted SSE message e
 
 ```ts title="src/routes/events/notifications.get.ts"
 import { stream } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.get("/events/notifications").handler((ctx) => {
   const encoder = new TextEncoder();

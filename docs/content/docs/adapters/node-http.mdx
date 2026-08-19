@@ -24,8 +24,8 @@ npm install @taserjs/adapter-node
 ```ts title="src/index.ts"
 import { createServer } from "node:http";
 import { createNodeHandler } from "@taserjs/adapter-node";
-import { routeManifest } from "./routeManifest.gen";
-import { t } from "./taser";
+import { routeManifest } from "#src/routeManifest.gen.js";
+import { t } from "#src/taser.js";
 
 // 1. Initialize Taser application
 export const app = t.create(routeManifest);
@@ -78,7 +78,7 @@ server.listen(3000);
 
 ```ts title="src/routes/socket-info.get.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.get("/socket-info").handler((ctx) => {
   const req = ctx.native.req; // IncomingMessage

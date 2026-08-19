@@ -34,7 +34,7 @@ Configure your error envelope once in `src/taser.ts` using `.onError()`:
 
 ```ts title="src/taser.ts"
 import { createTaserApp, reply, ValidationError, type InferAppContext } from "@taserjs/router";
-import { context } from "./context";
+import { context } from "#src/context.js";
 
 export const t = createTaserApp()
   .context(context)

@@ -18,7 +18,7 @@ Use `ctx.cookies.get()` to read an incoming cookie by name, or `ctx.cookies.getA
 
 ```ts title="src/routes/me.get.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.get("/me").handler((ctx) => {
   // Read a single cookie:
@@ -40,7 +40,7 @@ Use `ctx.cookies.set()` to set cookies. Taser automatically handles options and 
 ```ts title="src/routes/preferences.post.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t
   .post("/preferences", {
@@ -73,7 +73,7 @@ Set your signing secret in `src/taser.ts`:
 
 ```ts title="src/taser.ts"
 import { createTaserApp } from "@taserjs/router";
-import { context } from "./context";
+import { context } from "#src/context.js";
 
 export const t = createTaserApp({
   cookies: {
@@ -90,7 +90,7 @@ export const t = createTaserApp({
 ```ts title="src/routes/auth/login.post.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "../../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t
   .post("/auth/login", {
@@ -110,7 +110,7 @@ Verify and read the signed cookie in protected endpoints:
 
 ```ts title="src/routes/auth/session.get.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.get("/auth/session").handler(async (ctx) => {
   // Returns the verified string value, or false/undefined if signature is invalid or missing:
@@ -133,7 +133,7 @@ Use `ctx.cookies.delete()` to clear a cookie by setting its `maxAge` to `0`:
 
 ```ts title="src/routes/auth/logout.post.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.post("/auth/logout").handler((ctx) => {
   // Deletes cookie and returns its prior value (if present):

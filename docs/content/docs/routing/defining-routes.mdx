@@ -37,7 +37,7 @@ GET, DELETE, OPTIONS, and HEAD routes accept validation schemas for `query` and 
 ```ts title="src/routes/articles.get.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t
   .get("/articles", {
@@ -83,7 +83,7 @@ POST, PUT, and PATCH routes accept `body`, `query`, and `params` schemas:
 ```ts title="src/routes/articles.post.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t
   .post("/articles", {
@@ -126,7 +126,7 @@ In addition to folder layout middlewares, you can attach route-specific middlewa
 
 ```ts title="src/routes/admin/purge.delete.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 import { verifySuperAdmin } from "../../middleware/super-admin";
 import { rateLimit } from "../../middleware/rate-limit";
 
@@ -148,7 +148,7 @@ When an endpoint needs to handle multiple HTTP methods with shared logic, use `t
 
 ```ts title="src/routes/webhooks/stripe.post.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 // Accepts GET and POST requests
 export const Route = t.any("/webhooks/stripe", ["GET", "POST"]).handler(async (ctx) => {
@@ -171,7 +171,7 @@ For large codebases where you prefer separating route definitions from business 
 ```ts title="src/controllers/user-controller.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const getUserDetailsHandler = t
   .defineHandler({
@@ -194,10 +194,49 @@ export const getUserDetailsHandler = t
 Then mount the handler inside the route file:
 
 ```ts title="src/routes/users/$id.get.ts"
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 import { getUserDetailsHandler } from "../../controllers/user-controller";
 
 export const Route = t.get("/users/:id").handler(getUserDetailsHandler);
+```
+
+---
+
+## Inferred Route Types (`$Infer`)
+
+Route builders provide an `$Infer` namespace for extracting the exact compile-time types of your route context, input arguments, and returns:
+
+```ts title="src/routes/users/$id.get.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "#src/taser.js";
+
+const GET = t
+  .get("/users/:id", {
+    params: z.object({ id: z.string().uuid() }),
+    query: z.object({ includeProfile: z.coerce.boolean().default(false) }),
+  })
+  .returns({
+    200: z.object({ id: z.string(), name: z.string() }),
+    404: z.object({ message: z.string() }),
+  });
+
+// Extract context shape (query, params, body, state, singletons):
+export type RouteContext = typeof GET.$Infer.Context;
+
+// Extract input arguments shape:
+export type RouteInput = typeof GET.$Infer.Input;
+
+// Extract returns shape:
+export type RouteOutput = typeof GET.$Infer.Output;
+
+export const Route = GET.handler(async (ctx) => {
+  const user = await ctx.db.findUser(ctx.params.id);
+  if (!user) {
+    return reply.notFound({ message: "User not found" });
+  }
+  return reply.json(user);
+});
 ```
 
 ---

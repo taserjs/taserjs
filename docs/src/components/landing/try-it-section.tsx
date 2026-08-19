@@ -143,17 +143,17 @@ export function TryItSection() {
               title={
                 <span className="flex items-center gap-1.5 font-mono text-xs font-semibold text-fd-foreground">
                   <TerminalIcon className="size-3.5 text-fd-muted-foreground" />
-                  bash — create-taser
+                  bash — create-taserjs
                 </span>
               }
               className="h-full flex flex-col justify-between shadow-lg shadow-black/5 dark:shadow-black/30"
             >
-              <div className="overflow-x-auto p-5 text-xs font-mono leading-relaxed select-text [scrollbar-width:thin] flex-1 flex flex-col justify-between">
+              <div className="overflow-x-auto p-5 text-xs font-mono leading-relaxed select-text scrollbar-thin flex-1 flex flex-col justify-between">
                 <div>
                   {/* Banner */}
                   <div className="mb-3">
                     <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[11px] font-bold text-cyan-600 dark:text-cyan-300">
-                      create-taser
+                      create-taserjs
                     </span>
                     <span className="ml-2 text-fd-muted-foreground text-[11px]">v0.0.14</span>
                   </div>

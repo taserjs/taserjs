@@ -17,7 +17,7 @@ Attach CORS to your root layout (`src/routes/$.ts`) to enable cross-origin reque
 
 ```ts title="src/routes/$.ts"
 import { cors } from "@taserjs/router/cors";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Middleware = t.middleware("/$").use(
   cors({
@@ -39,7 +39,7 @@ If your application supports multiple dynamic domains or customer vanity subdoma
 
 ```ts title="src/routes/$.ts"
 import { cors } from "@taserjs/router/cors";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Middleware = t.middleware("/$").use(
   cors({

@@ -160,9 +160,9 @@ Create `src/routes/hello.get.ts`:
 ```ts title="src/routes/hello.get.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
-export const Route = t
+const GET = t
   .get("/hello", {
     query: z.object({
       name: z.string().default("World"),
@@ -173,13 +173,15 @@ export const Route = t
       message: z.string(),
       timestamp: z.string(),
     }),
-  })
-  .handler((ctx) => {
-    return reply.json({
-      message: `Hello, ${ctx.query.name}!`,
-      timestamp: new Date().toISOString(),
-    });
   });
+
+export type RouteContext = typeof GET.$Infer.Context;
+export const Route = GET.handler((ctx) => {
+  return reply.json({
+    message: `Hello, ${ctx.query.name}!`,
+    timestamp: new Date().toISOString(),
+  });
+});
 ```
 
 Save the file. The CLI watch process immediately updates `routeManifest.gen.ts`.

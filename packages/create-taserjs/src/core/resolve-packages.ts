@@ -8,7 +8,7 @@ function typePackages(type: ProjectType): PackageGroups {
     "npm-run-all2",
     "tsdown",
     "tsx",
-    "typescript",
+    "typescript@^5.9.3",
     "@types/node",
   ];
   const scripts: Record<string, string> = {};

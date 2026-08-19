@@ -102,14 +102,12 @@ ${bootBlock}
 }
 
 export function rootLayoutTemplate(): string {
-  return `import { bodyLimit } from '@taserjs/router/body-limit'
-import { secureHeaders } from '@taserjs/router/secure-headers'
+  return `import { cors } from '@taserjs/router/cors'
 
 import { t } from '#src/taser.js'
 
 export const Middleware = t.middleware('/$')
-  .use(secureHeaders())
-  .use(bodyLimit({ maxSize: 1_000_000 }))
+  .use(cors())
 `;
 }
 
@@ -117,7 +115,10 @@ export function indexRouteTemplate(): string {
   return `import { reply } from '@taserjs/router'
 import { t } from '#src/taser.js'
 
-export const Route = t.get('/').handler(() => {
+const GET = t.get('/')
+
+export type RouteContext = typeof GET.$Infer.Context
+export const Route = GET.handler((_ctx) => {
   return reply.json({ message: 'Welcome to Taser' })
 })
 `;
@@ -135,12 +136,15 @@ export function healthRouteTemplate(ctx: ScaffoldContext): string {
   }
 
   const body = lines.length > 0 ? `${lines.join("\n")}\n` : "";
-  const ctxArg = lines.length > 0 ? "(ctx)" : "()";
+  const ctxArg = lines.length > 0 ? "(ctx)" : "(_ctx)";
 
   return `import { reply } from '@taserjs/router'
 import { t } from '#src/taser.js'
 
-export const Route = t.get('/health').handler(${ctxArg} => {
+const GET = t.get('/health')
+
+export type RouteContext = typeof GET.$Infer.Context
+export const Route = GET.handler(${ctxArg} => {
 ${body}  return reply.json({ ok: true })
 })
 `;

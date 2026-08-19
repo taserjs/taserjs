@@ -52,7 +52,7 @@ Attach your context in `src/taser.ts`:
 
 ```ts title="src/taser.ts"
 import { createTaserApp, type InferAppContext } from "@taserjs/router";
-import { context } from "./context";
+import { context } from "#src/context.js";
 
 export const t = createTaserApp().context(context);
 
@@ -78,7 +78,7 @@ Every route handler and middleware automatically receives the combined propertie
 
 ```ts title="src/routes/users/$id.get.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.get("/users/:id").handler(async (ctx) => {
   // Available from boot context:

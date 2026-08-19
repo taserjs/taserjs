@@ -15,9 +15,9 @@ Traditional Node.js routing forces you to write manual route registries, perform
 ```ts title="src/routes/users/$id.get.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
-export const Route = t
+const GET = t
   .get("/users/:id", {
     params: z.object({ id: z.string().uuid() }),
     query: z.object({ includeProfile: z.coerce.boolean().default(false) }),
@@ -25,18 +25,20 @@ export const Route = t
   .returns({
     200: z.object({ id: z.string(), name: z.string(), email: z.string() }),
     404: z.object({ message: z.string() }),
-  })
-  .handler(async (ctx) => {
-    // ctx.params.id is typed as string (UUID)
-    // ctx.query.includeProfile is typed as boolean
-    // ctx.state contains user data injected by layout middleware
-    const user = await ctx.db.findUserById(ctx.params.id);
-    if (!user) {
-      return reply.notFound({ message: "User not found" });
-    }
-
-    return reply.json(user);
   });
+
+export type RouteContext = typeof GET.$Infer.Context;
+export const Route = GET.handler(async (ctx) => {
+  // ctx.params.id is typed as string (UUID)
+  // ctx.query.includeProfile is typed as boolean
+  // ctx.state contains data injected by layout middlewares
+  const user = await ctx.db.findUserById(ctx.params.id);
+  if (!user) {
+    return reply.notFound({ message: "User not found" });
+  }
+
+  return reply.json(user);
+});
 ```
 
 ---

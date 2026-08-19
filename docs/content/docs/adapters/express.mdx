@@ -24,8 +24,8 @@ npm install @taserjs/adapter-express express
 ```ts title="src/index.ts"
 import express from "express";
 import { createExpressHandler } from "@taserjs/adapter-express";
-import { routeManifest } from "./routeManifest.gen";
-import { t } from "./taser";
+import { routeManifest } from "#src/routeManifest.gen.js";
+import { t } from "#src/taser.js";
 
 // 1. Initialize Taser application
 export const app = t.create(routeManifest);
@@ -60,7 +60,7 @@ Inside any Taser handler or context function, `ctx.native` provides access to th
 
 ```ts title="src/routes/session.get.ts"
 import { reply } from "@taserjs/router";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t.get("/session").handler((ctx) => {
   // Access Express native objects:

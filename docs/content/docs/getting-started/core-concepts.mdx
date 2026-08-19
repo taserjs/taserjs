@@ -84,7 +84,7 @@ Taser runs layout middleware from outermost to innermost:
 - Parent directory layouts (for example, `src/routes/admin.ts`)
 - Pathless layouts (for example, `src/routes/admin/_auth.ts`)
 
-Any state returned by middleware (such as `{ state: { user: currentUser } }`) merges cleanly into `ctx.state`.
+Any state returned by middleware (such as `next({ user: currentUser })`) merges cleanly into `ctx.state`.
 
 ### 4. Input Validation
 
@@ -142,7 +142,7 @@ export const Route = t
       type: "TBoot & TReq",
     },
     state: {
-      description: "Cascading state returned from layout middlewares via next({ state: { ... } }).",
+      description: "Cascading state returned from layout middlewares via next({ ... }).",
       type: "Record<string, unknown>",
     },
     params: {

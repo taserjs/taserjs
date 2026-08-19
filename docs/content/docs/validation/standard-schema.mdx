@@ -21,7 +21,7 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
     ```ts title="src/routes/products.get.ts"
     import { reply } from "@taserjs/router";
     import { z } from "zod";
-    import { t } from "../taser";
+    import { t } from "#src/taser.js";
 
     export const Route = t
       .get("/products", {
@@ -46,7 +46,7 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
     ```ts title="src/routes/products.get.ts"
     import { reply } from "@taserjs/router";
     import { type } from "arktype";
-    import { t } from "../taser";
+    import { t } from "#src/taser.js";
 
     const QuerySchema = type({
       "search?": "string",
@@ -68,7 +68,7 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
     ```ts title="src/routes/products.get.ts"
     import { reply } from "@taserjs/router";
     import * as v from "valibot";
-    import { t } from "../taser";
+    import { t } from "#src/taser.js";
 
     const QuerySchema = v.object({
       search: v.optional(v.string()),
@@ -96,7 +96,7 @@ Path parameters declared in file names (for example, `$id.get.ts` or `$orgId/$re
 ```ts title="src/routes/organizations/$orgId/members/$memberId.get.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "../../../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t
   .get("/organizations/:orgId/members/:memberId", {
@@ -122,7 +122,7 @@ For POST, PUT, and PATCH routes, pass a `body` schema to validate incoming JSON 
 ```ts title="src/routes/posts.post.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 const CreatePostSchema = z.object({
   title: z.string().min(5).max(200),
@@ -163,7 +163,7 @@ You can validate file presence, file size, and permitted MIME types using your s
     ```ts title="src/routes/users/$id/avatar.post.ts"
     import { reply } from "@taserjs/router";
     import { z } from "zod";
-    import { t } from "../../../taser";
+    import { t } from "#src/taser.js";
 
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -210,7 +210,7 @@ You can validate file presence, file size, and permitted MIME types using your s
     ```ts title="src/routes/users/$id/avatar.post.ts"
     import { reply } from "@taserjs/router";
     import { type } from "arktype";
-    import { t } from "../../../taser";
+    import { t } from "#src/taser.js";
 
     const AvatarUploadSchema = type({
       "caption?": "string",
@@ -238,7 +238,7 @@ You can validate file presence, file size, and permitted MIME types using your s
     ```ts title="src/routes/users/$id/avatar.post.ts"
     import { reply } from "@taserjs/router";
     import * as v from "valibot";
-    import { t } from "../../../taser";
+    import { t } from "#src/taser.js";
 
     const AvatarUploadSchema = v.object({
       caption: v.optional(v.string()),
@@ -271,7 +271,7 @@ When clients upload multiple files under the same form field name, validate them
 ```ts title="src/routes/documents/upload.post.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "../../taser";
+import { t } from "#src/taser.js";
 
 const MultiDocSchema = z.object({
   folderId: z.string(),
@@ -326,7 +326,7 @@ Taser respects schema transformations. If your schema takes a string and transfo
 ```ts title="src/routes/events.post.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Route = t
   .post("/events", {

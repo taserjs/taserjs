@@ -11,61 +11,52 @@ Validation in Taser is not limited to route handlers. Layout middleware can vali
 
 ---
 
-## State Schema Declaration
+## State Inference & Injection
 
-When defining a middleware, you can supply a `state` schema to enforce the structure of data passed down the pipeline:
+Layout middleware can validate incoming requests and inject typed state down the pipeline. Any object passed to `next({ ... })` is automatically merged into `ctx.state` and inferred across all child handlers:
 
 ```ts title="src/routes/orgs.ts"
 import { reply } from "@taserjs/router";
-import { z } from "zod";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
-const OrganizationSchema = z.object({
-  id: z.string().uuid(),
-  slug: z.string(),
-  plan: z.enum(["free", "pro", "enterprise"]),
-});
+type Organization = {
+  id: string;
+  slug: string;
+  plan: "free" | "pro" | "enterprise";
+};
 
 export const Middleware = t.middleware("orgs").use({
-  state: z.object({
-    organization: OrganizationSchema,
-  }),
   handler: async (ctx, next) => {
     const orgSlug = ctx.headers.get("x-org-slug");
     if (!orgSlug) {
       return reply.badRequest({ message: "Missing x-org-slug header" });
     }
 
-    const org = await ctx.db.findOrgBySlug(orgSlug);
+    const org: Organization | null = await ctx.db.findOrgBySlug(orgSlug);
     if (!org) {
       return reply.notFound({ message: "Organization not found" });
     }
 
-    // TypeScript guarantees that the object passed to next matches OrganizationSchema:
-    return next({
-      state: { organization: org },
-    });
+    // TypeScript infers { organization: Organization } into ctx.state for all downstream routes:
+    return next({ organization: org });
   },
 });
 ```
 
 ---
 
-## Validating Query and Headers in Middleware
+## Validating Query, Params, and Body in Middleware
 
-Middleware can also declare `query`, `params`, or `body` schemas to reject invalid requests early before hitting child routes:
+Middleware can declare `query`, `params`, or `body` schemas using Standard Schema to reject invalid requests early before hitting child routes:
 
 ```ts title="src/routes/api/v2.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "../../taser";
+import { t } from "#src/taser.js";
 
 export const Middleware = t.middleware("api_v2").use({
   query: z.object({
     apiKey: z.string().min(32),
-  }),
-  state: z.object({
-    tier: z.enum(["standard", "premium"]),
   }),
   handler: async (ctx, next) => {
     // ctx.query.apiKey is validated
@@ -74,9 +65,7 @@ export const Middleware = t.middleware("api_v2").use({
       return reply.unauthorized({ message: "Invalid API key" });
     }
 
-    return next({
-      state: { tier: keyRecord.tier },
-    });
+    return next({ tier: keyRecord.tier });
   },
 });
 ```
@@ -85,32 +74,29 @@ export const Middleware = t.middleware("api_v2").use({
 
 ## Multi-Step Middleware Pipelines
 
-You can chain multiple `.use()` calls on a layout middleware. Each step can enrich `ctx.state`:
+You can chain multiple `.use()` calls on a layout middleware. Each step enriches `ctx.state` and subsequent middleware steps immediately receive previously injected state:
 
 ```ts title="src/routes/billing.ts"
 import { reply } from "@taserjs/router";
-import { z } from "zod";
-import { t } from "../taser";
+import { t } from "#src/taser.js";
 
 export const Middleware = t
   .middleware("billing")
-  // Step 1: Validate session
+  // Step 1: Validate session & inject userId
   .use({
-    state: z.object({ userId: z.string() }),
     handler: async (ctx, next) => {
       const token = ctx.headers.get("authorization")?.replace("Bearer ", "");
       if (!token) return reply.unauthorized();
-      return next({ state: { userId: "user_123" } });
+      return next({ userId: "user_123" });
     },
   })
-  // Step 2: Fetch subscription
+  // Step 2: Fetch subscription using userId from Step 1
   .use({
-    state: z.object({ hasActiveSubscription: z.boolean() }),
     handler: async (ctx, next) => {
-      // ctx.state.userId is available from Step 1!
+      // ctx.state.userId is 100% typed from Step 1!
       const sub = await ctx.db.getSubscription(ctx.state.userId);
       return next({
-        state: { hasActiveSubscription: Boolean(sub?.active) },
+        hasActiveSubscription: Boolean(sub?.active),
       });
     },
   });

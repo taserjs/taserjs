@@ -17,8 +17,8 @@ The `@taserjs/router-client` package generates an auto-completing, type-safe API
 In your backend entry file, export the type of your initialized Taser app:
 
 ```ts title="server/src/index.ts"
-import { routeManifest } from "./routeManifest.gen";
-import { t } from "./taser";
+import { routeManifest } from "#src/routeManifest.gen.js";
+import { t } from "#src/taser.js";
 
 export const app = t.create(routeManifest);
 

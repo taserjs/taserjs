@@ -69,14 +69,18 @@ describe("scaffoldProject", () => {
 
       const indexRoute = await readFile(path.join(dir, "src/routes/index.get.ts"), "utf8");
       expect(indexRoute).toContain("#src/taser.js");
+      expect(indexRoute).toContain("const GET = t.get('/')");
+      expect(indexRoute).toContain("export type RouteContext = typeof GET.$Infer.Context");
+      expect(indexRoute).toContain("export const Route = GET.handler(");
 
       const taserTs = await readFile(path.join(dir, "src/taser.ts"), "utf8");
       expect(taserTs).toContain("response: { validate: true }");
       expect(taserTs).toContain("#src/context.js");
 
       const rootLayout = await readFile(path.join(dir, "src/routes/$.ts"), "utf8");
-      expect(rootLayout).toContain("secureHeaders");
-      expect(rootLayout).toContain("bodyLimit");
+      expect(rootLayout).toContain("cors");
+      expect(rootLayout).not.toContain("secureHeaders");
+      expect(rootLayout).not.toContain("bodyLimit");
       expect(rootLayout).toContain("#src/taser.js");
 
       expect(pkg.dependencies).toBeUndefined();
@@ -662,7 +666,7 @@ describe("getPackageGroups", () => {
       "npm-run-all2",
       "tsdown",
       "tsx",
-      "typescript",
+      "typescript@^5.9.3",
       "@types/node",
     ]);
   });
