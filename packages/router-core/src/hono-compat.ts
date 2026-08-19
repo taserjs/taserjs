@@ -7,10 +7,66 @@ import type { PipelineContext, PipelineNext } from "./run-middleware.js";
 import type { MiddlewareDefinition } from "./types.js";
 
 /**
- * Resolves the Hono Context from Taser's pipeline context.
- * Prefers `ctx.hono` (set by runtime) over `ctx.native` (set by adapters).
+ * Lightweight Hono Context shim for standalone, Express, Fastify, and Node environments.
  */
-function resolveHonoContext(ctx: PipelineContext): Context | undefined {
+export function createCompatHonoContext(ctx: PipelineContext): Context {
+  const headers = new Headers();
+  const res = {
+    headers,
+    status: 200,
+  };
+  const request = ctx.request as Request | undefined;
+  const ctxHeaders = ctx.headers as import("./taser-headers.js").TaserHeaders | undefined;
+  const ctxParams = (ctx.params ?? {}) as Record<string, string>;
+  const ctxQuery = (ctx.query ?? {}) as Record<string, string | string[]>;
+  const varStore: Record<string, unknown> = (ctx.var as Record<string, unknown>) ?? {};
+
+  return {
+    req: {
+      raw: request as never,
+      method: ctx.method,
+      url: request?.url ?? `http://localhost${ctx.path}`,
+      path: ctx.path,
+      header: (name?: string) =>
+        name !== undefined ? ctxHeaders?.get(name) : ctxHeaders ? ctxHeaders.getAll() : {},
+      param: (name?: string) => (name !== undefined ? ctxParams[name] : { ...ctxParams }),
+      query: (name?: string) => (name !== undefined ? ctxQuery[name] : { ...ctxQuery }),
+    },
+    res,
+    var: varStore,
+    header(name: string, value: string, options?: { append?: boolean }) {
+      if (options?.append) {
+        headers.append(name, value);
+      } else {
+        headers.set(name, value);
+      }
+    },
+    status(code: number) {
+      res.status = code;
+    },
+    set(key: string, value: unknown) {
+      varStore[key] = value;
+    },
+    get(key: string) {
+      return varStore[key];
+    },
+    text(text: string, status?: number, headersInit?: HeadersInit) {
+      return new Response(text, { status: status ?? res.status, headers: headersInit ?? headers });
+    },
+    json(object: unknown, status?: number, headersInit?: HeadersInit) {
+      return new Response(JSON.stringify(object), {
+        status: status ?? res.status,
+        headers: { "content-type": "application/json", ...headersInit },
+      });
+    },
+  } as unknown as Context;
+}
+
+/**
+ * Resolves the Hono Context from Taser's pipeline context.
+ * Returns existing Hono Context (if mounted in Hono) or creates a lightweight compat shim.
+ */
+function resolveHonoContext(ctx: PipelineContext): Context {
   const hono = ctx.hono as Context | undefined;
   if (hono) {
     return hono;
@@ -22,7 +78,7 @@ function resolveHonoContext(ctx: PipelineContext): Context | undefined {
     return native as Context;
   }
 
-  return undefined;
+  return createCompatHonoContext(ctx);
 }
 
 /**
@@ -68,11 +124,6 @@ export function createTaserCompatHandler(
     const pipelineCtx = ctx as PipelineContext;
     const next = taserNext as PipelineNext;
     const c = resolveHonoContext(pipelineCtx);
-    if (!c) {
-      throw new Error(
-        "defineMiddleware requires a Hono runtime context when wrapping Hono middleware. Use a Hono-based Taser app or pass native via app.native(c).fetch().",
-      );
-    }
 
     let taserNextCalled = false;
     let taserNextResult: ReplyResult | undefined;

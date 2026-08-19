@@ -15,13 +15,13 @@ export async function ensureBody(ctx: PipelineContext): Promise<void> {
     return;
   }
 
-  const hono = ctx.hono as Context | undefined;
-  if (!hono) {
+  const req = (ctx.request as Request) ?? (ctx.hono as Context | undefined)?.req;
+  if (!req) {
     ctx.body = undefined;
     record[bodyParsedKey] = true;
     return;
   }
 
-  ctx.body = await parseRequestBody(hono.req);
+  ctx.body = await parseRequestBody(req);
   record[bodyParsedKey] = true;
 }

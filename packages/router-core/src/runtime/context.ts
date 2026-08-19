@@ -1,5 +1,4 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import type { Context } from "hono";
 
 import { ensureBody } from "../ensure-body.js";
 import {
@@ -32,28 +31,21 @@ function parseQuery(url: URL): Record<string, string | string[]> {
   return query;
 }
 
-function buildParams(c: Context): Record<string, unknown> {
-  try {
-    return { ...(c.req.param() as Record<string, string>) };
-  } catch {
-    return {};
-  }
-}
-
 export async function buildPipelineContext(
-  c: Context,
-  createContext: ContextFactory,
+  request: Request,
+  params: Record<string, unknown>,
   path: string,
   method: HttpMethod,
+  createContext: ContextFactory,
   cookieSecret?: string | BufferSource,
   cookieDefaults?: import("../taser-cookies.js").CookieDefaults,
 ): Promise<{ ctx: PipelineContext; cookies: TaserCookieJar }> {
   const scope = requestScope.getStore();
   const native = scope?.native;
-  const hono = scope?.hono ?? c;
+  const hono = scope?.hono;
   const userContext = await createContext({ native });
   const cookies = createTaserCookieJar(
-    c.req.header("cookie") ?? null,
+    request.headers.get("cookie") ?? null,
     cookieSecret,
     cookieDefaults ?? {},
   );
@@ -66,26 +58,26 @@ export async function buildPipelineContext(
     state: {},
     get query() {
       if (_query === undefined) {
-        _query = parseQuery((_url ??= new URL(c.req.url)));
+        _query = parseQuery((_url ??= new URL(request.url)));
       }
       return _query;
     },
     set query(value: Record<string, string | string[]>) {
       _query = value;
     },
-    params: buildParams(c),
+    params: { ...params },
     body: undefined,
-    headers: createTaserHeaders(c.req.raw.headers),
+    headers: createTaserHeaders(request.headers),
     cookies,
     method,
     path,
     get url() {
       if (_url === undefined) {
-        _url = new URL(c.req.url);
+        _url = new URL(request.url);
       }
       return _url;
     },
-    request: c.req.raw,
+    request,
     native,
     hono,
     var: {},
@@ -95,13 +87,15 @@ export async function buildPipelineContext(
 }
 
 export async function buildNotFoundContext(
-  c: Context,
+  request: Request,
+  path: string,
+  method: string,
   createContext: ContextFactory,
   cookies: TaserCookieJar,
 ): Promise<PipelineContext> {
   const scope = requestScope.getStore();
   const native = scope?.native;
-  const hono = scope?.hono ?? c;
+  const hono = scope?.hono;
   const userContext = await createContext({ native });
 
   let _url: URL | undefined;
@@ -112,7 +106,7 @@ export async function buildNotFoundContext(
     state: {},
     get query() {
       if (_query === undefined) {
-        _query = parseQuery((_url ??= new URL(c.req.url)));
+        _query = parseQuery((_url ??= new URL(request.url)));
       }
       return _query;
     },
@@ -121,17 +115,17 @@ export async function buildNotFoundContext(
     },
     params: {},
     body: undefined,
-    headers: createTaserHeaders(c.req.raw.headers),
+    headers: createTaserHeaders(request.headers),
     cookies,
-    method: c.req.method.toUpperCase(),
-    path: c.req.path,
+    method,
+    path,
     get url() {
       if (_url === undefined) {
-        _url = new URL(c.req.url);
+        _url = new URL(request.url);
       }
       return _url;
     },
-    request: c.req.raw,
+    request,
     native,
     hono,
     var: {},

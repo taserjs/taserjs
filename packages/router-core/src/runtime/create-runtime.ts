@@ -1,6 +1,6 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { normalizeOnError, type ReplyResult } from "@taserjs/router-utils";
-import { Hono } from "hono";
+import { addRoute, createRouter, findRoute } from "rou3";
 
 import { toWireResponse } from "../error-handler.js";
 import { composePipeline, type PipelineContext } from "../run-middleware.js";
@@ -14,8 +14,8 @@ import type {
 } from "../types.js";
 import { buildPipelineContext, buildPipelineLayers } from "./context.js";
 import { finalizeReply, type FinalizeResponseOptions } from "./finalize.js";
-import { toHonoRegisterPath } from "./hono-path.js";
-import { registerNotFoundHandler } from "./not-found.js";
+import { toRou3RegisterPath } from "./hono-path.js";
+import { dispatchNotFound } from "./not-found.js";
 import { joinRoutePrefix, normalizeRoutePrefix } from "./route-prefix.js";
 import { requestScope } from "./request-scope.js";
 import { buildEffectiveReturns } from "./returns.js";
@@ -29,19 +29,42 @@ import type {
 } from "./types.js";
 
 type PreparedRoute = {
+  path: string;
+  method: HttpMethod;
   effectiveReturns: Record<number, StandardSchemaV1> | undefined;
   run: (ctx: PipelineContext) => Promise<ReplyResult>;
 };
 
+type Rou3Router<T> = ReturnType<typeof createRouter<T>>;
+
+function extractPathname(url: string): string {
+  const schemeEnd = url.indexOf("://");
+  const pathStart =
+    schemeEnd === -1
+      ? url.startsWith("/")
+        ? 0
+        : url.indexOf("/")
+      : url.indexOf("/", schemeEnd + 3);
+  if (pathStart === -1) {
+    return "/";
+  }
+  const queryIndex = url.indexOf("?", pathStart);
+  const hashIndex = url.indexOf("#", pathStart);
+  const end =
+    queryIndex === -1
+      ? hashIndex === -1
+        ? url.length
+        : hashIndex
+      : hashIndex === -1
+        ? queryIndex
+        : Math.min(queryIndex, hashIndex);
+  return url.slice(pathStart, end) || "/";
+}
+
 function registerManifestRoutes(
-  app: Hono,
+  router: Rou3Router<PreparedRoute>,
   manifest: RouteManifestShape,
   pathPrefix: string,
-  createContext: ContextFactory,
-  responseOptions: FinalizeResponseOptions,
-  cookieSecret: string | BufferSource | undefined,
-  cookieDefaults: import("../taser-cookies.js").CookieDefaults,
-  getOnErrorHandler: () => OnErrorHandler | undefined,
 ): void {
   const normalizedPrefix = normalizeRoutePrefix(pathPrefix);
 
@@ -55,6 +78,8 @@ function registerManifestRoutes(
       const routeEntry = entry;
       const route = routeEntry.route as RouteHandler;
       const prepared: PreparedRoute = {
+        path,
+        method: httpMethod,
         effectiveReturns: buildEffectiveReturns(manifest, routeEntry.layoutChain, route),
         run: composePipeline(
           buildPipelineLayers(manifest, routeEntry.layoutChain, route),
@@ -62,47 +87,10 @@ function registerManifestRoutes(
         ),
       };
 
-      const honoPath = toHonoRegisterPath(joinRoutePrefix(normalizedPrefix, path));
+      const fullPath = joinRoutePrefix(normalizedPrefix, path);
+      const rou3Path = toRou3RegisterPath(fullPath);
 
-      app.on(httpMethod, honoPath, async (c) => {
-        let ctx: PipelineContext | undefined;
-        let cookies: import("../taser-cookies.js").TaserCookieJar | undefined;
-
-        try {
-          const built = await buildPipelineContext(
-            c,
-            createContext,
-            path,
-            httpMethod,
-            cookieSecret,
-            cookieDefaults,
-          );
-          ctx = built.ctx;
-          cookies = built.cookies;
-
-          const result = await prepared.run(ctx);
-          return toWireResponse(
-            await finalizeReply(
-              result,
-              prepared.effectiveReturns,
-              responseOptions,
-              ctx.request as Request,
-              cookies,
-            ),
-          );
-        } catch (error) {
-          return handleRouteError(error, {
-            effectiveReturns: prepared.effectiveReturns,
-            responseOptions,
-            cookies,
-            cookieSecret,
-            cookieDefaults,
-            ctx,
-            request: c.req.raw,
-            onErrorHandler: getOnErrorHandler(),
-          });
-        }
-      });
+      addRoute(router, httpMethod, rou3Path, prepared);
     }
   }
 }
@@ -125,27 +113,63 @@ export function createTaserRuntime(
   );
   const basePath = options.basePath ?? "";
 
-  const app = new Hono();
+  const router = createRouter<PreparedRoute>();
 
-  registerManifestRoutes(
-    app,
-    manifest,
-    basePath,
-    createContext,
-    responseOptions,
-    cookieSecret,
-    cookieDefaults,
-    () => onErrorHandler,
-  );
+  registerManifestRoutes(router, manifest, basePath);
 
-  registerNotFoundHandler(
-    app,
-    createContext,
-    responseOptions,
-    cookieSecret,
-    cookieDefaults,
-    () => notFoundHandler,
-  );
+  async function dispatchRequest(request: Request): Promise<Response> {
+    const pathname = extractPathname(request.url);
+    const method = request.method as HttpMethod;
+    const match = findRoute(router, method, pathname);
+
+    if (!match) {
+      return dispatchNotFound(
+        request,
+        pathname,
+        createContext,
+        responseOptions,
+        cookieSecret,
+        cookieDefaults,
+        () => notFoundHandler,
+      );
+    }
+
+    const prepared = match.data;
+    const params = (match.params ?? {}) as Record<string, unknown>;
+
+    let ctx: PipelineContext | undefined;
+    let cookies: import("../taser-cookies.js").TaserCookieJar | undefined;
+
+    try {
+      const built = await buildPipelineContext(
+        request,
+        params,
+        pathname,
+        prepared.method,
+        createContext,
+        cookieSecret,
+        cookieDefaults,
+      );
+      ctx = built.ctx;
+      cookies = built.cookies;
+
+      const result = await prepared.run(ctx);
+      return toWireResponse(
+        await finalizeReply(result, prepared.effectiveReturns, responseOptions, request, cookies),
+      );
+    } catch (error) {
+      return handleRouteError(error, {
+        effectiveReturns: prepared.effectiveReturns,
+        responseOptions,
+        cookies,
+        cookieSecret,
+        cookieDefaults,
+        ctx,
+        request,
+        onErrorHandler: onErrorHandler,
+      });
+    }
+  }
 
   async function runFetch(
     boundNative: unknown | undefined,
@@ -155,11 +179,9 @@ export function createTaserRuntime(
   ): Promise<Response> {
     const native = resolveScopeNative(boundNative, env, executionCtx);
     if (native === undefined) {
-      return app.fetch(request, env as never, executionCtx as never);
+      return dispatchRequest(request);
     }
-    return requestScope.run({ native }, () =>
-      app.fetch(request, env as never, executionCtx as never),
-    );
+    return requestScope.run({ native }, () => dispatchRequest(request));
   }
 
   const runtime: TaserRuntime = {

@@ -46,14 +46,32 @@ function createMockHonoContext(overrides: Partial<Context> = {}): Context {
 }
 
 describe("createTaserCompatHandler", () => {
-  it("throws error when no Hono context is available", async () => {
-    const ctx: PipelineContext = { state: {} };
+  it("creates a compat Hono context when no outer Hono context is available", async () => {
+    const ctx: PipelineContext = {
+      state: {},
+      request: new Request("http://localhost/test"),
+      headers: { get: () => undefined, entries: () => [] } as any,
+      cookies: {} as any,
+      params: {},
+      query: {},
+      method: "GET",
+      path: "/test",
+    };
 
-    await expect(async () => {
-      const layers = [compatLayer(async (_c, next) => next())];
-      const run = composePipeline(layers, async () => reply.json({ ok: true }));
-      await run(ctx);
-    }).rejects.toThrow("defineMiddleware requires a Hono runtime context");
+    let executed = false;
+    const layers = [
+      compatLayer(async (c, next) => {
+        expect(c).toBeDefined();
+        expect(c.req.path).toBe("/test");
+        c.header("X-Compat", "1");
+        executed = true;
+        return next();
+      }),
+    ];
+    const run = composePipeline(layers, async () => reply.json({ ok: true }));
+    const result = (await run(ctx)) as Response;
+    expect(executed).toBe(true);
+    expect(result.headers.get("X-Compat")).toBe("1");
   });
 
   it("works with ctx.hono", async () => {

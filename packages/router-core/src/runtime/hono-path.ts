@@ -1,13 +1,15 @@
 /**
- * Hono's `/*` wildcard matches but does not capture into `param()`.
- * Register splat routes as `/:_splat{.+}` so the remainder is available.
+ * Converts manifest wildcard routes (e.g. `/*`, `/files/*`)
+ * to rou3 wildcard capturing format (`/**:_splat`, `/files/**:_splat`).
  */
-export function toHonoRegisterPath(manifestPath: string): string {
+export function toRou3RegisterPath(manifestPath: string): string {
   if (manifestPath === "/*") {
-    return "/:_splat{.+}";
+    return "/**:_splat";
   }
   if (manifestPath.endsWith("/*")) {
-    return `${manifestPath.slice(0, -2)}/:_splat{.+}`;
+    return `${manifestPath.slice(0, -2)}/**:_splat`;
   }
   return manifestPath;
 }
+
+export const toHonoRegisterPath = toRou3RegisterPath;
