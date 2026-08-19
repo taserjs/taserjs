@@ -29,10 +29,6 @@ export function importPathFromLayoutId(
     return toModuleImportPath(routesImportPrefix, `${layoutId.slice(0, -2)}.$`, extension);
   }
 
-  if (routeRel === "__root.ts") {
-    return toModuleImportPath(routesImportPrefix, "__root", extension);
-  }
-
   return toModuleImportPath(routesImportPrefix, layoutId, extension);
 }
 

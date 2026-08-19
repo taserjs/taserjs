@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  importPathFromLayoutId,
-  importPathFromRouteRel,
-  layoutImportPathFromRouteRel,
-} from "../../src/scan/imports.js";
+import { importPathFromRouteRel, layoutImportPathFromRouteRel } from "../../src/scan/imports.js";
 
 const prefix = "./routes";
 
@@ -27,10 +23,6 @@ describe("import paths", () => {
 
   it("emits .js for splat route files", () => {
     expect(importPathFromRouteRel("files/$.get.ts", prefix)).toBe("./routes/files/$.get.js");
-  });
-
-  it("emits .js for __root layout alias", () => {
-    expect(importPathFromLayoutId("index", prefix, "__root.ts")).toBe("./routes/__root.js");
   });
 
   it("emits .js for root splat layout", () => {

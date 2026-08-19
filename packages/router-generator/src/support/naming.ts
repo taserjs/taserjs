@@ -10,10 +10,6 @@ export function layoutIdFromPath(relativePath: string): string {
   const withoutExt = relativePath.replace(/\.ts$/, "");
   const posix = toPosixPath(withoutExt);
 
-  if (posix === "__root") {
-    return "index";
-  }
-
   if (posix === "$") {
     return "/$";
   }

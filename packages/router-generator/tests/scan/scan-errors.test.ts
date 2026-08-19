@@ -20,18 +20,6 @@ describe("scanRouteFiles errors", () => {
     ).rejects.toThrow(ScanErrorCollection);
   });
 
-  it("reports index.ts and __root.ts conflict together", async () => {
-    const routesDir = mkdtempSync(join(tmpdir(), "taser-root-conflict-"));
-    writeFileSync(join(routesDir, "index.ts"), "export const Middleware = null;\n");
-    writeFileSync(join(routesDir, "__root.ts"), "export const Middleware = null;\n");
-
-    const files = await walkRouteFiles(routesDir, testGeneratorConfig);
-
-    await expect(scanRouteFiles(routesDir, "./routes", files, testGeneratorConfig)).rejects.toThrow(
-      ScanErrorCollection,
-    );
-  });
-
   it("reports duplicate route path and method", async () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-dup-route-"));
     writeFileSync(join(routesDir, "posts.get.ts"), "export const Route = null;\n");

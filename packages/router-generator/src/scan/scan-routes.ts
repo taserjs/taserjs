@@ -102,8 +102,6 @@ export async function scanRouteFiles(
   const errors: ScanError[] = [];
   const layouts: LayoutFile[] = [];
   const routes: RouteEntry[] = [];
-  let hasRootLayout = false;
-  let hasRootAlias = false;
 
   for (const absolutePath of absoluteFiles) {
     const rawRel = toPosixPath(relative(routesDir, absolutePath));
@@ -116,13 +114,6 @@ export async function scanRouteFiles(
         continue;
       }
       throw error;
-    }
-
-    if (rawRel === "__root.ts") {
-      hasRootAlias = true;
-    }
-    if (rawRel === "index.ts") {
-      hasRootLayout = true;
     }
 
     if (isRouteFile(rawRel)) {
@@ -182,15 +173,6 @@ export async function scanRouteFiles(
       const source = await readRouteSource(absolutePath);
       errors.push(...analyzeLayoutFileSource(source, rawRel).errors);
     }
-  }
-
-  if (hasRootLayout && hasRootAlias) {
-    errors.push(
-      new ScanError(
-        "Cannot use both index.ts and __root.ts as root layouts",
-        "index.ts / __root.ts",
-      ),
-    );
   }
 
   const seenLayoutIds = new Set<string>();

@@ -132,7 +132,7 @@ In your handler, the remaining path is captured as a splat wildcard.
 
 ## Root Layout Middleware (`$.ts`)
 
-A top-level file named `src/routes/$.ts` (or `src/routes/__root.ts`) serves as the **Root Layout Middleware**. It runs before every route in your application:
+A top-level file named `src/routes/$.ts` serves as the **Root Layout Middleware**. It runs before every route in your application:
 
 ```ts title="src/routes/$.ts"
 import { bodyLimit } from "@taserjs/router/body-limit";
