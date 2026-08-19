@@ -1,6 +1,6 @@
 {
   "name": "@taserjs/router-utils",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "HTTP reply helpers, mount adapters, and Standard Schema validation for Taser",
   "license": "ISC",
   "repository": {

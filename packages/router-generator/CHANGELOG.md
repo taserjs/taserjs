@@ -1,5 +1,11 @@
 # @taserjs/router-generator
 
+## 0.0.4
+
+### Patch Changes
+
+- a0c7c58: feat: Additional Replies and Scoped Middlewares
+
 ## 0.0.3
 
 ### Patch Changes

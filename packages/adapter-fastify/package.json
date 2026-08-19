@@ -1,6 +1,6 @@
 {
   "name": "@taserjs/adapter-fastify",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Fastify adapter for Taser router",
   "license": "ISC",
   "repository": {
