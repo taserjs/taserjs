@@ -1,5 +1,14 @@
 # @taserjs/adapter-fastify
 
+## 0.0.5
+
+### Patch Changes
+
+- fa0f18c: feat: Perf Improvements and Web Standard Response
+- Updated dependencies [fa0f18c]
+  - @taserjs/router@0.0.5
+  - @taserjs/router-utils@0.0.5
+
 ## 0.0.4
 
 ### Patch Changes
