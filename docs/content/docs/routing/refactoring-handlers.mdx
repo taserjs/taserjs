@@ -1,0 +1,301 @@
+---
+title: Extracting Helper Functions
+description: Learn how to break down complex handler logic into small, testable helper functions using Taser's compile-time Context inference.
+icon: Workflow
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
+In production applications, route handlers can easily grow into monolithic blocks of business logic—mixing input validation, database transactions, third-party payment processing, and notification dispatching.
+
+In traditional frameworks, breaking these monolithic handlers into smaller helper functions often forces developers to write verbose, manually duplicated TypeScript interfaces for the request context, params, and state.
+
+Taser makes decomposing handler logic **instant and 100% type-safe** via the route builder's `$Infer.Context` namespace.
+
+---
+
+## The Core Pattern
+
+To extract helper functions without repeating type definitions:
+
+1. **Declare the Route Builder Variable First** (`GET`, `POST`, `PUT`, etc.).
+2. **Extract `RouteContext`** using `typeof VERB.$Infer.Context`.
+3. **Write Small Helper Functions** that receive `ctx: RouteContext` (or a slice of it).
+4. **Call `.handler()`** on your route builder and orchestrate the helpers.
+
+```ts title="src/routes/users/$id.get.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "#src/taser.js";
+
+// 1. Declare the verb builder
+const GET = t.get("/users/:id", {
+  params: z.object({ id: z.string().uuid() }),
+  query: z.object({ includeOrders: z.coerce.boolean().default(false) }),
+});
+
+// 2. Extract the exact compile-time context type
+export type RouteContext = typeof GET.$Infer.Context;
+
+// 3. Extract focused helper functions
+async function fetchUser(ctx: RouteContext) {
+  return ctx.db.user.findUnique({
+    where: { id: ctx.params.id }, // Typed as string (uuid)
+  });
+}
+
+async function fetchUserOrders(ctx: RouteContext) {
+  if (!ctx.query.includeOrders) return []; // Typed as boolean
+  return ctx.db.order.findMany({
+    where: { userId: ctx.params.id },
+  });
+}
+
+// 4. Orchestrate inside the handler
+export const Route = GET.handler(async (ctx) => {
+  const user = await fetchUser(ctx);
+  if (!user) {
+    return reply.notFound({ message: "User not found" });
+  }
+
+  const orders = await fetchUserOrders(ctx);
+  return reply.ok({ user, orders });
+});
+```
+
+---
+
+## Real-World Example: Refactoring a Checkout Flow
+
+Consider an e-commerce checkout route that handles inventory verification, payment processing, database record creation, and email notifications.
+
+### ❌ Before: Monolithic Handler
+
+```ts title="src/routes/checkout.post.ts"
+// A 100+ line handler that is difficult to test and maintain
+export const Route = t
+  .post("/checkout", {
+    body: z.object({
+      itemId: z.string(),
+      quantity: z.number().min(1),
+      paymentMethodId: z.string(),
+    }),
+  })
+  .handler(async (ctx) => {
+    // 1. Check inventory inline...
+    const item = await ctx.db.item.findUnique({ where: { id: ctx.body.itemId } });
+    if (!item || item.stock < ctx.body.quantity) {
+      return reply.badRequest({ message: "Out of stock" });
+    }
+
+    // 2. Charge Stripe inline...
+    const charge = await ctx.stripe.charges.create({
+      amount: item.price * ctx.body.quantity,
+      currency: "usd",
+      source: ctx.body.paymentMethodId,
+    });
+
+    // 3. Save order to database inline...
+    const order = await ctx.db.order.create({
+      data: {
+        itemId: item.id,
+        quantity: ctx.body.quantity,
+        total: item.price * ctx.body.quantity,
+        chargeId: charge.id,
+        userId: ctx.state.user.id,
+      },
+    });
+
+    // 4. Send email notification inline...
+    await ctx.email.sendReceipt({ to: ctx.state.user.email, orderId: order.id });
+
+    return reply.ok(order);
+  });
+```
+
+---
+
+### ✅ After: Clean Decomposition with `RouteContext`
+
+By extracting `RouteContext`, each step becomes a pure or focused async helper:
+
+```ts title="src/routes/checkout.post.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "#src/taser.js";
+
+// 1. Route builder definition
+const POST = t
+  .post("/checkout", {
+    body: z.object({
+      itemId: z.string(),
+      quantity: z.number().min(1),
+      paymentMethodId: z.string(),
+    }),
+  })
+  .returns({
+    200: z.object({ orderId: z.string(), status: z.literal("confirmed") }),
+    400: z.object({ error: z.string() }),
+  });
+
+export type CheckoutContext = typeof POST.$Infer.Context;
+
+// 2. Helper: Validate Inventory
+async function verifyStock(ctx: CheckoutContext) {
+  const item = await ctx.db.item.findUnique({ where: { id: ctx.body.itemId } });
+  if (!item || item.stock < ctx.body.quantity) {
+    throw new Error("Item is out of stock");
+  }
+  return item;
+}
+
+// 3. Helper: Process Payment
+async function processPayment(ctx: CheckoutContext, item: { id: string; price: number }) {
+  return ctx.stripe.charges.create({
+    amount: item.price * ctx.body.quantity,
+    currency: "usd",
+    source: ctx.body.paymentMethodId,
+  });
+}
+
+// 4. Helper: Persist Order Record
+async function persistOrder(
+  ctx: CheckoutContext,
+  item: { id: string; price: number },
+  chargeId: string,
+) {
+  return ctx.db.order.create({
+    data: {
+      itemId: item.id,
+      quantity: ctx.body.quantity,
+      total: item.price * ctx.body.quantity,
+      chargeId,
+      userId: ctx.state.user.id,
+    },
+  });
+}
+
+// 5. Clean, high-level handler orchestration
+export const Route = POST.handler(async (ctx) => {
+  try {
+    const item = await verifyStock(ctx);
+    const charge = await processPayment(ctx, item);
+    const order = await persistOrder(ctx, item, charge.id);
+
+    // Trigger background notification
+    ctx.email.sendReceipt({ to: ctx.state.user.email, orderId: order.id }).catch(console.error);
+
+    return reply.ok({ orderId: order.id, status: "confirmed" });
+  } catch (err) {
+    return reply.badRequest({ error: (err as Error).message });
+  }
+});
+```
+
+---
+
+## Granular Context Slicing with `Pick`
+
+When writing generic service functions or utilities that should not depend on the entire route context, you can use TypeScript's standard `Pick` utility:
+
+```ts title="src/services/billing.ts"
+import type { CheckoutContext } from "../routes/checkout.post.js";
+
+// Helper only requires db, stripe, and user state
+type BillingContext = Pick<CheckoutContext, "db" | "stripe" | "state">;
+
+export async function processCustomerCharge(
+  ctx: BillingContext,
+  amountInCents: number,
+  paymentMethodId: string,
+) {
+  ctx.logger.info(`Charging customer ${ctx.state.user.id}`);
+  return ctx.stripe.charges.create({
+    amount: amountInCents,
+    currency: "usd",
+    source: paymentMethodId,
+    customer: ctx.state.user.stripeCustomerId,
+  });
+}
+```
+
+This pattern enables **easy unit testing**: you can invoke `processCustomerCharge` with a lightweight mock object containing only `db`, `stripe`, and `state`.
+
+---
+
+## Moving Helpers to Separate Service Files
+
+For larger projects, you can organize helpers into dedicated service files:
+
+<Tabs items={["src/routes/users/$id.get.ts", "src/services/user-service.ts"]}>
+  <Tab value="src/routes/users/$id.get.ts">
+    ```ts title="src/routes/users/$id.get.ts"
+    import { reply } from "@taserjs/router";
+    import { z } from "zod";
+    import { t } from "#src/taser.js";
+    import { fetchUserProfile } from "../../services/user-service.js";
+
+    const GET = t.get("/users/:id", {
+      params: z.object({ id: z.string().uuid() }),
+    });
+
+    export type UserRouteContext = typeof GET.$Infer.Context;
+
+    export const Route = GET.handler(async (ctx) => {
+      const profile = await fetchUserProfile(ctx);
+      if (!profile) {
+        return reply.notFound({ message: "User not found" });
+      }
+      return reply.ok(profile);
+    });
+    ```
+
+  </Tab>
+  <Tab value="src/services/user-service.ts">
+    ```ts title="src/services/user-service.ts"
+    import type { UserRouteContext } from "../routes/users/$id.get.js";
+
+    export async function fetchUserProfile(ctx: UserRouteContext) {
+      return ctx.db.user.findUnique({
+        where: { id: ctx.params.id },
+        include: { profile: true },
+      });
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+## Why Infer from `GET`/`POST` Instead of `Route`?
+
+<Callout type="warn" title="Preventing TypeScript Cyclic Type Errors">
+  Always extract context from the **route builder variable** (`GET`, `POST`, `DELETE`, etc.), **never** from the exported `Route`:
+
+- **`typeof GET.$Infer.Context`** ✅
+  Evaluates only the schemas and middlewares attached up to that point. The helper function can be typed immediately and called inside `.handler()`.
+
+- **`typeof Route.$Infer.Context`** ❌
+  Because `Route` represents the final output of `.handler()`, referencing `typeof Route` inside a helper that is consumed by `.handler()` creates a circular reference:
+
+      ```text
+      Route ──► handler ──► helper ──► typeof Route ──► Route (Cyclic Error)
+      ```
+
+      TypeScript will fail to resolve the types and report a cyclic reference error.
+
+</Callout>
+
+---
+
+## Summary of Benefits
+
+| Feature         | Monolithic Handlers                   | Taser `$Infer.Context` Helpers                 |
+| :-------------- | :------------------------------------ | :--------------------------------------------- |
+| **Readability** | 100+ line functions mixing concerns   | 5–15 line orchestration handlers               |
+| **Type Safety** | Implicit types inside single scope    | Explicitly typed `ctx` across all functions    |
+| **Testability** | Hard to isolate sub-operations        | Every helper is an independently testable unit |
+| **Boilerplate** | Manually handwritten param interfaces | **Zero** handwritten interfaces—100% inferred  |

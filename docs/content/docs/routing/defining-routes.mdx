@@ -264,6 +264,39 @@ export const Route = GET.handler(async (ctx) => {
 });
 ```
 
+<Callout type="warn" title="Always Infer Context from the Verb Variable (GET / POST), Not Route">
+  When extracting `RouteContext` to type helper functions or extracted methods called inside your handler, **always** infer from the verb variable (e.g. `typeof GET.$Infer.Context`), **never** from the finalized `Route` export (e.g. `typeof Route.$Infer.Context`).
+
+```ts
+// ✅ YES: Inferred from the builder variable before .handler()
+const GET = t.get("/users/:id");
+export type RouteContext = typeof GET.$Infer.Context;
+
+async function fetchUser(ctx: RouteContext) {
+  return ctx.db.findUser(ctx.params.id);
+}
+
+export const Route = GET.handler(async (ctx) => {
+  const user = await fetchUser(ctx);
+  return reply.ok(user);
+});
+```
+
+```ts
+// ❌ NO: Will cause TypeScript circular/cyclic type errors
+export const Route = t.get("/users/:id").handler(async (ctx) => {
+  const user = await fetchUser(ctx);
+  return reply.ok(user);
+});
+
+// Cyclic dependency: Route -> handler -> fetchUser -> typeof Route -> Route
+export type RouteContext = typeof Route.$Infer.Context;
+
+async function fetchUser(ctx: RouteContext) { ... }
+```
+
+</Callout>
+
 ---
 
 ## Related Guides

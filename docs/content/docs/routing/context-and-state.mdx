@@ -98,6 +98,48 @@ export const Route = t.get("/users/:id").handler(async (ctx) => {
 });
 ```
 
+### Typing Extracted Helper Functions
+
+When writing helper functions that take `ctx` as an argument, extract the context type from the route builder variable (`GET`, `POST`, etc.) before calling `.handler()`:
+
+```ts title="src/routes/users/$id.get.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "#src/taser.js";
+
+// 1. Declare builder variable
+const GET = t.get("/users/:id", {
+  params: z.object({ id: z.string() }),
+});
+
+// 2. Extract RouteContext from the builder
+export type RouteContext = typeof GET.$Infer.Context;
+
+// 3. Type your helper functions with RouteContext
+async function getUserProfile(ctx: RouteContext) {
+  return ctx.db.user.findUnique({
+    where: { id: ctx.params.id },
+  });
+}
+
+// 4. Call helper inside .handler()
+export const Route = GET.handler(async (ctx) => {
+  const user = await getUserProfile(ctx);
+  if (!user) {
+    return reply.notFound({ message: "User not found" });
+  }
+  return reply.json(user);
+});
+```
+
+<Callout type="warn" title="Do Not Extract Context from typeof Route">
+  Never use `export type RouteContext = typeof Route.$Infer.Context` when `RouteContext` is used by
+  helper functions called inside that route handler. Because `Route` depends on the return type of
+  the handler and the handler calls your helper, referencing `typeof Route` in your helper type
+  creates a TypeScript circular/cyclic type evaluation error. Always infer from the verb variable
+  (`typeof GET.$Infer.Context`, `typeof POST.$Infer.Context`, etc.).
+</Callout>
+
 ---
 
 ## Accessing Native Runtime Context (`native`)

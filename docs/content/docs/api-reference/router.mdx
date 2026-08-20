@@ -372,6 +372,11 @@ function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit
 import type {
   InferAppContext,
   InferAppManifest,
+  InferRouteContext,
+  InferRouteInput,
+  InferRouteOutput,
+  RouteDefinition,
+  RouteExport,
   TaserApp,
   TaserCookieJar,
   TaserCookieOptions,
@@ -379,3 +384,7 @@ import type {
   ReturnsMap,
 } from "@taserjs/router";
 ```
+
+<Callout type="info" title="Context Type Extraction Best Practice">
+  Always extract route context from the builder variable before `.handler()` (e.g. `typeof GET.$Infer.Context` or `InferRouteContext<typeof GET>`), never from `typeof Route`, to prevent TypeScript circular type reference errors when typing helper functions.
+</Callout>
