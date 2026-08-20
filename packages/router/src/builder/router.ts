@@ -1,4 +1,5 @@
 import {
+  createTaserCompatHandler,
   createTaserRuntime,
   type NotFoundHandler,
   type OnErrorHandler,
@@ -17,13 +18,26 @@ import {
   createPostRoute,
   createPutRoute,
 } from "./factories.js";
-import { defineHandler } from "./define/handler.js";
+import { defineHandler } from "../define/handler.js";
+import {
+  defineMiddleware,
+  type DefineMiddlewareOptions,
+  type MultiScopedMiddlewareOptions,
+  type ScopedMiddlewareOptions,
+} from "../define/middleware.js";
 import { createMiddleware } from "./middleware.js";
-import { TaserApp } from "./taser-app.js";
-import type { ContextDefinition, CreateTaserAppOptions, OnErrorOptions } from "./types/app.js";
-import type { AppContext } from "./types/units.js";
-import type { HandlerBuilder, LayoutId, MiddlewareBuilder } from "./types/index.js";
-import type { Schema } from "./types/schema.js";
+import { TaserApp } from "./app.js";
+import type { ContextDefinition, CreateTaserAppOptions, OnErrorOptions } from "../types/app.js";
+import type {
+  AppContext,
+  ExtractState,
+  IsUnknown,
+  MiddlewareReturnFromParts,
+  MiddlewareUnit,
+} from "../types/units.js";
+import type { HandlerBuilder, LayoutId, MiddlewareBuilder } from "../types/index.js";
+import type { ReturnsMap } from "../types/returns.js";
+import type { Schema } from "../types/schema.js";
 import type {
   CreateAllRoute,
   CreateAnyRoute,
@@ -65,10 +79,9 @@ export class TaserRouter<TAppContext extends Record<string, unknown> = AppContex
     return this as unknown as TaserRouter<TBoot & TReq>;
   }
 
-  onError<
-    TResponses extends import("./types/returns.js").ReturnsMap =
-      import("./types/returns.js").ReturnsMap,
-  >(options: OnErrorOptions<TResponses> | OnErrorOptions<TResponses>["handle"]): this {
+  onError<TResponses extends ReturnsMap = ReturnsMap>(
+    options: OnErrorOptions<TResponses> | OnErrorOptions<TResponses>["handle"],
+  ): this {
     this.state.onError = toOnErrorHandler(options);
     return this;
   }
@@ -124,6 +137,140 @@ export class TaserRouter<TAppContext extends Record<string, unknown> = AppContex
     return options === undefined
       ? defineHandler<TAppContext>()
       : defineHandler<TAppContext>(options);
+  }
+
+  defineMiddleware(
+    middleware: Parameters<typeof createTaserCompatHandler>[0],
+  ): MiddlewareUnit<MiddlewareReturnFromParts<unknown, unknown, unknown, {}>, {}, null, {}>;
+
+  defineMiddleware<
+    const Layout extends LayoutId,
+    TState = unknown,
+    TRequires = {},
+    TQuery = unknown,
+    TParams = unknown,
+    TBody = unknown,
+    TReturns extends ReturnsMap = {},
+    TQueryIn = unknown,
+    TParamsIn = unknown,
+    TBodyIn = unknown,
+    R = unknown,
+  >(
+    layout: Layout,
+    options: ScopedMiddlewareOptions<
+      Layout,
+      TState,
+      TRequires,
+      TQuery,
+      TParams,
+      TBody,
+      TReturns,
+      TQueryIn,
+      TParamsIn,
+      TBodyIn,
+      TAppContext,
+      R
+    >,
+  ): MiddlewareUnit<
+    MiddlewareReturnFromParts<
+      TQuery,
+      TParams,
+      TBody,
+      IsUnknown<TState> extends true ? ExtractState<R> : TState,
+      TQueryIn,
+      TParamsIn,
+      TBodyIn
+    >,
+    TReturns,
+    Layout,
+    TRequires
+  >;
+
+  defineMiddleware<
+    const Layouts extends readonly [LayoutId, ...LayoutId[]],
+    TState = unknown,
+    TRequires = {},
+    TQuery = unknown,
+    TParams = unknown,
+    TBody = unknown,
+    TReturns extends ReturnsMap = {},
+    TQueryIn = unknown,
+    TParamsIn = unknown,
+    TBodyIn = unknown,
+    R = unknown,
+  >(
+    layouts: Layouts,
+    options: MultiScopedMiddlewareOptions<
+      Layouts,
+      TState,
+      TRequires,
+      TQuery,
+      TParams,
+      TBody,
+      TReturns,
+      TQueryIn,
+      TParamsIn,
+      TBodyIn,
+      TAppContext,
+      R
+    >,
+  ): MiddlewareUnit<
+    MiddlewareReturnFromParts<
+      TQuery,
+      TParams,
+      TBody,
+      IsUnknown<TState> extends true ? ExtractState<R> : TState,
+      TQueryIn,
+      TParamsIn,
+      TBodyIn
+    >,
+    TReturns,
+    Layouts,
+    TRequires
+  >;
+
+  defineMiddleware<
+    TState = unknown,
+    TRequires = {},
+    TQuery = unknown,
+    TParams = unknown,
+    TBody = unknown,
+    TReturns extends ReturnsMap = {},
+    TQueryIn = unknown,
+    TParamsIn = unknown,
+    TBodyIn = unknown,
+    R = unknown,
+  >(
+    options: DefineMiddlewareOptions<
+      TState,
+      TRequires,
+      TQuery,
+      TParams,
+      TBody,
+      TReturns,
+      TQueryIn,
+      TParamsIn,
+      TBodyIn,
+      TAppContext,
+      R
+    >,
+  ): MiddlewareUnit<
+    MiddlewareReturnFromParts<
+      TQuery,
+      TParams,
+      TBody,
+      IsUnknown<TState> extends true ? ExtractState<R> : TState,
+      TQueryIn,
+      TParamsIn,
+      TBodyIn
+    >,
+    TReturns,
+    null,
+    TRequires
+  >;
+
+  defineMiddleware(first: any, second?: any): any {
+    return defineMiddleware(first, second);
   }
 
   create<const TManifest extends RouteManifestShape>(manifest: TManifest): TaserApp<TManifest> {

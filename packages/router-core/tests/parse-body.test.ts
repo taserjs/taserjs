@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isFormMediaType, isJsonMediaType, parseMediaType } from "../src/parse-body.js";
+import { isFormMediaType, isJsonMediaType, parseMediaType } from "../src/http/parse-body.js";
 
 describe("parseMediaType", () => {
   it("parses media type without parameters", () => {

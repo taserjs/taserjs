@@ -1,7 +1,7 @@
 import { reply, type ReplyResult } from "@taserjs/router-utils";
 import { describe, expect, it } from "vitest";
 
-import { composePipeline, middlewareToLayer } from "../src/run-middleware.js";
+import { composePipeline, middlewareToLayer } from "../src/index.js";
 
 describe("onion composePipeline", () => {
   it("runs after-hooks on the way out", async () => {

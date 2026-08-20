@@ -97,6 +97,13 @@ export type PathParams<Path extends string> = Path extends `/${infer Rest}`
   ? ParseParamsFromSegments<Rest>
   : {};
 
+export type ResolveParams<TPathParams, TSchemaParams> =
+  TSchemaParams extends Record<string, unknown>
+    ? [keyof TSchemaParams] extends [never]
+      ? TPathParams
+      : Simplify<Omit<TPathParams, keyof TSchemaParams> & TSchemaParams>
+    : TPathParams;
+
 type LayoutParent<Layout extends LayoutId> = LayoutTree[Layout] extends {
   parent: infer Parent extends LayoutId | null;
 }
@@ -192,7 +199,10 @@ export type RouteChainContext<
     UnitRuntimeContext & {
       query: Simplify<MergePart<TQuery, RouteChainField<Path, TMethod, Acc, "query">>>;
       params: Simplify<
-        PathParams<Path> & MergePart<TParams, RouteChainField<Path, TMethod, Acc, "params">>
+        ResolveParams<
+          PathParams<Path>,
+          MergePart<TParams, RouteChainField<Path, TMethod, Acc, "params">>
+        >
       >;
       body: Simplify<MergePart<TBody, RouteChainField<Path, TMethod, Acc, "body">>>;
       state: Simplify<RouteChainField<Path, TMethod, Acc, "state">>;
@@ -223,11 +233,13 @@ export type RouteHandleContext<
         >
       >;
       params: Simplify<
-        PathParams<Path> &
+        ResolveParams<
+          PathParams<Path>,
           MergePart<
             Validators extends { params?: infer P } ? P : unknown,
             RouteResolvedField<Path, TMethod, Acc, "params">
           >
+        >
       >;
       body: Simplify<
         MergePart<
@@ -262,11 +274,13 @@ export type RouteHandleContextWithoutBody<
         >
       >;
       params: Simplify<
-        PathParams<Path> &
+        ResolveParams<
+          PathParams<Path>,
           MergePart<
             Validators extends { params?: infer P } ? P : unknown,
             RouteResolvedField<Path, TMethod, Acc, "params">
           >
+        >
       >;
       body: never;
       state: Simplify<RouteResolvedField<Path, TMethod, Acc, "state">>;
@@ -348,7 +362,8 @@ type RouteParamsInput<
   Acc extends readonly unknown[],
   Validators extends ValidatorParts,
 > = Simplify<
-  PathParams<Path> &
+  ResolveParams<
+    PathParams<Path>,
     MergePart<
       RequestShape<
         Validators extends { paramsIn?: infer PI } ? PI : unknown,
@@ -356,6 +371,7 @@ type RouteParamsInput<
       >,
       RouteResolvedInputField<Path, TMethod, Acc, "params">
     >
+  >
 >;
 
 type RouteBodyInput<

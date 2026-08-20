@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createTaserCookieJar } from "../src/taser-cookies.js";
+import { createTaserCookieJar } from "../src/index.js";
 
 describe("createTaserCookieJar defaults", () => {
   it("applies HttpOnly and SameSite=Lax by default on set()", () => {

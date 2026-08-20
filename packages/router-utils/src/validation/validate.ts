@@ -1,7 +1,7 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-import { STATUS_BAD_GATEWAY } from "./constants.js";
-import { createReplyResult, isReplyResult, type ReplyResult } from "./reply/result.js";
+import { STATUS_BAD_GATEWAY } from "../http/constants.js";
+import { createReplyResult, isReplyResult, type ReplyResult } from "../reply/result.js";
 
 export type ResponseValidationFailureHandler = (args: {
   issues: readonly StandardSchemaV1.Issue[];

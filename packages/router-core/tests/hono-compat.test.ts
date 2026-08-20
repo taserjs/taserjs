@@ -2,9 +2,9 @@ import { reply } from "@taserjs/router-utils";
 import type { Context, Next } from "hono";
 import { describe, expect, it } from "vitest";
 
-import { createTaserCompatHandler } from "../src/hono-compat.js";
-import { composePipeline, middlewareToLayer } from "../src/run-middleware.js";
-import type { PipelineContext } from "../src/run-middleware.js";
+import { createTaserCompatHandler } from "../src/http/hono-compat.js";
+import { composePipeline, middlewareToLayer } from "../src/index.js";
+import type { PipelineContext } from "../src/types.js";
 
 function compatLayer(middleware: Parameters<typeof createTaserCompatHandler>[0]) {
   return middlewareToLayer({ handler: createTaserCompatHandler(middleware) });

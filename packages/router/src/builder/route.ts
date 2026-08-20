@@ -6,11 +6,17 @@ import {
   withAuto422,
 } from "@taserjs/router-utils";
 
-import type { Method, RouteBuilder, RoutePath, ReturnsMap, ValidatorParts } from "./types/index.js";
-import type { HttpMethod, MiddlewareDefinition } from "./types/units.js";
-import { isHandlerUnit } from "./types/units.js";
+import type {
+  Method,
+  RouteBuilder,
+  RoutePath,
+  ReturnsMap,
+  ValidatorParts,
+} from "../types/index.js";
+import type { HttpMethod, MiddlewareDefinition } from "../types/units.js";
+import { isHandlerUnit } from "../types/units.js";
 import { HANDLER_SCHEMA_KEY_MAP } from "./constants.js";
-import { pickDefinedSchemas, type SchemaValidators } from "./define/validators.js";
+import { pickDefinedSchemas, type SchemaValidators } from "../define/validators.js";
 
 function toUtilsMap(map: ReturnsMap | undefined): Record<number, StandardSchemaV1> {
   if (!map) {

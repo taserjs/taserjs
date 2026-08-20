@@ -1,8 +1,8 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { reply, type ResponseValidationFailureHandler, validateReply } from "@taserjs/router-utils";
 
-import { toResponse } from "../error-handler.js";
-import type { TaserCookieJar } from "../taser-cookies.js";
+import { toResponse } from "./error-handler.js";
+import type { TaserCookieJar } from "../cookies/taser-cookies.js";
 
 export type FinalizeResponseOptions = {
   validate: boolean;

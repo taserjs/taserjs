@@ -1,6 +1,6 @@
 import { createRouteBuilder } from "./route.js";
-import type { RouteBuilder, RoutePath, Schema } from "./types/index.js";
-import type { AppContext, HttpMethod } from "./types/units.js";
+import type { RouteBuilder, RoutePath, Schema } from "../types/index.js";
+import type { AppContext, HttpMethod } from "../types/units.js";
 
 type WithoutBodyOptions<TQuery, TParams, TQueryIn = unknown, TParamsIn = unknown> = {
   query?: Schema<TQuery, TQueryIn>;

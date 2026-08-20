@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 
-import type { PipelineContext } from "./run-middleware.js";
+import type { PipelineContext } from "../types.js";
 import { parseRequestBody } from "./parse-body.js";
 
 const bodyParsedKey = Symbol("taserBodyParsed");

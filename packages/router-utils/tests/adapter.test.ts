@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { InvalidMountPatternError, resolveMountBase } from "../src/adapter.js";
+import { InvalidMountPatternError, resolveMountBase } from "../src/index.js";
 
 describe("resolveMountBase", () => {
   it("accepts root and prefixed wildcard patterns", () => {

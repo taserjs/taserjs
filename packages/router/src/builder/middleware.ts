@@ -1,5 +1,5 @@
-import type { LayoutId, MiddlewareBuilder } from "./types/index.js";
-import type { MiddlewareDefinition } from "./types/units.js";
+import type { LayoutId, MiddlewareBuilder } from "../types/index.js";
+import type { MiddlewareDefinition } from "../types/units.js";
 
 export function createMiddleware<const Layout extends LayoutId>(
   layout: Layout,

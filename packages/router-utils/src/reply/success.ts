@@ -4,7 +4,7 @@ import {
   STATUS_FOUND,
   STATUS_OK,
   TEXT_HTML,
-} from "../constants.js";
+} from "../http/constants.js";
 import {
   buildBodyResponse,
   jsonResponse,

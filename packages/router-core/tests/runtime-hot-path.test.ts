@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import { createTaserCompatHandler, createTaserRuntime } from "../src/index.js";
-import * as runMiddleware from "../src/run-middleware.js";
+import * as composeModule from "../src/pipeline/compose.js";
 
 describe("runtime hot path", () => {
   it("does not parse JSON body when route has no body schema", async () => {
@@ -194,7 +194,7 @@ describe("runtime hot path", () => {
   });
 
   it("does not rebuild pipeline layers on each request", async () => {
-    const composeSpy = vi.spyOn(runMiddleware, "composePipeline");
+    const composeSpy = vi.spyOn(composeModule, "composePipeline");
 
     const manifest = {
       layouts: {},
@@ -222,5 +222,63 @@ describe("runtime hot path", () => {
 
     expect(composeSpy).not.toHaveBeenCalled();
     composeSpy.mockRestore();
+  });
+
+  it("applies schema defaults when empty query is provided", async () => {
+    const manifest = {
+      layouts: {},
+      routes: {
+        "/search": {
+          GET: {
+            layoutChain: [],
+            route: {
+              path: "/search",
+              method: "GET" as const,
+              middlewares: [],
+              handlerMiddlewares: [],
+              query: z.object({ page: z.coerce.number().default(1) }),
+              handler: (ctx: { query: { page: number } }) => reply.json(ctx.query),
+            },
+          },
+        },
+      },
+    };
+
+    const runtime = createTaserRuntime(manifest, () => ({}));
+    const response = await runtime.fetch(new Request("http://localhost/search"));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ page: 1 });
+  });
+
+  it("validates field-level requirements when empty body is sent", async () => {
+    const manifest = {
+      layouts: {},
+      routes: {
+        "/items": {
+          POST: {
+            layoutChain: [],
+            route: {
+              path: "/items",
+              method: "POST" as const,
+              middlewares: [],
+              handlerMiddlewares: [],
+              body: z.object({ name: z.string() }),
+              handler: (ctx: { body: { name: string } }) => reply.json(ctx.body),
+            },
+          },
+        },
+      },
+    };
+
+    const runtime = createTaserRuntime(manifest, () => ({}));
+    const response = await runtime.fetch(new Request("http://localhost/items", { method: "POST" }));
+
+    expect(response.status).toBe(422);
+    const result = (await response.json()) as {
+      errors: Array<{ path?: string[]; message?: string }>;
+    };
+    // Verifies the error is for the missing "name" field rather than root object being undefined
+    expect(result.errors.some((e) => e.path?.includes("name"))).toBe(true);
   });
 });

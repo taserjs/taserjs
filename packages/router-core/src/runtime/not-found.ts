@@ -1,11 +1,10 @@
 import { reply } from "@taserjs/router-utils";
 
-import { handlePipelineError, toWireResponse } from "../error-handler.js";
-import { createTaserCookieJar, type CookieDefaults } from "../taser-cookies.js";
-import type { ContextFactory } from "../types.js";
-import { buildNotFoundContext } from "./context.js";
-import { finalizeReply, type FinalizeResponseOptions } from "./finalize.js";
-import type { NotFoundHandler } from "./types.js";
+import { handlePipelineError, toWireResponse } from "../http/error-handler.js";
+import { createTaserCookieJar, type CookieDefaults } from "../cookies/taser-cookies.js";
+import type { ContextFactory, NotFoundHandler } from "../types.js";
+import { buildNotFoundContext } from "../context/context.js";
+import { finalizeReply, type FinalizeResponseOptions } from "../http/finalize.js";
 
 export async function dispatchNotFound(
   request: Request,

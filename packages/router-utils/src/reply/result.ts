@@ -1,4 +1,4 @@
-import type { SuccessStatusCode } from "../http-status.js";
+import type { SuccessStatusCode } from "../http/status.js";
 
 export type ReplyBodyKind =
   | "json"

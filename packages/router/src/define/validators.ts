@@ -1,5 +1,5 @@
 import type { Schema } from "../types/schema.js";
-import { SCHEMA_KEYS, type SchemaKey } from "../constants.js";
+import { SCHEMA_KEYS, type SchemaKey } from "../builder/constants.js";
 
 export type SchemaValidators = {
   query?: Schema<unknown>;

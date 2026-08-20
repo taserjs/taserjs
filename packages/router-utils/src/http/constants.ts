@@ -1,4 +1,4 @@
-import type { BodyKind } from "./reply/types.js";
+import type { BodyKind } from "../reply/types.js";
 
 export const TEXT_PLAIN = "text/plain; charset=utf-8";
 export const TEXT_HTML = "text/html; charset=utf-8";

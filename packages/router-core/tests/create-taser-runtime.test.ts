@@ -3,8 +3,7 @@ import type { Context, Next } from "hono";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
-import { createTaserCompatHandler } from "../src/hono-compat.js";
-import { createTaserRuntime } from "../src/runtime/create-runtime.js";
+import { createTaserCompatHandler, createTaserRuntime } from "../src/index.js";
 
 describe("createTaserRuntime", () => {
   it("runs layout then route middleware as onion", async () => {

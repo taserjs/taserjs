@@ -33,10 +33,25 @@ describe("route factories", () => {
     expect(all.method).toBe("ALL");
   });
 
-  it("exports legacy route factories from the public entry", async () => {
+  it("does not export legacy route factories from the public entry", async () => {
     const exported = await import("../src/index.js");
-    expect("createAnyRoute" in exported).toBe(true);
-    expect("createAllRoute" in exported).toBe(true);
+    expect("createAnyRoute" in exported).toBe(false);
+    expect("createAllRoute" in exported).toBe(false);
     expect("createRouteBuilder" in exported).toBe(false);
+  });
+
+  it("supports t.defineMiddleware with context inheritance", () => {
+    const customT = createTaserApp().context({
+      boot: () => ({ serviceName: "test-service" }),
+    });
+
+    const mw = customT.defineMiddleware({
+      handler: (ctx, next) => {
+        expect(ctx.serviceName).toBeDefined();
+        return next();
+      },
+    });
+
+    expect(typeof mw.handler).toBe("function");
   });
 });

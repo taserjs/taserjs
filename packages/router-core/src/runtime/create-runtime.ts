@@ -2,31 +2,31 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { normalizeOnError, type ReplyResult } from "@taserjs/router-utils";
 import { addRoute, createRouter, findRoute } from "rou3";
 
-import { toWireResponse } from "../error-handler.js";
-import { composePipeline, type PipelineContext } from "../run-middleware.js";
-import { splitCookieRuntimeConfig } from "../taser-cookies.js";
+import { toWireResponse } from "../http/error-handler.js";
+import { composePipeline } from "../pipeline/compose.js";
+import { buildPipelineLayers } from "../pipeline/layers.js";
+import { splitCookieRuntimeConfig } from "../cookies/taser-cookies.js";
 import type {
   ContextFactory,
+  CreateTaserRuntimeOptions,
   HttpMethod,
+  NotFoundHandler,
   OnErrorHandler,
+  PipelineContext,
   RouteHandler,
   RouteManifestShape,
-} from "../types.js";
-import { buildPipelineContext, buildPipelineLayers } from "./context.js";
-import { finalizeReply, type FinalizeResponseOptions } from "./finalize.js";
-import { toRou3RegisterPath } from "./hono-path.js";
-import { dispatchNotFound } from "./not-found.js";
-import { joinRoutePrefix, normalizeRoutePrefix } from "./route-prefix.js";
-import { requestScope } from "./request-scope.js";
-import { buildEffectiveReturns } from "./returns.js";
-import { handleRouteError } from "./route-handler.js";
-import { resolveScopeNative } from "./scope-native.js";
-import type {
-  CreateTaserRuntimeOptions,
-  NotFoundHandler,
   TaserNativeBoundRuntime,
   TaserRuntime,
-} from "./types.js";
+} from "../types.js";
+import { buildPipelineContext } from "../context/context.js";
+import { finalizeReply, type FinalizeResponseOptions } from "../http/finalize.js";
+import { toRou3RegisterPath } from "../http/route-path.js";
+import { dispatchNotFound } from "./not-found.js";
+import { joinRoutePrefix, normalizeRoutePrefix } from "../http/route-prefix.js";
+import { requestScope } from "../context/request-scope.js";
+import { buildEffectiveReturns } from "../pipeline/returns.js";
+import { handleRouteError } from "../http/route-handler.js";
+import { resolveScopeNative } from "../context/scope-native.js";
 
 type PreparedRoute = {
   path: string;
@@ -138,7 +138,7 @@ export function createTaserRuntime(
     const params = (match.params ?? {}) as Record<string, unknown>;
 
     let ctx: PipelineContext | undefined;
-    let cookies: import("../taser-cookies.js").TaserCookieJar | undefined;
+    let cookies: import("../cookies/taser-cookies.js").TaserCookieJar | undefined;
 
     try {
       const built = await buildPipelineContext(

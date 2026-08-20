@@ -1,7 +1,7 @@
 import { createReadStream } from "node:fs";
 import { lookup } from "mrmime";
 
-import { APPLICATION_OCTET_STREAM, STATUS_OK } from "../constants.js";
+import { APPLICATION_OCTET_STREAM, STATUS_OK } from "../http/constants.js";
 import { mergeHeaders, toBodyBytes, toReplyResult, toWebReadableStream } from "../reply/build.js";
 import { resolveSafeFilePath } from "../reply/safe-path.js";
 import type { ReplyOf } from "../reply/result.js";

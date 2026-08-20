@@ -1,6 +1,6 @@
 ---
 title: File Conventions
-description: Master TanStack Router-style file-based routing conventions tailored for Taser backend APIs. Learn flat and directory routes, path parameters, pathless layouts, and layout breakout routes.
+description: Master TanStack Router-style file-based routing conventions tailored for Taser backend APIs. Learn flat and directory routes, mixed dot nesting, path parameters, bracket escaping, pathless layouts, and layout breakout routes.
 icon: Route
 ---
 
@@ -16,8 +16,8 @@ Taser adopts modern **TanStack Router-style file routing conventions** tailored 
 
 Under your `src/routes/` directory, files are classified into two distinct types:
 
-1. **Route Files**: Filenames containing an HTTP verb before `.ts` (such as `users.get.ts`, `posts.post.ts`, `items.$id.delete.ts`). Route files export a `Route` definition created with `t.get()`, `t.post()`, etc.
-2. **Layout Files**: Filenames ending in `.ts` without an HTTP verb (such as `$.ts`, `admin.ts`, `_auth.ts`). Layout files export a `Middleware` pipeline created with `t.middleware()`.
+1. **Route Files**: Filenames containing an HTTP verb before `.ts` (such as `users.get.ts`, `posts.post.ts`, `items.$id.delete.ts`, `tasks/$id.complete.patch.ts`). Route files export a `Route` definition created with `t.get()`, `t.post()`, `t.patch()`, etc.
+2. **Layout Files**: Filenames ending in `.ts` without an HTTP verb (such as `$.ts`, `admin.ts`, `_auth.ts`, `tasks/$id.ts`). Layout files export a `Middleware` pipeline created with `t.middleware()`.
 
 ---
 
@@ -37,53 +37,73 @@ Taser determines the HTTP verb from the final extension segment before `.ts`:
 
 ---
 
-## Flat Routes vs Directory Routes
+## Flat Routes, Directory Routes, and Mixed Notation
 
-Taser supports both **flat dot notation** and **nested directory structures**. You can use either style or mix them based on your team's preference:
+Taser supports **flat dot notation**, **nested directory structures**, and **mixed folder + dot notation**. You can use whichever structure keeps your codebase cleanest:
 
-<Tabs items={["Flat Dot Notation", "Directory Folders", "Resolved URL"]}>
+<Tabs items={["Flat Dot Notation", "Directory Folders", "Mixed Folder + Dot Notation", "Resolved URL"]}>
   <Tab value="Flat Dot Notation">
     ```
     src/routes/
     ├── posts.index.get.ts          -> GET /posts
     ├── posts.$id.get.ts            -> GET /posts/:id
-    └── posts.$id.edit.put.ts       -> PUT /posts/:id/edit
+    ├── posts.$id.edit.put.ts       -> PUT /posts/:id/edit
+    └── tasks.$id.complete.patch.ts -> PATCH /tasks/:id/complete
     ```
   </Tab>
   <Tab value="Directory Folders">
     ```
     src/routes/
-    └── posts/
-        ├── index.get.ts            -> GET /posts
-        ├── $id.get.ts              -> GET /posts/:id
+    ├── posts/
+    │   ├── index.get.ts            -> GET /posts
+    │   ├── $id.get.ts              -> GET /posts/:id
+    │   └── $id/
+    │       └── edit.put.ts         -> PUT /posts/:id/edit
+    └── tasks/
         └── $id/
-            └── edit.put.ts         -> PUT /posts/:id/edit
+            └── complete.patch.ts   -> PATCH /tasks/:id/complete
+    ```
+  </Tab>
+  <Tab value="Mixed Folder + Dot Notation">
+    ```
+    src/routes/
+    ├── posts/
+    │   ├── index.get.ts            -> GET /posts
+    │   └── $id.edit.put.ts         -> PUT /posts/:id/edit
+    └── tasks/
+        └── $id.complete.patch.ts   -> PATCH /tasks/:id/complete
     ```
   </Tab>
   <Tab value="Resolved URL">
     ```
-    GET /posts
-    GET /posts/:id
-    PUT /posts/:id/edit
+    GET   /posts
+    GET   /posts/:id
+    PUT   /posts/:id/edit
+    PATCH /tasks/:id/complete
     ```
   </Tab>
 </Tabs>
 
-Both conventions produce identical route trees, parameter types, and runtime performance.
+<Callout type="info" title="Dot Separators in Filenames">
+  A dot `.` inside a filename (e.g. `tasks/$id.complete.patch.ts` or `posts.$id.edit.get.ts`) acts
+  as a URL segment separator (`/`), allowing you to define sub-routes flatly without creating deeply
+  nested folders.
+</Callout>
 
 ---
 
 ## Index Routes (`index.<method>.ts`)
 
-An `index` file targets the root of its parent directory without appending `/index` to the URL:
+An `index` segment targets the root of its parent route without appending `/index` to the public URL:
 
 ```
 src/routes/
 ├── index.get.ts                    -> GET /
 ├── api.index.get.ts                -> GET /api
-└── products/
-    ├── index.get.ts                -> GET /products
-    └── index.post.ts               -> POST /products
+├── products/
+│   ├── index.get.ts                -> GET /products
+│   └── index.post.ts               -> POST /products
+└── posts.$id.index.get.ts          -> GET /posts/:id
 ```
 
 ---
@@ -95,23 +115,24 @@ Prefixing a segment with `$` denotes a named URL path parameter:
 ```
 src/routes/
 ├── users.$id.get.ts                -> GET /users/:id
+├── tasks/$id.complete.patch.ts     -> PATCH /tasks/:id/complete
 └── orgs.$orgId.repos.$repoId.get.ts -> GET /orgs/:orgId/repos/:repoId
 ```
 
-Inside your route handler, parameters are typed and accessible on `ctx.params`:
+Inside your route handler, parameters are automatically typed and validated on `ctx.params`:
 
-```ts title="src/routes/users/$id.get.ts"
+```ts title="src/routes/tasks/$id.complete.patch.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
 import { t } from "#src/taser.js";
 
 export const Route = t
-  .get("/users/:id", {
+  .patch("/tasks/:id/complete", {
     params: z.object({ id: z.string().uuid() }),
   })
   .handler((ctx) => {
     // ctx.params.id is strictly typed as a UUID string
-    return reply.json({ userId: ctx.params.id });
+    return reply.json({ taskId: ctx.params.id, completed: true });
   });
 ```
 
@@ -123,10 +144,12 @@ A standalone `$` segment captures wildcard rest segments (splats):
 
 ```
 src/routes/
-└── files.$.get.ts                  -> GET /files/*
+├── $.get.ts                        -> GET /*
+├── files.$.get.ts                  -> GET /files/*
+└── files/$.get.ts                  -> GET /files/*
 ```
 
-In your handler, the remaining path is captured as a splat wildcard.
+In your handler, the wildcard path matches all trailing sub-paths.
 
 ---
 
@@ -149,7 +172,7 @@ export const Middleware = t
 
 ## Pathless Layouts (Leading Underscore `_layout`)
 
-A segment starting with an underscore `_` (like `_auth.ts` or `_auth/`) is **pathless**. It wraps child routes with scoped middleware without adding any prefix to the public URL:
+A segment starting with an underscore `_` (like `_auth.ts`, `_auth/`, or `_auth.login.post.ts`) is **pathless**. It applies scoped middleware to child routes without adding any segment to the public URL:
 
 ```
 src/routes/
@@ -160,29 +183,30 @@ src/routes/
 └── login.post.ts                   -> POST /login    (does NOT inherit _auth.ts)
 ```
 
-In flat dot notation, write:
+In flat dot notation:
 
 ```
 src/routes/_auth.dashboard.get.ts   -> GET /dashboard (under _auth layout)
 src/routes/_auth.profile.get.ts     -> GET /profile   (under _auth layout)
+src/routes/_app._dashboard.metrics.get.ts -> GET /metrics (under _app and _dashboard layouts)
 ```
 
-Notice that `_auth` is completely omitted from the public URL path `/dashboard`.
+Notice that `_auth`, `_app`, and `_dashboard` are omitted from the public URL.
 
 ---
 
 ## Layout Breakout Routes (Trailing Underscore `segment_`)
 
-A segment ending with an underscore `_` is a **breakout route** (un-nested route). It targets the expected URL path, but **breaks out of the parent layout hierarchy** so it does not inherit the parent layout's middleware.
+A segment ending with an underscore `_` is a **breakout route** (un-nested route). It targets the expected URL path, but **breaks out of the parent layout hierarchy** so it skips that segment's layout middleware.
 
 ### The Problem Breakout Routes Solve
 
-Suppose you have an authenticated `/posts` layout in `src/routes/posts.ts` that enforces user login. You want `/posts/:id/preview` to be publicly viewable without requiring authentication.
+Suppose you have an authenticated `/posts` layout in `src/routes/posts.ts` (or a `/tasks/:id` layout in `src/routes/tasks/$id.ts`) that enforces user login or permission checks. You want a specific child endpoint (like `/posts/:id/preview` or `/tasks/:id/complete`) to skip that layout's checks.
 
-By adding a trailing underscore to `posts_`, the route maps to `/posts/:id/preview` but **skips** `src/routes/posts.ts`:
+By adding a trailing underscore to `posts_` or `$id_`, the route keeps the URL segment but **skips** the layout:
 
-<Tabs items={["File Layout", "URL Resolution & Middleware Inheritance"]}>
-  <Tab value="File Layout">
+<Tabs items={["File Structure", "URL Resolution & Middleware Inheritance"]}>
+  <Tab value="File Structure">
     ```
     src/routes/
     ├── $.ts                        -> Root Layout (Global CORS & logging)
@@ -190,7 +214,11 @@ By adding a trailing underscore to `posts_`, the route maps to `/posts/:id/previ
     ├── posts/
     │   ├── index.get.ts            -> GET /posts (runs $.ts + posts.ts)
     │   └── $id.get.ts              -> GET /posts/:id (runs $.ts + posts.ts)
-    └── posts_.$id.preview.get.ts   -> GET /posts/:id/preview (BREAKOUT: runs $.ts, skips posts.ts)
+    ├── posts_.$id.preview.get.ts   -> GET /posts/:id/preview (BREAKOUT: runs $.ts, skips posts.ts)
+    └── tasks/
+        ├── $id.ts                  -> Task Layout (Runs for /tasks/:id/*)
+        ├── $id.status.get.ts       -> GET /tasks/:id/status (runs tasks/$id.ts)
+        └── $id_.complete.patch.ts  -> PATCH /tasks/:id/complete (BREAKOUT: skips tasks/$id.ts)
     ```
   </Tab>
   <Tab value="URL Resolution & Middleware Inheritance">
@@ -199,30 +227,67 @@ By adding a trailing underscore to `posts_`, the route maps to `/posts/:id/previ
     | `posts/index.get.ts` | `GET /posts` | `$.ts` → `posts.ts` |
     | `posts/$id.get.ts` | `GET /posts/:id` | `$.ts` → `posts.ts` |
     | `posts_.$id.preview.get.ts` | `GET /posts/:id/preview` | `$.ts` *(Breaks out of posts.ts)* |
+    | `tasks/$id.status.get.ts` | `GET /tasks/:id/status` | `$.ts` → `tasks/$id.ts` |
+    | `tasks/$id_.complete.patch.ts` | `PATCH /tasks/:id/complete` | `$.ts` *(Breaks out of tasks/$id.ts)* |
   </Tab>
 </Tabs>
 
-<Callout type="info" title="Trailing Underscore Mental Model">
-  - **Leading underscore (`_auth`)**: Pathless layout (adds middleware, removes segment from URL). -
-  **Trailing underscore (`posts_`)**: Breakout route (keeps segment in URL, removes parent layout
-  from middleware chain).
+<Callout type="info" title="Underscore Convention Rules">
+  - **Leading underscore (`_auth`)**: Pathless layout / group (adds middleware, removes segment from
+  URL). - **Trailing underscore (`posts_` or `$id_`)**: Breakout route (keeps segment in URL,
+  removes parent layout from middleware chain).
 </Callout>
 
 ---
 
-## Complete Conventions Summary
+## Escaping Special Characters (`[...]`)
 
-| File Path in `src/routes/` | HTTP Method | Resolved API URL  | Layout Inheritance | Description                                 |
-| :------------------------- | :---------- | :---------------- | :----------------- | :------------------------------------------ |
-| `$.ts`                     | N/A         | Global            | Root               | Root application layout                     |
-| `index.get.ts`             | `GET`       | `/`               | `/$`               | Root index route                            |
-| `posts.ts`                 | N/A         | `/posts`          | `/$`               | Scoped layout for posts                     |
-| `posts.index.get.ts`       | `GET`       | `/posts`          | `/$` → `posts`     | Flat posts index                            |
-| `posts.$id.get.ts`         | `GET`       | `/posts/:id`      | `/$` → `posts`     | Flat parameterized route                    |
-| `posts_.$id.edit.get.ts`   | `GET`       | `/posts/:id/edit` | `/$`               | **Breakout route**: skips `posts.ts` layout |
-| `files.$.get.ts`           | `GET`       | `/files/*`        | `/$`               | Wildcard splat handler                      |
-| `_auth.ts`                 | N/A         | Scoped            | `/$`               | Pathless auth layout                        |
-| `_auth.settings.get.ts`    | `GET`       | `/settings`       | `/$` → `_auth`     | Pathless scoped route                       |
+When you need a literal character that would otherwise trigger a router convention (such as a literal dot `.`, literal leading underscore `_`, or literal `index`), wrap the character in brackets `[...]`:
+
+| File Name                           | Resolved URL         | Explanation                                                            |
+| :---------------------------------- | :------------------- | :--------------------------------------------------------------------- |
+| `src/routes/sitemap[.]xml.get.ts`   | `GET /sitemap.xml`   | Escaped dot `[.]` prevents splitting into `/sitemap/xml`               |
+| `src/routes/docs/v1[.]0/api.get.ts` | `GET /docs/v1.0/api` | Preserves `v1.0` as a single path segment                              |
+| `src/routes/[_]private.get.ts`      | `GET /_private`      | Escaped `[_]` prevents segment from being treated as a pathless layout |
+| `src/routes/tasks/task[_].get.ts`   | `GET /tasks/task_`   | Escaped `[_]` prevents segment from being treated as a layout breakout |
+| `src/routes/items/[index].get.ts`   | `GET /items/index`   | Escaped `[index]` prevents trimming to `/items`                        |
+
+---
+
+## Ignored & Private Files (`-` Prefix)
+
+To co-locate utility files, helper functions, schemas, or test fixtures directly alongside route files without generating routes, prefix the file or folder with a dash `-`:
+
+```
+src/routes/
+├── users/
+│   ├── -types.ts                   -> Ignored (Not a route or layout)
+│   ├── -schema.ts                  -> Ignored (Not a route or layout)
+│   ├── index.get.ts                -> GET /users
+│   └── $id.get.ts                  -> GET /users/:id
+└── -shared/
+    └── utils.ts                    -> Ignored (Folder skipped entirely)
+```
+
+---
+
+## Complete Conventions Reference
+
+| File Path in `src/routes/`     | HTTP Method | Resolved API URL      | Layout Inheritance | Description                                     |
+| :----------------------------- | :---------- | :-------------------- | :----------------- | :---------------------------------------------- |
+| `$.ts`                         | N/A         | Global                | Root               | Root application layout                         |
+| `index.get.ts`                 | `GET`       | `/`                   | `/$`               | Root index route                                |
+| `posts.ts`                     | N/A         | `/posts`              | `/$`               | Scoped layout for posts                         |
+| `posts.index.get.ts`           | `GET`       | `/posts`              | `/$` → `posts`     | Flat posts index                                |
+| `posts.$id.get.ts`             | `GET`       | `/posts/:id`          | `/$` → `posts`     | Flat parameterized route                        |
+| `tasks/$id.complete.patch.ts`  | `PATCH`     | `/tasks/:id/complete` | `/$` → `tasks`     | Mixed folder + dot nested route                 |
+| `posts_.$id.edit.get.ts`       | `GET`       | `/posts/:id/edit`     | `/$`               | **Breakout route**: skips `posts.ts` layout     |
+| `tasks/$id_.complete.patch.ts` | `PATCH`     | `/tasks/:id/complete` | `/$` → `tasks`     | **Breakout route**: skips `tasks/$id.ts` layout |
+| `files.$.get.ts`               | `GET`       | `/files/*`            | `/$`               | Wildcard splat handler                          |
+| `_auth.ts`                     | N/A         | Scoped                | `/$`               | Pathless auth layout                            |
+| `_auth.settings.get.ts`        | `GET`       | `/settings`           | `/$` → `_auth`     | Pathless scoped route                           |
+| `sitemap[.]xml.get.ts`         | `GET`       | `/sitemap.xml`        | `/$`               | Bracket-escaped literal dot                     |
+| `-helpers.ts`                  | N/A         | N/A                   | N/A                | Ignored file                                    |
 
 ---
 
@@ -237,7 +302,7 @@ By adding a trailing underscore to `posts_`, the route maps to `/posts/:id/previ
   <Card
     title="Layouts and Middleware"
     href="/docs/routing/layouts-and-middleware"
-    description="Understand cascading layout state, nesting depth, and execution order."
+    description="Compose shared logic, layout-scoped guards, and cascading typed state."
   />
   <Card
     title="Context and State"

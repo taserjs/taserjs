@@ -1,4 +1,5 @@
-export { InvalidMountPatternError, resolveMountBase } from "./adapter.js";
+export { InvalidMountPatternError, resolveMountBase } from "./mount/index.js";
+
 export {
   ensureReplyResult,
   isReplyResult,
@@ -16,8 +17,13 @@ export type {
   ReplyOf,
   SuccessReplyData,
 } from "./reply/index.js";
+
 export { blob, buffer, file, pipe, stream } from "./stream/index.js";
-export type { SuccessStatusCode } from "./http-status.js";
+
+export type { SuccessStatusCode } from "./http/status.js";
+export { normalizeOnError } from "./http/on-error.js";
+export type { OnErrorHandlerLike, OnErrorInput } from "./http/on-error.js";
+
 export {
   hasInputSchemas,
   mergeReturnsMaps,
@@ -26,12 +32,10 @@ export {
   validateSchema,
   validationErrorSchema,
   withAuto422,
-} from "./validate.js";
+  collectReturnsFromDefinitions,
+} from "./validation/index.js";
 export type {
   ReturnsMap,
   ResponseValidationFailureHandler,
   ValidateReplyOptions,
-} from "./validate.js";
-export { collectReturnsFromDefinitions } from "./manifest.js";
-export { normalizeOnError } from "./on-error.js";
-export type { OnErrorHandlerLike, OnErrorInput } from "./on-error.js";
+} from "./validation/index.js";

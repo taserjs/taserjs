@@ -7,7 +7,7 @@ import {
   ERROR_MESSAGES,
   STATUS_NO_CONTENT,
   STATUS_OK,
-} from "../constants.js";
+} from "../http/constants.js";
 import type { BinaryBody, BodyKind, ReplyInit } from "./types.js";
 import { createReplyResult, type ReplyBodyKind, type ReplyOf, type ReplyResult } from "./result.js";
 

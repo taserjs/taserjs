@@ -1,8 +1,7 @@
 import { reply } from "@taserjs/router-utils";
 import { describe, expect, it } from "vitest";
 
-import { createTaserRuntime } from "../src/runtime/create-runtime.js";
-import { toResponse, toWireResponse } from "../src/error-handler.js";
+import { createTaserRuntime, toResponse, toWireResponse } from "../src/index.js";
 
 /**
  * Mimics @hono/node-server serve(): it replaces global.Response with a subclass.

@@ -3,8 +3,7 @@ import type { Context, MiddlewareHandler, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
 
 import { toWireResponse } from "./error-handler.js";
-import type { PipelineContext, PipelineNext } from "./run-middleware.js";
-import type { MiddlewareDefinition } from "./types.js";
+import type { MiddlewareDefinition, PipelineContext, PipelineNext } from "../types.js";
 
 /**
  * Lightweight Hono Context shim for standalone, Express, Fastify, and Node environments.
@@ -16,7 +15,7 @@ export function createCompatHonoContext(ctx: PipelineContext): Context {
     status: 200,
   };
   const request = ctx.request as Request | undefined;
-  const ctxHeaders = ctx.headers as import("./taser-headers.js").TaserHeaders | undefined;
+  const ctxHeaders = ctx.headers as import("../headers/taser-headers.js").TaserHeaders | undefined;
   const ctxParams = (ctx.params ?? {}) as Record<string, string>;
   const ctxQuery = (ctx.query ?? {}) as Record<string, string | string[]>;
   const varStore: Record<string, unknown> = (ctx.var as Record<string, unknown>) ?? {};
@@ -132,7 +131,7 @@ export function createTaserCompatHandler(
     const honoNext = async (): Promise<Response | void> => {
       taserNextCalled = true;
       syncHonoVarToCtx(c, pipelineCtx);
-      taserNextResult = await next();
+      taserNextResult = (await next()) as ReplyResult | undefined;
       // Convert Taser result to Response for Hono
       return toWireResponse(ensureReplyResult(taserNextResult));
     };

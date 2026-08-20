@@ -1,6 +1,6 @@
 import type { ResponseValidationFailureHandler } from "@taserjs/router-utils";
 
-import type { TaserApp } from "../taser-app.js";
+import type { TaserApp } from "../builder/app.js";
 import type { ReturnsMap } from "./returns.js";
 import type { Schema } from "./schema.js";
 
@@ -60,4 +60,4 @@ export type { RouteManifestShape } from "@taserjs/router-core";
 
 export type { Schema };
 
-export type { TaserApp, TaserNativeBound } from "../taser-app.js";
+export type { TaserApp, TaserNativeBound } from "../builder/app.js";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { joinRoutePrefix, normalizeRoutePrefix } from "../src/runtime/route-prefix.js";
+import { joinRoutePrefix, normalizeRoutePrefix } from "../src/index.js";
 
 describe("route-prefix", () => {
   it("joins manifest paths with mount prefix", () => {

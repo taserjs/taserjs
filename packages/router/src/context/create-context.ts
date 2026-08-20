@@ -1,6 +1,6 @@
 import type { ReservedContextKey } from "@taserjs/router-core";
 
-import type { ContextDefinition } from "./types/app.js";
+import type { ContextDefinition } from "../types/app.js";
 
 type NoReservedKeysConstraint<
   TBoot extends Record<string, unknown>,
@@ -16,4 +16,4 @@ export function createContext<
   return definition;
 }
 
-export type { ContextDefinition, InferAppContext } from "./types/app.js";
+export type { ContextDefinition, InferAppContext } from "../types/app.js";

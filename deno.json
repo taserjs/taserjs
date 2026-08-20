@@ -2,7 +2,7 @@
   "tasks": {
     "release": {
       "description": "Release the packages",
-      "command": "deno publish --token $JSR_TOKEN --no-check --allow-slow-types"
+      "command": "deno publish --no-check --allow-slow-types"
     }
   },
   "workspace": [
