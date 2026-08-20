@@ -167,16 +167,28 @@ export function rateLimiter(options: { maxRequests: number; windowSeconds: numbe
 }
 ```
 
-Attach it to any layout or route:
+### App-Bound Middlewares (`t.defineMiddleware`)
 
-```ts title="src/routes/api.ts"
+When creating middlewares within your application, use `t.defineMiddleware` from your initialized router instance (`t`). It automatically inherits your application's boot and request context (`ctx.db`, `ctx.requestId`, etc.) with zero manual type annotations:
+
+```ts title="src/middleware/tenant-logger.ts"
+import { reply } from "@taserjs/router";
 import { t } from "#src/taser.js";
-import { rateLimiter } from "../middleware/rate-limit";
 
-export const Middleware = t
-  .middleware("api")
-  .use(rateLimiter({ maxRequests: 100, windowSeconds: 60 }));
+export const tenantLogger = t.defineMiddleware({
+  handler: async (ctx, next) => {
+    // ctx.db and ctx.requestId are 100% typed from your taser.context definition!
+    ctx.db.logTenantAccess(ctx.requestId);
+    return next();
+  },
+});
 ```
+
+<Callout type="info">
+  Use **`t.defineMiddleware`** for application-specific middlewares that interact with your
+  database, loggers, or app context. Use the global **`defineMiddleware`** from `@taserjs/router`
+  when building standalone, shareable npm middleware packages.
+</Callout>
 
 ---
 

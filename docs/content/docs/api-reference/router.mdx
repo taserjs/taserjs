@@ -209,6 +209,16 @@ function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit
       description: "Creates a layout middleware builder for root or scoped route directories.",
       type: "(layoutId: string) => MiddlewareBuilder",
     },
+    defineMiddleware: {
+      description:
+        "Constructs a standalone reusable middleware unit that automatically inherits the router's bound TAppContext.",
+      type: "(options: StandaloneMiddlewareOptions) => MiddlewareUnit",
+    },
+    defineHandler: {
+      description:
+        "Constructs a standalone reusable route handler that automatically inherits the router's bound TAppContext.",
+      type: "(options?: StandaloneHandlerOptions) => HandlerBuilder",
+    },
     create: {
       description: "Compiles the route manifest into a runnable TaserApp instance.",
       type: "(manifest: RouteManifest) => TaserApp",

@@ -74,6 +74,31 @@ export const Route = t
   });
 ```
 
+### Path Parameters & Type Precedence
+
+Path parameters in dynamic routes (such as `/tasks/:id` or `/orgs/:orgId/users/:id`) are automatically inferred as `string` on `ctx.params`.
+
+When you supply a `params` schema, the validated schema types **take precedence and override** the default `string` types with full type coercion:
+
+```ts title="src/routes/tasks/$id.get.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "#src/taser.js";
+
+export const Route = t
+  .get("/tasks/:id", {
+    params: z.object({
+      id: z.coerce.number(), // ctx.params.id is typed as number
+    }),
+  })
+  .handler(async (ctx) => {
+    const task = await ctx.db.getTaskById(ctx.params.id); // ctx.params.id is number
+    return reply.json(task);
+  });
+```
+
+Any path parameter not explicitly mentioned in the `params` schema retains its inferred `string` type (for example, `/orgs/:orgId/tasks/:id` preserves `ctx.params.orgId` as `string`).
+
 ---
 
 ## Defining a POST Route
