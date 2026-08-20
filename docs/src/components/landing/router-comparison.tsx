@@ -184,8 +184,8 @@ export function RouterComparison() {
           }
           className={activeTab !== "tanstack" ? "hidden md:block" : "block"}
         >
-          <div className="overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
-            <div className="min-w-[480px] sm:min-w-full">
+          <div className="overflow-x-auto overscroll-x-contain scrollbar-thin">
+            <div className="min-w-120 sm:min-w-full">
               {/* Column Subheader */}
               <div className="flex items-center gap-2 sm:gap-3 border-b border-fd-border/60 bg-fd-muted/20 px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-wider text-fd-muted-foreground">
                 <span className="flex-1 min-w-44">File Structure</span>
@@ -277,8 +277,8 @@ export function RouterComparison() {
           }
           className={activeTab !== "taser" ? "hidden md:block" : "block"}
         >
-          <div className="overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
-            <div className="min-w-[480px] sm:min-w-full">
+          <div className="overflow-x-auto overscroll-x-contain scrollbar-thin">
+            <div className="min-w-120 sm:min-w-full">
               {/* Column Subheader */}
               <div className="flex items-center gap-2 sm:gap-3 border-b border-fd-border/60 bg-fd-muted/20 px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-wider text-fd-muted-foreground">
                 <span className="flex-1 min-w-44">File Structure</span>
@@ -308,7 +308,7 @@ export function RouterComparison() {
                     depth={1}
                   />
                   <TreeItem
-                    name="create.post.ts"
+                    name="index.post.ts"
                     route="/posts"
                     badge="POST"
                     role="Create Post"

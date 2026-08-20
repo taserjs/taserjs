@@ -1,29 +1,39 @@
 import { routePathWithoutVerb } from "./classify.js";
+import { normalizeRouteRel } from "./normalize.js";
 import { toPosixPath } from "../support/paths.js";
 
 function segmentToUrlPart(segment: string): string | null {
-  if (segment.startsWith("_") && !segment.endsWith("_")) {
+  const hasEscapedLeadingUnderscore =
+    segment.startsWith("[_]") || (segment.startsWith("[_") && segment.endsWith("]"));
+  const hasEscapedTrailingUnderscore =
+    segment.endsWith("[_]") || (segment.endsWith("_]") && segment.startsWith("["));
+
+  if (!hasEscapedLeadingUnderscore && segment.startsWith("_") && !segment.endsWith("_")) {
     return null;
   }
 
-  if (segment.endsWith("_")) {
-    return segment.slice(0, -1);
+  let unwrapped = segment;
+  if (!hasEscapedTrailingUnderscore && segment.endsWith("_") && segment.length > 1) {
+    unwrapped = segment.slice(0, -1);
   }
 
+  unwrapped = unwrapped.replace(/\[(.*?)\]/g, "$1");
+
   // Filename `$` / `$id` → standard UrlFormat `*` / `:id` in the URL path.
-  if (segment === "$") {
+  if (unwrapped === "$") {
     return "*";
   }
 
-  if (segment.startsWith("$")) {
-    return `:${segment.slice(1)}`;
+  if (unwrapped.startsWith("$")) {
+    return `:${unwrapped.slice(1)}`;
   }
 
-  return segment;
+  return unwrapped;
 }
 
 export function buildUrlPath(routeRel: string): string {
-  const withoutVerb = routePathWithoutVerb(routeRel);
+  const normalized = normalizeRouteRel(routeRel);
+  const withoutVerb = routePathWithoutVerb(normalized);
   const parts = toPosixPath(withoutVerb).split("/");
   const urlSegments: string[] = [];
 
@@ -36,7 +46,8 @@ export function buildUrlPath(routeRel: string): string {
       continue;
     }
 
-    if (isLast && urlPart === "index") {
+    const isEscapedIndex = part === "[index]";
+    if (isLast && urlPart === "index" && !isEscapedIndex) {
       continue;
     }
 

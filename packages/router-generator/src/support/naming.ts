@@ -2,10 +2,6 @@ import type { RouteFileMethod } from "../types/http.js";
 import { routePathWithoutVerb } from "../scan/classify.js";
 import { toPosixPath } from "./paths.js";
 
-export function flatFileToSegments(basename: string): string[] {
-  return basename.split(".");
-}
-
 export function layoutIdFromPath(relativePath: string): string {
   const withoutExt = relativePath.replace(/\.ts$/, "");
   const posix = toPosixPath(withoutExt);
@@ -22,24 +18,26 @@ export function layoutIdFromPath(relativePath: string): string {
 }
 
 export function segmentToPascal(segment: string): string {
-  if (segment === "index") {
+  const clean = segment.replace(/\[(.*?)\]/g, "$1");
+  if (clean === "index") {
     return "Index";
   }
-  if (segment.startsWith("_")) {
-    return segment.slice(1).charAt(0).toUpperCase() + segment.slice(2);
+  if (clean.startsWith("_")) {
+    return clean.slice(1).charAt(0).toUpperCase() + clean.slice(2);
   }
-  if (segment.startsWith("$")) {
-    const paramName = segment.slice(1);
+  if (clean.startsWith("$")) {
+    const paramName = clean.slice(1);
     if (paramName === "") {
       return "Splat";
     }
     return paramName.charAt(0).toUpperCase() + paramName.slice(1);
   }
-  if (segment.endsWith("_")) {
-    const base = segment.slice(0, -1);
+  if (clean.endsWith("_")) {
+    const base = clean.slice(0, -1);
     return base.charAt(0).toUpperCase() + base.slice(1);
   }
-  return segment.charAt(0).toUpperCase() + segment.slice(1);
+  const sanitized = clean.replace(/[^a-zA-Z0-9_]/g, "");
+  return sanitized.charAt(0).toUpperCase() + sanitized.slice(1);
 }
 
 export function layoutImportName(layoutId: string): string {

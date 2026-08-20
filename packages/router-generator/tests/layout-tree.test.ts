@@ -53,6 +53,28 @@ describe("routeLayoutChain", () => {
     expect(routeLayoutChain("account/overview", layouts)).toEqual(["account", "account/$"]);
   });
 
+  it("handles breakout routes skipping segment layouts", () => {
+    const customLayouts: LayoutFile[] = [
+      { id: "/$", importName: "RootLayout", importPath: "./$" },
+      { id: "tasks", importName: "TasksLayout", importPath: "./tasks" },
+      { id: "tasks/$id", importName: "TasksIdLayout", importPath: "./tasks/$id" },
+      { id: "posts", importName: "PostsLayout", importPath: "./posts" },
+    ];
+
+    // Standard nested route inherits both tasks and tasks/$id
+    expect(routeLayoutChain("tasks/$id/complete", customLayouts)).toEqual([
+      "/$",
+      "tasks",
+      "tasks/$id",
+    ]);
+
+    // Breakout on $id_ skips tasks/$id layout
+    expect(routeLayoutChain("tasks/$id_/complete", customLayouts)).toEqual(["/$", "tasks"]);
+
+    // Breakout on posts_ skips posts layout
+    expect(routeLayoutChain("posts_/$id/edit", customLayouts)).toEqual(["/$"]);
+  });
+
   it("includes root splat as outermost layout", () => {
     expect(routeLayoutChain("account/overview", layoutsWithRoot)).toEqual([
       "/$",

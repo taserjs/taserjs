@@ -1,29 +1,30 @@
 import { ROUTE_VERB_PATTERN } from "../types/http.js";
 import { routePathWithoutVerb } from "./classify.js";
-import { flatFileToSegments } from "../support/naming.js";
 import { toPosixPath } from "../support/paths.js";
+
+const SPLIT_DOT_REGEX = /(?<!\[)\.(?!\])/g;
 
 export function normalizeRouteRel(routeRel: string): string {
   const posix = toPosixPath(routeRel);
+  const isRoute = ROUTE_VERB_PATTERN.test(posix);
+  const withoutVerb = isRoute ? routePathWithoutVerb(posix) : posix.replace(/\.ts$/, "");
+  const extension = isRoute ? posix.slice(withoutVerb.length) : ".ts";
 
-  if (!posix.includes("/")) {
-    return flatFileToCanonicalRel(posix);
+  const rawParts = withoutVerb.split("/");
+  const segments: string[] = [];
+
+  for (const part of rawParts) {
+    if (part === "") continue;
+    const subSegments = part.split(SPLIT_DOT_REGEX);
+    for (const sub of subSegments) {
+      if (sub === "") continue;
+      segments.push(sub);
+    }
   }
 
-  return posix;
-}
+  if (segments.length === 0) {
+    return isRoute ? `index${extension}` : "index.ts";
+  }
 
-function flatFileToCanonicalRel(flatPath: string): string {
-  const isRoute = ROUTE_VERB_PATTERN.test(flatPath);
-  const withoutVerb = isRoute ? routePathWithoutVerb(flatPath) : flatPath.replace(/\.ts$/, "");
-  const extension = isRoute ? flatPath.slice(withoutVerb.length) : ".ts";
-  const segments = flatFileToSegments(withoutVerb);
-  const canonicalSegments = segments.map((segment) => {
-    if (segment.endsWith("_") && segment.length > 1 && segments.length > 1) {
-      return segment.slice(0, -1);
-    }
-    return segment;
-  });
-
-  return `${canonicalSegments.join("/")}${extension}`;
+  return `${segments.join("/")}${extension}`;
 }

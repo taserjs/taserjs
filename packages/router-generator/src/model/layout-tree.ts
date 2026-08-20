@@ -1,28 +1,11 @@
 import type { LayoutFile } from "../types/index.js";
 import { toPosixPath } from "../support/paths.js";
 
-function lastSegment(layoutId: string): string {
-  return layoutId.includes("/") ? layoutId.slice(layoutId.lastIndexOf("/") + 1) : layoutId;
-}
-
-function isPathlessLayoutId(layoutId: string): boolean {
-  const segment = lastSegment(layoutId);
-  return segment.startsWith("_") && !segment.endsWith("_");
-}
-
-function isSegmentPathlessBreakLayoutId(layoutId: string): boolean {
-  const segment = lastSegment(layoutId);
-  return segment.endsWith("_") && segment.length > 1;
-}
-
-function segmentPathlessBreakPrefix(layoutId: string): string {
-  const segment = lastSegment(layoutId);
-  const base = segment.slice(0, -1);
-  const parent = layoutId.includes("/") ? `${layoutId.slice(0, layoutId.lastIndexOf("/"))}/` : "";
-  return `${parent}${base}/`;
-}
-
 function layoutDepth(layoutId: string): number {
+  if (layoutId === "/$" || layoutId === "index") {
+    return 0;
+  }
+
   if (layoutId.endsWith("/$")) {
     const prefix = layoutId.slice(0, -2);
     return prefix === "" ? 0 : prefix.split("/").length + 1;
@@ -31,11 +14,19 @@ function layoutDepth(layoutId: string): number {
   return layoutId.split("/").length;
 }
 
+function segmentBase(segment: string): string {
+  return segment.endsWith("_") && segment.length > 1 ? segment.slice(0, -1) : segment;
+}
+
 export function layoutAppliesToRoute(layoutId: string, routeWithoutVerb: string): boolean {
   const route = toPosixPath(routeWithoutVerb);
 
   if (layoutId === "index") {
     return route === "index";
+  }
+
+  if (layoutId === "/$") {
+    return true;
   }
 
   if (layoutId.endsWith("/$")) {
@@ -46,36 +37,32 @@ export function layoutAppliesToRoute(layoutId: string, routeWithoutVerb: string)
     return route.startsWith(`${prefix}/`);
   }
 
-  if (isSegmentPathlessBreakLayoutId(layoutId)) {
-    const prefix = segmentPathlessBreakPrefix(layoutId);
-    return route.startsWith(prefix);
+  const layoutSegments = layoutId.split("/");
+  const routeSegments = route.split("/");
+
+  if (routeSegments.length < layoutSegments.length) {
+    return false;
   }
 
-  const layoutRest = layoutId;
+  for (let i = 0; i < layoutSegments.length; i += 1) {
+    const lSeg = layoutSegments[i]!;
+    const rSeg = routeSegments[i]!;
 
-  const pathlessIndex = layoutRest.indexOf("/_");
-  if (pathlessIndex !== -1) {
-    const base = layoutRest.slice(0, pathlessIndex);
-    const pathless = layoutRest.slice(pathlessIndex + 1);
-    const prefix = base ? `${base}/${pathless}/` : `${pathless}/`;
-    return route.startsWith(prefix);
+    const lBase = segmentBase(lSeg);
+    const rBase = segmentBase(rSeg);
+
+    if (rSeg.endsWith("_") && rSeg.length > 1 && !lSeg.endsWith("_")) {
+      if (i === layoutSegments.length - 1 && rBase === lBase) {
+        return false;
+      }
+    }
+
+    if (lBase !== rBase) {
+      return false;
+    }
   }
 
-  if (isPathlessLayoutId(layoutRest)) {
-    const prefix = `${layoutRest}/`;
-    return route.startsWith(prefix);
-  }
-
-  if (layoutRest.endsWith("/index")) {
-    const prefix = layoutRest.slice(0, -"/index".length);
-    return route === (prefix ? `${prefix}/index` : "index");
-  }
-
-  if (!layoutRest.includes("/")) {
-    return route === layoutRest || route.startsWith(`${layoutRest}/`);
-  }
-
-  return route === layoutRest || route.startsWith(`${layoutRest}/`);
+  return true;
 }
 
 export function routeLayoutChain(routeWithoutVerb: string, layouts: LayoutFile[]): string[] {
@@ -90,15 +77,29 @@ export function layoutParentId(layoutId: string, layoutIds: Set<string>): string
     return null;
   }
 
+  if (layoutId === "index") {
+    return layoutIds.has("/$") ? "/$" : null;
+  }
+
   if (layoutId.endsWith("/$")) {
     const parent = layoutId.slice(0, -2);
-    return layoutIds.has(parent) ? parent : null;
+    return layoutIds.has(parent) ? parent : layoutIds.has("/$") ? "/$" : null;
   }
 
   if (!layoutId.includes("/")) {
     return layoutIds.has("/$") ? "/$" : null;
   }
 
-  const parent = layoutId.slice(0, layoutId.lastIndexOf("/"));
-  return layoutIds.has(parent) ? parent : null;
+  let current = layoutId.slice(0, layoutId.lastIndexOf("/"));
+  while (true) {
+    if (layoutIds.has(current)) {
+      return current;
+    }
+    if (!current.includes("/")) {
+      break;
+    }
+    current = current.slice(0, current.lastIndexOf("/"));
+  }
+
+  return layoutIds.has("/$") ? "/$" : null;
 }
