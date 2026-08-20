@@ -126,10 +126,11 @@ export const Route = t
     // 5. Validated Query Parameters
     const isDetailed = ctx.query.detailed;
 
-    // 6. Native Runtime Access (Express/Fastify objects if needed)
-    const native = ctx.native;
+    // 6. Web Standard Request and URL
+    const request = ctx.request;
+    const url = ctx.url;
 
-    return reply.json({ userId, adminUser, requestId });
+    return reply.json({ userId, adminUser, requestId, isDetailed });
   });
 ```
 
@@ -165,10 +166,13 @@ export const Route = t
       description: "Built-in cookie jar for reading, setting, signing, and deleting HTTP cookies.",
       type: "TaserCookieJar",
     },
-    native: {
-      description:
-        "Underlying server adapter context (for example, Express req/res or Fastify req/reply).",
-      type: "NativeContext",
+    request: {
+      description: "Web Standard Request instance for the incoming dispatch.",
+      type: "Request",
+    },
+    url: {
+      description: "Parsed Web Standard URL instance.",
+      type: "URL",
     },
   }}
 />

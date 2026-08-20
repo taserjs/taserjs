@@ -36,8 +36,8 @@ export const context = createContext({
   },
 
   // 2. Request Context: Initialized on every incoming HTTP request
-  request: ({ native }) => {
-    const requestId = crypto.randomUUID();
+  request: (req: Request) => {
+    const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID();
     const startTime = Date.now();
 
     return {
@@ -66,7 +66,7 @@ export type AppContext = InferAppContext<typeof context>;
 | Feature           | Boot Context (`boot`)                                         | Request Context (`request`)                             |
 | :---------------- | :------------------------------------------------------------ | :------------------------------------------------------ |
 | **Execution**     | Runs once when the application boots up                       | Runs once for each incoming request                     |
-| **Async Support** | Fully async (`async () => ({ ... })`)                         | Sync or async (`({ native }) => ({ ... })`)             |
+| **Async Support** | Fully async (`async () => ({ ... })`)                         | Sync or async (`(req: Request) => ({ ... })`)           |
 | **Best Used For** | Database pools, Redis connections, SDK clients, configuration | Request IDs, timing markers, trace headers, tenancy IDs |
 | **Performance**   | Zero per-request overhead                                     | Lightweight object allocation per request               |
 
@@ -142,72 +142,29 @@ export const Route = GET.handler(async (ctx) => {
 
 ---
 
-## Accessing Native Runtime Context (`native`)
+## Accessing the Standard Request in `createContext`
 
-When running on top of Express, Fastify, or Node HTTP, your request context function receives the `native` argument containing platform-specific request/response objects:
+The `request` hook receives the standard Web `Request` object for each incoming dispatch:
 
-<Tabs items={["Express", "Fastify", "Node HTTP"]}>
-  <Tab value="Express">
-    ```ts title="src/context.ts"
-    import { createContext } from "@taserjs/router";
-    import type { ExpressNativeContext } from "@taserjs/adapter-express";
+```ts title="src/context.ts"
+import { createContext } from "@taserjs/router";
 
-    export const context = createContext({
-      request: ({ native }) => {
-        // native.req is Express.Request
-        // native.res is Express.Response
-        const ip = (native as ExpressNativeContext)?.req?.ip ?? "127.0.0.1";
+export const context = createContext({
+  request: (req: Request) => {
+    const userAgent = req.headers.get("user-agent") ?? "unknown";
+    const clientIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      req.headers.get("x-real-ip") ??
+      "127.0.0.1";
 
-        return {
-          clientIp: ip,
-          requestId: crypto.randomUUID(),
-        };
-      },
-    });
-    ```
-
-  </Tab>
-  <Tab value="Fastify">
-    ```ts title="src/context.ts"
-    import { createContext } from "@taserjs/router";
-    import type { FastifyNativeContext } from "@taserjs/adapter-fastify";
-
-    export const context = createContext({
-      request: ({ native }) => {
-        // native.req is FastifyRequest
-        // native.reply is FastifyReply
-        const fastifyReq = (native as FastifyNativeContext)?.req;
-
-        return {
-          clientIp: fastifyReq?.ip ?? "127.0.0.1",
-          requestId: crypto.randomUUID(),
-        };
-      },
-    });
-    ```
-
-  </Tab>
-  <Tab value="Node HTTP">
-    ```ts title="src/context.ts"
-    import { createContext } from "@taserjs/router";
-    import type { NodeNativeContext } from "@taserjs/adapter-node";
-
-    export const context = createContext({
-      request: ({ native }) => {
-        // native.req is http.IncomingMessage
-        // native.res is http.ServerResponse
-        const req = (native as NodeNativeContext)?.req;
-
-        return {
-          clientIp: req?.socket.remoteAddress ?? "127.0.0.1",
-          requestId: crypto.randomUUID(),
-        };
-      },
-    });
-    ```
-
-  </Tab>
-</Tabs>
+    return {
+      userAgent,
+      clientIp,
+      requestId: crypto.randomUUID(),
+    };
+  },
+});
+```
 
 ---
 
@@ -225,7 +182,6 @@ To avoid collisions with internal routing properties, the following property nam
 - `path`
 - `url`
 - `request`
-- `native`
 
 If you attempt to return a reserved key from `createContext()`, TypeScript will generate a compiler error on the `createContext()` call.
 

@@ -48,7 +48,7 @@ app.post("/private", validateBody(schema), (req, res) => {
     solutionBadge: "100% Inferred Context",
     solutionFilename: "routes/admin.ts + routes/admin/reports.post.ts",
     solutionCode: `// Middleware validates and passes state to next()
-export const Middleware = t.middleware('/admin').use({
+export const Middleware = t.middleware('admin').use({
   query: z.object({ token: z.string() }),
   handler: async (ctx, next) => {
     const user = await getUser(ctx.query.token);
@@ -99,7 +99,7 @@ adminRouter.get("/reports/:id", getReportHandler);
 //     ├── reports.ts              -> Scoped /admin/reports/* Middleware
 //     └── reports/
 //         ├── index.get.ts      -> GET  /admin/reports
-//         ├── create.post.ts    -> POST /admin/reports
+//         ├── index.post.ts    -> POST /admin/reports
 //         └── $id.get.ts        -> GET  /admin/reports/:id
 //
 // ✓ Discovered and type-checked on save by CLI watch`,

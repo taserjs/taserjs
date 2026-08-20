@@ -294,6 +294,7 @@ describe("scaffoldProject", () => {
 
       const index = await readFile(path.join(dir, "src/routes/index.get.ts"), "utf8");
       expect(index).toContain("import { z } from 'zod'");
+      expect(index).toContain(".default('Taser')");
 
       const packages = resolvePackages({
         projectName: "demo-zod",
@@ -321,6 +322,7 @@ describe("scaffoldProject", () => {
 
       const index = await readFile(path.join(dir, "src/routes/index.get.ts"), "utf8");
       expect(index).toContain("import { type } from 'arktype'");
+      expect(index).toContain('"Taser"');
 
       const packages = resolvePackages({
         projectName: "demo-arktype",
@@ -348,6 +350,7 @@ describe("scaffoldProject", () => {
 
       const index = await readFile(path.join(dir, "src/routes/index.get.ts"), "utf8");
       expect(index).toContain("import * as v from 'valibot'");
+      expect(index).toContain("'Taser'");
 
       const packages = resolvePackages({
         projectName: "demo-valibot",

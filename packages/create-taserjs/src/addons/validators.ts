@@ -9,13 +9,13 @@ export const IMPORT_LINES: Record<ValidatorId, string> = {
 
 export const VALIDATION_BLOCK_TEMPLATE: Record<ValidatorId, string> = {
   zod: `, {
-  query: z.object({ name: z.string() }),
+  query: z.object({ name: z.string().default('Taser') }),
 }`,
   arktype: `, {
-  query: type({ name: 'string' }),
+  query: type({ 'name?': 'string = "Taser"' }),
 }`,
   valibot: `, {
-  query: v.object({ name: v.string() }),
+  query: v.object({ name: v.optional(v.string(), 'Taser') }),
 }`,
 };
 

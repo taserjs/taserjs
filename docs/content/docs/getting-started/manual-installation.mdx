@@ -289,7 +289,7 @@ This guide walks you through adding Taser into an existing Express, Fastify, Hon
         export type TaserAppRouter = typeof taserRouter;
 
         // 2. Forward requests to Taser
-        app.all("/api/*", (c) => taserRouter.native(c).fetch(c.req.raw));
+        app.all("/api/*", (c) => taserRouter.fetch(c.req.raw));
 
         // 3. Existing Hono routes
         app.get("/legacy", (c) => c.text("Legacy Hono endpoint"));
@@ -311,7 +311,7 @@ This guide walks you through adding Taser into an existing Express, Fastify, Hon
         export const taserRouter = t.create(routeManifest);
         export type TaserAppRouter = typeof taserRouter;
 
-        // 2. Mount on native Node HTTP server
+        // 2. Mount on Node HTTP server
         const server = createServer();
         const taser = createNodeHandler(taserRouter);
         taser.mount("/api", server);
@@ -334,7 +334,6 @@ This guide walks you through adding Taser into an existing Express, Fastify, Hon
 Taser is designed to coexist peacefully with existing server routing tables.
 
 - **Prefix-based mounting**: You can mount Taser under `/api` while keeping the rest of your server serving webhooks, legacy controllers, or static files.
-- **Accessing native objects**: If a handler needs raw Express or Fastify objects during migration, you can access `ctx.native` with full type safety.
 - **Shared middleware**: You can reuse existing Hono or connect middlewares inside Taser layouts with `defineMiddleware()`.
 
 <Callout type="info" title="Next Step: Watch Mode">

@@ -45,27 +45,6 @@ await server.listen({ port });
 
 ---
 
-## Accessing Fastify Native Request & Reply
-
-In any Taser handler, `ctx.native` provides access to the underlying Fastify objects:
-
-```ts title="src/routes/fastify-info.get.ts"
-import { reply } from "@taserjs/router";
-import { t } from "#src/taser.js";
-
-export const Route = t.get("/fastify-info").handler((ctx) => {
-  const fastifyReq = ctx.native.req;
-  const fastifyReply = ctx.native.reply;
-
-  return reply.json({
-    id: fastifyReq.id,
-    ip: fastifyReq.ip,
-  });
-});
-```
-
----
-
 ## Next Steps
 
 <Cards>

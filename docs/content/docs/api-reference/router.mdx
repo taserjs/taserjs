@@ -52,7 +52,7 @@ Defines application boot singletons and per-request metadata.
 ```ts
 function createContext<TBoot, TReq>(definition: {
   boot?: () => Promise<TBoot> | TBoot;
-  request?: (args: { native: unknown }) => Promise<TReq> | TReq;
+  request?: (req: Request) => Promise<TReq> | TReq;
 }): ContextDefinition<TBoot, TReq>;
 ```
 
@@ -65,8 +65,8 @@ function createContext<TBoot, TReq>(definition: {
     },
     request: {
       description:
-        "Executed for every incoming HTTP request. Returns request-scoped state (requestId, startTime).",
-      type: "(args: { native: unknown }) => Promise<TReq> | TReq",
+        "Executed for every incoming HTTP request. Receives the Web Standard Request object and returns request-scoped state.",
+      type: "(req: Request) => Promise<TReq> | TReq",
     },
   }}
 />

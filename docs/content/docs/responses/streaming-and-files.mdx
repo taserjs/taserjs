@@ -114,7 +114,7 @@ export const Route = t.get("/events/notifications").handler((ctx) => {
         controller.enqueue(encoder.encode(payload));
       }, 1000);
 
-      ctx.native?.req?.on?.("close", () => {
+      ctx.request.signal.addEventListener("abort", () => {
         clearInterval(interval);
         controller.close();
       });

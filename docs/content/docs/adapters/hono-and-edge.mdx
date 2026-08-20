@@ -38,7 +38,7 @@ app.fetch(request: Request, env?: unknown, executionCtx?: unknown): Promise<Resp
     const hono = new Hono();
 
     // Forward requests to Taser:
-    hono.all("/api/*", (c) => app.native(c).fetch(c.req.raw));
+    hono.all("/api/*", (c) => app.fetch(c.req.raw));
 
     const port = Number(process.env.PORT ?? 3000);
     serve({ fetch: hono.fetch, port }, () => {
@@ -108,7 +108,7 @@ app.fetch(request: Request, env?: unknown, executionCtx?: unknown): Promise<Resp
     export type TaserAppRouter = typeof app;
 
     const server = new Hono();
-    server.all("/*", (c) => app.native(c).fetch(c.req.raw));
+    server.all("/*", (c) => app.fetch(c.req.raw));
 
     export const handler = handle(server);
     ```

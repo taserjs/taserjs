@@ -87,8 +87,10 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
     "Create GET, POST, PUT, PATCH, DELETE routes with query, param, and body validation schemas, and route-level middlewares.",
   "routing/layouts-and-middleware":
     "Scale API composition without losing types. Define scoped directory middleware and cascade typed state down folder trees.",
+  "routing/refactoring-handlers":
+    "Extract reusable route handlers and split route definitions into clean, modular units with zero type loss.",
   "routing/context-and-state":
-    "Manage boot singletons and request-scoped metadata with createContext. Understand native adapter interop and reserved keys.",
+    "Manage boot singletons and request-scoped metadata with createContext. Access standard Web Request objects and define typed application context.",
   "validation/standard-schema":
     "Validate query parameters, path params, request bodies, and file uploads using Zod, ArkType, Valibot, or any Standard Schema library.",
   "validation/middleware-validation":
@@ -114,11 +116,11 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
   "adapters/express":
     "Mount your type-safe Taser API seamlessly onto Express apps with the @taserjs/adapter-express adapter.",
   "adapters/fastify":
-    "Run Taser on high-performance Fastify servers with the @taserjs/adapter-fastify adapter and native FastifyReply access.",
+    "Run Taser on high-performance Fastify servers with the @taserjs/adapter-fastify adapter.",
   "adapters/node-http":
     "Deploy Taser with zero external web framework dependencies using the built-in Node.js HTTP server adapter.",
   "adapters/hono-and-edge":
-    "Deploy Taser routes to Cloudflare Workers, Deno, Bun, Fastly, and AWS Lambda using the @taserjs/adapter-hono adapter.",
+    "Deploy Taser routes to Cloudflare Workers, Deno, Bun, Fastly, and AWS Lambda using standard Web Request/Response fetch.",
   client:
     "Auto-completing, end-to-end typed proxy client generated from your server router type with zero runtime drift.",
   cli: "Automate route discovery, manifest compilation, and file scaffolding using @taserjs/router-cli and taser.config.json.",
@@ -138,6 +140,7 @@ export const docsImageAlts: Record<string, string> = {
   "routing/file-conventions": "Taser Docs: File Conventions and Routing Rules",
   "routing/defining-routes": "Taser Docs: Defining Routes and Schemas",
   "routing/layouts-and-middleware": "Taser Docs: Cascading Layouts and Middleware",
+  "routing/refactoring-handlers": "Taser Docs: Refactoring Route Handlers",
   "routing/context-and-state": "Taser Docs: Application Context and State",
   "validation/standard-schema": "Taser Docs: Standard Schema Runtime Validation",
   "validation/middleware-validation": "Taser Docs: Middleware and Header Validation",

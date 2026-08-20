@@ -66,6 +66,25 @@ export const Middleware = t
 
 ---
 
+## Root Index Layout (`src/routes/index.ts`)
+
+While `src/routes/$.ts` applies globally to every route in your application, `src/routes/index.ts` is scoped specifically to root index endpoints (such as `src/routes/index.get.ts`). It mounts with `t.middleware('index')`:
+
+```ts title="src/routes/index.ts"
+import { t } from "#src/taser.js";
+
+export const Middleware = t.middleware("index").use({
+  handler: async (_ctx, next) => {
+    // Only runs for the root '/' endpoint
+    return next();
+  },
+});
+```
+
+Nested directory index files (e.g. `src/routes/admin/index.ts`) similarly mount with `t.middleware('admin/index')` and execute only for `GET /admin` (`src/routes/admin/index.get.ts`).
+
+---
+
 ## Nested Layout Hierarchy & Execution Order
 
 Taser executes layouts in a predictable cascading sequence from outermost to innermost:
