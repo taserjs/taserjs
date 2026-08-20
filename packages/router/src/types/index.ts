@@ -409,7 +409,7 @@ export type RouteHandleInput<
     InputFacet<RouteBodyInput<Path, TMethod, Acc, Validators>, "body">
 >;
 
-export type InferRouteInput<Path extends RoutePath, TMethod extends Method> =
+export type InferRouteInputFromPath<Path extends RoutePath, TMethod extends Method> =
   RouteEntry<Path, TMethod> extends { route: infer Route }
     ? Route extends { $Infer: { Input: infer I } }
       ? I
@@ -526,7 +526,9 @@ export type RouteExport<
     Context: TMethod extends "GET" | "DELETE" | "HEAD" | "OPTIONS"
       ? RouteHandleContextWithoutBody<Path, TMethod, Acc, {}>
       : RouteHandleContext<Path, TMethod, Acc, {}>;
-    /** Concrete handler reply (`ReplyOf` union) for client inference. */
+    Input: TMethod extends "GET" | "DELETE" | "HEAD" | "OPTIONS"
+      ? RouteHandleInputWithoutBody<Path, TMethod, Acc, {}>
+      : RouteHandleInput<Path, TMethod, Acc, {}>;
     Output: TOutput;
   };
   query?: Schema<unknown>;
@@ -571,6 +573,10 @@ export type RouteBuilder<
     Context: TMethod extends "GET" | "DELETE" | "HEAD" | "OPTIONS"
       ? RouteHandleContextWithoutBody<Path, TMethod, Acc, Validators, TAppContext>
       : RouteHandleContext<Path, TMethod, Acc, Validators, TAppContext>;
+    Input: TMethod extends "GET" | "DELETE" | "HEAD" | "OPTIONS"
+      ? RouteHandleInputWithoutBody<Path, TMethod, Acc, Validators>
+      : RouteHandleInput<Path, TMethod, Acc, Validators>;
+    Output: TReturns;
   };
   returns<const M extends ReturnsMap>(
     map: M,
@@ -750,3 +756,17 @@ export type HandlerBuilder<
         ]
   ): HandlerUnit<Acc, Validators, TReturns, R>;
 };
+
+export type RouteDefinition<
+  Path extends RoutePath = RoutePath,
+  TMethod extends Method = Method,
+  Acc extends readonly unknown[] = readonly unknown[],
+  Validators extends ValidatorParts = ValidatorParts,
+  TReturns extends ReturnsMap = ReturnsMap,
+  TOutput = Response,
+  TAppContext extends Record<string, unknown> = AppContext,
+> = RouteHandleResult<Path, TMethod, Acc, Validators, TReturns, TOutput, TAppContext>;
+
+export type InferRouteContext<R> = R extends { $Infer: { Context: infer C } } ? C : never;
+export type InferRouteInput<R> = R extends { $Infer: { Input: infer I } } ? I : never;
+export type InferRouteOutput<R> = R extends { $Infer: { Output: infer O } } ? O : never;

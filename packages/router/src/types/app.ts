@@ -1,3 +1,4 @@
+import type { RouteManifestShape } from "@taserjs/router-core";
 import type { ResponseValidationFailureHandler } from "@taserjs/router-utils";
 
 import type { TaserApp } from "../builder/app.js";
@@ -45,7 +46,14 @@ export type OnErrorOptions<TResponses extends ReturnsMap = ReturnsMap> = {
   handle: (error: unknown, ctx?: unknown) => Response | Promise<Response>;
 };
 
-export type InferAppManifest<TApp> = TApp extends TaserApp<infer TManifest> ? TManifest : never;
+export type InferAppManifest<TApp> =
+  TApp extends TaserApp<infer TManifest>
+    ? TManifest
+    : TApp extends { manifest: infer TManifest }
+      ? TManifest
+      : TApp extends RouteManifestShape
+        ? TApp
+        : never;
 
 export type TaserHandler<TFrameworkApp> = {
   /**

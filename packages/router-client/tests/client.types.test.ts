@@ -20,6 +20,8 @@ type MessageSchema = Schema<{ message: string }>;
 type ErrorSchema = Schema<{ error: string }>;
 type SchemaOkBody = Schema<{ fromSchema: true }>;
 
+type HelloHandler = (ctx: unknown) => unknown;
+
 type TestManifest = {
   layouts: {
     "/$": {
@@ -44,7 +46,7 @@ type TestManifest = {
               { query: { page: number; name: string }; body: { name: string; file: File } }
             >;
           };
-          handle: (ctx: unknown) => unknown;
+          handler: (ctx: unknown) => unknown;
         };
       };
     };
@@ -63,7 +65,7 @@ type TestManifest = {
             Input: {};
             Output: ReplyOf<200, { message: string }>;
           };
-          handle: (ctx: unknown) => unknown;
+          handler: HelloHandler;
         };
       };
     };
@@ -78,7 +80,7 @@ type TestManifest = {
             Input: { params: { id: string } };
             Output: ReplyOf<200, { id: string }>;
           };
-          handle: (ctx: unknown) => unknown;
+          handler: (ctx: unknown) => unknown;
         };
       };
     };
@@ -94,7 +96,7 @@ type TestManifest = {
             Input: { body: FormData };
             Output: ReplyOf<200, unknown>;
           };
-          handle: (ctx: unknown) => unknown;
+          handler: (ctx: unknown) => unknown;
         };
       };
     };
@@ -112,7 +114,7 @@ type TestManifest = {
               | ReplyOf<201, { created: true }>
               | ReplyOf<404, { error: string }>;
           };
-          handle: (ctx: unknown) => unknown;
+          handler: (ctx: unknown) => unknown;
         };
       };
     };
@@ -130,7 +132,7 @@ type TestManifest = {
             Input: {};
             Output: ReplyOf<200, { fromHandler: true }>;
           };
-          handle: (ctx: unknown) => unknown;
+          handler: (ctx: unknown) => unknown;
         };
       };
     };
@@ -139,14 +141,21 @@ type TestManifest = {
 
 type TestApp = TaserApp<TestManifest>;
 type TestClient = Client<TestApp>;
+type DirectManifestClient = Client<TestManifest>;
 
 describe("client types", () => {
-  it("maps path segments and methods", () => {
+  it("maps path segments to _id properties", () => {
     expectTypeOf<TestClient>().toHaveProperty("hello");
     expectTypeOf<TestClient["hello"]>().toHaveProperty("$get");
     expectTypeOf<TestClient>().toHaveProperty("posts");
     expectTypeOf<TestClient["posts"]>().toHaveProperty("_id");
     expectTypeOf<TestClient["posts"]["_id"]>().toHaveProperty("$get");
+  });
+
+  it("works directly with RouteManifest type without TaserApp wrapper", () => {
+    expectTypeOf<DirectManifestClient>().toHaveProperty("hello");
+    expectTypeOf<DirectManifestClient["hello"]>().toHaveProperty("$get");
+    expectTypeOf<DirectManifestClient["posts"]["_id"]>().toHaveProperty("$get");
   });
 
   it("requires path params and optional open query when no query schema", () => {
