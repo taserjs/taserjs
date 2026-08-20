@@ -1,5 +1,5 @@
 import { createTaserApp, type RouteManifestShape, type TaserApp } from "@taserjs/router";
-import { reply, type ReplyResult } from "@taserjs/router-utils";
+import { reply } from "@taserjs/router-utils";
 
 export function createTestLayout(layout = "root") {
   return { layout, middlewares: [] as const };
@@ -44,7 +44,7 @@ export function createAfterHookApp(): TaserApp {
     layout: "root",
     middlewares: [
       {
-        handler: async (_ctx: unknown, next: () => Promise<ReplyResult>) => {
+        handler: async (_ctx: unknown, next: () => Promise<Response>) => {
           const res = await next();
           res.headers.set("X-After-Hook", "1");
           return res;

@@ -2,10 +2,10 @@ import { secureHeaders as honoSecureHeaders } from "hono/secure-headers";
 
 import { wrapHonoMiddleware } from "./wrap-hono.js";
 
-const honoSecureHeadersMiddleware = wrapHonoMiddleware(honoSecureHeaders);
+const wrapped = wrapHonoMiddleware(honoSecureHeaders);
 
 export function secureHeaders(...args: Parameters<typeof honoSecureHeaders>) {
-  return honoSecureHeadersMiddleware(...args);
+  return wrapped(...args);
 }
 
 export type SecureHeadersOptions = NonNullable<Parameters<typeof honoSecureHeaders>[0]>;

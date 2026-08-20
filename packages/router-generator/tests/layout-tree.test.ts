@@ -98,4 +98,40 @@ describe("layoutParentId", () => {
   it("parents top-level layouts to root splat when present", () => {
     expect(layoutParentId("account", layoutIdSet)).toBe("/$");
   });
+
+  it("parents root index layout to root splat", () => {
+    const withIndex = new Set(["/$", "index"]);
+    expect(layoutParentId("index", withIndex)).toBe("/$");
+  });
+
+  it("parents nested index layout to its directory layout", () => {
+    const withAdminIndex = new Set(["/$", "admin", "admin/index"]);
+    expect(layoutParentId("admin/index", withAdminIndex)).toBe("admin");
+  });
+});
+
+describe("index layout matching and ordering", () => {
+  const indexLayouts: LayoutFile[] = [
+    { id: "index", importName: "RootIndexLayout", importPath: "./index" },
+    { id: "/$", importName: "RootSplatLayout", importPath: "./$" },
+    { id: "admin", importName: "AdminLayout", importPath: "./admin" },
+    { id: "admin/index", importName: "AdminIndexLayout", importPath: "./admin/index" },
+  ];
+
+  it("applies root index layout ONLY to root index route", () => {
+    expect(layoutAppliesToRoute("index", "index")).toBe(true);
+    expect(layoutAppliesToRoute("index", "users")).toBe(false);
+    expect(layoutAppliesToRoute("index", "admin/overview")).toBe(false);
+  });
+
+  it("applies nested index layout ONLY to nested index route", () => {
+    expect(layoutAppliesToRoute("admin/index", "admin/index")).toBe(true);
+    expect(layoutAppliesToRoute("admin/index", "admin/users")).toBe(false);
+  });
+
+  it("orders root splat before index layout in layout chain", () => {
+    expect(routeLayoutChain("index", indexLayouts)).toEqual(["/$", "index"]);
+    expect(routeLayoutChain("admin/index", indexLayouts)).toEqual(["/$", "admin", "admin/index"]);
+    expect(routeLayoutChain("admin/users", indexLayouts)).toEqual(["/$", "admin"]);
+  });
 });

@@ -1,8 +1,7 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { normalizeOnError, type ReplyResult } from "@taserjs/router-utils";
+import { isPromise, normalizeOnError } from "@taserjs/router-utils";
 import { addRoute, createRouter, findRoute } from "rou3";
 
-import { toWireResponse } from "../http/error-handler.js";
 import { composePipeline } from "../pipeline/compose.js";
 import { buildPipelineLayers } from "../pipeline/layers.js";
 import { splitCookieRuntimeConfig } from "../cookies/taser-cookies.js";
@@ -10,29 +9,25 @@ import type {
   ContextFactory,
   CreateTaserRuntimeOptions,
   HttpMethod,
-  NotFoundHandler,
   OnErrorHandler,
   PipelineContext,
   RouteHandler,
   RouteManifestShape,
-  TaserNativeBoundRuntime,
   TaserRuntime,
 } from "../types.js";
-import { buildPipelineContext } from "../context/context.js";
+import { buildPipelineContext, getCookiesFromContext } from "../context/context.js";
 import { finalizeReply, type FinalizeResponseOptions } from "../http/finalize.js";
 import { toRou3RegisterPath } from "../http/route-path.js";
 import { dispatchNotFound } from "./not-found.js";
 import { joinRoutePrefix, normalizeRoutePrefix } from "../http/route-prefix.js";
-import { requestScope } from "../context/request-scope.js";
 import { buildEffectiveReturns } from "../pipeline/returns.js";
 import { handleRouteError } from "../http/route-handler.js";
-import { resolveScopeNative } from "../context/scope-native.js";
 
 type PreparedRoute = {
   path: string;
   method: HttpMethod;
   effectiveReturns: Record<number, StandardSchemaV1> | undefined;
-  run: (ctx: PipelineContext) => Promise<ReplyResult>;
+  run: (ctx: PipelineContext) => Promise<Response> | Response;
 };
 
 type Rou3Router<T> = ReturnType<typeof createRouter<T>>;
@@ -83,7 +78,7 @@ function registerManifestRoutes(
         effectiveReturns: buildEffectiveReturns(manifest, routeEntry.layoutChain, route),
         run: composePipeline(
           buildPipelineLayers(manifest, routeEntry.layoutChain, route),
-          async (pipelineCtx) => await route.handler(pipelineCtx),
+          route.handler,
         ),
       };
 
@@ -107,7 +102,7 @@ export function createTaserRuntime(
     ...(onValidationFailure !== undefined ? { onValidationFailure } : {}),
   };
   let onErrorHandler = options.onError;
-  let notFoundHandler: NotFoundHandler | undefined = options.notFound;
+  let notFoundHandler = options.notFound;
   const { secret: cookieSecret, defaults: cookieDefaults } = splitCookieRuntimeConfig(
     options.cookies,
   );
@@ -117,7 +112,7 @@ export function createTaserRuntime(
 
   registerManifestRoutes(router, manifest, basePath);
 
-  async function dispatchRequest(request: Request): Promise<Response> {
+  function dispatchRequest(request: Request): Promise<Response> | Response {
     const pathname = extractPathname(request.url);
     const method = request.method as HttpMethod;
     const match = findRoute(router, method, pathname);
@@ -138,10 +133,9 @@ export function createTaserRuntime(
     const params = (match.params ?? {}) as Record<string, unknown>;
 
     let ctx: PipelineContext | undefined;
-    let cookies: import("../cookies/taser-cookies.js").TaserCookieJar | undefined;
 
     try {
-      const built = await buildPipelineContext(
+      const ctxResult = buildPipelineContext(
         request,
         params,
         pathname,
@@ -150,48 +144,87 @@ export function createTaserRuntime(
         cookieSecret,
         cookieDefaults,
       );
-      ctx = built.ctx;
-      cookies = built.cookies;
 
-      const result = await prepared.run(ctx);
-      return toWireResponse(
-        await finalizeReply(result, prepared.effectiveReturns, responseOptions, request, cookies),
+      if (isPromise(ctxResult)) {
+        return ctxResult
+          .then(async (resolvedCtx) => {
+            ctx = resolvedCtx;
+            const runResult = prepared.run(ctx);
+            const result = isPromise(runResult) ? await runResult : runResult;
+            return finalizeReply(
+              result,
+              prepared.effectiveReturns,
+              responseOptions,
+              request,
+              getCookiesFromContext(ctx),
+            );
+          })
+          .catch((error) =>
+            handleRouteError(error, {
+              effectiveReturns: prepared.effectiveReturns,
+              responseOptions,
+              cookies: getCookiesFromContext(ctx),
+              cookieSecret,
+              cookieDefaults,
+              ctx,
+              request,
+              onErrorHandler,
+            }),
+          );
+      }
+
+      ctx = ctxResult;
+      const runResult = prepared.run(ctx);
+
+      if (isPromise(runResult)) {
+        return runResult
+          .then((result) =>
+            finalizeReply(
+              result,
+              prepared.effectiveReturns,
+              responseOptions,
+              request,
+              getCookiesFromContext(ctx),
+            ),
+          )
+          .catch((error) =>
+            handleRouteError(error, {
+              effectiveReturns: prepared.effectiveReturns,
+              responseOptions,
+              cookies: getCookiesFromContext(ctx),
+              cookieSecret,
+              cookieDefaults,
+              ctx,
+              request,
+              onErrorHandler,
+            }),
+          );
+      }
+
+      return finalizeReply(
+        runResult,
+        prepared.effectiveReturns,
+        responseOptions,
+        request,
+        getCookiesFromContext(ctx),
       );
     } catch (error) {
       return handleRouteError(error, {
         effectiveReturns: prepared.effectiveReturns,
         responseOptions,
-        cookies,
+        cookies: getCookiesFromContext(ctx),
         cookieSecret,
         cookieDefaults,
         ctx,
         request,
-        onErrorHandler: onErrorHandler,
+        onErrorHandler,
       });
     }
   }
 
-  async function runFetch(
-    boundNative: unknown | undefined,
-    request: Request,
-    env?: unknown,
-    executionCtx?: unknown,
-  ): Promise<Response> {
-    const native = resolveScopeNative(boundNative, env, executionCtx);
-    if (native === undefined) {
-      return dispatchRequest(request);
-    }
-    return requestScope.run({ native }, () => dispatchRequest(request));
-  }
-
   const runtime: TaserRuntime = {
-    fetch(request, env, executionCtx) {
-      return runFetch(undefined, request, env, executionCtx);
-    },
-    native(boundNative: unknown): TaserNativeBoundRuntime {
-      return {
-        fetch: (request, env, executionCtx) => runFetch(boundNative, request, env, executionCtx),
-      };
+    fetch(request) {
+      return dispatchRequest(request);
     },
     onError(handler: OnErrorHandler | OnErrorHandler["handle"]) {
       onErrorHandler = normalizeOnError(handler);

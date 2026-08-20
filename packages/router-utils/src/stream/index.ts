@@ -1,8 +1,10 @@
 import { createReadStream } from "node:fs";
 import { lookup } from "mrmime";
 
-import { APPLICATION_OCTET_STREAM, STATUS_OK } from "../http/constants.js";
-import { mergeHeaders, toBodyBytes, toReplyResult, toWebReadableStream } from "../reply/build.js";
+const APPLICATION_OCTET_STREAM = "application/octet-stream";
+const STATUS_OK = 200;
+
+import { mergeHeaders, toBodyBytes, toReplyResponse, toWebReadableStream } from "../reply/build.js";
 import { resolveSafeFilePath } from "../reply/safe-path.js";
 import type { ReplyOf } from "../reply/result.js";
 import type { BinaryBody, FileReplyInit, ReplyInit } from "../reply/types.js";
@@ -21,7 +23,7 @@ function pipe(
   init?: ReplyInit,
 ): ReplyOf<number, null> {
   const statusInit = { ...init, status: init?.status ?? STATUS_OK };
-  return toReplyResult(
+  return toReplyResponse(
     toWebReadableStream(body),
     mergeHeaders(statusInit, "stream"),
     null,
@@ -37,7 +39,7 @@ function buffer<const S extends number>(
 function buffer(data: BinaryBody, init?: ReplyInit): ReplyOf<number, BinaryBody>;
 function buffer(data: BinaryBody, init?: ReplyInit): ReplyOf<number, BinaryBody> {
   const statusInit = { ...init, status: init?.status ?? STATUS_OK };
-  return toReplyResult(
+  return toReplyResponse(
     toBodyBytes(data) as BodyInit,
     mergeHeaders(statusInit, "bytes"),
     data,
@@ -53,7 +55,7 @@ function blob<const S extends number>(
 function blob(value: Blob, init?: ReplyInit): ReplyOf<number, Blob>;
 function blob(value: Blob, init?: ReplyInit): ReplyOf<number, Blob> {
   const statusInit = { ...init, status: init?.status ?? STATUS_OK };
-  return toReplyResult(
+  return toReplyResponse(
     value,
     mergeHeaders(statusInit, "blob", {
       contentType: value.type || APPLICATION_OCTET_STREAM,
@@ -77,7 +79,7 @@ function file(path: string, init?: FileReplyInit): ReplyOf<number, string> {
   const mergedInit = mergeHeaders(statusInit, "stream", {
     contentType: contentType || APPLICATION_OCTET_STREAM,
   });
-  return toReplyResult(
+  return toReplyResponse(
     toWebReadableStream(createReadStream(safePath)),
     mergedInit,
     safePath,

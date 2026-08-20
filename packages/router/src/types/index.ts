@@ -21,7 +21,6 @@ import type {
   MiddlewareDefinition,
   MiddlewareReturnFromParts,
   MiddlewareUnit,
-  NativeContext,
   ValidatorParts,
 } from "./units.js";
 
@@ -48,7 +47,7 @@ export type {
   HandlerReply,
   HasReturns,
   MergeReturns,
-  ReplyResultFor,
+  ReplyFor,
   ReturnsMap,
   StatusCode,
   ValidHandlerReply,
@@ -66,7 +65,6 @@ export type {
   MiddlewareNext,
   MiddlewareReturnFromParts,
   MiddlewareUnit,
-  NativeContext,
   NextFn,
   NextResult,
   StandaloneMiddlewareContext,
@@ -184,7 +182,7 @@ type RouteChainField<
   Field extends "query" | "params" | "body" | "state",
 > = RouteResolvedField<Path, TMethod, Acc, Field>;
 
-type UnitRuntimeContext = Omit<RuntimeContextFields<NativeContext>, "var">;
+type UnitRuntimeContext = Omit<RuntimeContextFields, "var">;
 
 export type RouteChainContext<
   Path extends RoutePath,

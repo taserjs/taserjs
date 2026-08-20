@@ -1,8 +1,7 @@
-import { ensureReplyResult, type ReplyResult } from "@taserjs/router-utils";
+import { ensureResponse } from "@taserjs/router-utils";
 import type { Context, MiddlewareHandler, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
 
-import { toWireResponse } from "./error-handler.js";
 import type { MiddlewareDefinition, PipelineContext, PipelineNext } from "../types.js";
 
 /**
@@ -71,12 +70,6 @@ function resolveHonoContext(ctx: PipelineContext): Context {
     return hono;
   }
 
-  // Fallback to ctx.native if it's a Hono Context
-  const native = ctx.native;
-  if (native && typeof native === "object" && "req" in native && "var" in native) {
-    return native as Context;
-  }
-
   return createCompatHonoContext(ctx);
 }
 
@@ -105,11 +98,16 @@ function syncHonoHeadersToResponse(c: Context, response: Response): Response {
     return response;
   }
 
+  const newHeaders = new Headers(response.headers);
   honoHeaders.forEach((value, key) => {
-    response.headers.set(key, value);
+    newHeaders.set(key, value);
   });
 
-  return response;
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders,
+  });
 }
 
 /**
@@ -125,35 +123,29 @@ export function createTaserCompatHandler(
     const c = resolveHonoContext(pipelineCtx);
 
     let taserNextCalled = false;
-    let taserNextResult: ReplyResult | undefined;
+    let taserNextResult: Response | undefined;
 
-    // Create Hono next function that bridges to Taser pipeline
     const honoNext = async (): Promise<Response | void> => {
       taserNextCalled = true;
       syncHonoVarToCtx(c, pipelineCtx);
-      taserNextResult = (await next()) as ReplyResult | undefined;
-      // Convert Taser result to Response for Hono
-      return toWireResponse(ensureReplyResult(taserNextResult));
+      taserNextResult = (await next()) as Response | undefined;
+      return ensureResponse(taserNextResult);
     };
 
     try {
       const result = await middleware(c, honoNext as Next);
 
-      // If Hono middleware returned a Response, short-circuit
       if (result instanceof Response) {
         return syncHonoHeadersToResponse(c, result);
       }
 
-      // If taserNext was called, return its result with synced headers
       if (taserNextCalled && taserNextResult) {
-        const response = toWireResponse(taserNextResult);
-        return syncHonoHeadersToResponse(c, response);
+        return syncHonoHeadersToResponse(c, taserNextResult);
       }
 
-      // Hono "fall through" (undefined + next not called) — continue Taser pipeline
       syncHonoVarToCtx(c, pipelineCtx);
       const fallThroughResult = await next();
-      const response = toWireResponse(ensureReplyResult(fallThroughResult));
+      const response = ensureResponse(fallThroughResult);
       return syncHonoHeadersToResponse(c, response);
     } catch (error) {
       if (error instanceof HTTPException) {

@@ -1,7 +1,5 @@
 import type { Awaitable, TaserCookieJar, TaserHeaders } from "@taserjs/router-core";
-import type { ReplyResult } from "@taserjs/router-utils";
 
-import type { RouterRegister } from "../register.js";
 import type {
   MergeMiddlewareField,
   MergePart,
@@ -28,8 +26,6 @@ export type {
 /** Default empty app context for standalone units without a bound router instance. */
 export type AppContext = Record<never, never>;
 
-export type NativeContext = RouterRegister extends { NativeContext: infer N } ? N : unknown;
-
 export type ValidatorParts = {
   query?: unknown;
   params?: unknown;
@@ -41,7 +37,7 @@ export type ValidatorParts = {
 
 export declare const StateBrand: unique symbol;
 
-export type NextResult<TState = unknown> = ReplyResult & {
+export type NextResult<TState = unknown> = Response & {
   readonly [StateBrand]?: TState;
 };
 
@@ -67,7 +63,7 @@ export type MiddlewareDefinition = {
   params?: unknown;
   body?: unknown;
   returns?: ReturnsMap;
-  handler: (ctx: unknown, next: MiddlewareNext) => Awaitable<ReplyResult | Response | unknown>;
+  handler: (ctx: unknown, next: MiddlewareNext) => Awaitable<Response | unknown>;
 };
 
 export type MiddlewareReturnFromParts<
@@ -91,7 +87,7 @@ export type MiddlewareReturnFromParts<
   };
 };
 
-type UnitRuntimeContext = Omit<RuntimeContextFields<NativeContext>, "var">;
+type UnitRuntimeContext = Omit<RuntimeContextFields, "var">;
 
 export type StandaloneMiddlewareContext<
   TQuery = unknown,
@@ -165,7 +161,7 @@ export type HandlerUnit<
     Output: TOutput;
   };
   middlewares: readonly MiddlewareDefinition[];
-  handler: (ctx: unknown) => Awaitable<ReplyResult | Response>;
+  handler: (ctx: unknown) => Awaitable<Response>;
   returns?: ReturnsMap;
   query?: Schema<unknown>;
   params?: Schema<unknown>;

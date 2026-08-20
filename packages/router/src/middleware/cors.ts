@@ -2,10 +2,10 @@ import { cors as honoCors } from "hono/cors";
 
 import { wrapHonoMiddleware } from "./wrap-hono.js";
 
-const honoCorsMiddleware = wrapHonoMiddleware(honoCors);
+const wrapped = wrapHonoMiddleware(honoCors);
 
 export function cors(...args: Parameters<typeof honoCors>) {
-  return honoCorsMiddleware(...args);
+  return wrapped(...args);
 }
 
 export type CorsOptions = NonNullable<Parameters<typeof honoCors>[0]>;

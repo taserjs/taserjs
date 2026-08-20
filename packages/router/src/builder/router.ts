@@ -5,7 +5,7 @@ import {
   type OnErrorHandler,
   type RouteManifestShape,
 } from "@taserjs/router-core";
-import { normalizeOnError } from "@taserjs/router-utils";
+import { isPromise, normalizeOnError } from "@taserjs/router-utils";
 
 import {
   createAllRoute,
@@ -280,15 +280,50 @@ export class TaserRouter<TAppContext extends Record<string, unknown> = AppContex
     const basePath = this.state.options.basePath;
 
     const hasCustomContext = definition.boot !== undefined || definition.request !== undefined;
-    const bootPromise = hasCustomContext
-      ? Promise.resolve(definition.boot?.() ?? ({} as Record<string, unknown>))
-      : undefined;
+    let bootContextResolved: Record<string, unknown> | undefined;
+    let bootPromise: Promise<Record<string, unknown>> | undefined;
+
+    if (definition.boot !== undefined) {
+      const bootResult = definition.boot();
+      if (isPromise(bootResult)) {
+        bootPromise = bootResult.then((ctx) => {
+          bootContextResolved = (ctx ?? {}) as Record<string, unknown>;
+          return bootContextResolved;
+        });
+      } else {
+        bootContextResolved = (bootResult ?? {}) as Record<string, unknown>;
+      }
+    } else if (hasCustomContext) {
+      bootContextResolved = {};
+    }
 
     const contextFactory = hasCustomContext
-      ? async ({ native }: { native?: unknown } = {}) => {
-          const bootContext = (await bootPromise) ?? {};
-          const requestContext = (await definition.request?.({ native: native as never })) ?? {};
-          return { ...bootContext, ...requestContext };
+      ? (req?: Request) => {
+          if (bootPromise !== undefined && bootContextResolved === undefined) {
+            return bootPromise.then(async (bootContext) => {
+              if (!definition.request) {
+                return { ...bootContext };
+              }
+              const requestResult = definition.request(req!);
+              const requestContext = isPromise(requestResult) ? await requestResult : requestResult;
+              return { ...bootContext, ...requestContext };
+            });
+          }
+
+          const bootContext = bootContextResolved ?? {};
+          if (!definition.request) {
+            return { ...bootContext };
+          }
+
+          const requestResult = definition.request(req!);
+          if (isPromise(requestResult)) {
+            return requestResult.then((requestContext) => ({
+              ...bootContext,
+              ...requestContext,
+            }));
+          }
+
+          return { ...bootContext, ...(requestResult as Record<string, unknown>) };
         }
       : () => ({});
 

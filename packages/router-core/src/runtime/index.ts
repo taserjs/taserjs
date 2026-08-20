@@ -1,8 +1,3 @@
 export { createTaserRuntime } from "./create-runtime.js";
 export { dispatchNotFound } from "./not-found.js";
-export type {
-  CreateTaserRuntimeOptions,
-  NotFoundHandler,
-  TaserNativeBoundRuntime,
-  TaserRuntime,
-} from "../types.js";
+export type { CreateTaserRuntimeOptions, NotFoundHandler, TaserRuntime } from "../types.js";

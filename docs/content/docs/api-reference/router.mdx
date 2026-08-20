@@ -100,7 +100,7 @@ function defineMiddleware<TState = unknown, TRequires = {}>(options: {
   returns?: Record<number, Schema>;
   handler: (
     ctx: StandaloneMiddlewareContext<unknown, unknown, unknown, AppContext, TRequires>,
-    next: (state?: TState) => Promise<ReplyResult>,
+    next: (state?: TState) => Promise<Response>,
   ) => unknown;
 }): MiddlewareUnit;
 
@@ -120,7 +120,7 @@ function defineMiddleware<Layout extends LayoutId, TState = unknown, TRequires =
         AppContext,
         ResolveLayoutMiddlewaresState<Layout> & TRequires
       >,
-      next: (state?: TState) => Promise<ReplyResult>,
+      next: (state?: TState) => Promise<Response>,
     ) => unknown;
   },
 ): MiddlewareUnit;
@@ -141,7 +141,7 @@ function defineMiddleware<Layouts extends readonly LayoutId[], TState = unknown,
         AppContext,
         ResolveLayoutsState<Layouts> & TRequires
       >,
-      next: (state?: TState) => Promise<ReplyResult>,
+      next: (state?: TState) => Promise<Response>,
     ) => unknown;
   },
 ): MiddlewareUnit;
@@ -163,11 +163,11 @@ function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit
     onError: {
       description:
         "Registers a global centralized error boundary for unhandled exceptions and validation errors.",
-      type: "(handler: (err: unknown, ctx: Context) => ReplyResult) => this",
+      type: "(handler: (err: unknown, ctx: Context) => Response) => this",
     },
     notFound: {
       description: "Registers a global handler for unmatched routes (404 Not Found).",
-      type: "(handler: (ctx: Context) => ReplyResult) => this",
+      type: "(handler: (ctx: Context) => Response) => this",
     },
     get: {
       description: "Creates a GET route builder accepting query and params schemas.",
@@ -242,7 +242,7 @@ function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit
     },
     handler: {
       description: "Attaches the route execution logic receiving typed ctx.",
-      type: "(fn: (ctx: Context) => ReplyResult | Promise<ReplyResult>) => RouteDefinition",
+      type: "(fn: (ctx: Context) => Response | Promise<Response>) => RouteDefinition",
     },
   }}
 />

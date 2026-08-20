@@ -11,5 +11,3 @@ export function toRou3RegisterPath(manifestPath: string): string {
   }
   return manifestPath;
 }
-
-export const toHonoRegisterPath = toRou3RegisterPath;

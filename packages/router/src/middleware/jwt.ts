@@ -1,9 +1,9 @@
-import { createTaserCompatHandler } from "@taserjs/router-core";
 import type { MiddlewareHandler } from "hono";
 import { jwt as honoJwt } from "hono/jwt";
 
 import { defineMiddleware } from "../define/middleware.js";
 import type { MiddlewareReturnFromParts, MiddlewareUnit } from "../types/units.js";
+import { extractJwtPayload } from "./wrap-hono.js";
 
 export type JwtPayloadState<TPayload> = {
   jwtPayload: TPayload;
@@ -24,11 +24,6 @@ export function jwt<TPayload = Record<string, unknown>>(
 ): JwtMiddlewareUnit<TPayload> {
   const honoMw: MiddlewareHandler = honoJwt(options);
   return defineMiddleware<JwtPayloadState<TPayload>>({
-    handler: (ctx, next) => {
-      return createTaserCompatHandler(honoMw)(ctx, async () => {
-        const payload = (ctx as unknown as { var: { jwtPayload?: unknown } }).var.jwtPayload;
-        return next({ jwtPayload: payload as TPayload });
-      });
-    },
+    handler: extractJwtPayload<TPayload>(honoMw),
   });
 }

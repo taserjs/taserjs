@@ -1,39 +1,32 @@
 import { reply } from "@taserjs/router-utils";
 import { describe, expect, it } from "vitest";
 
-import { createTaserRuntime, toResponse, toWireResponse } from "../src/index.js";
+import { createTaserRuntime } from "../src/index.js";
 
 /**
  * Mimics @hono/node-server serve(): it replaces global.Response with a subclass.
- * ReplyResult still extends the *original* Response, so `instanceof Response` fails.
  */
-function installHonoStyleResponseOverride(): () => void {
+function installHonoStyleResponseOverride(): {
+  OriginalResponse: typeof Response;
+  restore: () => void;
+} {
   const OriginalResponse = globalThis.Response;
   class LightweightResponse extends OriginalResponse {}
   Object.defineProperty(globalThis, "Response", { value: LightweightResponse, configurable: true });
-  return () => {
-    Object.defineProperty(globalThis, "Response", { value: OriginalResponse, configurable: true });
+  return {
+    OriginalResponse,
+    restore: () => {
+      Object.defineProperty(globalThis, "Response", {
+        value: OriginalResponse,
+        configurable: true,
+      });
+    },
   };
 }
 
-describe("toResponse with global.Response override", () => {
-  it("does not JSON-envelope ReplyResult when instanceof Response fails", async () => {
-    const restore = installHonoStyleResponseOverride();
-    try {
-      const result = reply.text("Hello, world!");
-      expect(result instanceof Response).toBe(false);
-
-      const coerced = toResponse(result);
-      const wire = toWireResponse(coerced);
-      expect(await wire.text()).toBe("Hello, world!");
-      expect(wire.headers.get("content-type")).toMatch(/text\/plain/);
-    } finally {
-      restore();
-    }
-  });
-
+describe("runtime with global.Response override", () => {
   it("runtime returns plain text after Response override", async () => {
-    const restore = installHonoStyleResponseOverride();
+    const { restore } = installHonoStyleResponseOverride();
     try {
       const route = {
         path: "/account/plain",

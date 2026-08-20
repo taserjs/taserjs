@@ -1,4 +1,4 @@
-import { reply, type ReplyResult } from "@taserjs/router-utils";
+import { reply } from "@taserjs/router-utils";
 import { describe, expect, it } from "vitest";
 
 import { composePipeline, middlewareToLayer } from "../src/index.js";
@@ -9,7 +9,7 @@ describe("onion composePipeline", () => {
     const outer = middlewareToLayer({
       handler: async (_ctx, next) => {
         order.push("outer-before");
-        const res = (await next()) as ReplyResult;
+        const res = (await next()) as Response;
         order.push("outer-after");
         expect(res.status).toBe(200);
         return res;
@@ -18,7 +18,7 @@ describe("onion composePipeline", () => {
     const inner = middlewareToLayer({
       handler: async (_ctx, next) => {
         order.push("inner-before");
-        const res = (await next()) as ReplyResult;
+        const res = (await next()) as Response;
         order.push("inner-after");
         return res;
       },

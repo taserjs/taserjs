@@ -71,12 +71,11 @@ export type MergeMiddlewareInputField<
   ? {}
   : UnionToIntersection<MiddlewareInputField<Middlewares[number], Field>>;
 
-export type RuntimeContextFields<TNative = unknown> = {
+export type RuntimeContextFields = {
   request: Request;
   method: Method;
   url: URL;
   headers: import("@taserjs/router-core").TaserHeaders;
   cookies: import("@taserjs/router-core").TaserCookieJar;
   var: Record<string, unknown>;
-  native?: TNative;
 };

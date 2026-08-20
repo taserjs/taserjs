@@ -9,11 +9,7 @@ import {
   STATUS_OK,
 } from "../http/constants.js";
 import type { BinaryBody, BodyKind, ReplyInit } from "./types.js";
-import { createReplyResult, type ReplyBodyKind, type ReplyOf, type ReplyResult } from "./result.js";
-
-const JSON_HEADERS: Record<string, string> = {
-  "content-type": APPLICATION_JSON,
-};
+import { createReply, type ReplyBodyKind, type ReplyOf } from "./result.js";
 
 export function mergeHeaders(
   init: ReplyInit | undefined,
@@ -38,9 +34,9 @@ export function mergeHeaders(
         : undefined,
   );
 
-  new Headers(init.headers).forEach((value, key) => {
+  for (const [key, value] of new Headers(init.headers).entries()) {
     headers.set(key, value);
-  });
+  }
 
   return { ...init, headers };
 }
@@ -121,43 +117,43 @@ function bodyKindToReplyKind(kind: BodyKind): ReplyBodyKind {
   }
 }
 
-export function toReplyResult(
+export function toReplyResponse(
   body: BodyInit | null,
   init: ReplyInit | undefined,
   data: unknown,
   kind: ReplyBodyKind,
-): ReplyResult {
+): Response {
   const status = init?.status ?? STATUS_OK;
   const responseInit: ResponseInit = {
     status,
     ...(init?.statusText !== undefined ? { statusText: init.statusText } : {}),
     ...(init?.headers !== undefined ? { headers: init.headers } : {}),
   };
-  return createReplyResult(body, responseInit, data, kind);
+  return createReply(body, responseInit, data, kind);
 }
 
-export function jsonResponse(data: unknown, init?: ReplyInit): ReplyResult {
+export function jsonResponse(data: unknown, init?: ReplyInit): Response {
   if (!init) {
-    return createReplyResult(
+    return createReply(
       JSON.stringify(data),
-      { status: STATUS_OK, headers: JSON_HEADERS },
+      { status: STATUS_OK, headers: { "content-type": APPLICATION_JSON } },
       data,
       "json",
     );
   }
   const status = init.status ?? STATUS_OK;
   if (!init.headers) {
-    return createReplyResult(
+    return createReply(
       JSON.stringify(data),
-      { ...init, status, headers: JSON_HEADERS },
+      { ...init, status, headers: { "content-type": APPLICATION_JSON } },
       data,
       "json",
     );
   }
-  return toReplyResult(JSON.stringify(data), mergeHeaders(init, "json"), data, "json");
+  return toReplyResponse(JSON.stringify(data), mergeHeaders(init, "json"), data, "json");
 }
 
-export function buildBodyResponse(body: unknown, init?: ReplyInit): ReplyResult {
+export function buildBodyResponse(body: unknown, init?: ReplyInit): Response {
   const kind = classifyBody(body);
   const statusInit = { ...init, status: init?.status ?? STATUS_OK };
   const replyKind = bodyKindToReplyKind(kind);
@@ -165,16 +161,16 @@ export function buildBodyResponse(body: unknown, init?: ReplyInit): ReplyResult 
   switch (kind) {
     case "empty":
     case "null":
-      return toReplyResult(null, mergeHeaders(statusInit, kind), body ?? null, replyKind);
+      return toReplyResponse(null, mergeHeaders(statusInit, kind), body ?? null, replyKind);
 
     case "string":
-      return toReplyResult(body as string, mergeHeaders(statusInit, kind), body, replyKind);
+      return toReplyResponse(body as string, mergeHeaders(statusInit, kind), body, replyKind);
 
     case "json":
-      return toReplyResult(JSON.stringify(body), mergeHeaders(statusInit, kind), body, replyKind);
+      return toReplyResponse(JSON.stringify(body), mergeHeaders(statusInit, kind), body, replyKind);
 
     case "bytes":
-      return toReplyResult(
+      return toReplyResponse(
         toBodyBytes(body as BinaryBody) as BodyInit,
         mergeHeaders(statusInit, kind),
         body,
@@ -183,7 +179,7 @@ export function buildBodyResponse(body: unknown, init?: ReplyInit): ReplyResult 
 
     case "blob": {
       const blob = body as Blob;
-      return toReplyResult(
+      return toReplyResponse(
         blob,
         mergeHeaders(statusInit, kind, {
           contentType: blob.type || APPLICATION_OCTET_STREAM,
@@ -194,7 +190,7 @@ export function buildBodyResponse(body: unknown, init?: ReplyInit): ReplyResult 
     }
 
     case "stream":
-      return toReplyResult(
+      return toReplyResponse(
         toWebReadableStream(body as ReadableStream | NodeJS.ReadableStream),
         mergeHeaders(statusInit, kind),
         null,
@@ -202,10 +198,10 @@ export function buildBodyResponse(body: unknown, init?: ReplyInit): ReplyResult 
       );
 
     case "formData":
-      return toReplyResult(body as FormData, mergeHeaders(statusInit, kind), body, replyKind);
+      return toReplyResponse(body as FormData, mergeHeaders(statusInit, kind), body, replyKind);
 
     case "urlSearchParams":
-      return toReplyResult(
+      return toReplyResponse(
         body as URLSearchParams,
         mergeHeaders(statusInit, kind),
         (body as URLSearchParams).toString(),
@@ -213,7 +209,7 @@ export function buildBodyResponse(body: unknown, init?: ReplyInit): ReplyResult 
       );
 
     default:
-      return toReplyResult(JSON.stringify(body), mergeHeaders(statusInit, "json"), body, "json");
+      return toReplyResponse(JSON.stringify(body), mergeHeaders(statusInit, "json"), body, "json");
   }
 }
 
@@ -221,13 +217,13 @@ export function buildErrorResponse(
   body: unknown | undefined,
   status: number,
   init?: ReplyInit,
-): ReplyResult {
+): Response {
   const payload = body ?? { error: ERROR_MESSAGES[status] ?? ERROR_MESSAGES[0] };
   return buildBodyResponse(payload, { ...init, status });
 }
 
 export function noContentResponse(init?: ReplyInit): ReplyOf<204, null> {
-  return toReplyResult(
+  return toReplyResponse(
     null,
     { ...init, status: init?.status ?? STATUS_NO_CONTENT },
     null,

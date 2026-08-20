@@ -1,9 +1,9 @@
-import { reply } from "@taserjs/router-utils";
+import { isPromise, reply } from "@taserjs/router-utils";
 
-import { handlePipelineError, toWireResponse } from "../http/error-handler.js";
-import { createTaserCookieJar, type CookieDefaults } from "../cookies/taser-cookies.js";
+import { handlePipelineError } from "../http/error-handler.js";
+import type { CookieDefaults } from "../cookies/taser-cookies.js";
 import type { ContextFactory, NotFoundHandler } from "../types.js";
-import { buildNotFoundContext } from "../context/context.js";
+import { buildNotFoundContext, getCookiesFromContext } from "../context/context.js";
 import { finalizeReply, type FinalizeResponseOptions } from "../http/finalize.js";
 
 export async function dispatchNotFound(
@@ -15,28 +15,24 @@ export async function dispatchNotFound(
   cookieDefaults: CookieDefaults,
   getHandler: () => NotFoundHandler | undefined,
 ): Promise<Response> {
-  const cookies = createTaserCookieJar(
-    request.headers.get("cookie") ?? null,
-    cookieSecret,
-    cookieDefaults,
-  );
   const notFoundHandler = getHandler();
   if (notFoundHandler) {
     try {
-      const ctx = await buildNotFoundContext(
+      const ctxResult = buildNotFoundContext(
         request,
         pathname,
         request.method.toUpperCase(),
         createContext,
-        cookies,
+        cookieSecret,
+        cookieDefaults,
       );
+      const ctx = isPromise(ctxResult) ? await ctxResult : ctxResult;
       const result = await notFoundHandler(ctx);
-      return toWireResponse(
-        await finalizeReply(result, undefined, responseOptions, request, cookies),
-      );
+      const cookies = getCookiesFromContext(ctx);
+      return finalizeReply(result, undefined, responseOptions, request, cookies);
     } catch (error) {
-      return toWireResponse(cookies.applyTo(handlePipelineError(error)));
+      return handlePipelineError(error);
     }
   }
-  return toWireResponse(cookies.applyTo(reply.notFound()));
+  return reply.notFound();
 }

@@ -10,7 +10,7 @@ import {
   jsonResponse,
   mergeHeaders,
   noContentResponse,
-  toReplyResult,
+  toReplyResponse,
 } from "./build.js";
 import { validateRedirectLocation } from "./redirect-location.js";
 import { blob, buffer, file, pipe } from "../stream/index.js";
@@ -42,7 +42,10 @@ function json<T, const S extends number>(
 ): ReplyOf<S, T>;
 function json<T>(data: T, init?: ReplyInit): ReplyOf<number, T>;
 function json<T>(data: T, init?: ReplyInit): ReplyOf<number, T> {
-  return jsonResponse(data, { ...init, status: init?.status ?? STATUS_OK }) as ReplyOf<number, T>;
+  if (init === undefined) {
+    return jsonResponse(data) as ReplyOf<number, T>;
+  }
+  return jsonResponse(data, { ...init, status: init.status ?? STATUS_OK }) as ReplyOf<number, T>;
 }
 
 function text(body: string): ReplyOf<200, string>;
@@ -52,8 +55,14 @@ function text<const S extends number>(
 ): ReplyOf<S, string>;
 function text(body: string, init?: ReplyInit): ReplyOf<number, string>;
 function text(body: string, init?: ReplyInit): ReplyOf<number, string> {
-  const statusInit = { ...init, status: init?.status ?? STATUS_OK };
-  return toReplyResult(body, mergeHeaders(statusInit, "string"), body, "text") as ReplyOf<
+  if (init === undefined) {
+    return toReplyResponse(body, mergeHeaders(undefined, "string"), body, "text") as ReplyOf<
+      number,
+      string
+    >;
+  }
+  const statusInit = { ...init, status: init.status ?? STATUS_OK };
+  return toReplyResponse(body, mergeHeaders(statusInit, "string"), body, "text") as ReplyOf<
     number,
     string
   >;
@@ -66,8 +75,16 @@ function html<const S extends number>(
 ): ReplyOf<S, string>;
 function html(body: string, init?: ReplyInit): ReplyOf<number, string>;
 function html(body: string, init?: ReplyInit): ReplyOf<number, string> {
-  const statusInit = { ...init, status: init?.status ?? STATUS_OK };
-  return toReplyResult(
+  if (init === undefined) {
+    return toReplyResponse(
+      body,
+      mergeHeaders(undefined, "empty", { contentType: TEXT_HTML }),
+      body,
+      "text",
+    ) as ReplyOf<number, string>;
+  }
+  const statusInit = { ...init, status: init.status ?? STATUS_OK };
+  return toReplyResponse(
     body,
     mergeHeaders(statusInit, "empty", { contentType: TEXT_HTML }),
     body,
@@ -92,7 +109,7 @@ function redirect(location: string, init?: RedirectInit): ReplyOf<number, string
   if (!headers.has("location")) {
     headers.set("location", location);
   }
-  return toReplyResult(null, { ...statusInit, headers }, location, "redirect") as ReplyOf<
+  return toReplyResponse(null, { ...statusInit, headers }, location, "redirect") as ReplyOf<
     number,
     string
   >;

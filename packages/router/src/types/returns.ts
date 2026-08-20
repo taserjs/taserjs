@@ -83,7 +83,7 @@ export type ReturnsMap = {
 export type MergeReturns<A extends ReturnsMap, B extends ReturnsMap> = Omit<A, keyof B> & B;
 
 /** Typed reply union for statuses declared in a returns map. */
-export type ReplyResultFor<M extends ReturnsMap> = {
+export type ReplyFor<M extends ReturnsMap> = {
   [S in keyof M]-?: S extends StatusCode
     ? M[S] extends Schema<unknown>
       ? ReplyOf<S, Simplify<InferOutput<M[S]>>>
@@ -127,4 +127,4 @@ export type EnforceHandlerReply<R, M extends ReturnsMap> = [R] extends [ValidHan
  * Prefer constraining handler generics with {@link EnforceHandlerReply}.
  */
 export type HandlerReply<M extends ReturnsMap> =
-  HasReturns<M> extends true ? ReplyResultFor<M> | Response : Response;
+  HasReturns<M> extends true ? ReplyFor<M> | Response : Response;

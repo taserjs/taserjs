@@ -17,8 +17,6 @@ export type PipelineContext = {
   path?: string;
   url?: URL;
   request?: Request;
-  native?: unknown;
-  hono?: unknown;
   var?: Record<string, unknown>;
   [key: string]: unknown;
 };
@@ -77,12 +75,8 @@ export type RouteManifestShape = {
   routes: Record<string, Partial<Record<HttpMethod, ManifestRouteEntry>>>;
 };
 
-export type CreateContextArgs = {
-  native?: unknown;
-};
-
 export type ContextFactory = (
-  args: CreateContextArgs,
+  request?: Request,
 ) => Record<string, unknown> | Promise<Record<string, unknown>>;
 
 export type OnErrorHandler = {
@@ -91,14 +85,6 @@ export type OnErrorHandler = {
 };
 
 export type NotFoundHandler = (ctx: PipelineContext) => Awaitable<unknown>;
-
-export type TaserNativeBoundRuntime = {
-  fetch(
-    request: Request,
-    env?: unknown,
-    executionCtx?: import("hono").ExecutionContext,
-  ): Promise<Response>;
-};
 
 export type CreateTaserRuntimeOptions = {
   basePath?: string;
@@ -127,8 +113,7 @@ export type TaserRuntime = {
     request: Request,
     env?: unknown,
     executionCtx?: import("hono").ExecutionContext,
-  ): Promise<Response>;
-  native(boundNative: unknown): TaserNativeBoundRuntime;
+  ): Promise<Response> | Response;
   onError(handler: OnErrorHandler | OnErrorHandler["handle"]): TaserRuntime;
   notFound(handler: NotFoundHandler): TaserRuntime;
 };

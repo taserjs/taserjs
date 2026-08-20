@@ -26,14 +26,16 @@ describe("createContext + createTaserApp", () => {
   it("runs boot once and request per handle", async () => {
     let bootCount = 0;
     let requestCount = 0;
+    let capturedMethod = "";
     const context = createContext({
       boot: () => {
         bootCount += 1;
         return { bootId: bootCount };
       },
-      request: () => {
+      request: (req: Request) => {
         requestCount += 1;
-        return { reqN: requestCount };
+        capturedMethod = req.method;
+        return { reqN: requestCount, methodFromReq: req.method };
       },
     });
 
@@ -59,6 +61,7 @@ describe("createContext + createTaserApp", () => {
 
     expect(bootCount).toBe(1);
     expect(requestCount).toBe(2);
+    expect(capturedMethod).toBe("GET");
     expect(a).toEqual({ bootId: 1, reqN: 1 });
     expect(b).toEqual({ bootId: 1, reqN: 2 });
   });

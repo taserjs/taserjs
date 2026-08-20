@@ -1,4 +1,4 @@
-import { reply, type ReplyResult } from "@taserjs/router-utils";
+import { reply } from "@taserjs/router-utils";
 import type { Context, Next } from "hono";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -183,7 +183,7 @@ describe("createTaserRuntime", () => {
           middlewares: {
             middlewares: [
               {
-                handler: async (_ctx: unknown, next: () => Promise<ReplyResult>) => {
+                handler: async (_ctx: unknown, next: () => Promise<Response>) => {
                   const res = await next();
                   res.headers.set("X-Layout", "1");
                   return res;

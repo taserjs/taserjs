@@ -1,5 +1,10 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { reply, type ResponseValidationFailureHandler, validateReply } from "@taserjs/router-utils";
+import {
+  isPromise,
+  reply,
+  type ResponseValidationFailureHandler,
+  validateReply,
+} from "@taserjs/router-utils";
 
 import { toResponse } from "./error-handler.js";
 import type { TaserCookieJar } from "../cookies/taser-cookies.js";
@@ -9,23 +14,31 @@ export type FinalizeResponseOptions = {
   onValidationFailure?: ResponseValidationFailureHandler | undefined;
 };
 
-export async function finalizeReply(
+export function finalizeReply(
   value: unknown,
   returnsMap: Record<number, StandardSchemaV1> | undefined,
   responseOptions: FinalizeResponseOptions,
   request: Request,
-  cookies: TaserCookieJar,
-): Promise<Response> {
+  cookies?: TaserCookieJar | undefined,
+): Promise<Response> | Response {
   const response = toResponse(value);
-  const validated = responseOptions.validate
-    ? await validateReply(response, returnsMap, {
-        request,
-        ...(responseOptions.onValidationFailure !== undefined
-          ? { onValidationFailure: responseOptions.onValidationFailure }
-          : {}),
-      })
-    : response;
-  return cookies.applyTo(validated);
+
+  if (!responseOptions.validate || !returnsMap) {
+    return cookies ? cookies.applyTo(response) : response;
+  }
+
+  const validatedResult = validateReply(response, returnsMap, {
+    request,
+    ...(responseOptions.onValidationFailure !== undefined
+      ? { onValidationFailure: responseOptions.onValidationFailure }
+      : {}),
+  });
+
+  if (isPromise(validatedResult)) {
+    return validatedResult.then((validated) => (cookies ? cookies.applyTo(validated) : validated));
+  }
+
+  return cookies ? cookies.applyTo(validatedResult) : validatedResult;
 }
 
 export { reply };

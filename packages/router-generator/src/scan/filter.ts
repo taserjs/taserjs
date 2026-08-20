@@ -6,6 +6,8 @@ import { ScanError } from "../support/errors.js";
 const VIRTUAL_CONFIG_PATTERN = /^__virtual\.[mc]?[jt]s$/;
 const MAX_IGNORE_PATTERN_LENGTH = 200;
 
+const ignorePatternCache = new Map<string, RegExp>();
+
 export function compileRouteFileIgnorePattern(pattern: string): RegExp {
   if (pattern.length > MAX_IGNORE_PATTERN_LENGTH) {
     throw new ScanError(
@@ -42,7 +44,11 @@ export function shouldIgnoreRouteFile(fileName: string, config?: RouteIgnoreConf
   }
 
   if (config?.ignorePattern) {
-    const pattern = compileRouteFileIgnorePattern(config.ignorePattern);
+    let pattern = ignorePatternCache.get(config.ignorePattern);
+    if (!pattern) {
+      pattern = compileRouteFileIgnorePattern(config.ignorePattern);
+      ignorePatternCache.set(config.ignorePattern, pattern);
+    }
     if (pattern.test(fileName)) {
       return true;
     }

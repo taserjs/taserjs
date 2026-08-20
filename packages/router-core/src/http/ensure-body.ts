@@ -1,5 +1,3 @@
-import type { Context } from "hono";
-
 import type { PipelineContext } from "../types.js";
 import { parseRequestBody } from "./parse-body.js";
 
@@ -15,7 +13,7 @@ export async function ensureBody(ctx: PipelineContext): Promise<void> {
     return;
   }
 
-  const req = (ctx.request as Request) ?? (ctx.hono as Context | undefined)?.req;
+  const req = ctx.request;
   if (!req) {
     ctx.body = undefined;
     record[bodyParsedKey] = true;

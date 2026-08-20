@@ -16,7 +16,6 @@ export type {
 } from "./types/index.js";
 export type {
   ContextDefinition,
-  CreateContextArgs,
   CreateTaserAppOptions,
   InferAppContext,
   InferAppManifest,
@@ -25,13 +24,7 @@ export type {
   TaserHandler,
 } from "./types/app.js";
 
-export {
-  isReplyResult,
-  reply,
-  stream,
-  ValidationError,
-  validationErrorSchema,
-} from "@taserjs/router-utils";
+export { reply, stream, ValidationError, validationErrorSchema } from "@taserjs/router-utils";
 export type {
   ReplyBodyKind,
   ReplyOf,
@@ -41,7 +34,7 @@ export type {
 } from "@taserjs/router-utils";
 
 export { createTaserApp, TaserRouter } from "./builder/router.js";
-export { TaserApp, TaserNativeBound } from "./builder/app.js";
+export { TaserApp } from "./builder/app.js";
 export { createContext } from "./context/create-context.js";
 export { defineHandler } from "./define/handler.js";
 export { defineMiddleware } from "./define/middleware.js";

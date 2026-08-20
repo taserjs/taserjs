@@ -103,7 +103,7 @@ describe("createTaserCompatHandler", () => {
     expect(order).toEqual(["hono-middleware", "handler", "hono-after-next"]);
   });
 
-  it("works with ctx.native as Hono context fallback", async () => {
+  it("works with ctx.hono as Hono context", async () => {
     const honoCtx = createMockHonoContext();
 
     const layers = [
@@ -115,7 +115,7 @@ describe("createTaserCompatHandler", () => {
 
     const ctx: PipelineContext = {
       state: {},
-      native: honoCtx,
+      hono: honoCtx,
     };
 
     const run = composePipeline(layers, async () => reply.json({ ok: true }));

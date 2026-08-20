@@ -1,7 +1,8 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
+import { isPromise } from "../async/is-promise.js";
 import { STATUS_BAD_GATEWAY } from "../http/constants.js";
-import { createReplyResult, isReplyResult, type ReplyResult } from "../reply/result.js";
+import { createReply, REPLY_DATA, REPLY_KIND, type ReplyBodyKind } from "../reply/result.js";
 
 export type ResponseValidationFailureHandler = (args: {
   issues: readonly StandardSchemaV1.Issue[];
@@ -89,7 +90,13 @@ export function hasInputSchemas(source: {
     return true;
   }
 
-  for (const layer of [...(source.middlewares ?? []), ...(source.handlerMiddlewares ?? [])]) {
+  for (const layer of source.middlewares ?? []) {
+    if (layer.query !== undefined || layer.params !== undefined || layer.body !== undefined) {
+      return true;
+    }
+  }
+
+  for (const layer of source.handlerMiddlewares ?? []) {
     if (layer.query !== undefined || layer.params !== undefined || layer.body !== undefined) {
       return true;
     }
@@ -124,29 +131,32 @@ export async function validateSchema<S extends StandardSchemaV1>(
 function reportValidationFailure(
   issues: readonly StandardSchemaV1.Issue[],
   request: Request,
-  onValidationFailure?: ResponseValidationFailureHandler,
+  handler?: ResponseValidationFailureHandler,
 ): void {
-  if (onValidationFailure) {
-    onValidationFailure({ issues, request });
-    return;
+  if (handler) {
+    handler({ issues, request });
+  } else {
+    console.error("Response validation failed", {
+      url: request.url,
+      issues,
+    });
   }
-  console.error("Response validation failed", { url: request.url, issues });
 }
 
 /**
  * Validate a reply against a status-keyed returns map.
  * Missing status → skip. Validation failure → 502 with handler body preserved.
  */
-export async function validateReply(
+export function validateReply(
   result: Response,
   returnsMap: Record<number, StandardSchemaV1> | undefined | null,
   options: ValidateReplyOptions,
-): Promise<Response> {
+): Promise<Response> | Response {
   if (!returnsMap || Object.keys(returnsMap).length === 0) {
     return result;
   }
 
-  if (!isReplyResult(result)) {
+  if (!(result instanceof Response)) {
     return result;
   }
 
@@ -155,23 +165,48 @@ export async function validateReply(
     return result;
   }
 
-  const validated = await schema["~standard"].validate(result.data);
+  const rawData = (result as unknown as Record<symbol, unknown>)[REPLY_DATA];
+  const rawKind =
+    ((result as unknown as Record<symbol, unknown>)[REPLY_KIND] as ReplyBodyKind | undefined) ??
+    "json";
+
+  const validationResult = schema["~standard"].validate(rawData);
+  if (isPromise(validationResult)) {
+    return validationResult.then((validated) => {
+      if (validated.issues) {
+        reportValidationFailure(validated.issues, options.request, options.onValidationFailure);
+
+        return createReply(
+          result.body,
+          {
+            status: STATUS_BAD_GATEWAY,
+            statusText: "Bad Gateway",
+            headers: result.headers,
+          },
+          rawData,
+          rawKind,
+        );
+      }
+
+      return result;
+    });
+  }
+
+  const validated = validationResult as StandardSchemaV1.Result<unknown>;
   if (validated.issues) {
     reportValidationFailure(validated.issues, options.request, options.onValidationFailure);
 
-    return createReplyResult(
+    return createReply(
       result.body,
       {
         status: STATUS_BAD_GATEWAY,
         statusText: "Bad Gateway",
         headers: result.headers,
       },
-      result.data,
-      result.kind,
+      rawData,
+      rawKind,
     );
   }
 
   return result;
 }
-
-export type { ReplyResult };

@@ -1,7 +1,7 @@
+import { isPromise } from "@taserjs/router-utils";
 import { createTaserCookieJar, type TaserCookieJar } from "../cookies/taser-cookies.js";
 import { createTaserHeaders } from "../headers/taser-headers.js";
 import type { ContextFactory, HttpMethod, PipelineContext } from "../types.js";
-import { requestScope } from "./request-scope.js";
 
 function parseQuery(url: URL): Record<string, string | string[]> {
   const query: Record<string, string | string[]> = {};
@@ -20,27 +20,33 @@ function parseQuery(url: URL): Record<string, string | string[]> {
   return query;
 }
 
-export async function buildPipelineContext(
+export const COOKIE_JAR_KEY = Symbol.for("taser.context.cookies");
+
+export function getCookiesFromContext(
+  ctx: PipelineContext | undefined,
+): TaserCookieJar | undefined {
+  return ctx
+    ? (
+        (ctx as Record<symbol, unknown>)[COOKIE_JAR_KEY] as
+          | (() => TaserCookieJar | undefined)
+          | undefined
+      )?.()
+    : undefined;
+}
+
+export function createBaseContext(
   request: Request,
   params: Record<string, unknown>,
   path: string,
-  method: HttpMethod,
-  createContext: ContextFactory,
+  method: string,
+  userContext: Record<string, unknown>,
   cookieSecret?: string | BufferSource,
   cookieDefaults?: import("../cookies/taser-cookies.js").CookieDefaults,
-): Promise<{ ctx: PipelineContext; cookies: TaserCookieJar }> {
-  const scope = requestScope.getStore();
-  const native = scope?.native;
-  const hono = scope?.hono;
-  const userContext = await createContext({ native });
-  const cookies = createTaserCookieJar(
-    request.headers.get("cookie") ?? null,
-    cookieSecret,
-    cookieDefaults ?? {},
-  );
-
+): PipelineContext {
   let _url: URL | undefined;
   let _query: Record<string, string | string[]> | undefined;
+  let _headers: import("../headers/taser-headers.js").TaserHeaders | undefined;
+  let _cookies: TaserCookieJar | undefined;
 
   const ctx: PipelineContext = {
     ...userContext,
@@ -54,10 +60,24 @@ export async function buildPipelineContext(
     set query(value: Record<string, string | string[]>) {
       _query = value;
     },
-    params: { ...params },
+    params,
     body: undefined,
-    headers: createTaserHeaders(request.headers),
-    cookies,
+    get headers() {
+      if (_headers === undefined) {
+        _headers = createTaserHeaders(request.headers);
+      }
+      return _headers;
+    },
+    get cookies() {
+      if (_cookies === undefined) {
+        _cookies = createTaserCookieJar(
+          request.headers.get("cookie") ?? null,
+          cookieSecret,
+          cookieDefaults ?? {},
+        );
+      }
+      return _cookies;
+    },
     method,
     path,
     get url() {
@@ -67,56 +87,59 @@ export async function buildPipelineContext(
       return _url;
     },
     request,
-    native,
-    hono,
     var: {},
+    [COOKIE_JAR_KEY]: () => _cookies,
   };
 
-  return { ctx, cookies };
+  return ctx;
 }
 
-export async function buildNotFoundContext(
+function resolveUserContext(
+  createContext: ContextFactory,
+  request: Request,
+): Promise<Record<string, unknown>> | Record<string, unknown> {
+  const result = createContext(request);
+  if (isPromise(result)) {
+    return result as Promise<Record<string, unknown>>;
+  }
+  return (result ?? {}) as Record<string, unknown>;
+}
+
+export function buildPipelineContext(
+  request: Request,
+  params: Record<string, unknown>,
+  path: string,
+  method: HttpMethod,
+  createContext: ContextFactory,
+  cookieSecret?: string | BufferSource,
+  cookieDefaults?: import("../cookies/taser-cookies.js").CookieDefaults,
+): Promise<PipelineContext> | PipelineContext {
+  const rawContext = resolveUserContext(createContext, request);
+
+  if (isPromise(rawContext)) {
+    return rawContext.then((userContext) =>
+      createBaseContext(request, params, path, method, userContext, cookieSecret, cookieDefaults),
+    );
+  }
+
+  return createBaseContext(request, params, path, method, rawContext, cookieSecret, cookieDefaults);
+}
+
+export function buildNotFoundContext(
   request: Request,
   path: string,
   method: string,
   createContext: ContextFactory,
-  cookies: TaserCookieJar,
-): Promise<PipelineContext> {
-  const scope = requestScope.getStore();
-  const native = scope?.native;
-  const hono = scope?.hono;
-  const userContext = await createContext({ native });
+  cookieSecret?: string | BufferSource,
+  cookieDefaults?: import("../cookies/taser-cookies.js").CookieDefaults,
+): Promise<PipelineContext> | PipelineContext {
+  const rawContext = resolveUserContext(createContext, request);
 
-  let _url: URL | undefined;
-  let _query: Record<string, string | string[]> | undefined;
+  if (isPromise(rawContext)) {
+    return rawContext.then((userContext) =>
+      createBaseContext(request, {}, path, method, userContext, cookieSecret, cookieDefaults),
+    );
+  }
 
-  return {
-    ...userContext,
-    state: {},
-    get query() {
-      if (_query === undefined) {
-        _query = parseQuery((_url ??= new URL(request.url)));
-      }
-      return _query;
-    },
-    set query(value: Record<string, string | string[]>) {
-      _query = value;
-    },
-    params: {},
-    body: undefined,
-    headers: createTaserHeaders(request.headers),
-    cookies,
-    method,
-    path,
-    get url() {
-      if (_url === undefined) {
-        _url = new URL(request.url);
-      }
-      return _url;
-    },
-    request,
-    native,
-    hono,
-    var: {},
-  };
+  return createBaseContext(request, {}, path, method, rawContext, cookieSecret, cookieDefaults);
 }

@@ -1,63 +1,43 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import {
-  isReplyResult,
-  mergeReturnsMaps,
-  reply,
-  ReplyResult,
-  validateReply,
-} from "../src/index.js";
+import { mergeReturnsMaps, reply, REPLY_DATA, REPLY_KIND, validateReply } from "../src/index.js";
 
-describe("ReplyResult", () => {
-  it("extends Response and exposes data/kind for json", async () => {
+describe("ReplyOf / Response", () => {
+  it("returns standard Response with data/kind symbols for json", async () => {
     const result = reply.json({ ok: true });
     expect(result).toBeInstanceOf(Response);
-    expect(result).toBeInstanceOf(ReplyResult);
-    expect(isReplyResult(result)).toBe(true);
     expect(result.status).toBe(200);
-    expect(result.kind).toBe("json");
-    expect(result.data).toEqual({ ok: true });
+    expect((result as unknown as Record<symbol, unknown>)[REPLY_KIND]).toBe("json");
+    expect((result as unknown as Record<symbol, unknown>)[REPLY_DATA]).toEqual({ ok: true });
     expect(await result.json()).toEqual({ ok: true });
   });
 
-  it("stores text body on data", async () => {
+  it("stores text body on REPLY_DATA", async () => {
     const result = reply.text("hello");
-    expect(result.kind).toBe("text");
-    expect(result.data).toBe("hello");
+    expect((result as unknown as Record<symbol, unknown>)[REPLY_KIND]).toBe("text");
+    expect((result as unknown as Record<symbol, unknown>)[REPLY_DATA]).toBe("hello");
     expect(await result.text()).toBe("hello");
   });
 
   it("stores path on file replies", () => {
     // Avoid opening a real file in this unit — buffer covers opaque binary data.
     const result = reply.buffer(Buffer.from("x"));
-    expect(result.kind).toBe("binary");
-    expect(result.data).toEqual(Buffer.from("x"));
+    expect((result as unknown as Record<symbol, unknown>)[REPLY_KIND]).toBe("binary");
+    expect((result as unknown as Record<symbol, unknown>)[REPLY_DATA]).toEqual(Buffer.from("x"));
   });
 
   it("stores null data for noContent", () => {
     const result = reply.noContent();
     expect(result.status).toBe(204);
-    expect(result.kind).toBe("empty");
-    expect(result.data).toBeNull();
+    expect((result as unknown as Record<symbol, unknown>)[REPLY_KIND]).toBe("empty");
+    expect((result as unknown as Record<symbol, unknown>)[REPLY_DATA]).toBeNull();
   });
 
-  it("getResponse returns a plain Response without data/kind", async () => {
-    const result = reply.json({ ok: true });
-    result.headers.set("X-Test", "1");
-    const wire = result.getResponse();
-    expect(wire).toBeInstanceOf(Response);
-    expect(wire).not.toBeInstanceOf(ReplyResult);
-    expect(isReplyResult(wire)).toBe(false);
-    expect(Object.keys(wire)).toEqual([]);
-    expect(wire.headers.get("X-Test")).toBe("1");
-    expect(await wire.json()).toEqual({ ok: true });
-  });
-
-  it("keeps data/kind non-enumerable so JSON.stringify cannot envelope", () => {
+  it("keeps symbols non-enumerable so JSON.stringify cannot envelope", () => {
     const result = reply.text("hello");
-    expect(result.data).toBe("hello");
-    expect(result.kind).toBe("text");
+    expect((result as unknown as Record<symbol, unknown>)[REPLY_DATA]).toBe("hello");
+    expect((result as unknown as Record<symbol, unknown>)[REPLY_KIND]).toBe("text");
     expect(Object.keys(result)).toEqual([]);
     expect(JSON.stringify(result)).toBe("{}");
   });
@@ -96,7 +76,7 @@ describe("validateReply", () => {
       { request },
     );
     expect(failed.status).toBe(502);
-    expect(isReplyResult(failed)).toBe(true);
+    expect(failed).toBeInstanceOf(Response);
     expect(await failed.json()).toEqual({ id: 1 });
   });
 

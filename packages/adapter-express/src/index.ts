@@ -6,24 +6,21 @@ import { resolveMountBase } from "@taserjs/router-utils";
 
 import { toUniversalMountPattern } from "./support/mount-pattern.js";
 
-type ExpressNativeContext = { req: Express.Request; res: Express.Response };
-
 export function createExpressHandler(taserApp: TaserApp): TaserHandler<Express> {
   return {
     mount(pattern: string, app: Express): void {
-      resolveMountBase(toUniversalMountPattern(pattern));
+      const mountBase = resolveMountBase(toUniversalMountPattern(pattern));
+
+      const listener = getRequestListener((request) => taserApp.fetch(request));
+
       const handler: RequestHandler = async (req, res) => {
-        const fetcher = taserApp.native({ req, res });
-        await getRequestListener((request) => fetcher.fetch(request))(req, res);
+        await listener(req, res);
       };
 
       app.all(pattern, handler);
+      if (mountBase !== pattern) {
+        app.all(mountBase, handler);
+      }
     },
   };
-}
-
-declare module "@taserjs/router" {
-  interface RouterRegister {
-    NativeContext: ExpressNativeContext;
-  }
 }

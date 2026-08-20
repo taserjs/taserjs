@@ -81,7 +81,7 @@ export async function scaffoldRouteFileAtPath(
   options: ScaffoldOptions,
 ): Promise<ScaffoldResult> {
   const normalized = toPosixPath(relativePath);
-  const absolutePath = `${routesDir.replace(/\\/g, "/")}/${normalized}`.replace(/\/{2,}/g, "/");
+  const absolutePath = path.resolve(routesDir, normalized);
   await mkdir(path.dirname(absolutePath), { recursive: true });
   return scaffoldRouteFile(routesDir, absolutePath, options);
 }

@@ -25,16 +25,12 @@ export type CreateTaserAppOptions = {
   };
 };
 
-export type CreateContextArgs = {
-  native?: import("./units.js").NativeContext;
-};
-
 export type ContextDefinition<
   TBoot extends Record<string, unknown> = Record<string, never>,
   TReq extends Record<string, unknown> = Record<string, never>,
 > = {
   boot?: () => TBoot | Promise<TBoot>;
-  request?: (args: CreateContextArgs) => TReq | Promise<TReq>;
+  request?: (req: Request) => TReq | Promise<TReq>;
 };
 
 export type InferAppContext<
@@ -68,4 +64,4 @@ export type { RouteManifestShape } from "@taserjs/router-core";
 
 export type { Schema };
 
-export type { TaserApp, TaserNativeBound } from "../builder/app.js";
+export type { TaserApp } from "../builder/app.js";

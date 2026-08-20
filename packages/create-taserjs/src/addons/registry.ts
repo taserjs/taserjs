@@ -64,27 +64,12 @@ export function resolveAddons(ctx: ScaffoldContext): AddonDefinition[] {
     selected.push(loggerAddon);
   }
 
-  const dbCount = selected.filter((addon) => addon.category === "database").length;
-  if (dbCount > 1) {
-    throw new Error("Only one database addon can be selected");
-  }
-
-  const loggerCount = selected.filter((addon) => addon.category === "logger").length;
-  if (loggerCount > 1) {
-    throw new Error("Only one logger addon can be selected");
-  }
-
   if (ctx.validator) {
     const validatorAddon = VALIDATOR_ADDONS.find((addon) => addon.id === ctx.validator);
     if (!validatorAddon) {
       throw new Error(`Unknown validator addon "${ctx.validator}"`);
     }
     selected.push(validatorAddon);
-  }
-
-  const validatorCount = selected.filter((addon) => addon.category === "validator").length;
-  if (validatorCount > 1) {
-    throw new Error("Only one validator addon can be selected");
   }
 
   return selected;

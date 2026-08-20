@@ -1,13 +1,7 @@
 export { InvalidMountPatternError, resolveMountBase } from "./mount/index.js";
+export { isPromise } from "./async/is-promise.js";
 
-export {
-  ensureReplyResult,
-  isReplyResult,
-  reply,
-  ReplyResult,
-  REPLY_DATA,
-  REPLY_KIND,
-} from "./reply/index.js";
+export { ensureResponse, reply, REPLY_DATA, REPLY_KIND } from "./reply/index.js";
 export type {
   BinaryBody,
   BodyKind,

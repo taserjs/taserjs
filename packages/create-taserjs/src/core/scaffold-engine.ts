@@ -128,14 +128,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
   await writeProjectConfig(root, ctx);
 
   if (options.skipInstall) {
-    return {
-      projectName: ctx.projectName,
-      targetDir: root,
-      type: ctx.type,
-      ...(ctx.db ? { db: ctx.db, driver: ctx.driver } : {}),
-      ...(ctx.logger ? { logger: ctx.logger } : {}),
-      ...(ctx.validator ? { validator: ctx.validator } : {}),
-    };
+    return ctx as ScaffoldResult;
   }
 
   const agent = options.agent ?? resolveUserAgent();
@@ -144,12 +137,5 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
     devDependencies: packages.devDependencies,
   });
 
-  return {
-    projectName: ctx.projectName,
-    targetDir: root,
-    type: ctx.type,
-    ...(ctx.db ? { db: ctx.db, driver: ctx.driver } : {}),
-    ...(ctx.logger ? { logger: ctx.logger } : {}),
-    ...(ctx.validator ? { validator: ctx.validator } : {}),
-  };
+  return ctx as ScaffoldResult;
 }

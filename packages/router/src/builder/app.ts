@@ -1,26 +1,16 @@
-import type { TaserRuntime } from "@taserjs/router-core";
-import type { RouteManifestShape } from "@taserjs/router-core";
+import type { RouteManifestShape, TaserRuntime } from "@taserjs/router-core";
 
 class TaserServeView {
-  constructor(protected readonly runtime: TaserRuntime) {}
+  readonly fetch: (
+    request: Request,
+    env?: unknown,
+    executionCtx?: unknown,
+  ) => Promise<Response> | Response;
 
-  fetch(request: Request, env?: unknown, executionCtx?: unknown): Promise<Response> {
-    return this.runtime.fetch(request, env, executionCtx as never);
-  }
-
-  native(native: unknown): TaserNativeBound {
-    return new TaserNativeBound(this.runtime, native);
-  }
-}
-
-export class TaserNativeBound {
-  constructor(
-    private readonly runtime: TaserRuntime,
-    private readonly boundNative: unknown,
-  ) {}
-
-  fetch(request: Request, env?: unknown, executionCtx?: unknown): Promise<Response> {
-    return this.runtime.native(this.boundNative).fetch(request, env, executionCtx as never);
+  constructor(protected readonly runtime: TaserRuntime) {
+    this.fetch = (request: Request, env?: unknown, executionCtx?: unknown) => {
+      return this.runtime.fetch(request, env, executionCtx as never);
+    };
   }
 }
 

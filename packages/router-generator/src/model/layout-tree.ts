@@ -2,13 +2,21 @@ import type { LayoutFile } from "../types/index.js";
 import { toPosixPath } from "../support/paths.js";
 
 function layoutDepth(layoutId: string): number {
-  if (layoutId === "/$" || layoutId === "index") {
+  if (layoutId === "/$") {
     return 0;
+  }
+
+  if (layoutId === "index") {
+    return 1;
   }
 
   if (layoutId.endsWith("/$")) {
     const prefix = layoutId.slice(0, -2);
-    return prefix === "" ? 0 : prefix.split("/").length + 1;
+    return prefix === "" ? 0 : prefix.split("/").length;
+  }
+
+  if (layoutId.endsWith("/index")) {
+    return layoutId.split("/").length + 0.5;
   }
 
   return layoutId.split("/").length;
@@ -35,6 +43,10 @@ export function layoutAppliesToRoute(layoutId: string, routeWithoutVerb: string)
       return true;
     }
     return route.startsWith(`${prefix}/`);
+  }
+
+  if (layoutId.endsWith("/index")) {
+    return route === layoutId;
   }
 
   const layoutSegments = layoutId.split("/");
@@ -78,6 +90,17 @@ export function layoutParentId(layoutId: string, layoutIds: Set<string>): string
   }
 
   if (layoutId === "index") {
+    return layoutIds.has("/$") ? "/$" : null;
+  }
+
+  if (layoutId.endsWith("/index")) {
+    const parent = layoutId.slice(0, -"/index".length);
+    if (layoutIds.has(parent)) {
+      return parent;
+    }
+    if (layoutIds.has(`${parent}/$`)) {
+      return `${parent}/$`;
+    }
     return layoutIds.has("/$") ? "/$" : null;
   }
 

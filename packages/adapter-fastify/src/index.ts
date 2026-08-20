@@ -1,18 +1,18 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest, RouteHandlerMethod } from "fastify";
+import type { FastifyInstance, RouteHandlerMethod } from "fastify";
 
 import { getRequestListener } from "@hono/node-server";
 import type { TaserApp, TaserHandler } from "@taserjs/router";
 import { resolveMountBase } from "@taserjs/router-utils";
 
-type FastifyNativeContext = { req: FastifyRequest; reply: FastifyReply };
-
 export function createFastifyHandler(taserApp: TaserApp): TaserHandler<FastifyInstance> {
   return {
     mount(pattern: string, app: FastifyInstance): void {
       const mountBase = resolveMountBase(pattern);
+
+      const listener = getRequestListener((request) => taserApp.fetch(request));
+
       const handler: RouteHandlerMethod = async (req, reply) => {
-        const fetcher = taserApp.native({ req, reply });
-        await getRequestListener((request) => fetcher.fetch(request))(req.raw, reply.raw);
+        await listener(req.raw, reply.raw);
       };
 
       app.all(pattern, handler);
@@ -21,10 +21,4 @@ export function createFastifyHandler(taserApp: TaserApp): TaserHandler<FastifyIn
       }
     },
   };
-}
-
-declare module "@taserjs/router" {
-  interface RouterRegister {
-    NativeContext: FastifyNativeContext;
-  }
 }

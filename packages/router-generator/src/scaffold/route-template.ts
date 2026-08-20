@@ -49,7 +49,7 @@ ${routeHandlerExport(builderName)}
 }
 
 export function layoutScaffoldSource(layoutId: string, entry: string): string {
-  const mountPath = layoutId === "index" ? "/$" : layoutId === "/$" ? "/$" : layoutId;
+  const mountPath = layoutId === "/$" ? "/$" : layoutId;
   return `import { t } from '${entry}'
 
 export const Middleware = t.middleware('${mountPath}').use({

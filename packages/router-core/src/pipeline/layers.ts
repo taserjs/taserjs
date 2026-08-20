@@ -75,9 +75,16 @@ async function applyValidators(
 }
 
 export function middlewareToLayer(definition: MiddlewareDefinition): PipelineLayer {
+  const hasSchemas =
+    definition.query !== undefined ||
+    definition.params !== undefined ||
+    definition.body !== undefined;
+
   return {
     async run(ctx, next) {
-      await applyValidators(ctx, definition);
+      if (hasSchemas) {
+        await applyValidators(ctx, definition);
+      }
 
       let nextCalled = false;
       const trackedNext: PipelineNext = (args) => {

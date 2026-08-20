@@ -8,7 +8,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
-Taser provides the `reply` helper object to construct standardized, type-safe HTTP responses. Every helper returns a `ReplyResult` with its HTTP status code embedded into the TypeScript return type.
+Taser provides the `reply` helper object to construct standardized, type-safe HTTP responses. Every helper returns a standard Web `Response` with its HTTP status code embedded into the TypeScript return type (`ReplyOf<Status, Body>`).
 
 ---
 

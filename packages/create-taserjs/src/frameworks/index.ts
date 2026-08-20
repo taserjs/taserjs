@@ -34,7 +34,7 @@ import { t } from '#src/taser.js'
 const router = t.create(routeManifest)
 
 const app = new Hono()
-app.all('/*', c => router.native(c).fetch(c.req.raw))
+app.all('/*', c => router.fetch(c.req.raw))
 
 const port = Number(process.env.PORT ?? 3000)
 serve({ fetch: app.fetch, port }, () => {
@@ -100,7 +100,7 @@ import { t } from '#src/taser.js'
 const router = t.create(routeManifest)
 
 const app = new Hono()
-app.all('/*', c => router.native(c).fetch(c.req.raw))
+app.all('/*', c => router.fetch(c.req.raw))
 
 export const handler = handle(app)
 `;
@@ -130,7 +130,7 @@ import { t } from '#src/taser.js'
 const router = t.create(routeManifest)
 
 const app = new Hono()
-app.all('/*', c => router.native(c).fetch(c.req.raw))
+app.all('/*', c => router.fetch(c.req.raw))
 
 export default handle(app)
 `;
@@ -146,7 +146,7 @@ import { t } from '#src/taser.js'
 const router = t.create(routeManifest)
 
 const app = new Hono()
-app.all('/*', c => router.native(c).fetch(c.req.raw))
+app.all('/*', c => router.fetch(c.req.raw))
 
 export default handle(app)
 `;
@@ -163,7 +163,7 @@ import { t } from '#src/taser.js'
 const router = t.create(routeManifest)
 
 const honoApp = new Hono()
-honoApp.all('/*', c => router.native(c).fetch(c.req.raw))
+honoApp.all('/*', c => router.fetch(c.req.raw))
 
 app.http('httpTrigger', {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'],
@@ -206,41 +206,13 @@ serve({ fetch: router.fetch, port }, () => {
   }
 }
 
-export function taserTsTemplate(type: ProjectType = "node"): string {
-  if (
-    type === "hono" ||
-    type === "aws-lambda" ||
-    type === "netlify" ||
-    type === "vercel" ||
-    type === "azure-functions"
-  ) {
-    return `import type { Context } from 'hono'
-import { createTaserApp, type InferAppContext } from '@taserjs/router'
-
-import { context } from '#src/context.js'
-
-declare module '@taserjs/router' {
-  interface RouterRegister {
-    NativeContext: Context
-  }
-}
-
-export const t = createTaserApp({
-  response: { validate: true },
-}).context(context)
-
-export type AppContext = InferAppContext<typeof context>
-`;
-  }
-
-  return `import { createTaserApp, type InferAppContext } from '@taserjs/router'
+export function taserTsTemplate(_type: ProjectType = "node"): string {
+  return `import { createTaserApp } from '@taserjs/router'
 
 import { context } from '#src/context.js'
 
 export const t = createTaserApp({
   response: { validate: true },
 }).context(context)
-
-export type AppContext = InferAppContext<typeof context>
 `;
 }

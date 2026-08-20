@@ -1,26 +1,11 @@
 import { jsonResponse, noContentResponse } from "./build.js";
-import { createReplyResult, isReplyResult, type ReplyResult } from "./result.js";
 
 /**
- * Coerce any pipeline node output to ReplyResult.
- * Bare Response without data is wrapped as opaque empty-kind with null data.
+ * Coerce any pipeline output to standard Web Response.
  */
-export function ensureReplyResult(value: unknown): ReplyResult {
-  if (isReplyResult(value)) {
-    return value;
-  }
-
+export function ensureResponse(value: unknown): Response {
   if (value instanceof Response) {
-    return createReplyResult(
-      value.body,
-      {
-        status: value.status,
-        statusText: value.statusText,
-        headers: value.headers,
-      },
-      null,
-      value.body ? "stream" : "empty",
-    );
+    return value;
   }
 
   if (value === undefined || value === null) {

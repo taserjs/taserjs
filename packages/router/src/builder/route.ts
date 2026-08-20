@@ -96,49 +96,39 @@ export function createRouteBuilder(
       const routeSchemas = pickDefinedSchemas(validators);
       const base = buildRouteBase(path, method, methods, middlewares);
 
-      if (isHandlerUnit(fnOrUnit)) {
-        const handlerSchemas = pickDefinedSchemas(fnOrUnit, HANDLER_SCHEMA_KEY_MAP);
-        const returns = buildEffectiveReturns({
-          middlewareReturns: collectReturnsFromDefinitions(middlewares),
-          routeReturns: routeReturns,
-          handlerMiddlewareReturns: collectReturnsFromDefinitions(fnOrUnit.middlewares),
-          handlerReturns: fnOrUnit.returns,
-          schemas: {
-            ...validators,
-            handlerQuery: fnOrUnit.query,
-            handlerParams: fnOrUnit.params,
-            handlerBody: fnOrUnit.body,
-            middlewares,
-            handlerMiddlewares: fnOrUnit.middlewares,
-          },
-        });
+      const unit = isHandlerUnit(fnOrUnit)
+        ? fnOrUnit
+        : {
+            handler: fnOrUnit as (ctx: unknown) => Response | Promise<Response>,
+            middlewares: [] as MiddlewareDefinition[],
+            returns: undefined as ReturnsMap | undefined,
+          };
 
-        return {
-          ...base,
-          handlerMiddlewares: [...fnOrUnit.middlewares],
-          handler: fnOrUnit.handler,
-          ...routeSchemas,
-          ...handlerSchemas,
-          ...(returns ? { returns } : {}),
-        };
-      }
+      const handlerSchemas = isHandlerUnit(fnOrUnit)
+        ? pickDefinedSchemas(fnOrUnit, HANDLER_SCHEMA_KEY_MAP)
+        : {};
 
       const returns = buildEffectiveReturns({
         middlewareReturns: collectReturnsFromDefinitions(middlewares),
-        routeReturns: routeReturns,
-        handlerMiddlewareReturns: {},
-        handlerReturns: undefined,
+        routeReturns,
+        handlerMiddlewareReturns: collectReturnsFromDefinitions(unit.middlewares),
+        handlerReturns: unit.returns,
         schemas: {
           ...validators,
+          handlerQuery: (unit as any).query,
+          handlerParams: (unit as any).params,
+          handlerBody: (unit as any).body,
           middlewares,
+          handlerMiddlewares: unit.middlewares,
         },
       });
 
       return {
         ...base,
-        handlerMiddlewares: [],
-        handler: fnOrUnit as (ctx: unknown) => Response | Promise<Response>,
+        handlerMiddlewares: [...unit.middlewares],
+        handler: unit.handler,
         ...routeSchemas,
+        ...handlerSchemas,
         ...(returns ? { returns } : {}),
       };
     },

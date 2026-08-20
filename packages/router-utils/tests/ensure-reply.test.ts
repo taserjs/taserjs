@@ -1,30 +1,31 @@
 import { describe, expect, it } from "vitest";
 
-import { ensureReplyResult, isReplyResult, reply, ReplyResult } from "../src/index.js";
+import { ensureResponse, reply, REPLY_DATA } from "../src/index.js";
 
-describe("ensureReplyResult", () => {
-  it("passes through ReplyResult", () => {
+describe("ensureResponse", () => {
+  it("passes through Response", () => {
     const result = reply.json({ ok: true });
-    expect(ensureReplyResult(result)).toBe(result);
+    expect(ensureResponse(result)).toBe(result);
   });
 
   it("coerces nullish to noContent", () => {
-    const result = ensureReplyResult(undefined);
-    expect(result).toBeInstanceOf(ReplyResult);
+    const result = ensureResponse(undefined);
+    expect(result).toBeInstanceOf(Response);
     expect(result.status).toBe(204);
   });
 
   it("coerces plain objects to json", async () => {
-    const result = ensureReplyResult({ a: 1 });
-    expect(isReplyResult(result)).toBe(true);
+    const result = ensureResponse({ a: 1 });
+    expect(result).toBeInstanceOf(Response);
     expect(result.status).toBe(200);
-    expect(result.data).toEqual({ a: 1 });
+    expect((result as unknown as Record<symbol, unknown>)[REPLY_DATA]).toEqual({ a: 1 });
   });
 
-  it("wraps bare Response", () => {
+  it("passes through bare Response", () => {
     const bare = new Response("hi", { status: 201 });
-    const result = ensureReplyResult(bare);
-    expect(isReplyResult(result)).toBe(true);
+    const result = ensureResponse(bare);
+    expect(result).toBeInstanceOf(Response);
+    expect(result).toBe(bare);
     expect(result.status).toBe(201);
   });
 });

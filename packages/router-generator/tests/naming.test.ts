@@ -7,11 +7,8 @@ describe("layoutIdFromPath", () => {
     expect(layoutIdFromPath("$")).toBe("/$");
   });
 
-  it("keeps nested directory layout splat ids", () => {
-    expect(layoutIdFromPath("account/$")).toBe("account/$");
-  });
-
   it("passes through segment layouts unchanged", () => {
+    expect(layoutIdFromPath("index")).toBe("index");
     expect(layoutIdFromPath("account")).toBe("account");
     expect(layoutIdFromPath("todo/index")).toBe("todo/index");
   });

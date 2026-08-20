@@ -388,12 +388,11 @@ describe("scaffoldProject", () => {
         skipInstall: true,
       });
       const index = await readFile(path.join(dir, "src/index.ts"), "utf8");
-      expect(index).toContain("app.all('/*', c => router.native(c).fetch(c.req.raw))");
+      expect(index).toContain("app.all('/*', c => router.fetch(c.req.raw))");
       expect(index).not.toContain("/api/*");
 
       const taserTs = await readFile(path.join(dir, "src/taser.ts"), "utf8");
-      expect(taserTs).toContain("import type { Context } from 'hono'");
-      expect(taserTs).toContain("NativeContext: Context");
+      expect(taserTs).not.toContain("NativeContext");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
