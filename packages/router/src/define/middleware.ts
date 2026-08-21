@@ -255,6 +255,12 @@ export function defineMiddleware(
       __middlewareAcc: undefined as unknown,
       ...(options?.returns ? { __returns: options.returns } : {}),
       __requiredLayouts: first,
+      meta(metaObj: Record<string, unknown>) {
+        if (typeof metaObj === "object" && metaObj !== null && !Array.isArray(metaObj)) {
+          (unit as any).metadata = { ...(unit as any).metadata, ...metaObj };
+        }
+        return unit;
+      },
     };
     return unit;
   }
@@ -283,6 +289,12 @@ export function defineMiddleware(
     ...options,
     __middlewareAcc: undefined as unknown,
     ...(options.returns ? { __returns: options.returns } : {}),
+    meta(metaObj: Record<string, unknown>) {
+      if (typeof metaObj === "object" && metaObj !== null && !Array.isArray(metaObj)) {
+        (unit as any).metadata = { ...(unit as any).metadata, ...metaObj };
+      }
+      return unit;
+    },
   };
 
   return unit;

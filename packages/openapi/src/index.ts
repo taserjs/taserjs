@@ -1,4 +1,4 @@
-export { openapi } from "./doc.js";
+export { doc, openapi } from "./doc.js";
 export { generateOpenApi, OpenApiSpec } from "./generator.js";
 export {
   createOpenApiHandler,

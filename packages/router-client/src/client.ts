@@ -36,6 +36,17 @@ async function executeRequest(
   if (method !== "GET" && method !== "HEAD" && input.body !== undefined) {
     if (input.body instanceof FormData) {
       body = input.body;
+    } else if (input.body instanceof URLSearchParams) {
+      body = input.body;
+      if (!headers["Content-Type"] && !headers["content-type"]) {
+        headers["Content-Type"] = "application/x-www-form-urlencoded";
+      }
+    } else if (
+      typeof input.body === "string" ||
+      input.body instanceof Blob ||
+      input.body instanceof ArrayBuffer
+    ) {
+      body = input.body as BodyInit;
     } else {
       body = JSON.stringify(input.body);
       if (!headers["Content-Type"] && !headers["content-type"]) {

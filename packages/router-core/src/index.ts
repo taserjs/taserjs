@@ -34,6 +34,7 @@ export {
 
 export type {
   Awaitable,
+  BodyMode,
   ContextFactory,
   HttpMethod,
   ManifestLayoutEntry,

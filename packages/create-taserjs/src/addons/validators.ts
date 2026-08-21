@@ -8,22 +8,19 @@ export const IMPORT_LINES: Record<ValidatorId, string> = {
 };
 
 export const VALIDATION_BLOCK_TEMPLATE: Record<ValidatorId, string> = {
-  zod: `, {
-  query: z.object({ name: z.string().default('Taser') }),
-}`,
-  arktype: `, {
-  query: type({ 'name?': 'string = "Taser"' }),
-}`,
-  valibot: `, {
-  query: v.object({ name: v.optional(v.string(), 'Taser') }),
-}`,
+  zod: `
+  .query(z.object({ name: z.string().default('Taser') }))`,
+  arktype: `
+  .query(type({ 'name?': 'string = "Taser"' }))`,
+  valibot: `
+  .query(v.object({ name: v.optional(v.string(), 'Taser') }))`,
 };
 
 const ROUTE_TEMPLATE = (validator: ValidatorId) => `import { reply } from '@taserjs/router'
 import { t } from '#src/taser.js'
 ${IMPORT_LINES[validator]}
 
-const GET = t.get('/'${VALIDATION_BLOCK_TEMPLATE[validator]})
+const GET = t.get('/')${VALIDATION_BLOCK_TEMPLATE[validator]}
 
 export type RouteContext = typeof GET.$Infer.Context
 export const Route = GET.handler((ctx) => {

@@ -7,7 +7,7 @@ OpenAPI Specification (v3.1) generator for [Taser](https://taserjs.dev) REST API
 - 🚀 **Zero-Config Return Type Inference**: Infers OpenAPI response schemas directly from TypeScript return types and `reply.json()` signatures without requiring explicit `.returns()` declarations.
 - 📦 **Standard Schema First**: Converts `query`, `params`, `body`, and `headers` schemas (Zod, Valibot, ArkType, TypeBox) into OpenAPI JSON schemas.
 - 🧠 **Generator-Aligned Defaults**: Infers tags from layout chains, operation IDs from route paths, and humanized summaries — using the same naming rules as the Taser route generator.
-- 📝 **Docs Live in Route Files**: Declare documentation with a type-safe `export const OpenAPI = openapi({...})` or plain JSDoc comments above your Route export. No runtime wrapping required.
+- 📝 **Docs Live in Route Files**: Declare documentation with a type-safe `.meta({ openapi: doc({...}) })` directly on your route builder.
 - 💻 **CLI Executable**: Run `npx @taserjs/openapi` to emit `openapi.yaml` or `openapi.json`. Also available as `taser openapi` via `@taserjs/router-cli`.
 - 🎨 **Built-in Documentation UI**: `createOpenApiHandler` serves Scalar, Swagger UI, Redoc, or Stoplight Elements with the spec inlined — no extra routes required.
 
@@ -41,23 +41,23 @@ console.log(spec.toJson());
 
 ## Documenting Routes
 
-### Option 1: Type-safe `OpenAPI` export (preferred)
+### Type-safe `doc()` helper
 
-Add an `OpenAPI` export next to your `Route` export in any route file:
+Attach documentation metadata to your route using `.meta({ openapi: doc(...) })`:
 
 ```ts
-import { openapi } from "@taserjs/openapi";
-
-export const OpenAPI = openapi({
-  summary: "Get User By ID",
-  description: "Fetches user details from database",
-  tags: ["Users"],
-  operationId: "getUserById",
-});
+import { doc } from "@taserjs/openapi";
 
 export const Route = t
-  .get("/users/:id", {
-    params: UserParamsSchema,
+  .get("/users/:id")
+  .params(UserParamsSchema)
+  .meta({
+    openapi: doc({
+      summary: "Get User By ID",
+      description: "Fetches user details from database",
+      tags: ["Users"],
+      operationId: "getUserById",
+    }),
   })
   .handler(async (ctx) => {
     const user = await db.users.find(ctx.params.id);
@@ -66,23 +66,6 @@ export const Route = t
 ```
 
 Supported fields: `summary`, `description`, `tags`, `operationId`, `deprecated`, `externalDocs`.
-
-### Option 2: JSDoc comments on the Route export
-
-```ts
-/**
- * Get User By ID
- *
- * Fetches user details from database.
- * @tag Users
- * @deprecated
- */
-export const Route = t.get("/users/:id").handler(/* ... */);
-```
-
-Supported JSDoc tags: `@summary`, `@description`, `@tag` (repeatable), `@operationId`, `@deprecated`, `@externalDocs <url>`.
-
-If both are present, the `OpenAPI` export wins.
 
 ### Inferred defaults
 

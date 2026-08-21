@@ -97,9 +97,8 @@ describe("returns fluent API", () => {
 
   it("auto-injects 422 when input schemas exist", () => {
     const route = t
-      .get("/search", {
-        query: z.object({ page: z.string() }),
-      })
+      .get("/search")
+      .query(z.object({ page: z.string() }))
       .returns({ 200: z.object({ ok: z.boolean() }) })
       .handler(() => reply.json({ ok: true }));
 

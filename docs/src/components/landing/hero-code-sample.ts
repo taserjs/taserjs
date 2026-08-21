@@ -48,12 +48,11 @@ export const Middleware = t.middleware('dashboard')
 import { z } from 'zod'
 import { t } from '#src/taser.js'
 
-const GET = t.get('/dashboard/users', {
-  query: z.object({
+const GET = t.get('/dashboard/users')
+  .query(z.object({
     page: z.coerce.number().default(1),
     limit: z.coerce.number().default(10),
-  }),
-})
+  }))
 
 export const Route = GET.handler(async (ctx) => {
   const sub = ctx.state.jwtPayload.sub

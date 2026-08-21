@@ -8,10 +8,9 @@ import { t } from "./fixtures/index-layout.js";
 describe("route $Infer.Input", () => {
   it("exposes route query and body facets", () => {
     const route = t
-      .post("/", {
-        query: z.object({ name: z.string() }),
-        body: z.object({ name: z.string() }),
-      })
+      .post("/")
+      .query(z.object({ name: z.string() }))
+      .body(z.object({ name: z.string() }))
       .handler(() => reply.json({ ok: true }));
 
     type Input = (typeof route)["$Infer"]["Input"];
@@ -23,9 +22,8 @@ describe("route $Infer.Input", () => {
 
   it("omits body facet on GET routes", () => {
     const route = t
-      .get("/hello", {
-        query: z.object({ q: z.string() }),
-      })
+      .get("/hello")
+      .query(z.object({ q: z.string() }))
       .handler(() => reply.json({ ok: true }));
 
     type Input = (typeof route)["$Infer"]["Input"];
@@ -35,10 +33,9 @@ describe("route $Infer.Input", () => {
 
   it("merges layout optional query with route required query", () => {
     const route = t
-      .post("/", {
-        query: z.object({ name: z.string() }),
-        body: z.object({ tag: z.string() }),
-      })
+      .post("/")
+      .query(z.object({ name: z.string() }))
+      .body(z.object({ tag: z.string() }))
       .handler(() => reply.json({ ok: true }));
 
     type Input = (typeof route)["$Infer"]["Input"];

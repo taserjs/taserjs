@@ -19,7 +19,7 @@ Generates an OpenAPI v3.1 specification document from a route manifest and TypeS
 ```ts
 async function generateOpenApi(
   manifest: RouteManifestShape,
-  options?: GenerateOpenApiOptions
+  options?: GenerateOpenApiOptions,
 ): Promise<OpenApiSpec>;
 ```
 
@@ -34,13 +34,33 @@ An `OpenApiSpec` instance providing `await .resolve()`, `.toYaml()`, `.toJson()`
 
 ---
 
-### `openapi(doc)`
+### `doc(docData)`
 
-Type-safe route documentation helper for creating an `OpenAPI` export alongside your `Route`.
+Type-safe route and middleware documentation helper. Pass its return value to `.meta({ openapi: doc({ ... }) })` on your route or middleware builder.
 
 ```ts
-function openapi(doc: OpenApiRouteDoc): OpenApiRouteDoc;
+function doc<const T extends OpenApiRouteDoc>(docData: T): T;
 ```
+
+```ts
+import { doc } from "@taserjs/openapi";
+
+export const Route = t
+  .get("/users/:id")
+  .meta({
+    openapi: doc({
+      summary: "Get User by ID",
+      description: "Fetches user details by user ID.",
+      tags: ["Users"],
+      operationId: "getUserById",
+    }),
+  })
+  .handler(async (ctx) => { ... });
+```
+
+Supported fields (`OpenApiRouteDoc`): `summary`, `description`, `tags`, `operationId`, `deprecated`, `externalDocs`, `security`, `requestBody`, `responses`, `parameters`, `servers`, `hidden`.
+
+Explicit fields override what the generator infers; unspecified fields fall through to inference (tags from layout chain, operationId from method + path, humanized summary).
 
 ---
 
@@ -51,8 +71,8 @@ function openapi(doc: OpenApiRouteDoc): OpenApiRouteDoc;
 Defines a spec generated from a route manifest. Generation is deferred until the consumer (e.g. the async handler from `createOpenApiHandler`) calls `await spec.resolve()`. Supports any Standard Schema library (zod, valibot, arktype, typebox, ...).
 
 <Callout type="warn" title="Build-time only">
-  Never call this from a route file — importing `routeManifest` there creates a
-  cyclic reference. Use `fromFile` / `fromJson` / `fromYaml` inside routes.
+  Never call this from a route file — importing `routeManifest` there creates a cyclic reference.
+  Use `fromFile` / `fromJson` / `fromYaml` inside routes.
 </Callout>
 
 ```ts
@@ -120,7 +140,7 @@ Creates an async handler that renders an `OpenApiSpec` into a `Response`. It is 
 
 ```ts
 function createOpenApiHandler(
-  options?: CreateOpenApiHandlerOptions
+  options?: CreateOpenApiHandlerOptions,
 ): (spec: OpenApiSpec, format?: "ui" | "json" | "yaml") => Promise<Response>;
 ```
 
@@ -129,10 +149,9 @@ function createOpenApiHandler(
 - `provider`: `"scalar"` (default), `"swagger"`, `"redoc"`, or `"elements"`.
 
 <Callout type="warn" title="Do not serve docs from a Taser route file">
-  Route files are imported by the generated route manifest, so importing
-  `routeManifest` back into a route file creates a cyclic reference. Mount the
-  handler on your host framework app next to the Taser router instead — there,
-  using `fromManifest` for live docs is safe.
+  Route files are imported by the generated route manifest, so importing `routeManifest` back into a
+  route file creates a cyclic reference. Mount the handler on your host framework app next to the
+  Taser router instead — there, using `fromManifest` for live docs is safe.
 </Callout>
 
 ```ts

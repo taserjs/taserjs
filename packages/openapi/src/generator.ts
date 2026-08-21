@@ -16,7 +16,7 @@ import type {
   RouteManifestShape,
 } from "./types.js";
 import { formatOpenApiPath } from "./path.js";
-import { standardSchemaToJsonSchemaAsync } from "./schema/index.js";
+import { standardSchemaToJsonSchemaAsync, isUnresolvedSchema } from "./schema/index.js";
 import { SchemaRegistry } from "./schema/registry.js";
 import { extractRouteTypesFromProgram, type InferredResponse } from "./ts-compiler.js";
 
@@ -230,7 +230,43 @@ export async function generateOpenApi(
       const layoutChain = Array.isArray((routeEntry as any).layoutChain)
         ? ((routeEntry as any).layoutChain as string[])
         : [];
-      const doc = resolveRouteDoc(taserPath, method, layoutChain, routeDocsMap);
+
+      let doc = resolveRouteDoc(taserPath, method, layoutChain, routeDocsMap);
+
+      // 1. Layout-chain middleware metadata
+      for (const layoutId of layoutChain) {
+        const layout = manifest.layouts?.[layoutId];
+        if (layout) {
+          const mws = Array.isArray(layout.middlewares)
+            ? layout.middlewares
+            : ((layout.middlewares as any)?.middlewares ?? []);
+          for (const mwDoc of collectMiddlewareOpenApiDocs(mws)) {
+            doc = mergeRouteDoc(doc, mwDoc);
+          }
+        }
+      }
+
+      // 2. Route middleware metadata
+      const routeMiddlewares = [...(route.middlewares ?? []), ...(route.handlerMiddlewares ?? [])];
+      for (const mwDoc of collectMiddlewareOpenApiDocs(routeMiddlewares)) {
+        doc = mergeRouteDoc(doc, mwDoc);
+      }
+
+      // 3. Route metadata
+      const routeMetaDoc = route.metadata?.openapi;
+      if (routeMetaDoc && typeof routeMetaDoc === "object" && !Array.isArray(routeMetaDoc)) {
+        doc = mergeRouteDoc(doc, routeMetaDoc);
+      } else if (routeMetaDoc !== undefined && process.env.NODE_ENV !== "production") {
+        console.warn(
+          `[openapi] Invalid openapi metadata for route ${method} ${taserPath}. Expected an object, ignoring.`,
+        );
+      }
+
+      // 4. Manifest-carried docs (if any)
+      const manifestDoc = (routeEntry as any).doc;
+      if (manifestDoc && typeof manifestDoc === "object") {
+        doc = mergeRouteDoc(doc, manifestDoc);
+      }
 
       if (doc.hidden && !options.includeHiddenRoutes) {
         continue;
@@ -311,10 +347,16 @@ export async function generateOpenApi(
 
       let requestBody: OpenApiRequestBody | undefined;
       if (bodySchema) {
-        requestBody = buildRequestBody(bodySchema);
+        requestBody = buildRequestBody(bodySchema, route.bodyMode);
       }
       if (doc.requestBody) {
-        requestBody = mergeRequestBody(requestBody, doc.requestBody);
+        if (bodySchema && isUnresolvedSchema(bodySchema)) {
+          // The body schema could not be converted — the explicit declaration
+          // fully replaces the meaningless fallback content.
+          requestBody = { required: true, ...doc.requestBody } as OpenApiRequestBody;
+        } else {
+          requestBody = mergeRequestBody(requestBody, doc.requestBody);
+        }
       }
 
       // Responses
@@ -428,8 +470,50 @@ function isMultipartSchema(schema: Record<string, unknown>): boolean {
   return false;
 }
 
-function buildRequestBody(bodySchema: Record<string, unknown>): OpenApiRequestBody {
-  if (bodySchema["x-content-type"] === "application/x-www-form-urlencoded") {
+function collectMiddlewareOpenApiDocs(middlewares: any[]): OpenApiRouteDoc[] {
+  const docs: OpenApiRouteDoc[] = [];
+  for (const mw of middlewares) {
+    if (!mw) continue;
+    const meta = mw.metadata?.openapi;
+    if (meta && typeof meta === "object" && !Array.isArray(meta)) {
+      docs.push(meta);
+    }
+  }
+  return docs;
+}
+
+function mergeRouteDoc(base: OpenApiRouteDoc, override: Partial<OpenApiRouteDoc>): OpenApiRouteDoc {
+  const merged: OpenApiRouteDoc = {
+    ...base,
+    ...override,
+  };
+  if (override.tags !== undefined) {
+    merged.tags = override.tags;
+  } else if (base.tags !== undefined) {
+    merged.tags = base.tags;
+  }
+  if (override.security !== undefined) {
+    merged.security = override.security;
+  } else if (base.security !== undefined) {
+    merged.security = base.security;
+  }
+  if (base.responses || override.responses) {
+    merged.responses = { ...base.responses, ...override.responses };
+  }
+  if (base.parameters || override.parameters) {
+    merged.parameters = [...(base.parameters ?? []), ...(override.parameters ?? [])];
+  }
+  return merged;
+}
+
+function buildRequestBody(
+  bodySchema: Record<string, unknown>,
+  bodyMode?: string,
+): OpenApiRequestBody {
+  if (
+    bodyMode === "urlencoded" ||
+    bodySchema["x-content-type"] === "application/x-www-form-urlencoded"
+  ) {
     return {
       required: true,
       content: {
@@ -438,7 +522,7 @@ function buildRequestBody(bodySchema: Record<string, unknown>): OpenApiRequestBo
     };
   }
 
-  const isMultipart = isMultipartSchema(bodySchema);
+  const isMultipart = bodyMode === "form" || isMultipartSchema(bodySchema);
   if (isMultipart) {
     if (bodySchema.format === "binary") {
       return {
@@ -490,68 +574,6 @@ function mergeRequestBody(
     ...override,
     content,
   } as OpenApiRequestBody;
-}
-
-function buildResponses(
-  route: any,
-  doc: OpenApiRouteDoc,
-  inferredMap: Record<number, InferredResponse> | undefined,
-  options: GenerateOpenApiOptions,
-  toSchema: (schema: unknown) => Record<string, unknown>,
-): Record<string, OpenApiResponse> {
-  const responses: Record<string, OpenApiResponse> = {};
-
-  // 1. Explicit .returns()
-  if (route.returns && typeof route.returns === "object") {
-    for (const [statusCode, schema] of Object.entries(route.returns)) {
-      const respSchema = toSchema(schema);
-      responses[String(statusCode)] = {
-        description: defaultStatusDescription(Number(statusCode)),
-        content: {
-          "application/json": { schema: respSchema },
-        },
-      };
-    }
-  }
-
-  // 2. Inferred responses
-  if (inferredMap) {
-    for (const [statusCode, inferred] of Object.entries(inferredMap)) {
-      if (!responses[String(statusCode)]) {
-        const inf = inferred as InferredResponse;
-        responses[String(statusCode)] = {
-          description: inf.description ?? defaultStatusDescription(Number(statusCode)),
-          ...(inf.content !== undefined ? { content: inf.content } : {}),
-        };
-      }
-    }
-  }
-
-  // 3. Guaranteed 2xx response
-  const has2xx = Object.keys(responses).some((status) => status.startsWith("2"));
-  if (!has2xx) {
-    responses["200"] = {
-      description: "Successful response",
-      content: {
-        "application/json": {
-          schema: { type: "object" },
-        },
-      },
-    };
-  }
-
-  // 4. Auto 422
-  const auto422 = options.autoValidationErrorResponses !== false;
-  if (auto422 && hasInputValidation(route) && !responses["422"]) {
-    responses["422"] = defaultValidationErrorResponse();
-  }
-
-  // 5. Doc overrides
-  if (doc.responses) {
-    applyDocResponses(responses, doc.responses);
-  }
-
-  return responses;
 }
 
 function applyDocResponses(
@@ -638,51 +660,6 @@ function buildDocument(
     ...(options.externalDocs ? { externalDocs: options.externalDocs } : {}),
     ...(Object.keys(components).length > 0 ? { components } : { components: {} }),
   };
-}
-
-function buildRouteParameters(
-  taserPath: string,
-  pathParamNames: string[],
-  route: any,
-  toSchema: (schema: unknown) => Record<string, unknown>,
-): OpenApiParameter[] {
-  const parameters: OpenApiParameter[] = [];
-
-  const pathParamsSchema = route.params ? toSchema(route.params) : undefined;
-
-  for (const paramName of pathParamNames) {
-    const propsMap = pathParamsSchema?.properties as Record<string, unknown> | undefined;
-    const propSchema = propsMap?.[paramName] as Record<string, unknown> | undefined;
-    parameters.push({
-      name: paramName,
-      in: "path",
-      required: true,
-      schema: propSchema ?? { type: "string" },
-      ...(propSchema?.description ? { description: String(propSchema.description) } : {}),
-    });
-  }
-
-  if (route.query) {
-    const querySchema = toSchema(route.query);
-    if (querySchema.properties && typeof querySchema.properties === "object") {
-      for (const [name, schema] of Object.entries(
-        querySchema.properties as Record<string, unknown>,
-      )) {
-        const isReq = Array.isArray(querySchema.required) && querySchema.required.includes(name);
-        parameters.push({
-          name,
-          in: "query",
-          required: isReq,
-          schema: schema as Record<string, unknown>,
-          ...((schema as any)?.description
-            ? { description: String((schema as any).description) }
-            : {}),
-        });
-      }
-    }
-  }
-
-  return parameters;
 }
 
 function hasInputValidation(route: any): boolean {

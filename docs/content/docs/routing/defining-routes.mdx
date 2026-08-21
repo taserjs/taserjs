@@ -17,22 +17,32 @@ Every route file in `src/routes/` exports a `Route` constant created by invoking
 The `t` object provides builder methods corresponding to all standard HTTP methods:
 
 ```ts
-t.get(path, options?)
-t.post(path, options?)
-t.put(path, options?)
-t.patch(path, options?)
-t.delete(path, options?)
-t.options(path, options?)
-t.head(path, options?)
-t.any(path, methods, options?)
-t.all(path, options?)
+t.get(path);
+t.post(path);
+t.put(path);
+t.patch(path);
+t.delete(path);
+t.options(path);
+t.head(path);
+t.all(path);
+t.any(path, methods);
 ```
+
+Route builders chain validation, metadata, middleware, return contracts, and handlers fluently:
+
+- `.query(schema)`
+- `.params(schema)`
+- `.body([mode], schema)` (available on `POST`, `PUT`, `PATCH`, `ALL`, `ANY`; mode can be `"json" | "form" | "urlencoded"`, defaulting to `"json"`)
+- `.meta(record)`
+- `.returns(map)`
+- `.use(middleware)`
+- `.handler(fn)`
 
 ---
 
 ## Defining a GET Route
 
-GET, DELETE, OPTIONS, and HEAD routes accept validation schemas for `query` and `params`:
+GET, DELETE, OPTIONS, and HEAD routes accept validation schemas via `.query()` and `.params()`:
 
 ```ts title="src/routes/articles.get.ts"
 import { reply } from "@taserjs/router";
@@ -40,13 +50,14 @@ import { z } from "zod";
 import { t } from "#src/taser.js";
 
 export const Route = t
-  .get("/articles", {
-    query: z.object({
+  .get("/articles")
+  .query(
+    z.object({
       category: z.string().optional(),
       page: z.coerce.number().int().min(1).default(1),
       limit: z.coerce.number().int().min(1).max(50).default(20),
     }),
-  })
+  )
   .returns({
     200: z.object({
       articles: z.array(
@@ -78,7 +89,7 @@ export const Route = t
 
 Path parameters in dynamic routes (such as `/tasks/:id` or `/orgs/:orgId/users/:id`) are automatically inferred as `string` on `ctx.params`.
 
-When you supply a `params` schema, the validated schema types **take precedence and override** the default `string` types with full type coercion:
+When you supply a `.params()` schema, the validated schema types **take precedence and override** the default `string` types with full type coercion:
 
 ```ts title="src/routes/tasks/$id.get.ts"
 import { reply } from "@taserjs/router";
@@ -86,24 +97,25 @@ import { z } from "zod";
 import { t } from "#src/taser.js";
 
 export const Route = t
-  .get("/tasks/:id", {
-    params: z.object({
+  .get("/tasks/:id")
+  .params(
+    z.object({
       id: z.coerce.number(), // ctx.params.id is typed as number
     }),
-  })
+  )
   .handler(async (ctx) => {
     const task = await ctx.db.getTaskById(ctx.params.id); // ctx.params.id is number
     return reply.json(task);
   });
 ```
 
-Any path parameter not explicitly mentioned in the `params` schema retains its inferred `string` type (for example, `/orgs/:orgId/tasks/:id` preserves `ctx.params.orgId` as `string`).
+Any path parameter not explicitly mentioned in the `.params()` schema retains its inferred `string` type (for example, `/orgs/:orgId/tasks/:id` preserves `ctx.params.orgId` as `string`).
 
 ---
 
 ## Defining a POST Route
 
-POST, PUT, and PATCH routes accept `body`, `query`, and `params` schemas:
+POST, PUT, and PATCH routes accept `.body()`, `.query()`, and `.params()` schemas:
 
 ```ts title="src/routes/articles.post.ts"
 import { reply } from "@taserjs/router";
@@ -111,13 +123,14 @@ import { z } from "zod";
 import { t } from "#src/taser.js";
 
 export const Route = t
-  .post("/articles", {
-    body: z.object({
+  .post("/articles")
+  .body(
+    z.object({
       title: z.string().min(3).max(120),
       content: z.string().min(10),
       tags: z.array(z.string()).default([]),
     }),
-  })
+  )
   .returns({
     201: z.object({
       id: z.string(),
@@ -136,11 +149,33 @@ export const Route = t
   });
 ```
 
-<Callout type="info" title="JSON & Multipart / File Uploads">
-  The `body` schema validates both `application/json` payloads and `multipart/form-data` file
-  uploads. See the [Standard Schema Validation
-  Guide](/docs/validation/standard-schema#validating-multipart-form-data--file-uploads) for examples
-  on validating `File` objects, file sizes, and MIME types.
+### Explicit Body Modes (`"json"`, `"form"`, `"urlencoded"`)
+
+By default, `.body(schema)` operates in `"json"` mode and validates `application/json` payloads. You can also explicitly specify `"form"` (for `multipart/form-data`) or `"urlencoded"` (for `application/x-www-form-urlencoded`):
+
+```ts title="src/routes/avatar.post.ts"
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "#src/taser.js";
+
+export const Route = t
+  .post("/avatar")
+  .body(
+    "form",
+    z.object({
+      file: z.file(),
+      alt: z.string().optional(),
+    }),
+  )
+  .handler(async (ctx) => {
+    return reply.created({ message: "Avatar uploaded" });
+  });
+```
+
+<Callout type="info" title="Content-Type Enforcement">
+  When a route declares a `bodyMode`, incoming requests with a mismatched `Content-Type` are
+  automatically rejected with `415 Unsupported Media Type`. If `.body()` is omitted entirely, body
+  parsing is skipped for maximum performance.
 </Callout>
 
 ---
@@ -237,10 +272,9 @@ import { z } from "zod";
 import { t } from "#src/taser.js";
 
 const GET = t
-  .get("/users/:id", {
-    params: z.object({ id: z.string().uuid() }),
-    query: z.object({ includeProfile: z.coerce.boolean().default(false) }),
-  })
+  .get("/users/:id")
+  .params(z.object({ id: z.string().uuid() }))
+  .query(z.object({ includeProfile: z.coerce.boolean().default(false) }))
   .returns({
     200: z.object({ id: z.string(), name: z.string() }),
     404: z.object({ message: z.string() }),

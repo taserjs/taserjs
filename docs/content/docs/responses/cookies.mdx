@@ -43,11 +43,12 @@ import { z } from "zod";
 import { t } from "#src/taser.js";
 
 export const Route = t
-  .post("/preferences", {
-    body: z.object({
+  .post("/preferences")
+  .body(
+    z.object({
       theme: z.enum(["light", "dark", "system"]),
     }),
-  })
+  )
   .handler((ctx) => {
     ctx.cookies.set("theme", ctx.body.theme, {
       path: "/",
@@ -93,11 +94,12 @@ import { z } from "zod";
 import { t } from "#src/taser.js";
 
 export const Route = t
-  .post("/auth/login", {
-    body: z.object({
+  .post("/auth/login")
+  .body(
+    z.object({
       userId: z.string(),
     }),
-  })
+  )
   .handler(async (ctx) => {
     // Sets a cryptographically signed cookie:
     await ctx.cookies.setSigned("session_user", ctx.body.userId);

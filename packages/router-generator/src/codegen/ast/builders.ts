@@ -151,6 +151,7 @@ export function importDeclaration(
   imported: string,
   source: string,
   importKind: "type" | "value" = "value",
+  extraSpecifiers: { local: string; imported: string }[] = [],
 ): TSESTree.ImportDeclaration {
   return asNode<TSESTree.ImportDeclaration>({
     type: AST_NODE_TYPES.ImportDeclaration,
@@ -161,6 +162,14 @@ export function importDeclaration(
         local: id(local),
         importKind: "value",
       }),
+      ...extraSpecifiers.map((specifier) =>
+        asNode<TSESTree.ImportSpecifier>({
+          type: AST_NODE_TYPES.ImportSpecifier,
+          imported: id(specifier.imported),
+          local: id(specifier.local),
+          importKind: "value",
+        }),
+      ),
     ],
     source: str(source),
     importKind,

@@ -104,8 +104,7 @@ async function main(): Promise<void> {
     tsconfigPath: argv.tsconfig,
   });
 
-  const format =
-    argv.format ?? (argv.out && /\.json$/i.test(argv.out) ? "json" : "yaml");
+  const format = argv.format ?? (argv.out && /\.json$/i.test(argv.out) ? "json" : "yaml");
   const outPath = argv.out ?? `./openapi.${format}`;
 
   const content = format === "json" ? spec.toJson() : spec.toYaml();

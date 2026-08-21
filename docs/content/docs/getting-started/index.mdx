@@ -163,11 +163,12 @@ import { z } from "zod";
 import { t } from "#src/taser.js";
 
 const GET = t
-  .get("/hello", {
-    query: z.object({
+  .get("/hello")
+  .query(
+    z.object({
       name: z.string().default("World"),
     }),
-  })
+  )
   .returns({
     200: z.object({
       message: z.string(),

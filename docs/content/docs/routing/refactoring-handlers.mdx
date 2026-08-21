@@ -31,10 +31,10 @@ import { z } from "zod";
 import { t } from "#src/taser.js";
 
 // 1. Declare the verb builder
-const GET = t.get("/users/:id", {
-  params: z.object({ id: z.string().uuid() }),
-  query: z.object({ includeOrders: z.coerce.boolean().default(false) }),
-});
+const GET = t
+  .get("/users/:id")
+  .params(z.object({ id: z.string().uuid() }))
+  .query(z.object({ includeOrders: z.coerce.boolean().default(false) }));
 
 // 2. Extract the exact compile-time context type
 export type RouteContext = typeof GET.$Infer.Context;
@@ -76,13 +76,14 @@ Consider an e-commerce checkout route that handles inventory verification, payme
 ```ts title="src/routes/checkout.post.ts"
 // A 100+ line handler that is difficult to test and maintain
 export const Route = t
-  .post("/checkout", {
-    body: z.object({
+  .post("/checkout")
+  .body(
+    z.object({
       itemId: z.string(),
       quantity: z.number().min(1),
       paymentMethodId: z.string(),
     }),
-  })
+  )
   .handler(async (ctx) => {
     // 1. Check inventory inline...
     const item = await ctx.db.item.findUnique({ where: { id: ctx.body.itemId } });
@@ -128,13 +129,14 @@ import { t } from "#src/taser.js";
 
 // 1. Route builder definition
 const POST = t
-  .post("/checkout", {
-    body: z.object({
+  .post("/checkout")
+  .body(
+    z.object({
       itemId: z.string(),
       quantity: z.number().min(1),
       paymentMethodId: z.string(),
     }),
-  })
+  )
   .returns({
     200: z.object({ orderId: z.string(), status: z.literal("confirmed") }),
     400: z.object({ error: z.string() }),
@@ -237,9 +239,7 @@ For larger projects, you can organize helpers into dedicated service files:
     import { t } from "#src/taser.js";
     import { fetchUserProfile } from "../../services/user-service.js";
 
-    const GET = t.get("/users/:id", {
-      params: z.object({ id: z.string().uuid() }),
-    });
+    const GET = t.get("/users/:id").params(z.object({ id: z.string().uuid() }));
 
     export type UserRouteContext = typeof GET.$Infer.Context;
 

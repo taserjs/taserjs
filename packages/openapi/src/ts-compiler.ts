@@ -528,7 +528,6 @@ export function extractRouteTypesFromProgram(program: ts.Program): ExtractedRout
             );
         }
       }
-      doc ??= readDocFromJsDoc(routeDecl, sourceFile);
       const hasDoc = doc !== undefined && Object.keys(doc).length > 0;
 
       for (const routeMethod of routeMethods) {
@@ -724,94 +723,4 @@ function readDocFromType(
   }
 
   return found ? doc : undefined;
-}
-
-function readDocFromJsDoc(decl: ts.Node, sourceFile: ts.SourceFile): OpenApiRouteDoc | undefined {
-  let node: ts.Node | undefined = decl;
-  while (node && !ts.isSourceFile(node)) {
-    const doc = extractJsdocAbove(node, sourceFile);
-    if (doc) {
-      return doc;
-    }
-    node = node.parent;
-  }
-  return undefined;
-}
-
-function extractJsdocAbove(node: ts.Node, sourceFile: ts.SourceFile): OpenApiRouteDoc | undefined {
-  const fullText = sourceFile.getFullText();
-  const commentRanges = ts.getLeadingCommentRanges(fullText, node.getFullStart());
-  if (!commentRanges || commentRanges.length === 0) return undefined;
-
-  const jsdocRange = [...commentRanges]
-    .reverse()
-    .find((range) => fullText.startsWith("/**", range.pos));
-  if (!jsdocRange) return undefined;
-
-  const between = fullText.slice(jsdocRange.end, node.getStart());
-  if (between.trim() !== "") return undefined;
-
-  const lines = fullText
-    .slice(jsdocRange.pos + 3, jsdocRange.end - 2)
-    .split("\n")
-    .map((line) => line.replace(/^\s*\*/, "").trim());
-
-  const doc: OpenApiRouteDoc = {};
-  const descriptionLines: string[] = [];
-
-  for (const line of lines) {
-    const match = /^@(\w+)\s*(.*)$/.exec(line);
-    if (!match) {
-      descriptionLines.push(line);
-      continue;
-    }
-    const tagName = match[1];
-    const value = match[2] ?? "";
-    switch (tagName) {
-      case "summary":
-        doc.summary = value.trim();
-        break;
-      case "description":
-        doc.description = value.trim();
-        break;
-      case "tag":
-      case "tags": {
-        const tags = value
-          .trim()
-          .split(/[,\s]+/)
-          .filter(Boolean);
-        doc.tags = [...(doc.tags ?? []), ...tags];
-        break;
-      }
-      case "operationId":
-        doc.operationId = value.trim();
-        break;
-      case "deprecated":
-        doc.deprecated = true;
-        break;
-      case "hidden":
-      case "internal":
-        doc.hidden = true;
-        break;
-      case "externalDocs":
-        doc.externalDocs = { url: value.trim() };
-        break;
-    }
-  }
-
-  const descriptionText = descriptionLines.join("\n").trim();
-  if (descriptionText) {
-    if (doc.summary) {
-      doc.description = doc.description ?? descriptionText;
-    } else {
-      const [firstLine = "", ...rest] = descriptionText.split("\n");
-      doc.summary = firstLine.trim();
-      const restText = rest.join("\n").trim();
-      if (restText) {
-        doc.description = restText;
-      }
-    }
-  }
-
-  return Object.keys(doc).length > 0 ? doc : undefined;
 }

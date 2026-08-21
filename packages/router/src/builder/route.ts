@@ -5,6 +5,7 @@ import {
   mergeReturnsMaps,
   withAuto422,
 } from "@taserjs/router-utils";
+import type { BodyMode } from "@taserjs/router-core";
 
 import type {
   Method,
@@ -12,6 +13,7 @@ import type {
   RoutePath,
   ReturnsMap,
   ValidatorParts,
+  Schema,
 } from "../types/index.js";
 import type { HttpMethod, MiddlewareDefinition } from "../types/units.js";
 import { isHandlerUnit } from "../types/units.js";
@@ -75,15 +77,45 @@ function buildRouteBase(
 export function createRouteBuilder(
   path: string,
   method: HttpMethod | "ANY" | "ALL",
-  validators: SchemaValidators = {},
   methods?: readonly HttpMethod[],
 ): RouteBuilder<RoutePath, Method, readonly [], ValidatorParts> {
   const middlewares: MiddlewareDefinition[] = [];
   let routeReturns: Record<number, StandardSchemaV1> = {};
+  const validators: SchemaValidators = {};
+  let bodyMode: BodyMode | undefined;
+  let metadata: Record<string, unknown> = {};
 
   const builder = {
     path,
     method,
+    query(schema: Schema<unknown>) {
+      validators.query = schema;
+      return builder;
+    },
+    params(schema: Schema<unknown>) {
+      validators.params = schema;
+      return builder;
+    },
+    body(modeOrSchema: BodyMode | Schema<unknown>, schema?: Schema<unknown>) {
+      if (typeof modeOrSchema === "string") {
+        bodyMode = modeOrSchema as BodyMode;
+        if (schema !== undefined) {
+          validators.body = schema;
+        }
+      } else {
+        bodyMode = "json";
+        validators.body = modeOrSchema;
+      }
+      return builder;
+    },
+    meta(metaObj: Record<string, unknown>) {
+      if (typeof metaObj === "object" && metaObj !== null && !Array.isArray(metaObj)) {
+        metadata = { ...metadata, ...metaObj };
+      } else if (process.env.NODE_ENV !== "production") {
+        console.warn("[taser] Route .meta() expects a plain object, received:", metaObj);
+      }
+      return builder;
+    },
     returns(map: ReturnsMap) {
       routeReturns = { ...routeReturns, ...toUtilsMap(map) };
       return builder;
@@ -129,6 +161,8 @@ export function createRouteBuilder(
         handler: unit.handler,
         ...routeSchemas,
         ...handlerSchemas,
+        ...(bodyMode ? { bodyMode } : {}),
+        ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
         ...(returns ? { returns } : {}),
       };
     },

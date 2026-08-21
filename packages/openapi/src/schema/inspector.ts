@@ -1,6 +1,21 @@
 import { resolveStandardJsonSchema } from "./standard.js";
 import type { SchemaResolveOptions } from "./types.js";
 
+const UNRESOLVED = Symbol.for("taser.openapi.unresolved");
+
+/**
+ * Returns true when the schema could not be converted to JSON Schema and the
+ * result is the generic `{ type: "object" }` fallback emitted by
+ * {@link inspectSchemaToJsonSchema}.
+ */
+export function isUnresolvedSchema(schema: unknown): boolean {
+  return (
+    typeof schema === "object" &&
+    schema !== null &&
+    (schema as Record<symbol, unknown>)[UNRESOLVED] === true
+  );
+}
+
 /**
  * Converts Standard Schema instances or web types into OpenAPI v3.1 JSON Schema.
  *
@@ -81,5 +96,7 @@ export function inspectSchemaToJsonSchema(
       "(zod v4+, valibot + @valibot/to-json-schema, arktype, typebox), " +
       "or pass a raw JSON Schema object.",
   );
-  return { type: "object" };
+  const fallback: Record<string, unknown> = { type: "object" };
+  Object.defineProperty(fallback, UNRESOLVED, { value: true, enumerable: false });
+  return fallback;
 }

@@ -7,12 +7,7 @@ import ts from "typescript";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  openapi,
-  generateOpenApi,
-  createOpenApiHandler,
-  OpenApiSpec,
-} from "../src/index.js";
+import { openapi, generateOpenApi, createOpenApiHandler, OpenApiSpec } from "../src/index.js";
 import { standardSchemaToJsonSchema } from "../src/schema/index.js";
 import type { StandardJSONSchemaV1 } from "../src/schema/types.js";
 import { formatOpenApiPath } from "../src/path.js";
@@ -310,6 +305,45 @@ describe("@taserjs/openapi", () => {
       });
     });
 
+    it("replaces the fallback body with an explicit requestBody declaration when the schema cannot be converted", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const mockRoute = {
+        path: "/upload",
+        method: "POST",
+        body: z.object({
+          // z.instanceof(File) throws during JSON Schema conversion
+          image: z.instanceof(File),
+        }),
+        handler: () => {},
+      };
+      const manifestDoc = {
+        requestBody: {
+          content: {
+            "multipart/form-data": {
+              schema: {
+                type: "object",
+                properties: { image: { type: "string", format: "binary" } },
+              },
+            },
+          },
+        },
+      };
+
+      const spec = await generateOpenApi({
+        routes: {
+          "/upload": {
+            POST: { layoutChain: [], route: mockRoute, doc: manifestDoc },
+          },
+        },
+      });
+
+      const postOp = spec.toObject().paths["/upload"]!.post!;
+      const content = postOp.requestBody?.content ?? {};
+      expect(content["multipart/form-data"]).toBeDefined();
+      expect(content["application/json"]).toBeUndefined();
+      warnSpy.mockRestore();
+    });
+
     it("generates request bodies from valibot schemas without zod-specific code", async () => {
       const mockRoute = {
         path: "/posts",
@@ -533,7 +567,7 @@ describe("@taserjs/openapi", () => {
 
       const jsonRes = await handler(spec, "json");
       expect(jsonRes.headers.get("Content-Type")).toContain("application/json");
-      expect(await jsonRes.text()).toContain("\"openapi\": \"3.1.0\"");
+      expect(await jsonRes.text()).toContain('"openapi": "3.1.0"');
 
       const yamlRes = await handler(spec, "yaml");
       expect(yamlRes.headers.get("Content-Type")).toContain("application/yaml");
@@ -559,23 +593,29 @@ describe("@taserjs/openapi", () => {
       const fromJson = OpenApiSpec.fromJson(JSON.stringify(mockDocument));
       expect(fromJson.document.info.title).toBe("API");
 
-      const fromYaml = OpenApiSpec.fromYaml("openapi: 3.1.0\ninfo:\n  title: API\n  version: \"1.0\"\npaths: {}\n");
+      const fromYaml = OpenApiSpec.fromYaml(
+        'openapi: 3.1.0\ninfo:\n  title: API\n  version: "1.0"\npaths: {}\n',
+      );
       expect(fromYaml.document.info.title).toBe("API");
     });
 
     it("fetches JSON or YAML specs via Spec.fromURL", async () => {
-      const yamlSpec = "openapi: 3.1.0\ninfo:\n  title: API\n  version: \"1.0\"\npaths: {}\n";
+      const yamlSpec = 'openapi: 3.1.0\ninfo:\n  title: API\n  version: "1.0"\npaths: {}\n';
       const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
         const url = String(input);
-        const body = /\.ya?ml$/i.test(url)
-          ? yamlSpec
-          : JSON.stringify(mockDocument);
+        const body = /\.ya?ml$/i.test(url) ? yamlSpec : JSON.stringify(mockDocument);
         return new Response(body, { status: 200 });
       });
       try {
-        expect((await OpenApiSpec.fromURL("https://example.com/spec.json").resolve()).info.title).toBe("API");
-        expect((await OpenApiSpec.fromURL("https://example.com/spec.yaml").resolve()).info.title).toBe("API");
-        expect((await OpenApiSpec.fromURL("https://example.com/spec").resolve()).info.title).toBe("API");
+        expect(
+          (await OpenApiSpec.fromURL("https://example.com/spec.json").resolve()).info.title,
+        ).toBe("API");
+        expect(
+          (await OpenApiSpec.fromURL("https://example.com/spec.yaml").resolve()).info.title,
+        ).toBe("API");
+        expect((await OpenApiSpec.fromURL("https://example.com/spec").resolve()).info.title).toBe(
+          "API",
+        );
         expect(fetchMock).toHaveBeenCalledTimes(3);
       } finally {
         fetchMock.mockRestore();
@@ -589,13 +629,82 @@ describe("@taserjs/openapi", () => {
         const yamlPath = join(dir, "spec.yaml");
 
         await writeFile(jsonPath, JSON.stringify(mockDocument), "utf-8");
-        await writeFile(yamlPath, "openapi: 3.1.0\ninfo:\n  title: API\n  version: \"1.0\"\npaths: {}\n", "utf-8");
+        await writeFile(
+          yamlPath,
+          'openapi: 3.1.0\ninfo:\n  title: API\n  version: "1.0"\npaths: {}\n',
+          "utf-8",
+        );
 
         expect((await OpenApiSpec.fromFile(jsonPath).resolve()).info.title).toBe("API");
         expect((await OpenApiSpec.fromFile(yamlPath).resolve()).info.title).toBe("API");
       } finally {
         await rm(dir, { recursive: true, force: true });
       }
+    });
+  });
+
+  describe("Metadata and BodyMode integration", () => {
+    it("reads route.metadata.openapi and middleware metadata", async () => {
+      const manifest: any = {
+        layouts: {
+          "/$": {
+            middlewares: [
+              {
+                metadata: {
+                  openapi: {
+                    security: [{ bearerAuth: [] }],
+                  },
+                },
+                handler: (_ctx: any, next: any) => next(),
+              },
+            ],
+          },
+        },
+        routes: {
+          "/items": {
+            POST: {
+              layoutChain: ["/$"],
+              route: {
+                method: "POST",
+                path: "/items",
+                bodyMode: "form",
+                body: z.object({ file: z.string() }),
+                metadata: {
+                  openapi: {
+                    summary: "Upload item file",
+                    tags: ["Items"],
+                  },
+                },
+              },
+            },
+            PUT: {
+              layoutChain: [],
+              route: {
+                method: "PUT",
+                path: "/items",
+                bodyMode: "urlencoded",
+                body: z.object({ title: z.string() }),
+                metadata: {
+                  openapi: {
+                    summary: "Update item urlencoded",
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+
+      const spec = (await generateOpenApi(manifest)).toObject();
+      const postOp = spec.paths?.["/items"]?.post;
+      expect(postOp?.summary).toBe("Upload item file");
+      expect(postOp?.tags).toEqual(["Items"]);
+      expect(postOp?.security).toEqual([{ bearerAuth: [] }]);
+      expect(postOp?.requestBody?.content["multipart/form-data"]).toBeDefined();
+
+      const putOp = spec.paths?.["/items"]?.put;
+      expect(putOp?.summary).toBe("Update item urlencoded");
+      expect(putOp?.requestBody?.content["application/x-www-form-urlencoded"]).toBeDefined();
     });
   });
 });
