@@ -12,8 +12,7 @@
       "@taserjs/adapter-node",
       "@taserjs/router-generator",
       "@taserjs/router-cli",
-      "@taserjs/router-client",
-      "@taserjs/openapi"
+      "@taserjs/router-client"
     ]
   ],
   "linked": [],

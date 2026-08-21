@@ -122,9 +122,9 @@ const response = await api.users.$id({ id: "user_123" }).avatar.$post({
 ```
 
 <Callout type="tip" title="Server-Side File Validation">
-  On the backend, your `body` schema validates incoming `File` objects with native file schemas
-  like zod's `z.file()`, checking max size and allowed MIME types. Learn more in the [Multipart &
-  File Validation Guide](/docs/validation/standard-schema#validating-multipart-form-data--file-uploads).
+  On the backend, your `body` schema validates incoming `File` objects with standard `instanceof
+  File`, checking max size and allowed MIME types. Learn more in the [Multipart & File Validation
+  Guide](/docs/validation/standard-schema#validating-multipart-form-data--file-uploads).
 </Callout>
 
 ---

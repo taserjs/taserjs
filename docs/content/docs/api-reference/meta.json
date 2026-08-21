@@ -1,4 +1,4 @@
 {
   "title": "API Reference",
-  "pages": ["router", "router-client", "router-cli", "openapi"]
+  "pages": ["router", "router-client", "router-cli"]
 }

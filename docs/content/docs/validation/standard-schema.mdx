@@ -171,7 +171,7 @@ You can validate file presence, file size, and permitted MIME types using your s
     const AvatarUploadSchema = z.object({
       caption: z.string().optional(),
       avatar: z
-        .file("Avatar must be a valid file")
+        .custom<File>((file) => file instanceof File, "Avatar must be a valid file")
         .refine((file) => file.size <= MAX_FILE_SIZE, "Max image size is 5MB")
         .refine(
           (file) => ACCEPTED_IMAGE_TYPES.includes(file.type),
@@ -262,28 +262,6 @@ You can validate file presence, file size, and permitted MIME types using your s
   </Tab>
 </Tabs>
 
-<Callout type="info" title="OpenAPI Generation for File Schemas">
-  How `@taserjs/openapi` documents file schemas depends on your validation library:
-
-  - **Zod v4** (`z.file()`): fully supported — emits `{ type: "string", format: "binary" }` and
-    `multipart/form-data` request bodies automatically.
-  - **ArkType** (`"File"` keyword): ArkType refuses to serialize class instances to JSON Schema by
-    default. Opt in globally before importing `arktype`:
-    ```ts
-    import { configure } from "arktype/config";
-
-    configure({
-      toJsonSchema: {
-        fallback: {
-          proto: () => ({ type: "string", format: "binary" }),
-        },
-      },
-    });
-    ```
-  - **Valibot** (`v.instance(File)`): not yet convertible to JSON Schema — use a raw JSON Schema
-    body or the `transformSchema` hook for file routes.
-</Callout>
-
 ---
 
 ## Multiple File Uploads
@@ -299,7 +277,7 @@ const MultiDocSchema = z.object({
   folderId: z.string(),
   // Handles single or multiple files seamlessly:
   files: z
-    .union([z.file(), z.array(z.file())])
+    .union([z.custom<File>(), z.array(z.custom<File>())])
     .transform((val) => (Array.isArray(val) ? val : [val])),
 });
 
