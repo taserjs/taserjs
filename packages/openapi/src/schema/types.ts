@@ -6,7 +6,10 @@ export type SchemaResolveOptions = {
   transformSchema?: SchemaTransformer;
 };
 
-export type StandardJSONSchemaV1<Input = unknown, Output = Input> = StandardSchemaV1<Input, Output> & {
+export type StandardJSONSchemaV1<Input = unknown, Output = Input> = StandardSchemaV1<
+  Input,
+  Output
+> & {
   readonly "~standard": {
     readonly version: 1;
     readonly vendor: string;

@@ -23,7 +23,7 @@ npx jsr add @taserjs/router-cli
 - `taser watch` — Watch route files and regenerate on change
 - `taser init` — Create a default taser.config.json
 - `taser scaffold <path>` — Scaffold a route or layout file
-- `taser openapi` — Generate an OpenAPI spec (proxies to the `taser-openapi` CLI; requires [`@taserjs/openapi`](https://github.com/taserjs/taserjs/tree/main/packages/openapi) to be installed)
+- `taser openapi` — Generate an OpenAPI spec (proxies to the [`@taserjs/openapi`](https://github.com/taserjs/taserjs/tree/main/packages/openapi) CLI; requires it to be installed)
 
 ## Documentation
 

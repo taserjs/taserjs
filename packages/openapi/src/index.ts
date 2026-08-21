@@ -1,8 +1,30 @@
-export * from "./types.js";
-export * from "./doc.js";
-export * from "./path.js";
-export * from "./schema/index.js";
-export * from "./security/index.js";
-export * from "./ts-compiler.js";
-export * from "./generator.js";
-export * from "./ui/index.js";
+export { openapi } from "./doc.js";
+export { generateOpenApi, OpenApiSpec } from "./generator.js";
+export {
+  createOpenApiHandler,
+  type CreateOpenApiHandlerOptions,
+  type DocUiProvider,
+  type OpenApiResponseFormat,
+} from "./ui/handler.js";
+
+export type {
+  GenerateOpenApiOptions,
+  RouteManifestShape,
+  SchemaTransformer,
+  OpenApiDocument,
+  OpenApiInfo,
+  OpenApiOperation,
+  OpenApiResponse,
+  OpenApiRequestBody,
+  OpenApiMediaType,
+  OpenApiParameter,
+  OpenApiParameterIn,
+  OpenApiHeader,
+  OpenApiComponents,
+  OpenApiSecurityScheme,
+  OpenApiSecurityRequirement,
+  OpenApiServer,
+  OpenApiTag,
+  OpenApiExternalDocs,
+  OpenApiRouteDoc,
+} from "./types.js";

@@ -8,8 +8,8 @@ OpenAPI Specification (v3.1) generator for [Taser](https://taserjs.dev) REST API
 - 📦 **Standard Schema First**: Converts `query`, `params`, `body`, and `headers` schemas (Zod, Valibot, ArkType, TypeBox) into OpenAPI JSON schemas.
 - 🧠 **Generator-Aligned Defaults**: Infers tags from layout chains, operation IDs from route paths, and humanized summaries — using the same naming rules as the Taser route generator.
 - 📝 **Docs Live in Route Files**: Declare documentation with a type-safe `export const OpenAPI = openapi({...})` or plain JSDoc comments above your Route export. No runtime wrapping required.
-- 💻 **CLI Executable**: Includes `taser-openapi` CLI tool to emit `openapi.yaml` or `openapi.json`. Also available as `taser openapi` via `@taserjs/router-cli`.
-- 🎨 **Scalar API Reference UI**: Built-in `renderScalarUi` helper to serve interactive API documentation endpoints.
+- 💻 **CLI Executable**: Run `npx @taserjs/openapi` to emit `openapi.yaml` or `openapi.json`. Also available as `taser openapi` via `@taserjs/router-cli`.
+- 🎨 **Built-in Documentation UI**: `createOpenApiHandler` serves Scalar, Swagger UI, Redoc, or Stoplight Elements with the spec inlined — no extra routes required.
 
 ## Installation
 
@@ -24,7 +24,7 @@ import { generateOpenApi } from "@taserjs/openapi";
 import { routeManifest } from "./routeManifest.gen.js";
 
 // Generate OpenAPI Spec Document
-const spec = generateOpenApi(routeManifest, {
+const spec = await generateOpenApi(routeManifest, {
   info: {
     title: "My Taser Service API",
     version: "1.0.0",
@@ -56,8 +56,9 @@ export const OpenAPI = openapi({
 });
 
 export const Route = t
-  .get("/users/:id")
-  .params(UserParamsSchema)
+  .get("/users/:id", {
+    params: UserParamsSchema,
+  })
   .handler(async (ctx) => {
     const user = await db.users.find(ctx.params.id);
     return reply.json(user, { status: 200 });
@@ -97,26 +98,70 @@ Explicit docs always override inferred defaults.
 
 ```bash
 # Generate openapi.yaml (manifest path resolved from taser.config.json)
-npx taser-openapi --out ./openapi.yaml --format yaml
+npx @taserjs/openapi --out ./openapi.yaml --format yaml
 
 # Generate openapi.json
-npx taser-openapi --out ./public/openapi.json --format json
+npx @taserjs/openapi --out ./public/openapi.json --format json
 
-# Or via the taser CLI (proxies to taser-openapi when @taserjs/openapi is installed)
-npx taser openapi --out ./openapi.yaml
+# Or via a package.json script using the unified taser CLI
+# (proxies to this package's CLI when installed as a dependency):
+#   "scripts": { "openapi:generate": "taser openapi --out ./openapi.yaml" }
+pnpm openapi:generate
 ```
 
-## Serving Scalar API Documentation UI
+## Serving API Documentation
+
+`createOpenApiHandler` accepts `GenerateOpenApiOptions` plus a `provider` key and returns an async handler that turns a spec into a `Response`. It is path-agnostic — mount it on your host framework app next to the Taser router:
+
+> [!WARNING]
+> Do not serve docs from a Taser route file. Route files are imported by the generated
+> route manifest, so importing `routeManifest` back into a route file creates a cyclic
+> reference. Mount the handler on your host framework app instead — there, using
+> `fromManifest` for live docs is safe.
 
 ```ts
-import { renderScalarUi } from "@taserjs/openapi/ui";
+import { serve } from "@hono/node-server";
+import { Hono } from "hono";
+import { createOpenApiHandler, OpenApiSpec } from "@taserjs/openapi";
+import { routeManifest } from "./routeManifest.gen.js";
+import { t } from "#src/taser.js";
 
-app.get("/docs", () => {
-  return new Response(renderScalarUi({ specUrl: "/openapi.json" }), {
-    headers: { "content-type": "text/html" },
-  });
+const router = t.create(routeManifest);
+const handler = createOpenApiHandler({
+  provider: "scalar",
+  info: { title: "My Taser Service API", version: "1.0.0" },
 });
+const spec = OpenApiSpec.fromManifest(routeManifest); // lazy definition; the handler resolves it
+
+const app = new Hono();
+app.get("/docs", () => handler(spec)); // Interactive UI (default)
+app.get("/openapi.json", (c) => handler(spec, "json"));
+app.get("/openapi.yaml", (c) => handler(spec, "yaml"));
+app.all("/taser/*", (c) => router.fetch(c.req.raw));
+
+serve({ fetch: app.fetch, port: 3001 });
 ```
+
+Prefer static docs? Generate the spec file at build time and load it:
+
+```bash
+npx taser-openapi --out ./openapi.yaml
+```
+
+```ts
+const spec = OpenApiSpec.fromFile("./openapi.yaml");
+```
+
+Specs can also be parsed from strings:
+
+```ts
+const spec = OpenApiSpec.fromFile("./openapi.yaml");
+const spec = OpenApiSpec.fromURL("https://api.example.com/openapi.json");
+const spec = OpenApiSpec.fromJson(jsonString);
+const spec = OpenApiSpec.fromYaml(yamlString);
+```
+
+Providers: `"scalar"` (default), `"swagger"`, `"redoc"`, `"elements"`.
 
 ## License
 

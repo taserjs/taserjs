@@ -51,14 +51,12 @@ async function main(): Promise<void> {
     .option("out", {
       type: "string",
       alias: "o",
-      default: "./openapi.yaml",
-      describe: "Output path for generated OpenAPI spec file",
+      describe: "Output path for generated OpenAPI spec file (defaults to ./openapi.<format>)",
     })
     .option("format", {
       type: "string",
       choices: ["yaml", "json"] as const,
-      default: "yaml" as const,
-      describe: "Output format (yaml or json)",
+      describe: "Output format (yaml or json, defaults to the --out extension or yaml)",
     })
     .option("title", {
       type: "string",
@@ -99,15 +97,19 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const spec = generateOpenApi(routeManifest as never, {
+  const spec = await generateOpenApi(routeManifest as never, {
     info: {
       title: argv.title,
     },
     tsconfigPath: argv.tsconfig,
   });
 
-  const content = argv.format === "json" ? spec.toJson() : spec.toYaml();
-  const outputPath = resolve(process.cwd(), argv.out);
+  const format =
+    argv.format ?? (argv.out && /\.json$/i.test(argv.out) ? "json" : "yaml");
+  const outPath = argv.out ?? `./openapi.${format}`;
+
+  const content = format === "json" ? spec.toJson() : spec.toYaml();
+  const outputPath = resolve(process.cwd(), outPath);
 
   writeFileSync(outputPath, content, "utf-8");
   console.log(`Successfully generated OpenAPI spec at ${outputPath}`);

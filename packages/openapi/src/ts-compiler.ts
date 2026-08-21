@@ -141,8 +141,7 @@ function responseForBody(
     return {};
   }
 
-  const name =
-    bodyType.getSymbol()?.getName() ?? bodyType.aliasSymbol?.getName() ?? undefined;
+  const name = bodyType.getSymbol()?.getName() ?? bodyType.aliasSymbol?.getName() ?? undefined;
 
   // 6. Binary / stream types from TypeChecker
   if (name === "ReadableStream" || (name && BINARY_BODY_TYPES.has(name))) {
@@ -167,7 +166,8 @@ function responseForBody(
 
   // 9. Null / void / undefined body
   if (
-    flags & (ts.TypeFlags.Null | ts.TypeFlags.Void | ts.TypeFlags.Undefined | ts.TypeFlags.Never)
+    flags &
+    (ts.TypeFlags.Null | ts.TypeFlags.Void | ts.TypeFlags.Undefined | ts.TypeFlags.Never)
   ) {
     // In Taser, reply.stream / reply.pipe uses ReplyOf<200, null>.
     // If statusCode is 200/206 with null body, default to octet-stream stream.
@@ -238,7 +238,8 @@ export function tsTypeToJsonSchema(
     // Filter out undefined/void if optional
     const hasNull = type.types.some((t) => (t.getFlags() & ts.TypeFlags.Null) !== 0);
     const nonNullTypes = type.types.filter(
-      (t) => (t.getFlags() & (ts.TypeFlags.Null | ts.TypeFlags.Undefined | ts.TypeFlags.Void)) === 0,
+      (t) =>
+        (t.getFlags() & (ts.TypeFlags.Null | ts.TypeFlags.Undefined | ts.TypeFlags.Void)) === 0,
     );
 
     if (nonNullTypes.length === 1 && nonNullTypes[0]) {
@@ -356,7 +357,7 @@ export function inferResponsesFromOutputType(
         ...existing,
         ...response,
         content: { ...existing.content, ...response.content },
-        headers: { ...(existing.headers), ...(response.headers) },
+        headers: { ...existing.headers, ...response.headers },
       };
     } else {
       responses[statusCode] = response;
@@ -505,7 +506,13 @@ export function extractRouteTypesFromProgram(program: ts.Program): ExtractedRout
     }
 
     const handlerDecl = handlerProp.valueDeclaration ?? handlerProp.declarations?.[0] ?? routeDecl;
-    const responses = inferRouteResponses(typeChecker, routeType, handlerProp, handlerDecl, routeDecl);
+    const responses = inferRouteResponses(
+      typeChecker,
+      routeType,
+      handlerProp,
+      handlerDecl,
+      routeDecl,
+    );
 
     if (routePath && routeMethods.length > 0) {
       const openApiExport = exports.find((exp) => exp.getName() === "OpenAPI");

@@ -32,16 +32,6 @@
         "default": "./dist/cjs/index.cjs"
       }
     },
-    "./ui": {
-      "import": {
-        "types": "./dist/esm/ui/index.d.ts",
-        "default": "./dist/esm/ui/index.js"
-      },
-      "require": {
-        "types": "./dist/cjs/ui/index.d.cts",
-        "default": "./dist/cjs/ui/index.cjs"
-      }
-    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -63,6 +53,7 @@
     "jiti": "^2.4.2",
     "js-yaml": "^4.1.0",
     "typescript": "^5.7.3",
+    "xsschema": "0.5.0-beta.8",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
@@ -70,10 +61,13 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.10.10",
     "@types/yargs": "^17.0.33",
+    "@valibot/to-json-schema": "^1.7.1",
+    "arktype": "^2.2.3",
     "publint": "^0.3.22",
+    "valibot": "^1.4.2",
     "vite": "^8.1.5",
     "vitest": "^4.1.10",
-    "zod": "^3.24.2"
+    "zod": "^4.4.3"
   },
   "engines": {
     "node": ">=20.19"

@@ -1,12 +1,4 @@
-export type HttpMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "PATCH"
-  | "DELETE"
-  | "OPTIONS"
-  | "HEAD"
-  | "TRACE";
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD" | "TRACE";
 
 export type OpenApiParameterIn = "query" | "header" | "path" | "cookie";
 
@@ -46,7 +38,10 @@ export type OpenApiHeader = {
 export type OpenApiResponse = {
   description?: string;
   headers?: Record<string, OpenApiHeader>;
-  content?: Record<string, { schema: Record<string, unknown>; example?: unknown; examples?: Record<string, unknown> }>;
+  content?: Record<
+    string,
+    { schema: Record<string, unknown>; example?: unknown; examples?: Record<string, unknown> }
+  >;
   links?: Record<string, unknown>;
 };
 

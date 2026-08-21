@@ -1,22 +1,22 @@
-import { describe, expect, it } from "vitest";
+// oxlint-disable no-await-in-loop
+import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import * as v from "valibot";
+import { type } from "arktype";
 import ts from "typescript";
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
-  formatOpenApiPath,
   openapi,
   generateOpenApi,
-  generateOpenApiAsync,
-  inferResponsesFromTsType,
-  extractRouteTypesFromProgram,
-  standardSchemaToJsonSchema,
-  renderScalarUi,
-  renderSwaggerUi,
-  renderRedocUi,
-  renderElementsUi,
-  createOpenApiDocHandler,
-  detectMiddlewaresSecurity,
-  type StandardJSONSchemaV1,
+  createOpenApiHandler,
+  OpenApiSpec,
 } from "../src/index.js";
+import { standardSchemaToJsonSchema } from "../src/schema/index.js";
+import type { StandardJSONSchemaV1 } from "../src/schema/types.js";
+import { formatOpenApiPath } from "../src/path.js";
+import { inferResponsesFromTsType, extractRouteTypesFromProgram } from "../src/ts-compiler.js";
 
 function createProgramFromSources(sources: Record<string, string>): ts.Program {
   const options: ts.CompilerOptions = {
@@ -63,7 +63,7 @@ describe("@taserjs/openapi", () => {
         role: z.enum(["admin", "user", "guest"]),
         tags: z.array(z.string()).min(1).max(5),
         isActive: z.boolean(),
-        meta: z.record(z.string()).optional(),
+        meta: z.record(z.string(), z.string()).optional(),
         scores: z.tuple([z.number(), z.number()]),
       });
 
@@ -84,28 +84,28 @@ describe("@taserjs/openapi", () => {
       expect(props.isActive.type).toBe("boolean");
       expect(props.meta.type).toBe("object");
       expect(props.scores.type).toBe("array");
-      expect(jsonSchema.required).toEqual(["id", "email", "age", "role", "tags", "isActive", "scores"]);
+      expect(jsonSchema.required).toEqual([
+        "id",
+        "email",
+        "age",
+        "role",
+        "tags",
+        "isActive",
+        "scores",
+      ]);
     });
 
-    it("converts File, Blob and FormData instances to binary / multipart format", () => {
-      const fileSchema = z.custom<File>((val) => typeof val === "object");
+    it("converts z.file() to binary format for multipart uploads", () => {
       const formSchema = z.object({
-        avatar: fileSchema,
+        avatar: z.file(),
         description: z.string(),
       });
 
       const jsonSchema = standardSchemaToJsonSchema(formSchema);
       const props = jsonSchema.properties as any;
-      expect(props.avatar).toEqual({}); // fallback for custom validator without cls
-      
-      const fileObj = z.object({
-        file: z.instanceof(File),
-      });
-      const fileJson = standardSchemaToJsonSchema(fileObj);
-      expect((fileJson.properties as any).file).toEqual({
-        type: "string",
-        format: "binary",
-      });
+      expect(props.avatar.type).toBe("string");
+      expect(props.avatar.format).toBe("binary");
+      expect(props.description.type).toBe("string");
     });
 
     it("converts StandardJSONSchemaV1 directly if implemented", () => {
@@ -135,8 +135,9 @@ describe("@taserjs/openapi", () => {
       expect(result).toEqual({ type: "string", description: "Transformed" });
     });
 
-    it("gracefully falls back when standard jsonSchema.output throws on custom types", () => {
-      const customThrowingSchema = {
+    it("warns and falls back to a generic object schema when JSON Schema cannot be derived", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const unsupportedSchema = {
         "~standard": {
           version: 1,
           vendor: "zod",
@@ -147,25 +148,12 @@ describe("@taserjs/openapi", () => {
             },
           },
         },
-        _def: {
-          typeName: "ZodObject",
-          shape: () => ({
-            avatar: {
-              _def: {
-                typeName: "ZodCustom",
-                name: "File",
-              },
-            },
-          }),
-        },
       };
 
-      const result = standardSchemaToJsonSchema(customThrowingSchema);
-      expect(result.type).toBe("object");
-      expect((result.properties as any)?.avatar).toEqual({
-        type: "string",
-        format: "binary",
-      });
+      const result = standardSchemaToJsonSchema(unsupportedSchema);
+      expect(result).toEqual({ type: "object" });
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Could not derive JSON Schema"));
+      warnSpy.mockRestore();
     });
   });
 
@@ -185,7 +173,7 @@ describe("@taserjs/openapi", () => {
   });
 
   describe("OpenAPI Specification generation", () => {
-    it("generates valid OpenAPI spec from route manifest with input parameters and responses", () => {
+    it("generates valid OpenAPI spec from route manifest with input parameters and responses", async () => {
       const mockRoute = {
         path: "/users/:id",
         method: "GET",
@@ -209,7 +197,7 @@ describe("@taserjs/openapi", () => {
         },
       };
 
-      const spec = generateOpenApi(mockManifest, {
+      const spec = await generateOpenApi(mockManifest, {
         info: { title: "Test API", version: "1.0.0" },
       });
 
@@ -224,7 +212,7 @@ describe("@taserjs/openapi", () => {
         name: "id",
         in: "path",
         required: true,
-        schema: { type: "string", format: "uuid" },
+        schema: expect.objectContaining({ type: "string", format: "uuid" }),
       });
       expect(getOp.parameters[1].name).toBe("search");
       expect(getOp.parameters[1].in).toBe("query");
@@ -232,21 +220,23 @@ describe("@taserjs/openapi", () => {
 
       expect(getOp.responses["200"]).toBeDefined();
       expect(getOp.responses["422"]).toBeDefined(); // Auto validation error response
-      expect(getOp.responses["422"].content["application/json"].schema.properties.errors).toBeDefined();
+      expect(
+        getOp.responses["422"].content["application/json"].schema.properties.errors,
+      ).toBeDefined();
     });
 
-    it("generates multipart/form-data request body when file instances are present", () => {
+    it("generates multipart/form-data request body when file instances are present", async () => {
       const mockRoute = {
         path: "/upload",
         method: "POST",
         body: z.object({
-          file: z.instanceof(File),
+          file: z.file(),
           description: z.string().optional(),
         }),
         handler: () => {},
       };
 
-      const spec = generateOpenApi({
+      const spec = await generateOpenApi({
         routes: {
           "/upload": {
             POST: { layoutChain: [], route: mockRoute },
@@ -258,11 +248,12 @@ describe("@taserjs/openapi", () => {
       const postOp = doc.paths["/upload"]!.post!;
       expect(postOp.requestBody?.content["multipart/form-data"]).toBeDefined();
       expect(
-        (postOp.requestBody?.content["multipart/form-data"]?.schema as any)?.properties?.file?.format,
+        (postOp.requestBody?.content["multipart/form-data"]?.schema as any)?.properties?.file
+          ?.format,
       ).toBe("binary");
     });
 
-    it("infers tags and operationIds from route layout and path", () => {
+    it("infers tags and operationIds from route layout and path", async () => {
       const mockManifest = {
         layouts: {},
         routes: {
@@ -280,7 +271,7 @@ describe("@taserjs/openapi", () => {
         },
       };
 
-      const spec = generateOpenApi(mockManifest, {});
+      const spec = await generateOpenApi(mockManifest, {});
       const doc = spec.document as any;
       const postOp = doc.paths["/users/{id}/settings"].post;
 
@@ -289,7 +280,7 @@ describe("@taserjs/openapi", () => {
       expect(postOp.requestBody.required).toBe(true);
     });
 
-    it("supports generateOpenApiAsync with async custom transformer", async () => {
+    it("supports async custom transformers", async () => {
       const mockRoute = {
         path: "/items",
         method: "POST",
@@ -298,12 +289,15 @@ describe("@taserjs/openapi", () => {
         handler: () => {},
       };
 
-      const spec = await generateOpenApiAsync(
+      const spec = await generateOpenApi(
         {
           routes: { "/items": { POST: { layoutChain: [], route: mockRoute } } },
         },
         {
-          transformSchema: async () => ({ type: "object", properties: { asyncField: { type: "string" } } }),
+          transformSchema: async () => ({
+            type: "object",
+            properties: { asyncField: { type: "string" } },
+          }),
         },
       );
 
@@ -316,6 +310,46 @@ describe("@taserjs/openapi", () => {
       });
     });
 
+    it("generates request bodies from valibot schemas without zod-specific code", async () => {
+      const mockRoute = {
+        path: "/posts",
+        method: "POST",
+        body: v.object({ title: v.string(), views: v.number() }),
+        handler: () => {},
+      };
+
+      const spec = await generateOpenApi({
+        routes: { "/posts": { POST: { layoutChain: [], route: mockRoute } } },
+      });
+
+      const doc = spec.toObject();
+      const postOp = doc.paths["/posts"]!.post!;
+      expect(postOp.requestBody?.content["application/json"]).toBeDefined();
+      const schema = postOp.requestBody!.content["application/json"]!.schema as any;
+      expect(schema.properties.title.type).toBe("string");
+      expect(schema.properties.views.type).toBe("number");
+    });
+
+    it("generates request bodies from arktype schemas without zod-specific code", async () => {
+      const mockRoute = {
+        path: "/posts",
+        method: "POST",
+        body: type({ title: "string", published: "boolean" }),
+        handler: () => {},
+      };
+
+      const spec = await generateOpenApi({
+        routes: { "/posts": { POST: { layoutChain: [], route: mockRoute } } },
+      });
+
+      const doc = spec.toObject();
+      const postOp = doc.paths["/posts"]!.post!;
+      expect(postOp.requestBody?.content["application/json"]).toBeDefined();
+      const schema = postOp.requestBody!.content["application/json"]!.schema as any;
+      expect(schema.properties.title.type).toBe("string");
+      expect(schema.properties.published.type).toBe("boolean");
+    });
+
     it("hides routes when hidden: true is declared", () => {
       const source = `
         export const OpenAPI = { hidden: true };
@@ -325,18 +359,6 @@ describe("@taserjs/openapi", () => {
       const extracted = extractRouteTypesFromProgram(program);
 
       expect(extracted.docs.get("/secret:GET")?.hidden).toBe(true);
-    });
-  });
-
-  describe("Security scheme extraction", () => {
-    it("detects JWT and Bearer authentication middlewares", () => {
-      const middlewares = [{ name: "jwt" }, { name: "custom" }];
-      const detected = detectMiddlewaresSecurity(middlewares);
-
-      expect(detected.schemes.bearerAuth).toBeDefined();
-      expect(detected.schemes.bearerAuth!.scheme).toBe("bearer");
-      expect(detected.schemes.bearerAuth!.bearerFormat).toBe("JWT");
-      expect(detected.requirements).toEqual([{ bearerAuth: [] }]);
     });
   });
 
@@ -470,64 +492,110 @@ describe("@taserjs/openapi", () => {
       expect(responses[200]).toBeDefined();
       expect(responses[200]!.content?.["application/json"]?.schema).toEqual({
         type: "object",
-        properties: { id: { type: "string" }, age: { type: "number" }, active: { type: "boolean" } },
+        properties: {
+          id: { type: "string" },
+          age: { type: "number" },
+          active: { type: "boolean" },
+        },
         required: ["id", "age", "active"],
       });
     });
   });
 
-  describe("Documentation UI Renderers & Request Handler", () => {
-    const mockSpec = { openapi: "3.1.0", info: { title: "API", version: "1.0" }, paths: {} };
+  describe("Documentation Handler & Spec factories", () => {
+    const mockDocument = {
+      openapi: "3.1.0" as const,
+      info: { title: "API", version: "1.0" },
+      paths: {},
+    };
 
-    it("renders Scalar HTML page", () => {
-      const html = renderScalarUi({ spec: mockSpec, title: "Custom Docs" });
-      expect(html).toContain("<title>Custom Docs</title>");
-      expect(html).toContain("https://cdn.jsdelivr.net/npm/@scalar/api-reference");
-      expect(html).toContain('id="api-reference"');
+    it("renders provider UI HTML with the spec inlined by default", async () => {
+      const markers: Record<string, string> = {
+        scalar: "api-reference",
+        swagger: "swagger-ui-bundle.js",
+        redoc: "Redoc.init",
+        elements: "elements-api",
+      };
+      for (const provider of Object.keys(markers)) {
+        const handler = createOpenApiHandler({ provider: provider as any });
+        const res = await handler(OpenApiSpec.fromDocument(mockDocument));
+        expect(res.status).toBe(200);
+        expect(res.headers.get("Content-Type")).toContain("text/html");
+        const html = await res.text();
+        expect(html).toContain(markers[provider]!);
+        expect(html).toContain('"title":"API"'); // spec is inlined, no spec URL
+      }
     });
 
-    it("renders Swagger UI HTML page", () => {
-      const html = renderSwaggerUi({ spec: mockSpec, title: "Swagger" });
-      expect(html).toContain("<title>Swagger</title>");
-      expect(html).toContain("swagger-ui-bundle.js");
-      expect(html).toContain('dom_id: \'#swagger-ui\'');
+    it("serves raw json and yaml representations on demand", async () => {
+      const handler = createOpenApiHandler({ provider: "scalar" });
+      const spec = OpenApiSpec.fromDocument(mockDocument);
+
+      const jsonRes = await handler(spec, "json");
+      expect(jsonRes.headers.get("Content-Type")).toContain("application/json");
+      expect(await jsonRes.text()).toContain("\"openapi\": \"3.1.0\"");
+
+      const yamlRes = await handler(spec, "yaml");
+      expect(yamlRes.headers.get("Content-Type")).toContain("application/yaml");
+      expect(await yamlRes.text()).toContain("openapi: 3.1.0");
     });
 
-    it("renders Redoc HTML page", () => {
-      const html = renderRedocUi({ spec: mockSpec, title: "Redoc" });
-      expect(html).toContain("<title>Redoc</title>");
-      expect(html).toContain("redoc.standalone.js");
-      expect(html).toContain("Redoc.init");
-    });
-
-    it("renders Stoplight Elements HTML page", () => {
-      const html = renderElementsUi({ spec: mockSpec, title: "Elements" });
-      expect(html).toContain("<title>Elements</title>");
-      expect(html).toContain("elements-api");
-    });
-
-    it("serves OpenAPI spec and UI via createOpenApiDocHandler", async () => {
-      const handler = createOpenApiDocHandler({
-        spec: mockSpec,
-        provider: "scalar",
-        docsPath: "/docs",
-        jsonPath: "/openapi.json",
+    it("creates a lazily-resolved spec definition via Spec.fromManifest", async () => {
+      const mockRoute = {
+        path: "/users/:id",
+        method: "GET",
+        params: z.object({ id: z.string() }),
+        handler: () => {},
+      };
+      const spec = OpenApiSpec.fromManifest({
+        routes: { "/users/:id": { GET: { layoutChain: [], route: mockRoute } } },
       });
+      const document = await spec.resolve();
 
-      const jsonRes = await handler(new Request("http://localhost/openapi.json"));
-      expect(jsonRes?.status).toBe(200);
-      expect(jsonRes?.headers.get("Content-Type")).toContain("application/json");
-      const jsonBody = await jsonRes?.json();
-      expect(jsonBody.info.title).toBe("API");
+      expect(document.paths["/users/{id}"]?.get).toBeDefined();
+    });
 
-      const htmlRes = await handler(new Request("http://localhost/docs"));
-      expect(htmlRes?.status).toBe(200);
-      expect(htmlRes?.headers.get("Content-Type")).toContain("text/html");
-      const htmlBody = await htmlRes?.text();
-      expect(htmlBody).toContain("@scalar/api-reference");
+    it("parses specs from JSON and YAML strings via fromJson / fromYaml", () => {
+      const fromJson = OpenApiSpec.fromJson(JSON.stringify(mockDocument));
+      expect(fromJson.document.info.title).toBe("API");
 
-      const otherRes = await handler(new Request("http://localhost/other"));
-      expect(otherRes).toBeNull();
+      const fromYaml = OpenApiSpec.fromYaml("openapi: 3.1.0\ninfo:\n  title: API\n  version: \"1.0\"\npaths: {}\n");
+      expect(fromYaml.document.info.title).toBe("API");
+    });
+
+    it("fetches JSON or YAML specs via Spec.fromURL", async () => {
+      const yamlSpec = "openapi: 3.1.0\ninfo:\n  title: API\n  version: \"1.0\"\npaths: {}\n";
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+        const url = String(input);
+        const body = /\.ya?ml$/i.test(url)
+          ? yamlSpec
+          : JSON.stringify(mockDocument);
+        return new Response(body, { status: 200 });
+      });
+      try {
+        expect((await OpenApiSpec.fromURL("https://example.com/spec.json").resolve()).info.title).toBe("API");
+        expect((await OpenApiSpec.fromURL("https://example.com/spec.yaml").resolve()).info.title).toBe("API");
+        expect((await OpenApiSpec.fromURL("https://example.com/spec").resolve()).info.title).toBe("API");
+        expect(fetchMock).toHaveBeenCalledTimes(3);
+      } finally {
+        fetchMock.mockRestore();
+      }
+    });
+
+    it("loads JSON and YAML specs from disk via Spec.fromFile", async () => {
+      const dir = await mkdtemp(join(tmpdir(), "taser-openapi-"));
+      try {
+        const jsonPath = join(dir, "spec.json");
+        const yamlPath = join(dir, "spec.yaml");
+
+        await writeFile(jsonPath, JSON.stringify(mockDocument), "utf-8");
+        await writeFile(yamlPath, "openapi: 3.1.0\ninfo:\n  title: API\n  version: \"1.0\"\npaths: {}\n", "utf-8");
+
+        expect((await OpenApiSpec.fromFile(jsonPath).resolve()).info.title).toBe("API");
+        expect((await OpenApiSpec.fromFile(yamlPath).resolve()).info.title).toBe("API");
+      } finally {
+        await rm(dir, { recursive: true, force: true });
+      }
     });
   });
 });

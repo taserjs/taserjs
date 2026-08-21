@@ -1,47 +1,51 @@
-import { renderScalarUi, type ScalarUiOptions } from "./scalar.js";
-import { renderSwaggerUi, type SwaggerUiOptions } from "./swagger.js";
-import { renderRedocUi, type RedocUiOptions } from "./redoc.js";
-import { renderElementsUi, type StoplightElementsOptions } from "./stoplight.js";
+import type { GenerateOpenApiOptions } from "../types.js";
+import type { OpenApiSpec } from "../generator.js";
+import yaml from "js-yaml";
+import { renderScalarUi } from "./scalar.js";
+import { renderSwaggerUi } from "./swagger.js";
+import { renderRedocUi } from "./redoc.js";
+import { renderElementsUi } from "./stoplight.js";
 
 export type DocUiProvider = "scalar" | "swagger" | "redoc" | "elements";
 
-export type OpenApiDocHandlerOptions = {
-  /** The OpenAPI specification document (or a getter / generator returning it) */
-  spec: Record<string, unknown> | (() => Record<string, unknown> | Promise<Record<string, unknown>>);
-  /** Documentation UI Provider (defaults to 'scalar') */
+export type OpenApiResponseFormat = "ui" | "json" | "yaml";
+
+export type CreateOpenApiHandlerOptions = GenerateOpenApiOptions & {
+  /** Documentation UI provider (defaults to 'scalar') */
   provider?: DocUiProvider;
-  /** UI specific configuration options */
-  uiOptions?: ScalarUiOptions | SwaggerUiOptions | RedocUiOptions | StoplightElementsOptions;
-  /** Custom base path for docs (e.g. '/docs') */
-  docsPath?: string;
-  /** Custom path for OpenAPI json (e.g. '/openapi.json') */
-  jsonPath?: string;
 };
 
 /**
- * Creates a standard Web Fetch handler (`(req: Request) => Promise<Response | null>`)
- * that serves OpenAPI JSON spec and Interactive Documentation UIs.
+ * Creates an async handler that renders an {@link OpenApiSpec} into a Response.
+ *
+ * The handler is path-agnostic: mount it at any route in your framework and
+ * decide per-request whether to serve the UI, JSON, or YAML representation.
+ * It resolves the spec definition itself — generating from a manifest or
+ * reading from a file as needed (results are cached after the first call).
+ *
+ * ```ts
+ * const options = { provider: "scalar", info: { title: "My API" } };
+ * const handler = createOpenApiHandler(options);
+ *
+ * // Serve the interactive UI
+ * handler(Spec.fromManifest(manifest, options));
+ *
+ * // Or serve raw representations conditionally
+ * handler(spec, "json");
+ * handler(spec, "yaml");
+ * ```
  */
-export function createOpenApiDocHandler(options: OpenApiDocHandlerOptions) {
+export function createOpenApiHandler(options: CreateOpenApiHandlerOptions = {}) {
   const provider = options.provider ?? "scalar";
-  const docsPath = options.docsPath ?? "/docs";
-  const jsonPath = options.jsonPath ?? "/openapi.json";
 
-  const getSpec = async (): Promise<Record<string, unknown>> => {
-    if (typeof options.spec === "function") {
-      return options.spec();
-    }
-    return options.spec;
-  };
+  return async function handleOpenApiSpec(
+    spec: OpenApiSpec,
+    format: OpenApiResponseFormat = "ui",
+  ): Promise<Response> {
+    const document = await spec.resolve();
 
-  return async function handleOpenApiRequest(req: Request): Promise<Response | null> {
-    const url = new URL(req.url);
-    const pathname = url.pathname;
-
-    // 1. Serve OpenAPI JSON spec
-    if (pathname === jsonPath || pathname === `${jsonPath}/`) {
-      const spec = await getSpec();
-      return new Response(JSON.stringify(spec, null, 2), {
+    if (format === "json") {
+      return new Response(JSON.stringify(document, null, 2), {
         status: 200,
         headers: {
           "Content-Type": "application/json; charset=utf-8",
@@ -50,51 +54,39 @@ export function createOpenApiDocHandler(options: OpenApiDocHandlerOptions) {
       });
     }
 
-    // 2. Serve Interactive Documentation UI
-    if (pathname === docsPath || pathname === `${docsPath}/` || pathname.startsWith(`${docsPath}/`)) {
-      const spec = await getSpec();
-      let html = "";
-
-      switch (provider) {
-        case "swagger":
-          html = renderSwaggerUi({
-            spec,
-            specUrl: jsonPath,
-            ...(options.uiOptions as SwaggerUiOptions | undefined),
-          });
-          break;
-        case "redoc":
-          html = renderRedocUi({
-            spec,
-            specUrl: jsonPath,
-            ...(options.uiOptions as RedocUiOptions | undefined),
-          });
-          break;
-        case "elements":
-          html = renderElementsUi({
-            spec,
-            specUrl: jsonPath,
-            ...(options.uiOptions as StoplightElementsOptions | undefined),
-          });
-          break;
-        case "scalar":
-        default:
-          html = renderScalarUi({
-            spec,
-            specUrl: jsonPath,
-            ...(options.uiOptions as ScalarUiOptions | undefined),
-          });
-          break;
-      }
-
-      return new Response(html, {
+    if (format === "yaml") {
+      return new Response(yaml.dump(document, { indent: 2 }), {
         status: 200,
         headers: {
-          "Content-Type": "text/html; charset=utf-8",
+          "Content-Type": "application/yaml; charset=utf-8",
+          "Cache-Control": "public, max-age=3600",
         },
       });
     }
 
-    return null;
+    let html: string;
+
+    switch (provider) {
+      case "swagger":
+        html = renderSwaggerUi({ spec: document });
+        break;
+      case "redoc":
+        html = renderRedocUi({ spec: document });
+        break;
+      case "elements":
+        html = renderElementsUi({ spec: document });
+        break;
+      case "scalar":
+      default:
+        html = renderScalarUi({ spec: document });
+        break;
+    }
+
+    return new Response(html, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+      },
+    });
   };
 }

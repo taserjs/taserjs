@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import yaml from "js-yaml";
 import ts from "typescript";
@@ -15,13 +16,142 @@ import type {
   RouteManifestShape,
 } from "./types.js";
 import { formatOpenApiPath } from "./path.js";
-import { standardSchemaToJsonSchema, standardSchemaToJsonSchemaAsync } from "./schema/index.js";
+import { standardSchemaToJsonSchemaAsync } from "./schema/index.js";
 import { SchemaRegistry } from "./schema/registry.js";
-import { detectMiddlewaresSecurity } from "./security/index.js";
 import { extractRouteTypesFromProgram, type InferredResponse } from "./ts-compiler.js";
 
+type SpecSource =
+  | { readonly kind: "document"; readonly document: OpenApiDocument }
+  | {
+      readonly kind: "manifest";
+      readonly manifest: RouteManifestShape;
+      readonly options: GenerateOpenApiOptions;
+    }
+  | { readonly kind: "file"; readonly path: string }
+  | { readonly kind: "url"; readonly url: string };
+
+/**
+ * A lazy OpenAPI spec definition. Factories such as {@link OpenApiSpec.fromManifest}
+ * and {@link OpenApiSpec.fromFile} only describe where the spec comes from — the
+ * actual reading / generation happens when the consumer (e.g. the async handler
+ * from `createOpenApiHandler`) calls {@link OpenApiSpec.resolve}.
+ */
 export class OpenApiSpec {
-  constructor(public readonly document: OpenApiDocument) {}
+  private readonly source: SpecSource;
+  private resolvedDocument: OpenApiDocument | undefined;
+
+  private constructor(source: SpecSource, resolved?: OpenApiDocument) {
+    this.source = source;
+    if (resolved !== undefined) {
+      this.resolvedDocument = resolved;
+    }
+  }
+
+  /**
+   * Defines a spec from an already-resolved OpenAPI document.
+   */
+  static fromDocument(document: OpenApiDocument): OpenApiSpec {
+    return new OpenApiSpec({ kind: "document", document }, document);
+  }
+
+  /**
+   * Defines a spec generated from a route manifest. Generation is deferred
+   * until {@link OpenApiSpec.resolve} is called by the consumer.
+   *
+   * Supports any Standard Schema library (zod, valibot, arktype, typebox, ...)
+   * via native Standard JSON Schema output or async adapters such as xsschema.
+   *
+   * WARNING: never define a spec from a manifest inside a Taser route file —
+   * route files are imported by the generated manifest, so importing
+   * `routeManifest` back into a route file creates a cyclic reference. Define
+   * it in your host framework app entry (mounting docs next to the router) or
+   * build-time scripts instead.
+   */
+  static fromManifest(
+    manifest: RouteManifestShape,
+    options: GenerateOpenApiOptions = {},
+  ): OpenApiSpec {
+    return new OpenApiSpec({ kind: "manifest", manifest, options });
+  }
+
+  /**
+   * Defines a spec loaded from a JSON or YAML file. The file is read lazily
+   * when {@link OpenApiSpec.resolve} is called by the consumer.
+   */
+  static fromFile(path: string): OpenApiSpec {
+    return new OpenApiSpec({ kind: "file", path });
+  }
+
+  /**
+   * Defines a spec fetched from a URL serving JSON or YAML. The fetch happens
+   * lazily when {@link OpenApiSpec.resolve} is called by the consumer.
+   */
+  static fromURL(url: string): OpenApiSpec {
+    return new OpenApiSpec({ kind: "url", url });
+  }
+
+  /**
+   * Parses a spec definition from a JSON string.
+   */
+  static fromJson(content: string): OpenApiSpec {
+    return OpenApiSpec.fromDocument(JSON.parse(content) as OpenApiDocument);
+  }
+
+  /**
+   * Parses a spec definition from a YAML string.
+   */
+  static fromYaml(content: string): OpenApiSpec {
+    return OpenApiSpec.fromDocument(yaml.load(content) as OpenApiDocument);
+  }
+
+  /**
+   * Resolves the underlying OpenAPI document — generating from the manifest,
+   * reading from disk, or fetching from a URL if needed. Repeated calls reuse
+   * the cached result.
+   */
+  async resolve(): Promise<OpenApiDocument> {
+    if (!this.resolvedDocument) {
+      switch (this.source.kind) {
+        case "document":
+          this.resolvedDocument = this.source.document;
+          break;
+        case "manifest":
+          this.resolvedDocument = (
+            await generateOpenApi(this.source.manifest, this.source.options)
+          ).document;
+          break;
+        case "file": {
+          const content = readFileSync(this.source.path, "utf-8");
+          this.resolvedDocument = parseSpecContent(content, this.source.path);
+          break;
+        }
+        case "url": {
+          const response = await fetch(this.source.url);
+          if (!response.ok) {
+            throw new Error(
+              `Failed to fetch OpenAPI spec from ${this.source.url}: ${response.status} ${response.statusText}`,
+            );
+          }
+          const content = await response.text();
+          this.resolvedDocument = parseSpecContent(content, this.source.url);
+          break;
+        }
+      }
+    }
+    return this.resolvedDocument!;
+  }
+
+  /**
+   * The resolved OpenAPI document. Throws if the spec has not been resolved yet.
+   */
+  get document(): OpenApiDocument {
+    if (!this.resolvedDocument) {
+      throw new Error(
+        "OpenApiSpec is not resolved yet. Call `await spec.resolve()` before accessing the document.",
+      );
+    }
+    return this.resolvedDocument;
+  }
 
   toJson(space = 2): string {
     return JSON.stringify(this.document, null, space);
@@ -36,125 +166,27 @@ export class OpenApiSpec {
   }
 }
 
-/**
- * Generates an OpenAPI v3.1 specification document synchronously.
- */
-export function generateOpenApi(
-  manifest: RouteManifestShape,
-  options: GenerateOpenApiOptions = {},
-): OpenApiSpec {
-  const extracted = loadTypeScriptProgramData(options.tsconfigPath);
-  const routeTypesMap = extracted.responses;
-  const routeDocsMap = extracted.docs;
-
-  const registry = new SchemaRegistry();
-  const globalSecuritySchemes: Record<string, OpenApiSecurityScheme> = {
-    ...options.securitySchemes,
-  };
-  const globalSecurity: OpenApiSecurityRequirement[] = [...(options.security ?? [])];
-
-  const openApiPaths: Record<string, Record<string, OpenApiOperation>> = {};
-
-  for (const [taserPath, methods] of Object.entries(manifest.routes)) {
-    const { openApiPath, pathParamNames } = formatOpenApiPath(taserPath);
-    if (!openApiPaths[openApiPath]) {
-      openApiPaths[openApiPath] = {};
-    }
-
-    if (!methods || typeof methods !== "object") continue;
-
-    for (const [method, routeEntry] of Object.entries(methods)) {
-      if (!routeEntry || typeof routeEntry !== "object") continue;
-      const route = (routeEntry as any).route as any;
-      if (!route) continue;
-
-      const layoutChain = Array.isArray((routeEntry as any).layoutChain)
-        ? ((routeEntry as any).layoutChain as string[])
-        : [];
-      const doc = resolveRouteDoc(taserPath, method, layoutChain, routeDocsMap);
-
-      if (doc.hidden && !options.includeHiddenRoutes) {
-        continue;
-      }
-
-      // Middlewares security detection
-      const allMiddlewares = [
-        ...(Array.isArray((routeEntry as any).middlewares) ? (routeEntry as any).middlewares : []),
-        ...(Array.isArray(route.middlewares) ? route.middlewares : []),
-        ...(Array.isArray(route.handlerMiddlewares) ? route.handlerMiddlewares : []),
-      ];
-      const securityInfo = detectMiddlewaresSecurity(allMiddlewares);
-      Object.assign(globalSecuritySchemes, securityInfo.schemes);
-
-      // Path & Query & Header & Cookie Parameters
-      const parameters: OpenApiParameter[] = buildRouteParameters(
-        taserPath,
-        pathParamNames,
-        route,
-        (s) => standardSchemaToJsonSchema(s, options),
-      );
-
-      if (doc.parameters) {
-        parameters.push(...doc.parameters);
-      }
-
-      // Request Body
-      let requestBody: OpenApiRequestBody | undefined;
-      if (route.body) {
-        const bodySchema = standardSchemaToJsonSchema(route.body, options);
-        requestBody = buildRequestBody(bodySchema);
-      }
-      if (doc.requestBody) {
-        requestBody = mergeRequestBody(requestBody, doc.requestBody);
-      }
-
-      // Responses
-      const responses = buildResponses(
-        route,
-        doc,
-        routeTypesMap.get(`${taserPath}:${method.toUpperCase()}`),
-        options,
-        (s) => standardSchemaToJsonSchema(s, options),
-      );
-
-      const operation: OpenApiOperation = {
-        summary: doc.summary ?? inferSummary(taserPath, method),
-        responses,
-        ...(doc.description ? { description: doc.description } : {}),
-        ...(doc.tags ? { tags: doc.tags } : {}),
-        ...(doc.operationId ? { operationId: doc.operationId } : { operationId: inferOperationId(taserPath, method) }),
-        ...(doc.deprecated !== undefined ? { deprecated: doc.deprecated } : {}),
-        ...(parameters.length > 0 ? { parameters } : {}),
-        ...(requestBody ? { requestBody } : {}),
-        ...(doc.security !== undefined
-          ? { security: doc.security }
-          : securityInfo.requirements.length > 0
-            ? { security: securityInfo.requirements }
-            : {}),
-        ...(doc.externalDocs ? { externalDocs: doc.externalDocs } : {}),
-        ...(doc.servers ? { servers: doc.servers } : {}),
-      };
-
-      openApiPaths[openApiPath][method.toLowerCase()] = operation;
-    }
+function parseSpecContent(content: string, source: string): OpenApiDocument {
+  if (/\.ya?ml$/i.test(source)) {
+    return yaml.load(content) as OpenApiDocument;
   }
-
-  const document: OpenApiDocument = buildDocument(
-    options,
-    openApiPaths,
-    globalSecurity,
-    globalSecuritySchemes,
-    registry,
-  );
-
-  return new OpenApiSpec(document);
+  if (/\.json$/i.test(source)) {
+    return JSON.parse(content) as OpenApiDocument;
+  }
+  try {
+    return JSON.parse(content) as OpenApiDocument;
+  } catch {
+    return yaml.load(content) as OpenApiDocument;
+  }
 }
 
 /**
- * Generates an OpenAPI v3.1 specification document asynchronously,
- * supporting asynchronous schema transformers (such as xsschema).
+ * Generates an OpenAPI v3.1 specification document from a route manifest.
+ *
+ * Supports any Standard Schema library (zod, valibot, arktype, typebox, ...)
+ * via native Standard JSON Schema output or async adapters such as xsschema.
  */
-export async function generateOpenApiAsync(
+export async function generateOpenApi(
   manifest: RouteManifestShape,
   options: GenerateOpenApiOptions = {},
 ): Promise<OpenApiSpec> {
@@ -177,7 +209,6 @@ export async function generateOpenApiAsync(
     method: string;
     route: any;
     layoutChain: string[];
-    allMiddlewares: any[];
     doc: OpenApiRouteDoc;
   };
 
@@ -205,12 +236,6 @@ export async function generateOpenApiAsync(
         continue;
       }
 
-      const allMiddlewares = [
-        ...(Array.isArray((routeEntry as any).middlewares) ? (routeEntry as any).middlewares : []),
-        ...(Array.isArray(route.middlewares) ? route.middlewares : []),
-        ...(Array.isArray(route.handlerMiddlewares) ? route.handlerMiddlewares : []),
-      ];
-
       jobs.push({
         taserPath,
         openApiPath,
@@ -218,7 +243,6 @@ export async function generateOpenApiAsync(
         method,
         route,
         layoutChain,
-        allMiddlewares,
         doc,
       });
     }
@@ -227,16 +251,19 @@ export async function generateOpenApiAsync(
   // Process all route jobs in parallel
   await Promise.all(
     jobs.map(async (job) => {
-      const { taserPath, openApiPath, pathParamNames, method, route, allMiddlewares, doc } = job;
-
-      const securityInfo = detectMiddlewaresSecurity(allMiddlewares);
-      Object.assign(globalSecuritySchemes, securityInfo.schemes);
+      const { taserPath, openApiPath, pathParamNames, method, route, doc } = job;
 
       // Async schema conversions
       const [pathParamsSchema, querySchema, bodySchema, returnsSchemas] = await Promise.all([
-        route.params ? standardSchemaToJsonSchemaAsync(route.params, options) : Promise.resolve(undefined),
-        route.query ? standardSchemaToJsonSchemaAsync(route.query, options) : Promise.resolve(undefined),
-        route.body ? standardSchemaToJsonSchemaAsync(route.body, options) : Promise.resolve(undefined),
+        route.params
+          ? standardSchemaToJsonSchemaAsync(route.params, options)
+          : Promise.resolve(undefined),
+        route.query
+          ? standardSchemaToJsonSchemaAsync(route.query, options)
+          : Promise.resolve(undefined),
+        route.body
+          ? standardSchemaToJsonSchemaAsync(route.body, options)
+          : Promise.resolve(undefined),
         route.returns && typeof route.returns === "object"
           ? Promise.all(
               Object.entries(route.returns).map(async ([status, schema]) => ({
@@ -341,15 +368,13 @@ export async function generateOpenApiAsync(
         responses,
         ...(doc.description ? { description: doc.description } : {}),
         ...(doc.tags ? { tags: doc.tags } : {}),
-        ...(doc.operationId ? { operationId: doc.operationId } : { operationId: inferOperationId(taserPath, method) }),
+        ...(doc.operationId
+          ? { operationId: doc.operationId }
+          : { operationId: inferOperationId(taserPath, method) }),
         ...(doc.deprecated !== undefined ? { deprecated: doc.deprecated } : {}),
         ...(parameters.length > 0 ? { parameters } : {}),
         ...(requestBody ? { requestBody } : {}),
-        ...(doc.security !== undefined
-          ? { security: doc.security }
-          : securityInfo.requirements.length > 0
-            ? { security: securityInfo.requirements }
-            : {}),
+        ...(doc.security !== undefined ? { security: doc.security } : {}),
         ...(doc.externalDocs ? { externalDocs: doc.externalDocs } : {}),
         ...(doc.servers ? { servers: doc.servers } : {}),
       };
@@ -369,7 +394,7 @@ export async function generateOpenApiAsync(
     registry,
   );
 
-  return new OpenApiSpec(document);
+  return OpenApiSpec.fromDocument(document);
 }
 
 function loadTypeScriptProgramData(tsconfigPath?: string) {
@@ -457,8 +482,8 @@ function mergeRequestBody(
   override: Partial<OpenApiRequestBody>,
 ): OpenApiRequestBody {
   const content = {
-    ...(base?.content),
-    ...(override.content),
+    ...base?.content,
+    ...override.content,
   };
   return {
     ...base,
@@ -593,9 +618,7 @@ function buildDocument(
   const components: OpenApiDocument["components"] = {
     ...options.components,
     ...(hasSecuritySchemes ? { securitySchemes: globalSecuritySchemes } : {}),
-    ...(hasSchemas
-      ? { schemas: { ...options.components?.schemas, ...registeredSchemas } }
-      : {}),
+    ...(hasSchemas ? { schemas: { ...options.components?.schemas, ...registeredSchemas } } : {}),
   };
 
   return {
@@ -665,11 +688,11 @@ function buildRouteParameters(
 function hasInputValidation(route: any): boolean {
   return Boolean(
     route.query ||
-      route.params ||
-      route.body ||
-      route.handlerQuery ||
-      route.handlerParams ||
-      route.handlerBody,
+    route.params ||
+    route.body ||
+    route.handlerQuery ||
+    route.handlerParams ||
+    route.handlerBody,
   );
 }
 

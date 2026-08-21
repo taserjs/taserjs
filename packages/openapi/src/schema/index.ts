@@ -1,4 +1,5 @@
 import { inspectSchemaToJsonSchema } from "./inspector.js";
+import { resolveStandardJsonSchemaAsync } from "./standard.js";
 import type { SchemaResolveOptions } from "./types.js";
 
 export * from "./types.js";
@@ -37,6 +38,11 @@ export async function standardSchemaToJsonSchemaAsync(
     if (custom && typeof custom === "object") {
       return custom;
     }
+  }
+
+  const asyncResult = await resolveStandardJsonSchemaAsync(schema, options);
+  if (asyncResult) {
+    return asyncResult;
   }
 
   return inspectSchemaToJsonSchema(schema, options);
