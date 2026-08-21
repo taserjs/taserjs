@@ -1,0 +1,52 @@
+{
+  "name": "@taserjs/openapi",
+  "version": "0.1.0",
+  "description": "OpenAPI Specification (v3.1) generator for Taser with automatic TypeScript return type inference",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./ui": {
+      "import": "./dist/ui/index.js",
+      "types": "./dist/ui/index.d.ts"
+    }
+  },
+  "bin": {
+    "taser-openapi": "./bin/taser-openapi.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf dist",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.0.0",
+    "@taserjs/router-core": "workspace:*",
+    "@taserjs/router-utils": "workspace:*",
+    "jiti": "^2.4.2",
+    "js-yaml": "^4.1.0",
+    "typescript": "^5.7.3",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.10.10",
+    "@types/yargs": "^17.0.33",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.4",
+    "zod": "^3.24.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
