@@ -1,37 +1,64 @@
 {
   "name": "@taserjs/openapi",
-  "version": "0.1.0",
+  "version": "0.0.5",
   "description": "OpenAPI Specification (v3.1) generator for Taser with automatic TypeScript return type inference",
-  "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./ui": {
-      "import": "./dist/ui/index.js",
-      "types": "./dist/ui/index.d.ts"
-    }
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taserjs/taserjs.git",
+    "directory": "packages/openapi"
   },
   "bin": {
-    "taser-openapi": "./bin/taser-openapi.js"
+    "taser-openapi": "./dist/esm/cli.js"
   },
   "files": [
     "dist",
-    "bin",
+    "src",
     "README.md"
   ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.cts",
+        "default": "./dist/cjs/index.cjs"
+      }
+    },
+    "./ui": {
+      "import": {
+        "types": "./dist/esm/ui/index.d.ts",
+        "default": "./dist/esm/ui/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/ui/index.d.cts",
+        "default": "./dist/cjs/ui/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
   "scripts": {
-    "build": "tsc -b",
-    "clean": "rm -rf dist",
-    "test": "vitest run"
+    "clean": "rimraf dist",
+    "build": "vite build && publint --strict",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "@standard-schema/spec": "^1.0.0",
     "@taserjs/router-core": "workspace:*",
+    "@taserjs/router-generator": "workspace:*",
     "@taserjs/router-utils": "workspace:*",
     "jiti": "^2.4.2",
     "js-yaml": "^4.1.0",
@@ -39,14 +66,16 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "@tanstack/vite-config": "^0.6.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.10.10",
     "@types/yargs": "^17.0.33",
-    "vite": "^6.2.0",
-    "vitest": "^3.0.4",
+    "publint": "^0.3.22",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10",
     "zod": "^3.24.2"
   },
-  "publishConfig": {
-    "access": "public"
+  "engines": {
+    "node": ">=20.19"
   }
 }

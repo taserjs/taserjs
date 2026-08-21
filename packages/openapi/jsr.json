@@ -1,0 +1,8 @@
+{
+  "name": "@taserjs/openapi",
+  "version": "0.0.5",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ui": "./src/ui/index.ts"
+  }
+}
