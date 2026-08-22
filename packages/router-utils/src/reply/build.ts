@@ -34,9 +34,9 @@ export function mergeHeaders(
         : undefined,
   );
 
-  for (const [key, value] of new Headers(init.headers).entries()) {
+  new Headers(init.headers).forEach((value, key) => {
     headers.set(key, value);
-  }
+  });
 
   return { ...init, headers };
 }
