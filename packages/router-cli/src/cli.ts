@@ -5,6 +5,7 @@ import { hideBin } from "yargs/helpers";
 import { ALL_CLI_OPTIONS } from "@taserjs/router-generator";
 import { runGenerate } from "./commands/generate.js";
 import { runInit } from "./commands/init.js";
+import { runOpenApi } from "./commands/openapi.js";
 import { runScaffold } from "./commands/scaffold.js";
 import { runWatch } from "./commands/watch.js";
 
@@ -37,10 +38,24 @@ function registerOptions(builder: ReturnType<typeof yargs>): void {
 }
 
 async function main(): Promise<void> {
-  const builder = yargs(hideBin(process.argv))
+  const rawArgs = hideBin(process.argv);
+
+  // `taser openapi` proxies to @taserjs/openapi's CLI with full arg passthrough;
+  // handled before yargs so generator options (e.g. -o) don't collide.
+  if (rawArgs[0] === "openapi") {
+    await runOpenApi(rawArgs.slice(1));
+    return;
+  }
+
+  const builder = yargs(rawArgs)
     .scriptName("taser")
     .command("generate", "Generate route manifest once", (yargsBuilder) => yargsBuilder)
     .command("watch", "Watch route files and regenerate on change", (yargsBuilder) => yargsBuilder)
+    .command(
+      "openapi",
+      "Generate an OpenAPI spec (requires @taserjs/openapi)",
+      (yargsBuilder) => yargsBuilder,
+    )
     .command("init", "Create a default taser.config.json", (yargsBuilder) => {
       return yargsBuilder.option("dir", {
         type: "string",

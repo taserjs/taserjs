@@ -1,0 +1,304 @@
+---
+title: "OpenAPI Specification"
+description: Generate OpenAPI 3.1 specifications from your Taser route manifest with automatic return type inference and interactive documentation UIs.
+icon: FileCode
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
+`@taserjs/openapi` generates OpenAPI v3.1 specification documents directly from your Taser route manifests and route file exports.
+
+It features **zero-config return type inference** from TypeScript compiler AST, full Standard Schema validation mapping, automatic multipart form-data detection for file uploads, middleware security extraction, and built-in interactive API reference documentation UIs (Scalar, Swagger, Redoc, Stoplight).
+
+---
+
+## Installation
+
+<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
+  <Tab value="pnpm">```bash pnpm add @taserjs/openapi ```</Tab>
+  <Tab value="npm">```bash npm install @taserjs/openapi ```</Tab>
+  <Tab value="yarn">```bash yarn add @taserjs/openapi ```</Tab>
+  <Tab value="bun">```bash bun add @taserjs/openapi ```</Tab>
+</Tabs>
+
+---
+
+## Quick Start
+
+### 1. Generating OpenAPI via CLI
+
+Generate your OpenAPI document from your route manifest:
+
+```bash
+# Emit OpenAPI 3.1 YAML
+npx @taserjs/openapi --out ./openapi.yaml --format yaml
+
+# Emit OpenAPI 3.1 JSON
+npx @taserjs/openapi --out ./public/openapi.json --format json
+```
+
+Or via the unified `taser` CLI when `@taserjs/openapi` is installed as a dependency (e.g. through a package.json script):
+
+```json title="package.json"
+{
+  "scripts": {
+    "openapi:generate": "taser openapi --out ./openapi.yaml"
+  }
+}
+```
+
+```bash
+pnpm openapi:generate
+```
+
+---
+
+### 2. Programmatic Generation
+
+```ts
+import { generateOpenApi } from "@taserjs/openapi";
+import { routeManifest } from "./routeManifest.gen.js";
+
+const spec = await generateOpenApi(routeManifest, {
+  info: {
+    title: "My Service API",
+    version: "1.0.0",
+    description: "Production API specification",
+  },
+  servers: [{ url: "https://api.example.com/v1" }],
+  tsconfigPath: "./tsconfig.json",
+});
+
+// Output YAML or JSON strings
+const yamlOutput = spec.toYaml();
+const jsonOutput = spec.toJson();
+```
+
+---
+
+## Documenting Routes
+
+Routes are documented using the fluent `.meta({ openapi: doc({ ... }) })` method on the route builder. Use the `doc()` helper from `@taserjs/openapi` for compile-time validation and autocomplete:
+
+```ts title="src/routes/users/$id.get.ts"
+import { doc } from "@taserjs/openapi";
+import { reply } from "@taserjs/router";
+import { z } from "zod";
+import { t } from "#src/taser.js";
+
+export const Route = t
+  .get("/users/:id")
+  .params(z.object({ id: z.string().uuid() }))
+  .meta({
+    openapi: doc({
+      summary: "Get User by ID",
+      description: "Fetches user details and permissions by user ID.",
+      tags: ["Users"],
+      operationId: "getUserById",
+    }),
+  })
+  .handler(async (ctx) => {
+    const user = await db.users.find(ctx.params.id);
+    return reply.json({ id: user.id, name: user.name });
+  });
+```
+
+### Documenting Middlewares
+
+You can also attach OpenAPI metadata (such as authentication security requirements) to middlewares. Middlewares automatically cascade their documentation to all downstream routes in the layout chain:
+
+```ts title="src/middleware/auth.ts"
+import { doc } from "@taserjs/openapi";
+import { t } from "#src/taser.js";
+
+export const auth = t
+  .defineMiddleware({
+    handler: async (_ctx, next) => next(),
+  })
+  .meta({
+    openapi: doc({
+      security: [{ bearerAuth: [] }],
+    }),
+  });
+```
+
+### Supported fields
+
+| Field          | Type                                                 | Description                                                                                              |
+| :------------- | :--------------------------------------------------- | :------------------------------------------------------------------------------------------------------- |
+| `summary`      | `string`                                             | Short summary shown in the UI                                                                            |
+| `description`  | `string`                                             | Long-form description (Markdown supported)                                                               |
+| `tags`         | `string[]`                                           | Logical grouping of endpoints                                                                            |
+| `operationId`  | `string`                                             | Unique operation identifier                                                                              |
+| `deprecated`   | `boolean`                                            | Mark the route as deprecated                                                                             |
+| `externalDocs` | `{ url, description? }`                              | Link to external documentation                                                                           |
+| `security`     | `OpenApiSecurityRequirement[]`                       | Per-route auth requirements (schemes are declared globally via `GenerateOpenApiOptions.securitySchemes`) |
+| `requestBody`  | `Partial<OpenApiRequestBody>`                        | Override or extend the generated request body                                                            |
+| `responses`    | `Record<number \| string, Partial<OpenApiResponse>>` | Override or add response definitions per status code                                                     |
+| `parameters`   | `OpenApiParameter[]`                                 | Additional parameter definitions or overrides                                                            |
+| `servers`      | `OpenApiServer[]`                                    | Servers specific to this operation                                                                       |
+| `hidden`       | `boolean`                                            | Exclude this route from the generated spec                                                               |
+
+### Overriding generated content
+
+Everything the generator infers can be overridden per route — useful for custom response examples or documenting statuses that aren't statically inferable:
+
+```ts title="src/routes/users/$id.post.ts"
+import { doc } from "@taserjs/openapi";
+import { t } from "#src/taser.js";
+
+export const Route = t
+  .post("/users/:id")
+  .meta({
+    openapi: doc({
+      summary: "Create User",
+      security: [{ bearerAuth: [] }],
+      responses: {
+        // Merge extra detail into inferred responses...
+        201: {
+          description: "User created",
+          examples: { first: { value: { id: "usr_123", name: "Ada" } } },
+        },
+        // ...or declare ones the generator cannot know about
+        409: {
+          description: "Email already registered",
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/ConflictError" },
+            },
+          },
+        },
+      },
+    }),
+  })
+  .handler(async (_ctx) => { ... });
+```
+
+### Inferred defaults
+
+When no explicit docs exist, defaults are inferred from the route manifest:
+
+- **tags** — PascalCased layout chain segments (`layoutChain: ["users"]` → `["Users"]`)
+- **operationId** — method + PascalCased path (`GET /users/:id` → `getUsersId`)
+- **summary** — humanized method + path (`GET /users/:id` → `Get users by id`)
+
+Explicit `.meta({ openapi: ... })` fields always win over inferred defaults; unspecified fields fall through to inference.
+
+---
+
+## Return Type Inference
+
+`@taserjs/openapi` automatically inspects your TypeScript route handlers and `$Infer.Output` types using the TypeScript compiler API:
+
+- **`reply.json(data)`**: Inferred as `application/json` with the exact schema of `data`.
+- **`reply.text(str)`**: Inferred as `text/plain` with `{ type: "string" }`.
+- **`reply.html(html)`**: Inferred as `text/html` with `{ type: "string" }`.
+- **`reply.redirect(url)`**: Inferred with status `302` and `Location` response header.
+- **`reply.noContent()`**: Inferred with status `204` and empty response content.
+- **`reply.stream()` / `stream.buffer()` / `stream.file()`**: Inferred as `application/octet-stream` with `{ type: "string", format: "binary" }`.
+- **Validation Errors (`422`)**: When request validation (`params`, `query`, `body`) is present, a structured `422 Unprocessable Entity` response schema (`{ errors: [{ message, path }] }`) is attached automatically.
+
+---
+
+## File Uploads & Multipart Form Data
+
+When a route declares `.body("form", schema)` or uses native file schemas (e.g. zod's `z.file()`), `@taserjs/openapi` automatically outputs `multipart/form-data` with `format: "binary"` properties:
+
+```ts title="src/routes/upload.post.ts"
+import { stream } from "@taserjs/router/stream";
+import { z } from "zod";
+import { t } from "#src/taser.js";
+
+export const Route = t
+  .post("/upload")
+  .body(
+    "form",
+    z.object({
+      image: z.file(),
+      caption: z.string().optional(),
+    }),
+  )
+  .handler(async (ctx) => {
+    const buffer = await ctx.body.image.arrayBuffer();
+    return stream.buffer(buffer, { contentType: "image/png" });
+  });
+```
+
+Generated OpenAPI request body:
+
+```yaml
+requestBody:
+  required: true
+  content:
+    multipart/form-data:
+      schema:
+        type: object
+        properties:
+          image:
+            type: string
+            format: binary
+          caption:
+            type: string
+        required:
+          - image
+```
+
+---
+
+## Interactive Documentation UIs
+
+`@taserjs/openapi` ships a path-agnostic handler that renders your spec into popular documentation UIs with the spec inlined:
+
+- **Scalar Reference UI** (default)
+- **Swagger UI**
+- **Redoc**
+- **Stoplight Elements**
+
+### Mounting via `createOpenApiHandler`
+
+<Callout type="warn" title="Do not serve docs from a Taser route file">
+  Route files are imported by the generated route manifest, so importing `routeManifest` back into a
+  route file creates a cyclic reference. Instead, mount the handler on your host framework app next
+  to the Taser router — there, using `fromManifest` for live docs is safe.
+</Callout>
+
+```ts title="src/index.ts"
+import { serve } from "@hono/node-server";
+import { Hono } from "hono";
+import { createOpenApiHandler, OpenApiSpec } from "@taserjs/openapi";
+import { routeManifest } from "./routeManifest.gen.js";
+import { t } from "#src/taser.js";
+
+const router = t.create(routeManifest);
+const handler = createOpenApiHandler({
+  provider: "scalar",
+  info: { title: "My Taser Service API", version: "1.0.0" },
+});
+
+// Live docs generated from the manifest
+const spec = OpenApiSpec.fromManifest(routeManifest); // lazy definition; the handler resolves it
+
+const app = new Hono();
+app.get("/docs", () => handler(spec));
+app.get("/openapi.json", (c) => handler(spec, "json"));
+app.all("/taser/*", (c) => router.fetch(c.req.raw));
+
+serve({ fetch: app.fetch, port: 3001 });
+```
+
+Prefer static docs? Generate the spec file at build time and load it instead:
+
+```bash
+npx @taserjs/openapi --out ./openapi.yaml
+```
+
+```ts
+const spec = OpenApiSpec.fromFile("./openapi.yaml");
+```
+
+The handler also accepts a second `format` argument (`"ui" | "json" | "yaml"`) so you can serve raw spec representations conditionally:
+
+```ts
+app.get("/openapi.yaml", (c) => handler(spec, "yaml"));
+```

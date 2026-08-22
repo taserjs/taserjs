@@ -170,40 +170,40 @@ function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit
       type: "(handler: (ctx: Context) => Response) => this",
     },
     get: {
-      description: "Creates a GET route builder accepting query and params schemas.",
-      type: "(path: string, options?: { query?: Schema; params?: Schema }) => RouteBuilder",
+      description: "Creates a GET route builder.",
+      type: "(path: string) => RouteBuilder",
     },
     post: {
-      description: "Creates a POST route builder accepting body, query, and params schemas.",
-      type: "(path: string, options?: { body?: Schema; query?: Schema; params?: Schema }) => RouteBuilder",
+      description: "Creates a POST route builder.",
+      type: "(path: string) => RouteBuilder",
     },
     put: {
-      description: "Creates a PUT route builder accepting body, query, and params schemas.",
-      type: "(path: string, options?: { body?: Schema; query?: Schema; params?: Schema }) => RouteBuilder",
+      description: "Creates a PUT route builder.",
+      type: "(path: string) => RouteBuilder",
     },
     patch: {
-      description: "Creates a PATCH route builder accepting body, query, and params schemas.",
-      type: "(path: string, options?: { body?: Schema; query?: Schema; params?: Schema }) => RouteBuilder",
+      description: "Creates a PATCH route builder.",
+      type: "(path: string) => RouteBuilder",
     },
     delete: {
-      description: "Creates a DELETE route builder accepting query and params schemas.",
-      type: "(path: string, options?: { query?: Schema; params?: Schema }) => RouteBuilder",
+      description: "Creates a DELETE route builder.",
+      type: "(path: string) => RouteBuilder",
     },
     options: {
       description: "Creates an OPTIONS route builder.",
-      type: "(path: string, options?: { query?: Schema; params?: Schema }) => RouteBuilder",
+      type: "(path: string) => RouteBuilder",
     },
     head: {
       description: "Creates a HEAD route builder.",
-      type: "(path: string, options?: { query?: Schema; params?: Schema }) => RouteBuilder",
+      type: "(path: string) => RouteBuilder",
     },
     any: {
       description: "Creates a route builder matching an explicit array of HTTP methods.",
-      type: "(path: string, methods: string[], options?) => RouteBuilder",
+      type: "(path: string, methods: string[]) => RouteBuilder",
     },
     all: {
       description: "Creates a catch-all route builder matching all HTTP verbs.",
-      type: "(path: string, options?) => RouteBuilder",
+      type: "(path: string) => RouteBuilder",
     },
     middleware: {
       description: "Creates a layout middleware builder for root or scoped route directories.",
@@ -232,6 +232,23 @@ function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit
 
 <TypeTable
   type={{
+    query: {
+      description: "Attaches a URL query parameter validation schema.",
+      type: "(schema: Schema) => RouteBuilder",
+    },
+    params: {
+      description: "Attaches a path parameters validation schema.",
+      type: "(schema: Schema) => RouteBuilder",
+    },
+    body: {
+      description:
+        "Attaches a request body validation schema with optional mode ('json' | 'form' | 'urlencoded').",
+      type: "(modeOrSchema: BodyMode | Schema, schema?: Schema) => RouteBuilder",
+    },
+    meta: {
+      description: "Attaches metadata (e.g. OpenAPI doc or rate limits) to the route.",
+      type: "(metadata: Record<string, unknown>) => RouteBuilder",
+    },
     returns: {
       description: "Attaches a status-code-indexed response contract map.",
       type: "(returnsMap: Record<number, Schema>) => RouteBuilder",

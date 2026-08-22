@@ -138,7 +138,7 @@ export async function scanRouteFiles(
   // Read all required route/layout sources in parallel across libuv thread pool
   const sources = await Promise.all(
     pending.map(async (file) => {
-      if (validate || (file.kind === "route" && file.method === "ANY")) {
+      if (file.kind === "route" || validate) {
         try {
           return await readRouteSource(file.absolutePath);
         } catch {

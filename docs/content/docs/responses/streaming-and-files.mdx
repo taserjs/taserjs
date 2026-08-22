@@ -22,9 +22,8 @@ import { t } from "#src/taser.js";
 import path from "node:path";
 
 export const Route = t
-  .get("/downloads/:file", {
-    params: z.object({ file: z.string() }),
-  })
+  .get("/downloads/:file")
+  .params(z.object({ file: z.string() }))
   .handler((ctx) => {
     const publicStorageDir = path.resolve(process.cwd(), "storage/public");
 

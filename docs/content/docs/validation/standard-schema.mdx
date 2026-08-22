@@ -24,15 +24,16 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
     import { t } from "#src/taser.js";
 
     export const Route = t
-      .get("/products", {
-        query: z.object({
+      .get("/products")
+      .query(
+        z.object({
           search: z.string().optional(),
           category: z.enum(["electronics", "clothing", "books"]).optional(),
           page: z.coerce.number().int().min(1).default(1),
           limit: z.coerce.number().int().min(1).max(100).default(20),
           inStockOnly: z.coerce.boolean().default(false),
         }),
-      })
+      )
       .handler(async (ctx) => {
         // ctx.query.page is number
         // ctx.query.inStockOnly is boolean
@@ -56,7 +57,8 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
     });
 
     export const Route = t
-      .get("/products", { query: QuerySchema })
+      .get("/products")
+      .query(QuerySchema)
       .handler(async (ctx) => {
         const results = await ctx.db.searchProducts(ctx.query);
         return reply.json(results);
@@ -77,7 +79,8 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
     });
 
     export const Route = t
-      .get("/products", { query: QuerySchema })
+      .get("/products")
+      .query(QuerySchema)
       .handler(async (ctx) => {
         const results = await ctx.db.searchProducts(ctx.query);
         return reply.json(results);
@@ -91,7 +94,7 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
 
 ## Validating Path Parameters
 
-Path parameters declared in file names (for example, `$id.get.ts` or `$orgId/$repoId.get.ts`) can be validated with a `params` schema:
+Path parameters declared in file names (for example, `$id.get.ts` or `$orgId/$repoId.get.ts`) can be validated with a `.params()` schema:
 
 ```ts title="src/routes/organizations/$orgId/members/$memberId.get.ts"
 import { reply } from "@taserjs/router";
@@ -99,12 +102,13 @@ import { z } from "zod";
 import { t } from "#src/taser.js";
 
 export const Route = t
-  .get("/organizations/:orgId/members/:memberId", {
-    params: z.object({
+  .get("/organizations/:orgId/members/:memberId")
+  .params(
+    z.object({
       orgId: z.string().uuid(),
       memberId: z.string().min(1),
     }),
-  })
+  )
   .handler(async (ctx) => {
     // ctx.params.orgId is validated UUID string
     // ctx.params.memberId is string
@@ -133,9 +137,8 @@ const CreatePostSchema = z.object({
 });
 
 export const Route = t
-  .post("/posts", {
-    body: CreatePostSchema,
-  })
+  .post("/posts")
+  .body(CreatePostSchema)
   .returns({
     201: z.object({ id: z.string(), slug: z.string() }),
     422: z.object({ message: z.string(), issues: z.array(z.unknown()) }),
@@ -154,7 +157,7 @@ export const Route = t
 
 ## Validating Multipart Form Data & File Uploads
 
-When requests arrive with `Content-Type: multipart/form-data` or `application/x-www-form-urlencoded`, Taser automatically parses both textual form fields and binary file uploads into standard JavaScript `File` objects.
+When requests arrive with `Content-Type: multipart/form-data` or `application/x-www-form-urlencoded`, use `.body("form", schema)` or `.body("urlencoded", schema)`. Taser automatically parses both textual form fields and binary file uploads into standard JavaScript `File` objects.
 
 You can validate file presence, file size, and permitted MIME types using your schema validator:
 
@@ -171,7 +174,7 @@ You can validate file presence, file size, and permitted MIME types using your s
     const AvatarUploadSchema = z.object({
       caption: z.string().optional(),
       avatar: z
-        .custom<File>((file) => file instanceof File, "Avatar must be a valid file")
+        .file("Avatar must be a valid file")
         .refine((file) => file.size <= MAX_FILE_SIZE, "Max image size is 5MB")
         .refine(
           (file) => ACCEPTED_IMAGE_TYPES.includes(file.type),
@@ -180,10 +183,9 @@ You can validate file presence, file size, and permitted MIME types using your s
     });
 
     export const Route = t
-      .post("/users/:id/avatar", {
-        params: z.object({ id: z.string() }),
-        body: AvatarUploadSchema,
-      })
+      .post("/users/:id/avatar")
+      .params(z.object({ id: z.string() }))
+      .body("form", AvatarUploadSchema)
       .returns({
         200: z.object({ success: z.boolean(), fileName: z.string(), bytes: z.number() }),
       })
@@ -223,9 +225,8 @@ You can validate file presence, file size, and permitted MIME types using your s
     });
 
     export const Route = t
-      .post("/users/:id/avatar", {
-        body: AvatarUploadSchema,
-      })
+      .post("/users/:id/avatar")
+      .body("form", AvatarUploadSchema)
       .handler(async (ctx) => {
         const { avatar } = ctx.body;
         const fileBuffer = await avatar.arrayBuffer();
@@ -249,9 +250,8 @@ You can validate file presence, file size, and permitted MIME types using your s
     });
 
     export const Route = t
-      .post("/users/:id/avatar", {
-        body: AvatarUploadSchema,
-      })
+      .post("/users/:id/avatar")
+      .body("form", AvatarUploadSchema)
       .handler(async (ctx) => {
         const { avatar } = ctx.body;
         const buffer = await avatar.arrayBuffer();
@@ -261,6 +261,31 @@ You can validate file presence, file size, and permitted MIME types using your s
 
   </Tab>
 </Tabs>
+
+<Callout type="info" title="OpenAPI Generation for File Schemas">
+  How `@taserjs/openapi` documents file schemas depends on your validation library:
+
+- **Zod v4** (`z.file()`): fully supported — emits `{ type: "string", format: "binary" }` and
+  `multipart/form-data` request bodies automatically.
+- **ArkType** (`"File"` keyword): ArkType refuses to serialize class instances to JSON Schema by
+  default. Opt in globally before importing `arktype`:
+
+  ```ts
+  import { configure } from "arktype/config";
+
+  configure({
+    toJsonSchema: {
+      fallback: {
+        proto: () => ({ type: "string", format: "binary" }),
+      },
+    },
+  });
+  ```
+
+- **Valibot** (`v.instance(File)`): not yet convertible to JSON Schema — use a raw JSON Schema
+  body or the `transformSchema` hook for file routes.
+
+</Callout>
 
 ---
 
@@ -277,14 +302,13 @@ const MultiDocSchema = z.object({
   folderId: z.string(),
   // Handles single or multiple files seamlessly:
   files: z
-    .union([z.custom<File>(), z.array(z.custom<File>())])
+    .union([z.file(), z.array(z.file())])
     .transform((val) => (Array.isArray(val) ? val : [val])),
 });
 
 export const Route = t
-  .post("/documents/upload", {
-    body: MultiDocSchema,
-  })
+  .post("/documents/upload")
+  .body("form", MultiDocSchema)
   .handler(async (ctx) => {
     // ctx.body.files is typed as File[]:
     for (const file of ctx.body.files) {
@@ -329,15 +353,16 @@ import { z } from "zod";
 import { t } from "#src/taser.js";
 
 export const Route = t
-  .post("/events", {
-    body: z.object({
+  .post("/events")
+  .body(
+    z.object({
       title: z.string().trim(),
       scheduledAt: z
         .string()
         .datetime()
         .transform((str) => new Date(str)),
     }),
-  })
+  )
   .handler(async (ctx) => {
     // ctx.body.scheduledAt is typed as Date, not string!
     console.log(ctx.body.scheduledAt.getTime());

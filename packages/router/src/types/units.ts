@@ -62,6 +62,8 @@ export type MiddlewareDefinition = {
   query?: unknown;
   params?: unknown;
   body?: unknown;
+  bodyMode?: "json" | "form" | "urlencoded";
+  metadata?: Record<string, unknown>;
   returns?: ReturnsMap;
   handler: (ctx: unknown, next: MiddlewareNext) => Awaitable<Response | unknown>;
 };
@@ -148,6 +150,9 @@ export type MiddlewareUnit<
   readonly __returns?: TReturns;
   readonly __requiredLayouts?: TRequiredLayouts;
   readonly __requiredState?: TRequiredState;
+  meta(
+    metadata: Record<string, unknown>,
+  ): MiddlewareUnit<TAcc, TReturns, TRequiredLayouts, TRequiredState>;
 };
 
 export type HandlerUnit<

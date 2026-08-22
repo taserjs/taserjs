@@ -27,10 +27,14 @@ export type PipelineLayer = {
   run: (ctx: PipelineContext, next: PipelineNext) => Promise<unknown>;
 };
 
+export type BodyMode = "json" | "form" | "urlencoded";
+
 export type MiddlewareDefinition = {
   query?: unknown;
   params?: unknown;
   body?: unknown;
+  bodyMode?: BodyMode;
+  metadata?: Record<string, unknown>;
   returns?: Record<number, unknown>;
   handler: (
     ctx: unknown,
@@ -52,6 +56,9 @@ export type RouteHandler = {
   readonly middlewares: readonly MiddlewareDefinition[];
   readonly handlerMiddlewares?: readonly MiddlewareDefinition[];
   readonly returns?: Record<number, unknown>;
+  readonly metadata?: Record<string, unknown>;
+  readonly bodyMode?: BodyMode;
+  readonly handlerBodyMode?: BodyMode;
   handler: (ctx: unknown) => Awaitable<unknown>;
   query?: unknown;
   params?: unknown;

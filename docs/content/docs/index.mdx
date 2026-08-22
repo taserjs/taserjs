@@ -18,10 +18,9 @@ import { z } from "zod";
 import { t } from "#src/taser.js";
 
 const GET = t
-  .get("/users/:id", {
-    params: z.object({ id: z.string().uuid() }),
-    query: z.object({ includeProfile: z.coerce.boolean().default(false) }),
-  })
+  .get("/users/:id")
+  .params(z.object({ id: z.string().uuid() }))
+  .query(z.object({ includeProfile: z.coerce.boolean().default(false) }))
   .returns({
     200: z.object({ id: z.string(), name: z.string(), email: z.string() }),
     404: z.object({ message: z.string() }),

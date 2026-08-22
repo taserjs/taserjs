@@ -467,6 +467,7 @@ export type MiddlewareBuilder<
           },
         ]
   ): MiddlewareBuilder<Layout, readonly [...Acc, TAcc], TAppContext>;
+  meta(metadata: Record<string, unknown>): MiddlewareBuilder<Layout, Acc, TAppContext>;
   use<
     TQuery = unknown,
     TParams = unknown,
@@ -519,6 +520,8 @@ export type RouteExport<
   readonly middlewares: readonly MiddlewareDefinition[];
   readonly handlerMiddlewares: readonly MiddlewareDefinition[];
   readonly returns?: TReturns;
+  readonly metadata?: Record<string, unknown>;
+  readonly bodyMode?: "json" | "form" | "urlencoded";
   handler: (ctx: unknown) => Awaitable<Response>;
   readonly $Infer: {
     Context: TMethod extends "GET" | "DELETE" | "HEAD" | "OPTIONS"
@@ -557,7 +560,7 @@ type RouteHandleResult<
   };
 };
 
-export type RouteBuilder<
+export type RouteBuilderBase<
   Path extends RoutePath,
   TMethod extends Method,
   Acc extends readonly unknown[] = readonly [],
@@ -576,6 +579,29 @@ export type RouteBuilder<
       : RouteHandleInput<Path, TMethod, Acc, Validators>;
     Output: TReturns;
   };
+  query<TQuery, TQueryIn = unknown>(
+    schema: Schema<TQuery, TQueryIn>,
+  ): RouteBuilder<
+    Path,
+    TMethod,
+    Acc,
+    Omit<Validators, "query" | "queryIn"> & { query: TQuery; queryIn: TQueryIn },
+    TReturns,
+    TAppContext
+  >;
+  params<TParams, TParamsIn = unknown>(
+    schema: Schema<TParams, TParamsIn>,
+  ): RouteBuilder<
+    Path,
+    TMethod,
+    Acc,
+    Omit<Validators, "params" | "paramsIn"> & { params: TParams; paramsIn: TParamsIn },
+    TReturns,
+    TAppContext
+  >;
+  meta(
+    metadata: Record<string, unknown>,
+  ): RouteBuilder<Path, TMethod, Acc, Validators, TReturns, TAppContext>;
   returns<const M extends ReturnsMap>(
     map: M,
   ): RouteBuilder<Path, TMethod, Acc, Validators, Omit<TReturns, keyof M> & M, TAppContext>;
@@ -675,6 +701,40 @@ export type RouteBuilder<
     TAppContext
   >;
 };
+
+export type RouteBuilder<
+  Path extends RoutePath,
+  TMethod extends Method,
+  Acc extends readonly unknown[] = readonly [],
+  Validators extends ValidatorParts = {},
+  TReturns extends ReturnsMap = {},
+  TAppContext extends Record<string, unknown> = AppContext,
+> = RouteBuilderBase<Path, TMethod, Acc, Validators, TReturns, TAppContext> &
+  (TMethod extends "GET" | "DELETE" | "HEAD" | "OPTIONS"
+    ? {}
+    : {
+        body<TBody, TBodyIn = unknown>(
+          schema: Schema<TBody, TBodyIn>,
+        ): RouteBuilder<
+          Path,
+          TMethod,
+          Acc,
+          Omit<Validators, "body" | "bodyIn"> & { body: TBody; bodyIn: TBodyIn },
+          TReturns,
+          TAppContext
+        >;
+        body<Mode extends "json" | "form" | "urlencoded", TBody, TBodyIn = unknown>(
+          mode: Mode,
+          schema: Schema<TBody, TBodyIn>,
+        ): RouteBuilder<
+          Path,
+          TMethod,
+          Acc,
+          Omit<Validators, "body" | "bodyIn"> & { body: TBody; bodyIn: TBodyIn },
+          TReturns,
+          TAppContext
+        >;
+      });
 
 export type HandlerBuilder<
   Acc extends readonly unknown[] = readonly [],

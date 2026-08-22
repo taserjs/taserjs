@@ -108,9 +108,7 @@ import { z } from "zod";
 import { t } from "#src/taser.js";
 
 // 1. Declare builder variable
-const GET = t.get("/users/:id", {
-  params: z.object({ id: z.string() }),
-});
+const GET = t.get("/users/:id").params(z.object({ id: z.string() }));
 
 // 2. Extract RouteContext from the builder
 export type RouteContext = typeof GET.$Infer.Context;

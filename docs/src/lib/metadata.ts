@@ -124,12 +124,16 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
   client:
     "Auto-completing, end-to-end typed proxy client generated from your server router type with zero runtime drift.",
   cli: "Automate route discovery, manifest compilation, and file scaffolding using @taserjs/router-cli and taser.config.json.",
+  openapi:
+    "Generate OpenAPI 3.1 specifications from your Taser route manifest with automatic return type inference and interactive documentation UIs.",
   "api-reference/router":
     "Complete API reference for @taserjs/router: createTaserApp, createContext, TaserRouter, RouteBuilder, reply, and stream.",
   "api-reference/router-client":
     "Complete API reference for @taserjs/router-client: createClient, formBody, ClientRequestOptions, and utility types.",
   "api-reference/router-cli":
     "Complete CLI command options, flags, and taser.config.json schema reference for @taserjs/router-cli.",
+  "api-reference/openapi":
+    "Complete API reference for @taserjs/openapi: generateOpenApi, doc, OpenApiSpec, and createOpenApiHandler.",
 };
 
 export const docsImageAlts: Record<string, string> = {
@@ -159,9 +163,11 @@ export const docsImageAlts: Record<string, string> = {
   "adapters/hono-and-edge": "Taser Docs: Hono and Edge Runtime Adapters",
   client: "Taser Docs: Typed Client SDK",
   cli: "Taser Docs: CLI Tooling and Codegen",
+  openapi: "Taser Docs: OpenAPI Specification and UI Documentation",
   "api-reference/router": "Taser Docs: @taserjs/router API Reference",
   "api-reference/router-client": "Taser Docs: @taserjs/router-client API Reference",
   "api-reference/router-cli": "Taser Docs: @taserjs/router-cli API Reference",
+  "api-reference/openapi": "Taser Docs: @taserjs/openapi API Reference",
 };
 
 export function createDocsPageMetadata(opts: {

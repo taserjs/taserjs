@@ -54,4 +54,40 @@ describe("route factories", () => {
 
     expect(typeof mw.handler).toBe("function");
   });
+
+  it("supports fluent chaining of query, params, body, and meta", () => {
+    const route = t
+      .post("/users/:id")
+      .params({ id: "string" } as any)
+      .query({ filter: "string" } as any)
+      .body("form", { avatar: "file" } as any)
+      .meta({
+        openapi: { summary: "Upload user avatar" },
+        rateLimit: { windowMs: 60000 },
+      })
+      .handler(() => reply.json({ ok: true }));
+
+    expect(route.params).toBeDefined();
+    expect(route.query).toBeDefined();
+    expect(route.body).toBeDefined();
+    expect(route.bodyMode).toBe("form");
+    expect(route.metadata).toEqual({
+      openapi: { summary: "Upload user avatar" },
+      rateLimit: { windowMs: 60000 },
+    });
+  });
+
+  it("supports .meta() on middleware", () => {
+    const mw = t
+      .defineMiddleware({
+        handler: (_ctx, next) => next(),
+      })
+      .meta({
+        openapi: { security: [{ bearerAuth: [] }] },
+      });
+
+    expect(mw.metadata).toEqual({
+      openapi: { security: [{ bearerAuth: [] }] },
+    });
+  });
 });
