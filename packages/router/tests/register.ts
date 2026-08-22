@@ -13,7 +13,8 @@ declare module "@taserjs/router" {
       | "/pipe"
       | "/buffer"
       | "/blob"
-      | "/check-ctx";
+      | "/check-ctx"
+      | "/users/:id";
     LayoutId: "index" | "admin";
     LayoutTree: {
       index: { middlewares: typeof IndexLayout; parent: null };
@@ -46,6 +47,9 @@ declare module "@taserjs/router" {
       };
       "/check-ctx": {
         GET: { layoutChain: readonly ["admin"]; route: unknown };
+      };
+      "/users/:id": {
+        POST: { layoutChain: readonly []; route: unknown };
       };
     };
   }

@@ -171,7 +171,7 @@ You can validate file presence, file size, and permitted MIME types using your s
     const AvatarUploadSchema = z.object({
       caption: z.string().optional(),
       avatar: z
-        .custom<File>((file) => file instanceof File, "Avatar must be a valid file")
+        .file("Avatar must be a valid file")
         .refine((file) => file.size <= MAX_FILE_SIZE, "Max image size is 5MB")
         .refine(
           (file) => ACCEPTED_IMAGE_TYPES.includes(file.type),
@@ -277,7 +277,7 @@ const MultiDocSchema = z.object({
   folderId: z.string(),
   // Handles single or multiple files seamlessly:
   files: z
-    .union([z.custom<File>(), z.array(z.custom<File>())])
+    .union([z.file(), z.array(z.file())])
     .transform((val) => (Array.isArray(val) ? val : [val])),
 });
 

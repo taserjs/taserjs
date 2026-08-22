@@ -62,6 +62,7 @@ export type MiddlewareDefinition = {
   query?: unknown;
   params?: unknown;
   body?: unknown;
+  bodyMode?: "json" | "form" | "urlencoded";
   returns?: ReturnsMap;
   handler: (ctx: unknown, next: MiddlewareNext) => Awaitable<Response | unknown>;
 };

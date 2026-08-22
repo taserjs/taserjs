@@ -43,11 +43,12 @@ async function applyRouteSchemas(
   const query = prefix === "route" ? route.query : route.handlerQuery;
   const params = prefix === "route" ? route.params : route.handlerParams;
   const body = prefix === "route" ? route.body : route.handlerBody;
+  const bodyMode = prefix === "route" ? route.bodyMode : route.handlerBodyMode;
 
   ctx.query = (await validateOptionalSchema(query, ctx.query)) as Record<string, unknown>;
   ctx.params = (await validateOptionalSchema(params, ctx.params)) as Record<string, unknown>;
   if (body !== undefined) {
-    await ensureBody(ctx);
+    await ensureBody(ctx, bodyMode);
     ctx.body = await validateOptionalSchema(body, ctx.body);
   }
 }
@@ -69,7 +70,7 @@ async function applyValidators(
     )) as Record<string, unknown>;
   }
   if (definition.body !== undefined) {
-    await ensureBody(ctx);
+    await ensureBody(ctx, definition.bodyMode);
     ctx.body = await mergeValidatedField(definition.body as StandardSchemaV1, ctx.body);
   }
 }

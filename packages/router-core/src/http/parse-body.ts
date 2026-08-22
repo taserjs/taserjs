@@ -1,3 +1,6 @@
+import { reply } from "@taserjs/router-utils";
+import type { BodyMode } from "../types.js";
+
 type ParsedMediaType = {
   type: string;
   subtype: string;
@@ -24,11 +27,16 @@ function isJsonMediaType(type: string, subtype: string): boolean {
   return type === "application" && (subtype === "json" || subtype.endsWith("+json"));
 }
 
+function isMultipartMediaType(type: string, subtype: string): boolean {
+  return type === "multipart" && subtype === "form-data";
+}
+
+function isUrlencodedMediaType(type: string, subtype: string): boolean {
+  return type === "application" && subtype === "x-www-form-urlencoded";
+}
+
 function isFormMediaType(type: string, subtype: string): boolean {
-  return (
-    (type === "multipart" && subtype === "form-data") ||
-    (type === "application" && subtype === "x-www-form-urlencoded")
-  );
+  return isMultipartMediaType(type, subtype) || isUrlencodedMediaType(type, subtype);
 }
 
 function formDataToRecord(formData: FormData): Record<string, unknown> {
@@ -48,7 +56,7 @@ function formDataToRecord(formData: FormData): Record<string, unknown> {
 
 /**
  * Parse request body from standard Web Request.
- * JSON for application/json; FormData for multipart / urlencoded; otherwise undefined.
+ * If mode is provided ("json" | "form" | "urlencoded"), enforces Content-Type matching and throws 415 on mismatch.
  */
 export async function parseRequestBody(
   req:
@@ -61,6 +69,7 @@ export async function parseRequestBody(
         formData?: () => Promise<FormData>;
         parseBody?: (opt?: unknown) => Promise<unknown>;
       },
+  mode?: BodyMode,
 ): Promise<unknown> {
   if (req.method === "GET" || req.method === "HEAD") {
     return undefined;
@@ -77,6 +86,48 @@ export async function parseRequestBody(
     "";
 
   const media = parseMediaType(contentType);
+
+  if (mode === "json") {
+    if (!media || !isJsonMediaType(media.type, media.subtype)) {
+      throw reply.unsupportedMediaType({
+        message: "Unsupported Media Type: expected application/json",
+      });
+    }
+    return await req.json();
+  }
+
+  if (mode === "form") {
+    if (!media || !isMultipartMediaType(media.type, media.subtype)) {
+      throw reply.unsupportedMediaType({
+        message: "Unsupported Media Type: expected multipart/form-data",
+      });
+    }
+    if ("parseBody" in req && typeof req.parseBody === "function") {
+      return req.parseBody({ all: true });
+    }
+    if ("formData" in req && typeof req.formData === "function") {
+      const formData = await req.formData();
+      return formDataToRecord(formData);
+    }
+    return undefined;
+  }
+
+  if (mode === "urlencoded") {
+    if (!media || !isUrlencodedMediaType(media.type, media.subtype)) {
+      throw reply.unsupportedMediaType({
+        message: "Unsupported Media Type: expected application/x-www-form-urlencoded",
+      });
+    }
+    if ("parseBody" in req && typeof req.parseBody === "function") {
+      return req.parseBody({ all: true });
+    }
+    if ("formData" in req && typeof req.formData === "function") {
+      const formData = await req.formData();
+      return formDataToRecord(formData);
+    }
+    return undefined;
+  }
+
   if (!media) {
     return undefined;
   }
@@ -98,4 +149,10 @@ export async function parseRequestBody(
   return undefined;
 }
 
-export { parseMediaType, isJsonMediaType, isFormMediaType };
+export {
+  parseMediaType,
+  isJsonMediaType,
+  isMultipartMediaType,
+  isUrlencodedMediaType,
+  isFormMediaType,
+};

@@ -54,4 +54,28 @@ describe("route factories", () => {
 
     expect(typeof mw.handler).toBe("function");
   });
+
+  it("supports fluent chaining of query, params, and body", () => {
+    const route = t
+      .post("/users/:id")
+      .params({ id: "string" } as any)
+      .query({ filter: "string" } as any)
+      .body("form", { avatar: "file" } as any)
+      .handler(() => reply.json({ ok: true }));
+
+    expect(route.params).toBeDefined();
+    expect(route.query).toBeDefined();
+    expect(route.body).toBeDefined();
+    expect(route.bodyMode).toBe("form");
+  });
+
+  it("supports default json body mode", () => {
+    const route = t
+      .post("/hello")
+      .body({ name: "string" } as any)
+      .handler(() => reply.json({ ok: true }));
+
+    expect(route.body).toBeDefined();
+    expect(route.bodyMode).toBe("json");
+  });
 });
