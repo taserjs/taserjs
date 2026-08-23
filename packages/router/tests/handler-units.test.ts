@@ -2,7 +2,8 @@ import "./register.js";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { z } from "zod";
 
-import { createTaserApp, defineHandler, defineMiddleware, reply } from "../src/index.js";
+import { createTaserApp, defineHandler, defineMiddleware } from "../src/index.js";
+import { json } from "../src/reply.js";
 
 describe("defineHandler units", () => {
   const t = createTaserApp().context({});
@@ -12,7 +13,7 @@ describe("defineHandler units", () => {
       query: z.object({ page: z.number().optional() }),
     }).handler((ctx) => {
       expectTypeOf(ctx.query.page).toEqualTypeOf<number | undefined>();
-      return reply.json({ page: ctx.query.page });
+      return json({ page: ctx.query.page });
     });
 
     expect(handler.middlewares).toHaveLength(0);
@@ -31,7 +32,7 @@ describe("defineHandler units", () => {
       .handler((ctx) => {
         expectTypeOf(ctx.state.role).toEqualTypeOf<string>();
         expectTypeOf(ctx.query.q).toEqualTypeOf<string | undefined>();
-        return reply.json({ role: ctx.state.role });
+        return json({ role: ctx.state.role });
       });
 
     expect(handler.middlewares).toHaveLength(1);
@@ -52,7 +53,7 @@ describe("defineHandler units", () => {
 
     const handler = defineHandler()
       .use(handlerMw)
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
     const route = t.get("/reports").use(routeMw).handler(handler);
 
     expect(route.middlewares).toHaveLength(1);

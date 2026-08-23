@@ -1,4 +1,4 @@
-import { reply } from "@taserjs/router-utils";
+import { json } from "@taserjs/router-utils/reply";
 import type { Context, Next } from "hono";
 import { describe, expect, it } from "vitest";
 
@@ -68,7 +68,7 @@ describe("createTaserCompatHandler", () => {
         return next();
       }),
     ];
-    const run = composePipeline(layers, async () => reply.json({ ok: true }));
+    const run = composePipeline(layers, async () => json({ ok: true }));
     const result = (await run(ctx)) as Response;
     expect(executed).toBe(true);
     expect(result.headers.get("X-Compat")).toBe("1");
@@ -95,7 +95,7 @@ describe("createTaserCompatHandler", () => {
 
     const run = composePipeline(layers, async () => {
       order.push("handler");
-      return reply.json({ ok: true });
+      return json({ ok: true });
     });
 
     const result = await run(ctx);
@@ -118,7 +118,7 @@ describe("createTaserCompatHandler", () => {
       hono: honoCtx,
     };
 
-    const run = composePipeline(layers, async () => reply.json({ ok: true }));
+    const run = composePipeline(layers, async () => json({ ok: true }));
 
     const result = await run(ctx);
     expect(result).toBeInstanceOf(Response);
@@ -166,7 +166,7 @@ describe("createTaserCompatHandler", () => {
       });
       expect(pipelineCtx).not.toHaveProperty("testVar");
       expect(pipelineCtx).not.toHaveProperty("anotherVar");
-      return reply.json({ ok: true });
+      return json({ ok: true });
     });
 
     await run(ctx);
@@ -188,7 +188,7 @@ describe("createTaserCompatHandler", () => {
       hono: honoCtx,
     };
 
-    const run = composePipeline(layers, async () => reply.json({ ok: true }));
+    const run = composePipeline(layers, async () => json({ ok: true }));
 
     const result = (await run(ctx)) as Response;
     expect(result.headers.get("X-Custom-Header")).toBe("custom-value");
@@ -221,7 +221,7 @@ describe("createTaserCompatHandler", () => {
 
     const run = composePipeline(layers, async () => {
       order.push("handler");
-      return reply.json({ ok: true });
+      return json({ ok: true });
     });
 
     await run(ctx);
@@ -236,10 +236,10 @@ describe("createTaserCompatHandler", () => {
     };
 
     const layers = [compatLayer(async () => undefined)];
-    const run = composePipeline(layers, async () => reply.json({ fallThrough: true }));
+    const run = composePipeline(layers, async () => json({ fallThrough: true }));
 
     const result = (await run(ctx)) as Response;
-    const json = await result.json();
-    expect(json).toEqual({ fallThrough: true });
+    const data = await result.json();
+    expect(data).toEqual({ fallThrough: true });
   });
 });

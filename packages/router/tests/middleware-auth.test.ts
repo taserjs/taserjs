@@ -4,7 +4,8 @@ import { sign } from "hono/jwt";
 
 import { createTaserRuntime } from "@taserjs/router-core";
 
-import { createTaserApp, reply } from "../src/index.js";
+import { createTaserApp } from "../src/index.js";
+import { json } from "../src/reply.js";
 import { jwt } from "../src/middleware/jwt.js";
 import { jwk } from "../src/middleware/jwk.js";
 
@@ -34,7 +35,7 @@ describe("jwt and jwk middleware", () => {
       .use(jwt({ secret, alg: "HS256" }))
       .handler((ctx) => {
         expectTypeOf(ctx.state.jwtPayload).toEqualTypeOf<Record<string, unknown>>();
-        return reply.json({ ok: true });
+        return json({ ok: true });
       });
 
     const response = await runRoute(built, new Request("http://localhost/hello"));
@@ -50,7 +51,7 @@ describe("jwt and jwk middleware", () => {
       .use(jwt<UserPayload>({ secret, alg: "HS256" }))
       .handler((ctx) => {
         expectTypeOf(ctx.state.jwtPayload).toEqualTypeOf<UserPayload>();
-        return reply.json({ sub: ctx.state.jwtPayload.sub, role: ctx.state.jwtPayload.role });
+        return json({ sub: ctx.state.jwtPayload.sub, role: ctx.state.jwtPayload.role });
       });
 
     const response = await runRoute(

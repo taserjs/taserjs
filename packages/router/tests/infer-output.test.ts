@@ -1,13 +1,14 @@
 import "./register.js";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { createTaserApp, reply, type ReplyOf } from "../src/index.js";
+import { createTaserApp } from "../src/index.js";
+import { json, type ReplyOf } from "../src/reply.js";
 
 describe("route $Infer.Output", () => {
   const t = createTaserApp().context({});
 
   it("preserves ReplyOf from handler return", () => {
-    const route = t.get("/hello").handler(() => reply.json({ id: "1" }));
+    const route = t.get("/hello").handler(() => json({ id: "1" }));
 
     type Output = (typeof route)["$Infer"]["Output"];
     expectTypeOf<Output>().toEqualTypeOf<ReplyOf<200, { id: string }>>();
@@ -16,9 +17,9 @@ describe("route $Infer.Output", () => {
   it("unions success replies from handler branches", () => {
     const route = t.get("/hello").handler((ctx) => {
       if (!ctx.query) {
-        return reply.json({ created: true as const }, { status: 201 as const });
+        return json({ created: true as const }, { status: 201 as const });
       }
-      return reply.json({ ok: true as const });
+      return json({ ok: true as const });
     });
 
     type Output = (typeof route)["$Infer"]["Output"];

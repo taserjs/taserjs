@@ -1,4 +1,4 @@
-import type { ReplyOf } from "@taserjs/router-utils";
+import type { ReplyOf } from "@taserjs/router-utils/reply";
 
 import type { Simplify } from "./type-utils.js";
 import type { Schema } from "./schema.js";

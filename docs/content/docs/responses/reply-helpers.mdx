@@ -8,20 +8,20 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
-Taser provides the `reply` helper object to construct standardized, type-safe HTTP responses. Every helper returns a standard Web `Response` with its HTTP status code embedded into the TypeScript return type (`ReplyOf<Status, Body>`).
+Taser provides standalone reply helper functions imported from `@taserjs/router/reply` to construct standardized, type-safe HTTP responses. Every helper returns a standard Web `Response` with its HTTP status code embedded into the TypeScript return type (`ReplyOf<Status, Body>`). Because each helper is an independent standalone function, only the helpers you use are bundled into your application.
 
 ---
 
-## JSON Responses (`reply.json`)
+## JSON Responses (`json`)
 
-The `reply.json()` method serializes data into a JSON string and automatically sets the `Content-Type: application/json` header:
+The `json()` function serializes data into a JSON string and automatically sets the `Content-Type: application/json` header:
 
 ```ts title="src/routes/users.get.ts"
-import { reply } from "@taserjs/router";
+import { json } from "@taserjs/router/reply";
 import { t } from "#src/taser.js";
 
 export const Route = t.get("/users").handler((ctx) => {
-  return reply.json([
+  return json([
     { id: "1", name: "Alice" },
     { id: "2", name: "Bob" },
   ]);
@@ -31,7 +31,7 @@ export const Route = t.get("/users").handler((ctx) => {
 You can pass an optional second argument to customize the HTTP status code or set additional response headers:
 
 ```ts
-return reply.json(
+return json(
   { message: "Created successfully", id: "user_123" },
   {
     status: 201,
@@ -44,70 +44,70 @@ return reply.json(
 
 ---
 
-## Plain Text Responses (`reply.text`)
+## Plain Text Responses (`text`)
 
-Use `reply.text()` to return raw strings with `Content-Type: text/plain; charset=utf-8`:
+Use `text()` to return raw strings with `Content-Type: text/plain; charset=utf-8`:
 
 ```ts title="src/routes/robots.txt.get.ts"
-import { reply } from "@taserjs/router";
+import { text } from "@taserjs/router/reply";
 import { t } from "#src/taser.js";
 
 export const Route = t.get("/robots.txt").handler(() => {
-  return reply.text("User-agent: *\nDisallow: /admin/\n");
+  return text("User-agent: *\nDisallow: /admin/\n");
 });
 ```
 
 ---
 
-## HTML Responses (`reply.html`)
+## HTML Responses (`html`)
 
-Use `reply.html()` to return HTML documents or markup strings with `Content-Type: text/html; charset=utf-8`:
+Use `html()` to return HTML documents or markup strings with `Content-Type: text/html; charset=utf-8`:
 
 ```ts title="src/routes/index.get.ts"
-import { reply } from "@taserjs/router";
+import { html } from "@taserjs/router/reply";
 import { t } from "#src/taser.js";
 
 export const Route = t.get("/").handler(() => {
-  return reply.html("<h1>Welcome to Taser!</h1>");
+  return html("<h1>Welcome to Taser!</h1>");
 });
 ```
 
 ---
 
-## Empty / No Content Responses (`reply.noContent`)
+## Empty / No Content Responses (`noContent`)
 
-For successful operations that do not return a payload (such as `DELETE` endpoints), use `reply.noContent()`. It sets HTTP status `204`:
+For successful operations that do not return a payload (such as `DELETE` endpoints), use `noContent()`. It sets HTTP status `204`:
 
 ```ts title="src/routes/items/$id.delete.ts"
-import { reply } from "@taserjs/router";
+import { noContent } from "@taserjs/router/reply";
 import { t } from "#src/taser.js";
 
 export const Route = t.delete("/items/:id").handler(async (ctx) => {
   await ctx.db.deleteItem(ctx.params.id);
-  return reply.noContent();
+  return noContent();
 });
 ```
 
 ---
 
-## Redirects (`reply.redirect`)
+## Redirects (`redirect`)
 
-Use `reply.redirect()` to send HTTP redirects (default: `302 Found`):
+Use `redirect()` to send HTTP redirects (default: `302 Found`):
 
 ```ts title="src/routes/old-docs.get.ts"
-import { reply } from "@taserjs/router";
+import { redirect } from "@taserjs/router/reply";
 import { t } from "#src/taser.js";
 
 export const Route = t.get("/old-docs").handler(() => {
   // Permanent 301 redirect:
-  return reply.redirect("/docs/getting-started", { status: 301 });
+  return redirect("/docs/getting-started", { status: 301 });
 });
 ```
 
 <Callout type="warn" title="External Redirect Protection">
-  By default, `reply.redirect()` prevents unintended external open redirects. If you need to redirect to external URLs, pass `{ allowExternal: true }`:
+  By default, `redirect()` prevents unintended external open redirects. If you need to redirect to external URLs, pass `{ allowExternal: true }`:
   ```ts
-  return reply.redirect("https://github.com/taserjs/taserjs", { allowExternal: true });
+  return redirect("https://github.com/taserjs/taserjs", { allowExternal: true });
   ```
 </Callout>
 
@@ -115,52 +115,52 @@ export const Route = t.get("/old-docs").handler(() => {
 
 ## Status Code Helpers Reference
 
-Taser includes pre-configured helper methods for common HTTP status codes:
+All reply helpers are exported from `@taserjs/router/reply`:
 
-| Helper Method                              | HTTP Status                  | Typical Usage                            |
-| :----------------------------------------- | :--------------------------- | :--------------------------------------- |
-| `reply.ok(data?, init?)`                   | `200 OK`                     | Generic success response                 |
-| `reply.created(data?, init?)`              | `201 Created`                | Resource created successfully            |
-| `reply.accepted(data?, init?)`             | `202 Accepted`               | Async job accepted for processing        |
-| `reply.noContent(init?)`                   | `204 No Content`             | Success with empty payload               |
-| `reply.redirect(location, init?)`          | `302 Found`                  | Temporary redirection                    |
-| `reply.badRequest(data?, init?)`           | `400 Bad Request`            | Client query or payload error            |
-| `reply.unauthorized(data?, init?)`         | `401 Unauthorized`           | Missing or invalid authentication token  |
-| `reply.forbidden(data?, init?)`            | `403 Forbidden`              | Authenticated user lacks permission      |
-| `reply.notFound(data?, init?)`             | `404 Not Found`              | Resource or route does not exist         |
-| `reply.conflict(data?, init?)`             | `409 Conflict`               | Duplicate key or concurrency conflict    |
-| `reply.payloadTooLarge(data?, init?)`      | `413 Payload Too Large`      | Request body exceeds maximum size limit  |
-| `reply.unsupportedMediaType(data?, init?)` | `415 Unsupported Media Type` | Payload MIME/Content-Type is unsupported |
-| `reply.unprocessableEntity(data?, init?)`  | `422 Unprocessable Entity`   | Schema validation error                  |
-| `reply.tooManyRequests(data?, init?)`      | `429 Too Many Requests`      | Rate limit or quota exceeded             |
-| `reply.internalServerError(data?, init?)`  | `500 Internal Server Error`  | Unhandled exception                      |
-| `reply.notImplemented(data?, init?)`       | `501 Not Implemented`        | Endpoint/feature not supported           |
-| `reply.badGateway(data?, init?)`           | `502 Bad Gateway`            | Upstream service failure                 |
-| `reply.serviceUnavailable(data?, init?)`   | `503 Service Unavailable`    | Server maintenance or overloaded         |
-| `reply.gatewayTimeout(data?, init?)`       | `504 Gateway Timeout`        | Upstream gateway/proxy timed out         |
+| Helper Function                      | HTTP Status                  | Typical Usage                            |
+| :----------------------------------- | :--------------------------- | :--------------------------------------- |
+| `ok(data?, init?)`                   | `200 OK`                     | Generic success response                 |
+| `created(data?, init?)`              | `201 Created`                | Resource created successfully            |
+| `accepted(data?, init?)`             | `202 Accepted`               | Async job accepted for processing        |
+| `noContent(init?)`                   | `204 No Content`             | Success with empty payload               |
+| `redirect(location, init?)`          | `302 Found`                  | Temporary redirection                    |
+| `badRequest(data?, init?)`           | `400 Bad Request`            | Client query or payload error            |
+| `unauthorized(data?, init?)`         | `401 Unauthorized`           | Missing or invalid authentication token  |
+| `forbidden(data?, init?)`            | `403 Forbidden`              | Authenticated user lacks permission      |
+| `notFound(data?, init?)`             | `404 Not Found`              | Resource or route does not exist         |
+| `conflict(data?, init?)`             | `409 Conflict`               | Duplicate key or concurrency conflict    |
+| `payloadTooLarge(data?, init?)`      | `413 Payload Too Large`      | Request body exceeds maximum size limit  |
+| `unsupportedMediaType(data?, init?)` | `415 Unsupported Media Type` | Payload MIME/Content-Type is unsupported |
+| `unprocessableEntity(data?, init?)`  | `422 Unprocessable Entity`   | Schema validation error                  |
+| `tooManyRequests(data?, init?)`      | `429 Too Many Requests`      | Rate limit or quota exceeded             |
+| `internalServerError(data?, init?)`  | `500 Internal Server Error`  | Unhandled exception                      |
+| `notImplemented(data?, init?)`       | `501 Not Implemented`        | Endpoint/feature not supported           |
+| `badGateway(data?, init?)`           | `502 Bad Gateway`            | Upstream service failure                 |
+| `serviceUnavailable(data?, init?)`   | `503 Service Unavailable`    | Server maintenance or overloaded         |
+| `gatewayTimeout(data?, init?)`       | `504 Gateway Timeout`        | Upstream gateway/proxy timed out         |
 
 ### Example Usage of Error Helpers
 
 ```ts title="src/routes/documents/$id.get.ts"
-import { reply } from "@taserjs/router";
+import { forbidden, json, notFound, unauthorized } from "@taserjs/router/reply";
 import { t } from "#src/taser.js";
 
 export const Route = t.get("/documents/:id").handler(async (ctx) => {
   const user = ctx.state.user;
   if (!user) {
-    return reply.unauthorized({ message: "Login required" });
+    return unauthorized({ message: "Login required" });
   }
 
   const doc = await ctx.db.findDocument(ctx.params.id);
   if (!doc) {
-    return reply.notFound({ message: "Document not found" });
+    return notFound({ message: "Document not found" });
   }
 
   if (doc.ownerId !== user.id) {
-    return reply.forbidden({ message: "You do not own this document" });
+    return forbidden({ message: "You do not own this document" });
   }
 
-  return reply.json(doc);
+  return json(doc);
 });
 ```
 
@@ -171,13 +171,13 @@ export const Route = t.get("/documents/:id").handler(async (ctx) => {
 You can set, read, or delete cookies directly through `ctx.cookie` or by passing the `Set-Cookie` header in `ReplyInit`:
 
 ```ts title="src/routes/auth/login.post.ts"
-import { reply } from "@taserjs/router";
+import { json } from "@taserjs/router/reply";
 import { t } from "#src/taser.js";
 
 export const Route = t.post("/auth/login").handler(async (ctx) => {
   const sessionToken = await createSession();
 
-  return reply.json(
+  return json(
     { success: true },
     {
       headers: {

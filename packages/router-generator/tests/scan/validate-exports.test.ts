@@ -36,7 +36,7 @@ export const Route = t.any('/order', ['GET', 'OPTIONS']).handler(() => {})
 
   it("accepts split route configuration", () => {
     const source = `import { t } from '#src/taser.js'
-import { reply } from '@taserjs/router'
+import { json } from '@taserjs/router/reply'
 import { z } from 'zod'
 
 const route = t.delete('/todo/:id')
@@ -55,7 +55,7 @@ function doWork(ctx: RouteContext) {
 
 export const Route = route.handler(async (ctx) => {
   const id = await doWork(ctx)
-  return reply.json({ id, userId: ctx.state.userId })
+  return json({ id, userId: ctx.state.userId })
 })
 `;
     expect(analyzeRouteFileSource(source, "$id.delete.ts", "DELETE").errors).toEqual([]);

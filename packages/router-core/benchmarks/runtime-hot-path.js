@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { performance } from "node:perf_hooks";
 
-import { reply } from "@taserjs/router-utils";
+import { json } from "@taserjs/router-utils/reply";
 import { timing } from "hono/timing";
 import { z } from "zod";
 
@@ -77,7 +77,7 @@ function buildManifests() {
               method: "GET",
               middlewares: [],
               handlerMiddlewares: [],
-              handler: () => reply.json({ ok: true }),
+              handler: () => json({ ok: true }),
             },
           },
         },
@@ -96,7 +96,7 @@ function buildManifests() {
               method: "GET",
               middlewares: [routeMiddleware],
               handlerMiddlewares: [],
-              handler: () => reply.json({ ok: true }),
+              handler: () => json({ ok: true }),
             },
           },
         },
@@ -113,7 +113,7 @@ function buildManifests() {
               method: "POST",
               middlewares: [],
               handlerMiddlewares: [],
-              handler: () => reply.json({ ok: true }),
+              handler: () => json({ ok: true }),
             },
           },
         },
@@ -131,7 +131,7 @@ function buildManifests() {
               middlewares: [],
               handlerMiddlewares: [],
               body: bodySchema,
-              handler: (ctx) => reply.json({ name: ctx.body.name }),
+              handler: (ctx) => json({ name: ctx.body.name }),
             },
           },
         },
@@ -150,7 +150,7 @@ function buildManifests() {
               method: "GET",
               middlewares: [],
               handlerMiddlewares: [],
-              handler: () => reply.json({ ok: true }),
+              handler: () => json({ ok: true }),
             },
           },
         },

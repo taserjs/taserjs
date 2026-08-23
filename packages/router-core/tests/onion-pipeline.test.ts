@@ -1,4 +1,4 @@
-import { reply } from "@taserjs/router-utils";
+import { internalServerError, json, unauthorized } from "@taserjs/router-utils/reply";
 import { describe, expect, it } from "vitest";
 
 import { composePipeline, middlewareToLayer } from "../src/index.js";
@@ -26,7 +26,7 @@ describe("onion composePipeline", () => {
 
     const run = composePipeline([outer, inner], async () => {
       order.push("handler");
-      return reply.json({ ok: true });
+      return json({ ok: true });
     });
 
     const result = await run({ state: {} });
@@ -44,13 +44,13 @@ describe("onion composePipeline", () => {
     const run = composePipeline(
       [
         middlewareToLayer({
-          handler: () => reply.unauthorized({ error: "nope" }),
+          handler: () => unauthorized({ error: "nope" }),
         }),
         middlewareToLayer({
           handler: async (_ctx, next) => next(),
         }),
       ],
-      async () => reply.json({ ok: true }),
+      async () => json({ ok: true }),
     );
 
     const result = await run({ state: {} });
@@ -64,7 +64,7 @@ describe("onion composePipeline", () => {
           handler: (_ctx, next) => next({ userId: "u-1" }),
         }),
       ],
-      async (ctx) => reply.json({ userId: (ctx.state as { userId: string }).userId }),
+      async (ctx) => json({ userId: (ctx.state as { userId: string }).userId }),
     );
 
     const result = await run({ state: {} });
@@ -81,7 +81,7 @@ describe("onion composePipeline", () => {
           handler: (_ctx, next) => next({ b: "two" }),
         }),
       ],
-      async (ctx) => reply.json({ state: ctx.state }),
+      async (ctx) => json({ state: ctx.state }),
     );
 
     const result = await run({ state: {} });
@@ -96,7 +96,7 @@ describe("onion composePipeline", () => {
             try {
               return await next();
             } catch {
-              return reply.internalServerError({ message: "mapped" });
+              return internalServerError({ message: "mapped" });
             }
           },
         }),

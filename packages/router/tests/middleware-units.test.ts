@@ -1,7 +1,8 @@
 import "./register.js";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { createTaserApp, defineMiddleware, reply } from "../src/index.js";
+import { createTaserApp, defineMiddleware } from "../src/index.js";
+import { json, unauthorized } from "../src/reply.js";
 
 describe("defineMiddleware units", () => {
   const t = createTaserApp().context({});
@@ -20,7 +21,7 @@ describe("defineMiddleware units", () => {
       .use(auth)
       .handler((ctx) => {
         expectTypeOf(ctx.state.userId).toEqualTypeOf<string>();
-        return reply.json({ userId: ctx.state.userId });
+        return json({ userId: ctx.state.userId });
       });
 
     expect(route.middlewares).toHaveLength(1);
@@ -43,7 +44,7 @@ describe("defineMiddleware units", () => {
       .use(auth)
       .handler((ctx) => {
         expectTypeOf(ctx.state.user).toEqualTypeOf<{ id: string; role: "admin" | "user" }>();
-        return reply.json({ user: ctx.state.user });
+        return json({ user: ctx.state.user });
       });
 
     expect(route.middlewares).toHaveLength(1);
@@ -57,7 +58,7 @@ describe("defineMiddleware units", () => {
       })
       .handler((ctx) => {
         expectTypeOf(ctx.state.count).toEqualTypeOf<number>();
-        return reply.json({ count: ctx.state.count });
+        return json({ count: ctx.state.count });
       });
 
     expect(route.middlewares).toHaveLength(1);
@@ -81,7 +82,7 @@ describe("defineMiddleware units", () => {
       .use(routeMw)
       .handler((ctx) => {
         expectTypeOf(ctx.state.routeId).toEqualTypeOf<string>();
-        return reply.json({ ok: true });
+        return json({ ok: true });
       });
 
     expect(route.middlewares).toHaveLength(1);
@@ -107,7 +108,7 @@ describe("defineMiddleware units", () => {
       .get("/hello")
       .use(cors)
       .handler((ctx) => {
-        return reply.json({ ok: ctx.var });
+        return json({ ok: ctx.var });
       });
 
     expect(route.middlewares).toHaveLength(1);
@@ -119,7 +120,7 @@ describe("defineMiddleware units", () => {
       handler: (_ctx, next) => {
         const authed = false;
         if (!authed) {
-          return reply.unauthorized({ error: "Unauthorized" });
+          return unauthorized({ error: "Unauthorized" });
         }
         return next({ session: "active" });
       },
@@ -130,7 +131,7 @@ describe("defineMiddleware units", () => {
       .use(auth)
       .handler((ctx) => {
         expectTypeOf(ctx.state.session).toEqualTypeOf<string>();
-        return reply.json({ session: ctx.state.session });
+        return json({ session: ctx.state.session });
       });
 
     expect(route.middlewares).toHaveLength(1);
@@ -151,7 +152,7 @@ describe("defineMiddleware units", () => {
       .handler((ctx) => {
         expectTypeOf(ctx.state.user).toEqualTypeOf<string>();
         expectTypeOf(ctx.state.role).toEqualTypeOf<string>();
-        return reply.json({ user: ctx.state.user, role: ctx.state.role });
+        return json({ user: ctx.state.user, role: ctx.state.role });
       });
 
     expect(route.middlewares).toHaveLength(1);
@@ -172,7 +173,7 @@ describe("defineMiddleware units", () => {
       .use(multiLayoutMiddleware)
       .handler((ctx) => {
         expectTypeOf(ctx.state.permission).toEqualTypeOf<string>();
-        return reply.json({ ok: true });
+        return json({ ok: true });
       });
 
     // Allowed on route inheriting "admin"
@@ -181,7 +182,7 @@ describe("defineMiddleware units", () => {
       .use(multiLayoutMiddleware)
       .handler((ctx) => {
         expectTypeOf(ctx.state.permission).toEqualTypeOf<string>();
-        return reply.json({ ok: true });
+        return json({ ok: true });
       });
 
     expect(route1.middlewares).toHaveLength(1);
@@ -204,7 +205,7 @@ describe("defineMiddleware units", () => {
       .use(requireUserMw)
       .handler((ctx) => {
         expectTypeOf(ctx.state.active).toEqualTypeOf<boolean>();
-        return reply.json({ active: ctx.state.active });
+        return json({ active: ctx.state.active });
       });
 
     expect(route.middlewares).toHaveLength(1);

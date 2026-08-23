@@ -1,7 +1,6 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   isPromise,
-  reply,
   type ResponseValidationFailureHandler,
   validateReply,
 } from "@taserjs/router-utils";
@@ -40,5 +39,3 @@ export function finalizeReply(
 
   return cookies ? cookies.applyTo(validatedResult) : validatedResult;
 }
-
-export { reply };

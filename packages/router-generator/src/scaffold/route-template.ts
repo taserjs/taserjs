@@ -2,7 +2,7 @@ import type { RouteFileMethod } from "../types/http.js";
 import { createRouteFactoryName } from "../scan/parse-route-source.js";
 
 export function routeImports(entry: string): string {
-  return `import { reply } from '@taserjs/router'
+  return `import { json } from '@taserjs/router/reply'
 import { t } from '${entry}'
 `;
 }
@@ -30,7 +30,7 @@ export function routeContextExport(builderName: string): string {
 
 export function routeHandlerExport(builderName: string): string {
   return `export const Route = ${builderName}.handler((_ctx) => {
-  return reply.json({ ok: true })
+  return json({ ok: true })
 })`;
 }
 

@@ -1,4 +1,5 @@
-import { isPromise, reply } from "@taserjs/router-utils";
+import { isPromise } from "@taserjs/router-utils";
+import { notFound } from "@taserjs/router-utils/reply";
 
 import { handlePipelineError } from "../http/error-handler.js";
 import type { CookieDefaults } from "../cookies/taser-cookies.js";
@@ -34,5 +35,5 @@ export async function dispatchNotFound(
       return handlePipelineError(error);
     }
   }
-  return reply.notFound();
+  return notFound();
 }

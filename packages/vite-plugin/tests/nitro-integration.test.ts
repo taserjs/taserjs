@@ -6,6 +6,7 @@ import { createNitro, build } from "nitro/builder";
 import { taserNitro } from "../src/nitro.js";
 
 const routerEntryPath = resolve(process.cwd(), "../router/src/index.ts");
+const routerReplyPath = resolve(process.cwd(), "../router/src/reply.ts");
 
 describe("Nitro + Taser Integration", () => {
   let testDir: string;
@@ -32,8 +33,8 @@ export const t = createTaserApp();
     await fsp.writeFile(
       join(routesDir, "hello.get.ts"),
       `import { t } from "../taser.js";
-import { reply } from "@taserjs/router";
-export const Route = t.get("/hello").handler(() => reply.json({ message: "hello from taser" }));
+import { json } from "@taserjs/router/reply";
+export const Route = t.get("/hello").handler(() => json({ message: "hello from taser" }));
 `,
     );
 
@@ -41,6 +42,7 @@ export const Route = t.get("/hello").handler(() => reply.json({ message: "hello 
       rootDir: testDir,
       preset: "cloudflare-module",
       alias: {
+        "@taserjs/router/reply": routerReplyPath,
         "@taserjs/router": routerEntryPath,
       },
       output: {
@@ -105,8 +107,8 @@ export const t = createTaserApp({ passThroughOnMiss: true });
     await fsp.writeFile(
       join(routesDir, "taser-route.get.ts"),
       `import { t } from "../taser.js";
-import { reply } from "@taserjs/router";
-export const Route = t.get("/taser-route").handler(() => reply.json({ from: "taser" }));
+import { json } from "@taserjs/router/reply";
+export const Route = t.get("/taser-route").handler(() => json({ from: "taser" }));
 `,
     );
 
@@ -114,6 +116,7 @@ export const Route = t.get("/taser-route").handler(() => reply.json({ from: "tas
       rootDir: testDir,
       preset: "cloudflare-module",
       alias: {
+        "@taserjs/router/reply": routerReplyPath,
         "@taserjs/router": routerEntryPath,
       },
       output: {
@@ -181,8 +184,8 @@ export const t = createTaserApp({ basePath: "/api" });
     await fsp.writeFile(
       join(routesDir, "users.get.ts"),
       `import { t } from "../taser.js";
-import { reply } from "@taserjs/router";
-export const Route = t.get("/users").handler(() => reply.json({ users: ["alice", "bob"] }));
+import { json } from "@taserjs/router/reply";
+export const Route = t.get("/users").handler(() => json({ users: ["alice", "bob"] }));
 `,
     );
 
@@ -190,6 +193,7 @@ export const Route = t.get("/users").handler(() => reply.json({ users: ["alice",
       rootDir: testDir,
       preset: "cloudflare-module",
       alias: {
+        "@taserjs/router/reply": routerReplyPath,
         "@taserjs/router": routerEntryPath,
       },
       output: {
@@ -274,8 +278,8 @@ export const t = createTaserApp({ passThroughOnMiss: true });
     await fsp.writeFile(
       join(routesDir, "taser-route.get.ts"),
       `import { t } from "../taser.js";
-import { reply } from "@taserjs/router";
-export const Route = t.get("/taser-route").handler(() => reply.json({ from: "taser" }));
+import { json } from "@taserjs/router/reply";
+export const Route = t.get("/taser-route").handler(() => json({ from: "taser" }));
 `,
     );
 
@@ -283,6 +287,7 @@ export const Route = t.get("/taser-route").handler(() => reply.json({ from: "tas
       rootDir: testDir,
       preset: "cloudflare-module",
       alias: {
+        "@taserjs/router/reply": routerReplyPath,
         "@taserjs/router": routerEntryPath,
       },
       output: {

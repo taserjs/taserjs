@@ -1,4 +1,4 @@
-import { ensureResponse, REPLY_DATA, REPLY_KIND } from "@taserjs/router-utils";
+import { ensureResponse, REPLY_DATA, REPLY_KIND } from "@taserjs/router-utils/reply";
 import type { Context, MiddlewareHandler, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
 

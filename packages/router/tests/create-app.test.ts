@@ -5,10 +5,10 @@ import {
   createContext,
   createTaserApp,
   defineMiddleware,
-  reply,
   type InferAppContext,
   type RouteManifestShape,
 } from "../src/index.js";
+import { internalServerError, json, notFound } from "../src/reply.js";
 import "./register.js";
 
 describe("createContext + createTaserApp", () => {
@@ -42,7 +42,7 @@ describe("createContext + createTaserApp", () => {
     const t = createTaserApp().context(context);
     const route = t.get("/hello").handler((ctx) => {
       const merged = ctx as typeof ctx & { bootId: number; reqN: number };
-      return reply.json({ bootId: merged.bootId, reqN: merged.reqN });
+      return json({ bootId: merged.bootId, reqN: merged.reqN });
     });
     const manifest = {
       layouts: {
@@ -72,7 +72,7 @@ describe("createContext + createTaserApp", () => {
       .get("/hello")
       .returns({ 200: z.object({ id: z.string() }) })
       // @ts-expect-error
-      .handler(() => reply.json({ id: 1 }));
+      .handler(() => json({ id: 1 }));
 
     const manifest = {
       layouts: {
@@ -100,7 +100,7 @@ describe("createContext + createTaserApp", () => {
 
   it("wires onError from the app builder before create", async () => {
     const t = createTaserApp()
-      .onError(() => reply.internalServerError({ message: "builder-handled" }))
+      .onError(() => internalServerError({ message: "builder-handled" }))
       .context({});
 
     const route = t.get("/hello").handler(() => {
@@ -125,7 +125,7 @@ describe("createContext + createTaserApp", () => {
   it("creates app without context()", async () => {
     const route = createTaserApp()
       .get("/hello")
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
     const manifest = {
       layouts: {},
       routes: {
@@ -144,10 +144,10 @@ describe("createContext + createTaserApp", () => {
   it("chains onError and notFound before create", async () => {
     const t = createTaserApp()
       .context({})
-      .onError(() => reply.internalServerError({ message: "err" }))
-      .notFound((_ctx) => reply.notFound({ missing: true }));
+      .onError(() => internalServerError({ message: "builder-handled" }))
+      .notFound((_ctx) => notFound({ missing: true }));
 
-    const route = t.get("/hello").handler(() => reply.json({ ok: true }));
+    const route = t.get("/hello").handler(() => json({ ok: true }));
     const manifest = {
       layouts: {},
       routes: {
@@ -165,7 +165,7 @@ describe("createContext + createTaserApp", () => {
 
   it("supports basePath option at app creation", async () => {
     const t = createTaserApp({ basePath: "/api" });
-    const route = t.get("/hello").handler(() => reply.json({ ok: true }));
+    const route = t.get("/hello").handler(() => json({ ok: true }));
     const manifest = {
       layouts: {},
       routes: {
@@ -195,7 +195,7 @@ describe("middleware state injection", () => {
       .use(withAdmin)
       .handler((ctx) => {
         expectTypeOf(ctx.state.adminDb).toEqualTypeOf<{ name: string }>();
-        return reply.json({ name: ctx.state.adminDb.name });
+        return json({ name: ctx.state.adminDb.name });
       });
 
     expect(route.path).toBe("/reports");
@@ -212,7 +212,7 @@ describe("middleware state injection", () => {
       .handler((ctx) => {
         expectTypeOf(ctx.state.userId).toEqualTypeOf<string>();
         expectTypeOf(ctx.state.flag).toEqualTypeOf<boolean>();
-        return reply.json({ userId: ctx.state.userId, flag: ctx.state.flag });
+        return json({ userId: ctx.state.userId, flag: ctx.state.flag });
       });
 
     expect(route.path).toBe("/search");

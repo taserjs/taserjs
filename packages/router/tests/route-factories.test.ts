@@ -1,16 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { createTaserApp, reply } from "../src/index.js";
+import { createTaserApp } from "../src/index.js";
+import { json, noContent } from "../src/reply.js";
 import "./register.js";
 
 describe("route factories", () => {
   const t = createTaserApp().context({});
 
   it("builds no-body routes including options and head", () => {
-    const get = t.get("/hello").handler(() => reply.json({ ok: true }));
-    const del = t.delete("/hello").handler(() => reply.json({ ok: true }));
-    const options = t.options("/hello").handler(() => reply.noContent());
-    const head = t.head("/hello").handler(() => reply.noContent());
+    const get = t.get("/hello").handler(() => json({ ok: true }));
+    const del = t.delete("/hello").handler(() => json({ ok: true }));
+    const options = t.options("/hello").handler(() => noContent());
+    const head = t.head("/hello").handler(() => noContent());
 
     expect(get.method).toBe("GET");
     expect(del.method).toBe("DELETE");
@@ -19,14 +20,14 @@ describe("route factories", () => {
   });
 
   it("builds with-body routes", () => {
-    expect(t.post("/hello").handler(() => reply.json({})).method).toBe("POST");
-    expect(t.put("/hello").handler(() => reply.json({})).method).toBe("PUT");
-    expect(t.patch("/hello").handler(() => reply.json({})).method).toBe("PATCH");
+    expect(t.post("/hello").handler(() => json({})).method).toBe("POST");
+    expect(t.put("/hello").handler(() => json({})).method).toBe("PUT");
+    expect(t.patch("/hello").handler(() => json({})).method).toBe("PATCH");
   });
 
   it("builds any and all routes", () => {
-    const any = t.any("/hello", ["GET", "OPTIONS"]).handler(() => reply.json({ ok: true }));
-    const all = t.all("/hello").handler(() => reply.json({ ok: true }));
+    const any = t.any("/hello", ["GET", "OPTIONS"]).handler(() => json({ ok: true }));
+    const all = t.all("/hello").handler(() => json({ ok: true }));
 
     expect(any.method).toBe("ANY");
     expect(any.methods).toEqual(["GET", "OPTIONS"]);
@@ -61,7 +62,7 @@ describe("route factories", () => {
       .params({ id: "string" } as any)
       .query({ filter: "string" } as any)
       .body("form", { avatar: "file" } as any)
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
 
     expect(route.params).toBeDefined();
     expect(route.query).toBeDefined();
@@ -73,7 +74,7 @@ describe("route factories", () => {
     const route = t
       .post("/hello")
       .body({ name: "string" } as any)
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
 
     expect(route.body).toBeDefined();
     expect(route.bodyMode).toBe("json");

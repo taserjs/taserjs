@@ -5,7 +5,8 @@ import { sign } from "hono/jwt";
 import { createTaserRuntime } from "@taserjs/router-core";
 
 import { cors } from "../src/middleware/cors.js";
-import { createTaserApp, reply } from "../src/index.js";
+import { createTaserApp } from "../src/index.js";
+import { json } from "../src/reply.js";
 import { jwt } from "../src/middleware/jwt.js";
 
 describe("middleware subpath exports", () => {
@@ -20,7 +21,7 @@ describe("middleware subpath exports", () => {
     const route = t
       .get("/hello")
       .use(cors({ origin: "*" }))
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
 
     const manifest = {
       layouts: {},
@@ -50,7 +51,7 @@ describe("middleware subpath exports", () => {
       .use(jwt<{ sub: string }>({ secret, alg: "HS256" }))
       .handler((ctx) => {
         expectTypeOf(ctx.state.jwtPayload.sub).toEqualTypeOf<string>();
-        return reply.json({ sub: ctx.state.jwtPayload.sub });
+        return json({ sub: ctx.state.jwtPayload.sub });
       });
 
     const manifest = {

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { ensureResponse, reply, REPLY_DATA } from "../src/index.js";
+import { ensureResponse, json, REPLY_DATA } from "../src/reply/index.js";
 
 describe("ensureResponse", () => {
   it("passes through Response", () => {
-    const result = reply.json({ ok: true });
+    const result = json({ ok: true });
     expect(ensureResponse(result)).toBe(result);
   });
 

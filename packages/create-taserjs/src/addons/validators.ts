@@ -16,7 +16,7 @@ export const VALIDATION_BLOCK_TEMPLATE: Record<ValidatorId, string> = {
   .query(v.object({ name: v.optional(v.string(), 'Taser') }))`,
 };
 
-const ROUTE_TEMPLATE = (validator: ValidatorId) => `import { reply } from '@taserjs/router'
+const ROUTE_TEMPLATE = (validator: ValidatorId) => `import { json } from '@taserjs/router/reply'
 import { t } from '#src/taser.js'
 ${IMPORT_LINES[validator]}
 
@@ -24,7 +24,7 @@ const GET = t.get('/')${VALIDATION_BLOCK_TEMPLATE[validator]}
 
 export type RouteContext = typeof GET.$Infer.Context
 export const Route = GET.handler((ctx) => {
-  return reply.json({ message: \`Hello, \${ctx.query.name}!\` })
+  return json({ message: \`Hello, \${ctx.query.name}!\` })
 })
 `;
 

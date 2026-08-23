@@ -1,4 +1,5 @@
-import { ensureResponse, isPromise } from "@taserjs/router-utils";
+import { isPromise } from "@taserjs/router-utils";
+import { ensureResponse } from "@taserjs/router-utils/reply";
 import type { PipelineContext, PipelineLayer, PipelineNext } from "../types.js";
 
 function createNext(ctx: PipelineContext, remainder: () => Promise<Response>): PipelineNext {

@@ -19,23 +19,23 @@ describe("any/all route expansion", () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-any-all-"));
     writeFileSync(
       join(routesDir, "order.get.ts"),
-      `import { reply } from '@taserjs/router'
+      `import { json } from '@taserjs/router/reply'
 import { t } from '#src/taser.js'
-export const Route = t.get('/order').handler(() => reply.json({ ok: true }))
+export const Route = t.get('/order').handler(() => json({ ok: true }))
 `,
     );
     writeFileSync(
       join(routesDir, "order.any.ts"),
-      `import { reply } from '@taserjs/router'
+      `import { json } from '@taserjs/router/reply'
 import { t } from '#src/taser.js'
-export const Route = t.any('/order', ['GET', 'OPTIONS']).handler(() => reply.json({ ok: true }))
+export const Route = t.any('/order', ['GET', 'OPTIONS']).handler(() => json({ ok: true }))
 `,
     );
     writeFileSync(
       join(routesDir, "order.all.ts"),
-      `import { reply } from '@taserjs/router'
+      `import { json } from '@taserjs/router/reply'
 import { t } from '#src/taser.js'
-export const Route = t.all('/order').handler(() => reply.json({ ok: true }))
+export const Route = t.all('/order').handler(() => json({ ok: true }))
 `,
     );
 
@@ -69,9 +69,9 @@ export const Route = t.all('/order').handler(() => reply.json({ ok: true }))
     const routesDir = mkdtempSync(join(tmpdir(), "taser-any-bad-"));
     writeFileSync(
       join(routesDir, "order.any.ts"),
-      `import { reply } from '@taserjs/router'
+      `import { json } from '@taserjs/router/reply'
 import { t } from '#src/taser.js'
-export const Route = t.any('/order', []).handler(() => reply.json({ ok: true }))
+export const Route = t.any('/order', []).handler(() => json({ ok: true }))
 `,
     );
 
@@ -88,8 +88,9 @@ export const Route = t.any('/order', []).handler(() => reply.json({ ok: true }))
     const routesDir = mkdtempSync(join(tmpdir(), "taser-any-legacy-"));
     writeFileSync(
       join(routesDir, "order.any.ts"),
-      `import { createAnyRoute, reply } from '@taserjs/router'
-export const Route = createAnyRoute('/order', ['GET']).handler(() => reply.json({ ok: true }))
+      `import { createAnyRoute } from '@taserjs/router'
+import { json } from '@taserjs/router/reply'
+export const Route = createAnyRoute('/order', ['GET']).handler(() => json({ ok: true }))
 `,
     );
 

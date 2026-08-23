@@ -1,4 +1,4 @@
-import { reply } from "@taserjs/router-utils";
+import { text } from "@taserjs/router-utils/reply";
 import { describe, expect, it } from "vitest";
 
 import { createTaserRuntime } from "../src/index.js";
@@ -33,7 +33,7 @@ describe("runtime with global.Response override", () => {
         method: "GET" as const,
         middlewares: [] as const,
         handlerMiddlewares: [] as const,
-        handler: () => reply.text("Hello, world!"),
+        handler: () => text("Hello, world!"),
       };
       const manifest = {
         layouts: {

@@ -5,14 +5,8 @@ import { Readable } from "node:stream";
 
 import { describe, expect, it } from "vitest";
 
-import { createTaserApp, stream, type RouteManifestShape } from "../src/index.js";
-import {
-  blob as directBlob,
-  buffer as directBuffer,
-  file as directFile,
-  pipe as directPipe,
-  stream as directStream,
-} from "../src/stream.js";
+import { createTaserApp, type RouteManifestShape } from "../src/index.js";
+import { blob, buffer, file, pipe, stream } from "../src/stream.js";
 
 describe("router stream export", () => {
   it("serves file stream from route handler", async () => {
@@ -21,7 +15,7 @@ describe("router stream export", () => {
     await writeFile(path, JSON.stringify({ message: "streamed from file" }));
 
     const t = createTaserApp();
-    const route = t.get("/file").handler(() => stream.file(path));
+    const route = t.get("/file").handler(() => file(path));
     const manifest = {
       layouts: {},
       routes: {
@@ -41,10 +35,9 @@ describe("router stream export", () => {
     const route = t
       .get("/pipe")
       .handler(() =>
-        stream.pipe(
-          Readable.toWeb(Readable.from([Buffer.from("piped-stream-data")])) as ReadableStream,
-          { headers: { "content-type": "text/plain" } },
-        ),
+        pipe(Readable.toWeb(Readable.from([Buffer.from("piped-stream-data")])) as ReadableStream, {
+          headers: { "content-type": "text/plain" },
+        }),
       );
     const manifest = {
       layouts: {},
@@ -62,7 +55,7 @@ describe("router stream export", () => {
 
   it("serves buffer from route handler", async () => {
     const t = createTaserApp();
-    const route = t.get("/buffer").handler(() => stream.buffer(Buffer.from("binary-stream")));
+    const route = t.get("/buffer").handler(() => buffer(Buffer.from("binary-stream")));
     const manifest = {
       layouts: {},
       routes: {
@@ -81,7 +74,7 @@ describe("router stream export", () => {
     const t = createTaserApp();
     const route = t
       .get("/blob")
-      .handler(() => stream.blob(new Blob(["blob data"], { type: "text/html" })));
+      .handler(() => blob(new Blob(["blob data"], { type: "text/html" })));
     const manifest = {
       layouts: {},
       routes: {
@@ -97,13 +90,13 @@ describe("router stream export", () => {
   });
 
   it("supports direct functions from stream subpath", () => {
-    expect(typeof directStream.file).toBe("function");
-    expect(typeof directStream.pipe).toBe("function");
-    expect(typeof directStream.buffer).toBe("function");
-    expect(typeof directStream.blob).toBe("function");
-    expect(typeof directFile).toBe("function");
-    expect(typeof directPipe).toBe("function");
-    expect(typeof directBuffer).toBe("function");
-    expect(typeof directBlob).toBe("function");
+    expect(typeof file).toBe("function");
+    expect(typeof pipe).toBe("function");
+    expect(typeof buffer).toBe("function");
+    expect(typeof blob).toBe("function");
+    expect(typeof stream.file).toBe("function");
+    expect(typeof stream.pipe).toBe("function");
+    expect(typeof stream.buffer).toBe("function");
+    expect(typeof stream.blob).toBe("function");
   });
 });

@@ -5,8 +5,8 @@ import type {
   RouteManifestShape,
   Schema,
   Simplify,
-  SuccessReplyData,
 } from "@taserjs/router";
+import type { SuccessReplyData } from "@taserjs/router/reply";
 
 import type { FormBody, FormBodyField, FormBodyInput } from "./form-body.js";
 import type { HttpMethodName } from "./constants/methods.js";

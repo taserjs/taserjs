@@ -6,9 +6,16 @@ import {
   createTaserApp,
   defineHandler,
   defineMiddleware,
-  reply,
   validationErrorSchema,
 } from "../src/index.js";
+import {
+  badRequest,
+  internalServerError,
+  json,
+  notFound,
+  text,
+  unauthorized,
+} from "../src/reply.js";
 import { createTaserRuntime } from "@taserjs/router-core";
 
 describe("returns fluent API", () => {
@@ -26,7 +33,7 @@ describe("returns fluent API", () => {
           .get("/hello")
           .use(auth)
           .returns({ 200: z.object({ ok: z.boolean() }) })
-          .handler(() => reply.json({ ok: true }));
+          .handler(() => json({ ok: true }));
       },
       expectStatus: 401,
     },
@@ -40,7 +47,7 @@ describe("returns fluent API", () => {
             handler: (_ctx, next) => next(),
           })
           .returns({ 200: z.object({ ok: z.boolean() }) })
-          .handler(() => reply.json({ ok: true })),
+          .handler(() => json({ ok: true })),
       expectStatus: 403,
     },
     {
@@ -48,7 +55,7 @@ describe("returns fluent API", () => {
       build: () => {
         const unit = defineHandler()
           .returns({ 404: z.object({ error: z.string() }) })
-          .handler(() => reply.notFound({ error: "missing" }));
+          .handler(() => notFound({ error: "missing" }));
         return t
           .get("/hello")
           .returns({ 200: z.object({ id: z.string() }) })
@@ -67,7 +74,7 @@ describe("returns fluent API", () => {
           .get("/hello")
           .use(auth)
           .returns({ 200: z.string() })
-          .handler(() => reply.text("ok"));
+          .handler(() => text("ok"));
       },
       expectStatus: 401,
     },
@@ -90,7 +97,7 @@ describe("returns fluent API", () => {
       .get("/hello")
       .use(auth)
       .returns({ 401: routeSchema, 200: z.object({ ok: z.boolean() }) })
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
 
     expect(route.returns?.[401]).toBe(routeSchema);
   });
@@ -100,7 +107,7 @@ describe("returns fluent API", () => {
       .get("/search")
       .query(z.object({ page: z.string() }))
       .returns({ 200: z.object({ ok: z.boolean() }) })
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
 
     expect(route.returns?.[422 as keyof typeof route.returns]).toBe(validationErrorSchema);
   });
@@ -115,7 +122,7 @@ describe("returns fluent API", () => {
       .get("/search")
       .use(auth)
       .returns({ 200: z.object({ ok: z.boolean() }) })
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
 
     expect(route.returns?.[422 as keyof typeof route.returns]).toBe(validationErrorSchema);
   });
@@ -127,7 +134,7 @@ describe("returns fluent API", () => {
     });
     const handler = defineHandler()
       .use(unitMw)
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
 
     const route = t
       .post("/")
@@ -147,7 +154,7 @@ describe("returns fluent API", () => {
       .get("/hello")
       .use(auth)
       .returns({ 200: z.object({ ok: z.boolean() }) })
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
 
     expect(route.returns?.[422 as keyof typeof route.returns]).toBeUndefined();
   });
@@ -155,13 +162,13 @@ describe("returns fluent API", () => {
   it("typechecks reply body against returns map", () => {
     t.get("/hello")
       .returns({ 200: z.object({ id: z.string() }) })
-      .handler(() => reply.json({ id: "1" }));
+      .handler(() => json({ id: "1" }));
 
     // Single .handler signature (fn | HandlerUnit): mismatch is reported without overload dump.
     t.get("/hello")
       .returns({ 200: z.object({ id: z.string() }) })
       // @ts-expect-error
-      .handler(() => reply.json({ id: 1 }));
+      .handler(() => json({ id: 1 }));
 
     t.get("/hello")
       .returns({
@@ -170,9 +177,9 @@ describe("returns fluent API", () => {
       })
       .handler((ctx) => {
         if (!ctx.query) {
-          return reply.badRequest("missing");
+          return badRequest("missing");
         }
-        return reply.json({ ok: true });
+        return json({ ok: true });
       });
   });
 
@@ -181,12 +188,12 @@ describe("returns fluent API", () => {
       .returns({
         400: z.string().optional(),
       })
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
 
     t.get("/hello")
       .returns({ 400: z.string() })
       // @ts-expect-error declared 400 body must match schema
-      .handler(() => reply.badRequest({ nope: true }));
+      .handler(() => badRequest({ nope: true }));
   });
 });
 
@@ -201,7 +208,7 @@ describe("pipeline response validation + onError", () => {
       middlewares: [],
       handlerMiddlewares: [],
       returns: { 200: schema },
-      handler: () => reply.json({ id: 1 }),
+      handler: () => json({ id: 1 }),
     };
 
     const manifest = {
@@ -224,13 +231,13 @@ describe("pipeline response validation + onError", () => {
   it("merges layout middleware returns at runtime", async () => {
     const layoutMw = {
       returns: { 401: z.object({ error: z.string() }) },
-      handler: () => reply.unauthorized({ error: "nope" }),
+      handler: () => unauthorized({ error: "nope" }),
     };
 
     const route = t
       .get("/hello")
       .returns({ 200: z.object({ ok: z.boolean() }) })
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
 
     const manifest = {
       layouts: {
@@ -275,7 +282,7 @@ describe("pipeline response validation + onError", () => {
       .context({})
       .onError({
         responses: { 500: z.object({ message: z.string() }) },
-        handle: () => reply.internalServerError({ message: "handled" }),
+        handle: () => internalServerError({ message: "handled" }),
       })
       .create(manifest);
 

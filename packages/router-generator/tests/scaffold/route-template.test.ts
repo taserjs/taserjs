@@ -6,10 +6,12 @@ describe("route scaffold templates", () => {
   it("emits split GET route stub", () => {
     const source = routeScaffoldSource("/posts", "GET", "#src/taser.js");
 
+    expect(source).toContain("import { json } from '@taserjs/router/reply'");
     expect(source).toContain("import { t } from '#src/taser.js'");
     expect(source).toContain("const GET = t.get('/posts')");
     expect(source).toContain("export type RouteContext = typeof GET.$Infer.Context");
     expect(source).toContain("export const Route = GET.handler(");
+    expect(source).toContain("return json({ ok: true })");
     expect(source).not.toContain("export const Route = t.get");
   });
 

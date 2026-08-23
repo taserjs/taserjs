@@ -1,11 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import { mergeReturnsMaps, reply, REPLY_DATA, REPLY_KIND, validateReply } from "../src/index.js";
+import { mergeReturnsMaps, validateReply } from "../src/index.js";
+import { json, noContent, text, REPLY_DATA, REPLY_KIND } from "../src/reply/index.js";
+import { buffer } from "../src/stream/index.js";
 
 describe("ReplyOf / Response", () => {
   it("returns standard Response with data/kind symbols for json", async () => {
-    const result = reply.json({ ok: true });
+    const result = json({ ok: true });
     expect(result).toBeInstanceOf(Response);
     expect(result.status).toBe(200);
     expect((result as unknown as Record<symbol, unknown>)[REPLY_KIND]).toBe("json");
@@ -14,7 +16,7 @@ describe("ReplyOf / Response", () => {
   });
 
   it("stores text body on REPLY_DATA", async () => {
-    const result = reply.text("hello");
+    const result = text("hello");
     expect((result as unknown as Record<symbol, unknown>)[REPLY_KIND]).toBe("text");
     expect((result as unknown as Record<symbol, unknown>)[REPLY_DATA]).toBe("hello");
     expect(await result.text()).toBe("hello");
@@ -22,20 +24,20 @@ describe("ReplyOf / Response", () => {
 
   it("stores path on file replies", () => {
     // Avoid opening a real file in this unit — buffer covers opaque binary data.
-    const result = reply.buffer(Buffer.from("x"));
+    const result = buffer(Buffer.from("x"));
     expect((result as unknown as Record<symbol, unknown>)[REPLY_KIND]).toBe("binary");
     expect((result as unknown as Record<symbol, unknown>)[REPLY_DATA]).toEqual(Buffer.from("x"));
   });
 
   it("stores null data for noContent", () => {
-    const result = reply.noContent();
+    const result = noContent();
     expect(result.status).toBe(204);
     expect((result as unknown as Record<symbol, unknown>)[REPLY_KIND]).toBe("empty");
     expect((result as unknown as Record<symbol, unknown>)[REPLY_DATA]).toBeNull();
   });
 
   it("keeps symbols non-enumerable so JSON.stringify cannot envelope", () => {
-    const result = reply.text("hello");
+    const result = text("hello");
     expect((result as unknown as Record<symbol, unknown>)[REPLY_DATA]).toBe("hello");
     expect((result as unknown as Record<symbol, unknown>)[REPLY_KIND]).toBe("text");
     expect(Object.keys(result)).toEqual([]);
@@ -47,7 +49,7 @@ describe("validateReply", () => {
   const request = new Request("http://localhost/hello");
 
   it("skips when map is empty or status absent", async () => {
-    const result = reply.json({ ok: true });
+    const result = json({ ok: true });
     expect(await validateReply(result, {}, { request })).toBe(result);
     expect(await validateReply(result, { 404: z.object({ error: z.string() }) }, { request })).toBe(
       result,
@@ -55,7 +57,7 @@ describe("validateReply", () => {
   });
 
   it("validates matching status schema", async () => {
-    const result = reply.json({ id: "1" });
+    const result = json({ id: "1" });
     const ok = await validateReply(
       result,
       {
@@ -67,7 +69,7 @@ describe("validateReply", () => {
   });
 
   it("returns 502 when body fails schema", async () => {
-    const result = reply.json({ id: 1 });
+    const result = json({ id: 1 });
     const failed = await validateReply(
       result,
       {
@@ -82,7 +84,7 @@ describe("validateReply", () => {
 
   it("calls onValidationFailure with issues and request", async () => {
     const onValidationFailure = vi.fn();
-    const result = reply.json({ id: 1 });
+    const result = json({ id: 1 });
     await validateReply(
       result,
       {
@@ -99,7 +101,7 @@ describe("validateReply", () => {
   });
 
   it("validates text with z.string()", async () => {
-    const result = reply.text("ok");
+    const result = text("ok");
     const ok = await validateReply(result, { 200: z.string() }, { request });
     expect(ok.status).toBe(200);
   });

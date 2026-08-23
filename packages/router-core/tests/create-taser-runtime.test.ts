@@ -1,4 +1,4 @@
-import { reply } from "@taserjs/router-utils";
+import { internalServerError, json, text } from "@taserjs/router-utils/reply";
 import type { Context, Next } from "hono";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -45,7 +45,7 @@ describe("createTaserRuntime", () => {
               handlerMiddlewares: [],
               handler: () => {
                 order.push("handler");
-                return reply.json({ ok: true });
+                return json({ ok: true });
               },
             },
           },
@@ -79,7 +79,7 @@ describe("createTaserRuntime", () => {
               method: "GET" as const,
               middlewares: [],
               handlerMiddlewares: [],
-              handler: (ctx: { params: { id: string } }) => reply.json({ id: ctx.params.id }),
+              handler: (ctx: { params: { id: string } }) => json({ id: ctx.params.id }),
             },
           },
         },
@@ -91,8 +91,7 @@ describe("createTaserRuntime", () => {
               method: "GET" as const,
               middlewares: [],
               handlerMiddlewares: [],
-              handler: (ctx: { params: { _splat: string } }) =>
-                reply.json({ splat: ctx.params._splat }),
+              handler: (ctx: { params: { _splat: string } }) => json({ splat: ctx.params._splat }),
             },
           },
         },
@@ -124,7 +123,7 @@ describe("createTaserRuntime", () => {
                 headers: { get: (n: string) => string | undefined };
                 cookies: { get: (n: string) => string | undefined };
               }) =>
-                reply.json({
+                json({
                   auth: ctx.headers.get("authorization"),
                   token: ctx.cookies.get("token"),
                 }),
@@ -160,7 +159,7 @@ describe("createTaserRuntime", () => {
               handlerMiddlewares: [],
               handler: (ctx: { cookies: { set: (n: string, v: string) => void } }) => {
                 ctx.cookies.set("session", "abc");
-                return reply.json({ ok: true });
+                return json({ ok: true });
               },
             },
           },
@@ -202,7 +201,7 @@ describe("createTaserRuntime", () => {
               method: "GET" as const,
               middlewares: [],
               handlerMiddlewares: [],
-              handler: () => reply.json({ ok: true }),
+              handler: () => json({ ok: true }),
             },
           },
         },
@@ -228,7 +227,7 @@ describe("createTaserRuntime", () => {
               method: "GET" as const,
               middlewares: [],
               handlerMiddlewares: [],
-              handler: () => reply.json({ ok: true }),
+              handler: () => json({ ok: true }),
             },
           },
         },
@@ -253,7 +252,7 @@ describe("createTaserRuntime", () => {
               method: "GET" as const,
               middlewares: [],
               handlerMiddlewares: [],
-              handler: () => reply.json({ ok: true }),
+              handler: () => json({ ok: true }),
             },
           },
         },
@@ -268,8 +267,8 @@ describe("createTaserRuntime", () => {
 
   it("wires notFound and onError post-create", async () => {
     const runtime = createTaserRuntime({ layouts: {}, routes: {} }, () => ({}))
-      .notFound(() => reply.text("gone", { status: 404 }))
-      .onError(() => reply.internalServerError({ message: "handled" }));
+      .notFound(() => text("gone", { status: 404 }))
+      .onError(() => internalServerError({ message: "handled" }));
 
     const missing = await runtime.fetch(new Request("http://localhost/missing"));
     expect(missing.status).toBe(404);
@@ -289,7 +288,7 @@ describe("createTaserRuntime", () => {
               middlewares: [],
               handlerMiddlewares: [],
               body: z.object({ name: z.string() }),
-              handler: (ctx: { body: { name: string } }) => reply.json(ctx.body),
+              handler: (ctx: { body: { name: string } }) => json(ctx.body),
             },
           },
         },
@@ -320,7 +319,7 @@ describe("createTaserRuntime", () => {
               middlewares: [],
               handlerMiddlewares: [],
               body: z.object({ title: z.string() }),
-              handler: (ctx: { body: { title: string } }) => reply.json(ctx.body),
+              handler: (ctx: { body: { title: string } }) => json(ctx.body),
             },
           },
         },
@@ -351,7 +350,7 @@ describe("createTaserRuntime", () => {
               middlewares: [],
               handlerMiddlewares: [],
               query: z.object({ page: z.number() }),
-              handler: () => reply.json({ ok: true }),
+              handler: () => json({ ok: true }),
             },
           },
         },
@@ -399,7 +398,7 @@ describe("createTaserRuntime", () => {
                 handlerMiddlewares: [],
                 handler: () => {
                   order.push("handler");
-                  return reply.json({ message: "test" });
+                  return json({ message: "test" });
                 },
               },
             },
@@ -440,7 +439,7 @@ describe("createTaserRuntime", () => {
                 middlewares: [jwtMiddleware],
                 handlerMiddlewares: [],
                 handler: (ctx: { var: { user: { id: string } } }) => {
-                  return reply.json({
+                  return json({
                     message: "Protected resource",
                     user: ctx.var.user,
                   });
@@ -510,7 +509,7 @@ describe("createTaserRuntime", () => {
                 handlerMiddlewares: [],
                 handler: () => {
                   order.push("handler");
-                  return reply.json({ ok: true });
+                  return json({ ok: true });
                 },
               },
             },
@@ -544,7 +543,7 @@ describe("createTaserRuntime", () => {
                 path: "/exists",
                 method: "GET" as const,
                 middlewares: [],
-                handler: () => reply.text("ok"),
+                handler: () => text("ok"),
               },
             },
           },

@@ -1,5 +1,6 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { reply, ValidationError } from "@taserjs/router-utils";
+import { ValidationError } from "@taserjs/router-utils";
+import { unprocessableEntity } from "@taserjs/router-utils/reply";
 
 import { handlePipelineError } from "./error-handler.js";
 import {
@@ -32,7 +33,7 @@ export async function handleRouteError(error: unknown, state: RouteErrorState): 
 
   if (error instanceof ValidationError) {
     return await finalizeReply(
-      reply.unprocessableEntity({ errors: error.issues }),
+      unprocessableEntity({ errors: error.issues }),
       state.effectiveReturns,
       state.responseOptions,
       request,

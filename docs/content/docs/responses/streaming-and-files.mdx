@@ -11,12 +11,12 @@ Taser includes first-class helpers for streaming responses, binary payloads, and
 
 ---
 
-## Serving Local Files (`stream.file`)
+## Serving Local Files (`file`)
 
-Use `stream.file()` (or `reply.file()`) to serve files from disk. It automatically looks up the correct MIME type based on file extension and streams the file using Node.js read streams:
+Use `file()` imported from `@taserjs/router/stream` to serve files from disk. It automatically looks up the correct MIME type based on file extension and streams the file using Node.js read streams:
 
 ```ts title="src/routes/downloads/$file.get.ts"
-import { stream, reply } from "@taserjs/router";
+import { file } from "@taserjs/router/stream";
 import { z } from "zod";
 import { t } from "#src/taser.js";
 import path from "node:path";
@@ -29,7 +29,7 @@ export const Route = t
     const publicStorageDir = path.resolve(process.cwd(), "storage/public");
 
     // Serves the requested file safely constrained to publicStorageDir:
-    return stream.file(ctx.params.file, {
+    return file(ctx.params.file, {
       root: publicStorageDir,
     });
   });
@@ -42,12 +42,12 @@ export const Route = t
 
 ---
 
-## Piping Readable Streams (`stream.pipe`)
+## Piping Readable Streams (`pipe`)
 
-To stream dynamically generated data, AI completions, or proxy upstream streams, use `stream.pipe()`:
+To stream dynamically generated data, AI completions, or proxy upstream streams, use `pipe()`:
 
 ```ts title="src/routes/ai/generate.post.ts"
-import { stream } from "@taserjs/router";
+import { pipe } from "@taserjs/router/stream";
 import { t } from "#src/taser.js";
 
 export const Route = t.post("/ai/generate").handler(async (ctx) => {
@@ -63,7 +63,7 @@ export const Route = t.post("/ai/generate").handler(async (ctx) => {
     },
   });
 
-  return stream.pipe(customStream, {
+  return pipe(customStream, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Transfer-Encoding": "chunked",
@@ -74,18 +74,18 @@ export const Route = t.post("/ai/generate").handler(async (ctx) => {
 
 ---
 
-## Binary Payloads (`stream.buffer` and `stream.blob`)
+## Binary Payloads (`buffer` and `blob`)
 
 When returning generated images, PDFs, or ZIP archives:
 
 ```ts title="src/routes/export/pdf.get.ts"
-import { stream } from "@taserjs/router";
+import { buffer } from "@taserjs/router/stream";
 import { t } from "#src/taser.js";
 
 export const Route = t.get("/export/pdf").handler(async (ctx) => {
   const pdfBytes: Uint8Array = await generateInvoicePdf(ctx.query);
 
-  return stream.buffer(pdfBytes, {
+  return buffer(pdfBytes, {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": 'attachment; filename="invoice.pdf"',

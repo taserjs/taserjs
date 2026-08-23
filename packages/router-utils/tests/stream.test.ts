@@ -5,13 +5,7 @@ import { Readable } from "node:stream";
 
 import { describe, expect, it } from "vitest";
 
-import { stream } from "../src/index.js";
-import {
-  blob as directBlob,
-  buffer as directBuffer,
-  file as directFile,
-  pipe as directPipe,
-} from "../src/stream.js";
+import { blob, buffer, file, pipe, stream } from "../src/stream/index.js";
 
 describe("stream export", () => {
   it("streams file contents via stream.file", async () => {
@@ -95,9 +89,9 @@ describe("stream export", () => {
   });
 
   it("exports individual functions from stream subpath", async () => {
-    expect(typeof directFile).toBe("function");
-    expect(typeof directPipe).toBe("function");
-    expect(typeof directBuffer).toBe("function");
-    expect(typeof directBlob).toBe("function");
+    expect(typeof file).toBe("function");
+    expect(typeof pipe).toBe("function");
+    expect(typeof buffer).toBe("function");
+    expect(typeof blob).toBe("function");
   });
 });

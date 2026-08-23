@@ -1,4 +1,4 @@
-import { reply } from "@taserjs/router-utils";
+import { unsupportedMediaType } from "@taserjs/router-utils/reply";
 import type { BodyMode } from "../types.js";
 
 type ParsedMediaType = {
@@ -89,7 +89,7 @@ export async function parseRequestBody(
 
   if (mode === "json") {
     if (!media || !isJsonMediaType(media.type, media.subtype)) {
-      throw reply.unsupportedMediaType({
+      throw unsupportedMediaType({
         message: "Unsupported Media Type: expected application/json",
       });
     }
@@ -98,7 +98,7 @@ export async function parseRequestBody(
 
   if (mode === "form") {
     if (!media || !isMultipartMediaType(media.type, media.subtype)) {
-      throw reply.unsupportedMediaType({
+      throw unsupportedMediaType({
         message: "Unsupported Media Type: expected multipart/form-data",
       });
     }
@@ -114,7 +114,7 @@ export async function parseRequestBody(
 
   if (mode === "urlencoded") {
     if (!media || !isUrlencodedMediaType(media.type, media.subtype)) {
-      throw reply.unsupportedMediaType({
+      throw unsupportedMediaType({
         message: "Unsupported Media Type: expected application/x-www-form-urlencoded",
       });
     }

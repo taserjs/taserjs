@@ -1,4 +1,4 @@
-import { reply } from "@taserjs/router-utils";
+import { json } from "@taserjs/router-utils/reply";
 import { bodyLimit } from "hono/body-limit";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
@@ -19,7 +19,7 @@ describe("runtime hot path", () => {
               method: "POST" as const,
               middlewares: [],
               handlerMiddlewares: [],
-              handler: () => reply.json({ ok: true }),
+              handler: () => json({ ok: true }),
             },
           },
         },
@@ -52,7 +52,7 @@ describe("runtime hot path", () => {
               middlewares: [],
               handlerMiddlewares: [],
               body: z.object({ name: z.string() }),
-              handler: (ctx: { body: { name: string } }) => reply.json({ name: ctx.body.name }),
+              handler: (ctx: { body: { name: string } }) => json({ name: ctx.body.name }),
             },
           },
         },
@@ -97,7 +97,7 @@ describe("runtime hot path", () => {
               handlerMiddlewares: [],
               handler: () => {
                 handlerCalled = true;
-                return reply.json({ ok: true });
+                return json({ ok: true });
               },
             },
           },
@@ -141,7 +141,7 @@ describe("runtime hot path", () => {
                 },
               ],
               handlerMiddlewares: [],
-              handler: (ctx: { query: { page: string; extra: string } }) => reply.json(ctx.query),
+              handler: (ctx: { query: { page: string; extra: string } }) => json(ctx.query),
             },
           },
         },
@@ -179,7 +179,7 @@ describe("runtime hot path", () => {
               middlewares: [],
               handlerMiddlewares: [],
               query: z.object({ name: z.string() }),
-              handler: (ctx: { query: { name: string; page: number } }) => reply.json(ctx.query),
+              handler: (ctx: { query: { name: string; page: number } }) => json(ctx.query),
             },
           },
         },
@@ -207,7 +207,7 @@ describe("runtime hot path", () => {
               method: "GET" as const,
               middlewares: [],
               handlerMiddlewares: [],
-              handler: () => reply.json({ ok: true }),
+              handler: () => json({ ok: true }),
             },
           },
         },
@@ -237,7 +237,7 @@ describe("runtime hot path", () => {
               middlewares: [],
               handlerMiddlewares: [],
               query: z.object({ page: z.coerce.number().default(1) }),
-              handler: (ctx: { query: { page: number } }) => reply.json(ctx.query),
+              handler: (ctx: { query: { page: number } }) => json(ctx.query),
             },
           },
         },
@@ -264,7 +264,7 @@ describe("runtime hot path", () => {
               middlewares: [],
               handlerMiddlewares: [],
               body: z.object({ name: z.string() }),
-              handler: (ctx: { body: { name: string } }) => reply.json(ctx.body),
+              handler: (ctx: { body: { name: string } }) => json(ctx.body),
             },
           },
         },

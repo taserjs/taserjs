@@ -13,7 +13,8 @@ import {
   type FormBodyField,
   type FormBodyInput,
 } from "../src/form-body.js";
-import type { ReplyOf, Schema, TaserApp } from "@taserjs/router";
+import type { Schema, TaserApp } from "@taserjs/router";
+import type { ReplyOf } from "@taserjs/router/reply";
 
 type FormDataSchema = Schema<FormData>;
 type MessageSchema = Schema<{ message: string }>;

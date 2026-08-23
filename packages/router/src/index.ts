@@ -23,14 +23,8 @@ export type {
   RouteManifestShape,
 } from "./types/app.js";
 
-export { reply, stream, ValidationError, validationErrorSchema } from "@taserjs/router-utils";
-export type {
-  ReplyBodyKind,
-  ReplyOf,
-  ResponseValidationFailureHandler,
-  SuccessReplyData,
-  SuccessStatusCode,
-} from "@taserjs/router-utils";
+export { ValidationError, validationErrorSchema } from "@taserjs/router-utils";
+export type { ResponseValidationFailureHandler, SuccessStatusCode } from "@taserjs/router-utils";
 
 export { createTaserApp, TaserRouter } from "./builder/router.js";
 export { TaserApp } from "./builder/app.js";

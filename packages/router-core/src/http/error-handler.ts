@@ -1,4 +1,4 @@
-import { reply } from "@taserjs/router-utils";
+import { internalServerError, json, noContent } from "@taserjs/router-utils/reply";
 
 export function handlePipelineError(error: unknown): Response {
   if (error instanceof Response) {
@@ -11,7 +11,7 @@ export function handlePipelineError(error: unknown): Response {
     console.error("Unhandled pipeline error", error);
   }
 
-  return reply.internalServerError();
+  return internalServerError();
 }
 
 /**
@@ -23,8 +23,8 @@ export function toResponse(value: unknown): Response {
   }
 
   if (value === undefined || value === null) {
-    return reply.noContent();
+    return noContent();
   }
 
-  return reply.json(value);
+  return json(value);
 }

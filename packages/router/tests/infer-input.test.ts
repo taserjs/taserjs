@@ -2,7 +2,7 @@ import "./register.js";
 import { describe, expectTypeOf, it } from "vitest";
 import { z } from "zod";
 
-import { reply } from "../src/index.js";
+import { json } from "../src/reply.js";
 import { t } from "./fixtures/index-layout.js";
 
 describe("route $Infer.Input", () => {
@@ -11,7 +11,7 @@ describe("route $Infer.Input", () => {
       .post("/")
       .query(z.object({ name: z.string() }))
       .body(z.object({ name: z.string() }))
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
 
     type Input = (typeof route)["$Infer"]["Input"];
     expectTypeOf<Input>().toEqualTypeOf<{
@@ -24,7 +24,7 @@ describe("route $Infer.Input", () => {
     const route = t
       .get("/hello")
       .query(z.object({ q: z.string() }))
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
 
     type Input = (typeof route)["$Infer"]["Input"];
     expectTypeOf<Input>().toEqualTypeOf<{ query: { q: string } }>();
@@ -36,7 +36,7 @@ describe("route $Infer.Input", () => {
       .post("/")
       .query(z.object({ name: z.string() }))
       .body(z.object({ tag: z.string() }))
-      .handler(() => reply.json({ ok: true }));
+      .handler(() => json({ ok: true }));
 
     type Input = (typeof route)["$Infer"]["Input"];
     expectTypeOf<Input["query"]>().toEqualTypeOf<{ page?: number; name: string }>();
