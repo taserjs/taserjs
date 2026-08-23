@@ -1,82 +1,15 @@
 import type { ReplyOf } from "@taserjs/router-utils/reply";
+import type { StatusCode } from "@taserjs/router-utils";
 
 import type { Simplify } from "./type-utils.js";
 import type { Schema } from "./schema.js";
 import type { InferOutput } from "./schema.js";
 
-/**
- * Known HTTP status codes. `number & {}` allows custom codes while keeping
- * literal autocomplete / inference for well-known values.
- */
-export type StatusCode =
-  | 100
-  | 101
-  | 102
-  | 103
-  | 200
-  | 201
-  | 202
-  | 203
-  | 204
-  | 205
-  | 206
-  | 207
-  | 208
-  | 226
-  | 300
-  | 301
-  | 302
-  | 303
-  | 304
-  | 305
-  | 306
-  | 307
-  | 308
-  | 400
-  | 401
-  | 402
-  | 403
-  | 404
-  | 405
-  | 406
-  | 407
-  | 408
-  | 409
-  | 410
-  | 411
-  | 412
-  | 413
-  | 414
-  | 415
-  | 416
-  | 417
-  | 418
-  | 421
-  | 422
-  | 423
-  | 424
-  | 425
-  | 426
-  | 428
-  | 429
-  | 431
-  | 451
-  | 500
-  | 501
-  | 502
-  | 503
-  | 504
-  | 505
-  | 506
-  | 507
-  | 508
-  | 510
-  | 511
-  | (number & {});
+export type { StatusCode };
 
 /** Status-code → Standard Schema map for route/middleware/handler outputs. */
 export type ReturnsMap = {
-  readonly [K in StatusCode]?: Schema<unknown>;
+  readonly [status: number]: Schema<unknown> | undefined;
 };
 
 /** Later map wins on overlapping status keys. */
@@ -84,12 +17,10 @@ export type MergeReturns<A extends ReturnsMap, B extends ReturnsMap> = Omit<A, k
 
 /** Typed reply union for statuses declared in a returns map. */
 export type ReplyFor<M extends ReturnsMap> = {
-  [S in keyof M]-?: S extends StatusCode
-    ? M[S] extends Schema<unknown>
-      ? ReplyOf<S, Simplify<InferOutput<M[S]>>>
-      : never
+  [S in keyof M & number]: M[S] extends Schema<unknown>
+    ? ReplyOf<S, Simplify<InferOutput<M[S]>>>
     : never;
-}[keyof M];
+}[keyof M & number];
 
 export type EmptyReturns = {};
 

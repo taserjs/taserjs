@@ -39,16 +39,16 @@ async function applyRouteSchemas(
   const bodyMode = prefix === "route" ? route.bodyMode : route.handlerBodyMode;
 
   if (query !== undefined) {
-    ctx.query = (await mergeValidatedField(
-      query as StandardSchemaV1,
-      ctx.query,
-    )) as Record<string, unknown>;
+    ctx.query = (await mergeValidatedField(query as StandardSchemaV1, ctx.query)) as Record<
+      string,
+      unknown
+    >;
   }
   if (params !== undefined) {
-    ctx.params = (await mergeValidatedField(
-      params as StandardSchemaV1,
-      ctx.params,
-    )) as Record<string, unknown>;
+    ctx.params = (await mergeValidatedField(params as StandardSchemaV1, ctx.params)) as Record<
+      string,
+      unknown
+    >;
   }
   if (body !== undefined) {
     await ensureBody(ctx, bodyMode);

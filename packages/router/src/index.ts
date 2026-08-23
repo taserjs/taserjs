@@ -1,11 +1,13 @@
 export type { RouterRegister } from "./register.js";
 export type {
+  HttpMethod,
   InferInput,
   InferOutput,
   InferRouteContext,
   InferRouteInput,
   InferRouteOutput,
   Method,
+  MiddlewareDefinition,
   PathParams,
   ReturnsMap,
   RouteDefinition,
@@ -13,6 +15,7 @@ export type {
   RoutePath,
   Schema,
   Simplify,
+  StatusCode,
 } from "./types/index.js";
 export type {
   ContextDefinition,

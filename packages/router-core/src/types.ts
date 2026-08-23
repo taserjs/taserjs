@@ -1,5 +1,5 @@
 import type { ResponseValidationFailureHandler } from "@taserjs/router-utils";
-import type { TaserCookieJar } from "./cookies/taser-cookies.js";
+import type { CookieRuntimeConfig, TaserCookieJar } from "./cookies/taser-cookies.js";
 import type { TaserHeaders } from "./headers/taser-headers.js";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";
@@ -29,16 +29,13 @@ export type PipelineLayer = {
 
 export type BodyMode = "json" | "form" | "urlencoded";
 
-export type MiddlewareDefinition = {
+export type MiddlewareDefinition<TReturns = Readonly<Record<number, unknown>>> = {
   query?: unknown;
   params?: unknown;
   body?: unknown;
   bodyMode?: BodyMode;
-  returns?: Record<number, unknown>;
-  handler: (
-    ctx: unknown,
-    next: PipelineNext,
-  ) => Awaitable<unknown>;
+  returns?: TReturns;
+  handler: (ctx: unknown, next: PipelineNext) => Awaitable<unknown>;
 };
 
 export type MiddlewareChain = {
@@ -101,17 +98,7 @@ export type CreateTaserRuntimeOptions = {
     validate?: boolean;
     onValidationFailure?: ResponseValidationFailureHandler;
   };
-  cookies?: {
-    secret?: string | BufferSource;
-    /** Default serialize options for all set/setSigned/delete calls. Per-call options override. */
-    path?: string;
-    httpOnly?: boolean;
-    sameSite?: "Strict" | "Lax" | "None" | "strict" | "lax" | "none";
-    secure?: boolean;
-    domain?: string;
-    maxAge?: number;
-    expires?: Date;
-  };
+  cookies?: CookieRuntimeConfig;
 };
 
 /**

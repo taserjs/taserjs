@@ -3,8 +3,7 @@ import { createTaserCompatHandler, type Awaitable } from "@taserjs/router-core";
 import type { ReturnsMap } from "../types/returns.js";
 import type {
   AppContext,
-  ExtractState,
-  IsUnknown,
+  DefineMiddlewareResult,
   MiddlewareReturnFromParts,
   MiddlewareUnit,
   NextFn,
@@ -17,9 +16,9 @@ import type {
 } from "../types/index.js";
 import type { Schema } from "../types/schema.js";
 
-type HonoMiddlewareHandler = Parameters<typeof createTaserCompatHandler>[0];
+export type HonoMiddlewareHandler = Parameters<typeof createTaserCompatHandler>[0];
 
-type HonoMiddlewareUnit = MiddlewareUnit<
+export type HonoMiddlewareUnit = MiddlewareUnit<
   MiddlewareReturnFromParts<unknown, unknown, unknown, {}>,
   {},
   null,
@@ -109,145 +108,137 @@ export type MultiScopedMiddlewareOptions<
   ) => Awaitable<R>;
 };
 
-export function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit;
+export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> = AppContext> {
+  (middleware: HonoMiddlewareHandler): HonoMiddlewareUnit;
 
-export function defineMiddleware<
-  const Layout extends LayoutId,
-  TState = unknown,
-  TRequires = {},
-  TAppContext extends Record<string, unknown> = AppContext,
-  TQuery = unknown,
-  TParams = unknown,
-  TBody = unknown,
-  TReturns extends ReturnsMap = {},
-  TQueryIn = unknown,
-  TParamsIn = unknown,
-  TBodyIn = unknown,
-  R = unknown,
->(
-  layout: Layout,
-  options: ScopedMiddlewareOptions<
+  <
+    const Layout extends LayoutId,
+    TState = unknown,
+    TRequires = {},
+    TQuery = unknown,
+    TParams = unknown,
+    TBody = unknown,
+    TReturns extends ReturnsMap = {},
+    TQueryIn = unknown,
+    TParamsIn = unknown,
+    TBodyIn = unknown,
+    R = unknown,
+  >(
+    layout: Layout,
+    options: ScopedMiddlewareOptions<
+      Layout,
+      TState,
+      TRequires,
+      TQuery,
+      TParams,
+      TBody,
+      TReturns,
+      TQueryIn,
+      TParamsIn,
+      TBodyIn,
+      TAppContext,
+      R
+    >,
+  ): DefineMiddlewareResult<
+    TQuery,
+    TParams,
+    TBody,
+    TState,
+    R,
+    TQueryIn,
+    TParamsIn,
+    TBodyIn,
+    TReturns,
     Layout,
-    TState,
-    TRequires,
+    TRequires
+  >;
+
+  <
+    const Layouts extends readonly [LayoutId, ...LayoutId[]],
+    TState = unknown,
+    TRequires = {},
+    TQuery = unknown,
+    TParams = unknown,
+    TBody = unknown,
+    TReturns extends ReturnsMap = {},
+    TQueryIn = unknown,
+    TParamsIn = unknown,
+    TBodyIn = unknown,
+    R = unknown,
+  >(
+    layouts: Layouts,
+    options: MultiScopedMiddlewareOptions<
+      Layouts,
+      TState,
+      TRequires,
+      TQuery,
+      TParams,
+      TBody,
+      TReturns,
+      TQueryIn,
+      TParamsIn,
+      TBodyIn,
+      TAppContext,
+      R
+    >,
+  ): DefineMiddlewareResult<
     TQuery,
     TParams,
     TBody,
-    TReturns,
+    TState,
+    R,
     TQueryIn,
     TParamsIn,
     TBodyIn,
-    TAppContext,
-    R
-  >,
-): MiddlewareUnit<
-  MiddlewareReturnFromParts<
-    TQuery,
-    TParams,
-    TBody,
-    IsUnknown<TState> extends true ? ExtractState<R> : TState,
-    TQueryIn,
-    TParamsIn,
-    TBodyIn
-  >,
-  TReturns,
-  Layout,
-  TRequires
->;
-
-export function defineMiddleware<
-  const Layouts extends readonly [LayoutId, ...LayoutId[]],
-  TState = unknown,
-  TRequires = {},
-  TAppContext extends Record<string, unknown> = AppContext,
-  TQuery = unknown,
-  TParams = unknown,
-  TBody = unknown,
-  TReturns extends ReturnsMap = {},
-  TQueryIn = unknown,
-  TParamsIn = unknown,
-  TBodyIn = unknown,
-  R = unknown,
->(
-  layouts: Layouts,
-  options: MultiScopedMiddlewareOptions<
+    TReturns,
     Layouts,
-    TState,
-    TRequires,
+    TRequires
+  >;
+
+  <
+    TState = unknown,
+    TRequires = {},
+    TQuery = unknown,
+    TParams = unknown,
+    TBody = unknown,
+    TReturns extends ReturnsMap = {},
+    TQueryIn = unknown,
+    TParamsIn = unknown,
+    TBodyIn = unknown,
+    R = unknown,
+  >(
+    options: DefineMiddlewareOptions<
+      TState,
+      TRequires,
+      TQuery,
+      TParams,
+      TBody,
+      TReturns,
+      TQueryIn,
+      TParamsIn,
+      TBodyIn,
+      TAppContext,
+      R
+    >,
+  ): DefineMiddlewareResult<
     TQuery,
     TParams,
     TBody,
-    TReturns,
+    TState,
+    R,
     TQueryIn,
     TParamsIn,
     TBodyIn,
-    TAppContext,
-    R
-  >,
-): MiddlewareUnit<
-  MiddlewareReturnFromParts<
-    TQuery,
-    TParams,
-    TBody,
-    IsUnknown<TState> extends true ? ExtractState<R> : TState,
-    TQueryIn,
-    TParamsIn,
-    TBodyIn
-  >,
-  TReturns,
-  Layouts,
-  TRequires
->;
-
-export function defineMiddleware<
-  TState = unknown,
-  TRequires = {},
-  TAppContext extends Record<string, unknown> = AppContext,
-  TQuery = unknown,
-  TParams = unknown,
-  TBody = unknown,
-  TReturns extends ReturnsMap = {},
-  TQueryIn = unknown,
-  TParamsIn = unknown,
-  TBodyIn = unknown,
-  R = unknown,
->(
-  options: DefineMiddlewareOptions<
-    TState,
-    TRequires,
-    TQuery,
-    TParams,
-    TBody,
     TReturns,
-    TQueryIn,
-    TParamsIn,
-    TBodyIn,
-    TAppContext,
-    R
-  >,
-): MiddlewareUnit<
-  MiddlewareReturnFromParts<
-    TQuery,
-    TParams,
-    TBody,
-    IsUnknown<TState> extends true ? ExtractState<R> : TState,
-    TQueryIn,
-    TParamsIn,
-    TBodyIn
-  >,
-  TReturns,
-  null,
-  TRequires
->;
+    null,
+    TRequires
+  >;
+}
 
-export function defineMiddleware(
-  first:
-    | string
-    | readonly string[]
-    | HonoMiddlewareHandler
-    | DefineMiddlewareOptions<any, any, any, any, any, any, any, any, any, any, any>,
-  second?: DefineMiddlewareOptions<any, any, any, any, any, any, any, any, any, any, any>,
-): unknown {
+export const defineMiddleware: DefineMiddlewareFn<AppContext> = function defineMiddleware(
+  first: any,
+  second?: any,
+): any {
   if (typeof first === "string" || Array.isArray(first)) {
     const options = second!;
     const unit = {
@@ -262,7 +253,8 @@ export function defineMiddleware(
   if (typeof first === "function") {
     const honoMiddleware = first as HonoMiddlewareHandler;
     return defineMiddleware({
-      handler: (ctx, next) => createTaserCompatHandler(honoMiddleware)(ctx, next),
+      handler: (ctx: unknown, next: (state?: Record<string, unknown>) => unknown) =>
+        createTaserCompatHandler(honoMiddleware)(ctx, next),
     });
   }
 
@@ -286,4 +278,4 @@ export function defineMiddleware(
   };
 
   return unit;
-}
+};

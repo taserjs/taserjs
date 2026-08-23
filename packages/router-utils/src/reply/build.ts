@@ -46,12 +46,11 @@ export function mergeHeaders(
   }
 
   // Plain object Record<string, string>
-  const hasContentType = Object.keys(rawHeaders).some(
-    (k) => k.toLowerCase() === "content-type",
-  );
-  const headers = hasContentType || !defaultContentType
-    ? { ...rawHeaders }
-    : { "content-type": defaultContentType, ...rawHeaders };
+  const hasContentType = Object.keys(rawHeaders).some((k) => k.toLowerCase() === "content-type");
+  const headers =
+    hasContentType || !defaultContentType
+      ? { ...rawHeaders }
+      : { "content-type": defaultContentType, ...rawHeaders };
 
   return { ...init, headers };
 }

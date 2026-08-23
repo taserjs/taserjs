@@ -1,11 +1,16 @@
-import type { Awaitable, TaserCookieJar, TaserHeaders } from "@taserjs/router-core";
+import type {
+  Awaitable,
+  MiddlewareDefinition as CoreMiddlewareDefinition,
+  TaserCookieJar,
+  TaserHeaders,
+} from "@taserjs/router-core";
 
 import type {
   MergeMiddlewareField,
   MergePart,
   RequestShape,
-  RuntimeContextFields,
   Simplify,
+  UnitRuntimeContext,
   UnwrapPart,
 } from "./type-utils.js";
 import type { ReturnsMap } from "./returns.js";
@@ -58,14 +63,7 @@ export type NextFn<TExpectedState = unknown> =
 
 export type MiddlewareNext = NextFn;
 
-export type MiddlewareDefinition = {
-  query?: unknown;
-  params?: unknown;
-  body?: unknown;
-  bodyMode?: "json" | "form" | "urlencoded";
-  returns?: ReturnsMap;
-  handler: (ctx: unknown, next: MiddlewareNext) => Awaitable<Response | unknown>;
-};
+export type MiddlewareDefinition = CoreMiddlewareDefinition<ReturnsMap>;
 
 export type MiddlewareReturnFromParts<
   TQuery,
@@ -88,7 +86,32 @@ export type MiddlewareReturnFromParts<
   };
 };
 
-type UnitRuntimeContext = Omit<RuntimeContextFields, "var">;
+export type DefineMiddlewareResult<
+  TQuery,
+  TParams,
+  TBody,
+  TState,
+  R,
+  TQueryIn = TQuery,
+  TParamsIn = TParams,
+  TBodyIn = TBody,
+  TReturns extends ReturnsMap = {},
+  TLayout = null,
+  TRequires = {},
+> = MiddlewareUnit<
+  MiddlewareReturnFromParts<
+    TQuery,
+    TParams,
+    TBody,
+    IsUnknown<TState> extends true ? ExtractState<R> : TState,
+    TQueryIn,
+    TParamsIn,
+    TBodyIn
+  >,
+  TReturns,
+  TLayout,
+  TRequires
+>;
 
 export type StandaloneMiddlewareContext<
   TQuery = unknown,

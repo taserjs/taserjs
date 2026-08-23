@@ -1,3 +1,5 @@
+import type { TaserCookieJar, TaserHeaders } from "@taserjs/router-core";
+
 export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";
 export type HttpMethod = Method;
 
@@ -75,7 +77,9 @@ export type RuntimeContextFields = {
   request: Request;
   method: Method;
   url: URL;
-  headers: import("@taserjs/router-core").TaserHeaders;
-  cookies: import("@taserjs/router-core").TaserCookieJar;
+  headers: TaserHeaders;
+  cookies: TaserCookieJar;
   var: Record<string, unknown>;
 };
+
+export type UnitRuntimeContext = Omit<RuntimeContextFields, "var">;

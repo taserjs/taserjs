@@ -32,13 +32,11 @@ describe("router stream export", () => {
 
   it("serves pipe stream from route handler", async () => {
     const t = createTaserApp();
-    const route = t
-      .get("/pipe")
-      .handler(() =>
-        pipe(Readable.toWeb(Readable.from([Buffer.from("piped-stream-data")])) as ReadableStream, {
-          headers: { "content-type": "text/plain" },
-        }),
-      );
+    const route = t.get("/pipe").handler(() =>
+      pipe(Readable.toWeb(Readable.from([Buffer.from("piped-stream-data")])) as ReadableStream, {
+        headers: { "content-type": "text/plain" },
+      }),
+    );
     const manifest = {
       layouts: {},
       routes: {

@@ -1,7 +1,7 @@
 export { InvalidMountPatternError, resolveMountBase, composeBasePath } from "./mount/index.js";
 export { isPromise } from "./async/is-promise.js";
 
-export type { SuccessStatusCode } from "./http/status.js";
+export type { StatusCode, SuccessStatusCode } from "./http/status.js";
 export { normalizeOnError } from "./http/on-error.js";
 export type { OnErrorHandlerLike, OnErrorInput } from "./http/on-error.js";
 

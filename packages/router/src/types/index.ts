@@ -5,9 +5,9 @@ import type {
   MergeMiddlewareInputField,
   MergePart,
   RequestShape,
-  RuntimeContextFields,
   Simplify,
   UnionToIntersection,
+  UnitRuntimeContext,
 } from "./type-utils.js";
 import type { ReturnsMap, ValidHandlerReply } from "./returns.js";
 import type { Schema } from "./schema.js";
@@ -39,6 +39,7 @@ export type {
   MergePart,
   RequestShape,
   Simplify,
+  UnitRuntimeContext,
   UnwrapPart,
 } from "./type-utils.js";
 export type {
@@ -167,13 +168,29 @@ type RouteLayoutChain<Path extends RoutePath, TMethod extends Method> =
       ? readonly [RouteParent<Path, TMethod>]
       : readonly [];
 
+export type RouteLayoutMiddlewares<
+  Path extends RoutePath,
+  TMethod extends Method,
+> = ResolveLayoutChainMiddlewares<RouteLayoutChain<Path, TMethod>>;
+
+export type RouteLayoutField<
+  Path extends RoutePath,
+  TMethod extends Method,
+  Field extends "query" | "params" | "body" | "state",
+> = MergeMiddlewareField<RouteLayoutMiddlewares<Path, TMethod>, Field>;
+
+export type RouteLayoutInputField<
+  Path extends RoutePath,
+  TMethod extends Method,
+  Field extends "query" | "params" | "body",
+> = MergeMiddlewareInputField<RouteLayoutMiddlewares<Path, TMethod>, Field>;
+
 type RouteResolvedField<
   Path extends RoutePath,
   TMethod extends Method,
   Acc extends readonly unknown[],
   Field extends "query" | "params" | "body" | "state",
-> = MergeMiddlewareField<ResolveLayoutChainMiddlewares<RouteLayoutChain<Path, TMethod>>, Field> &
-  MergeMiddlewareField<Acc, Field>;
+> = RouteLayoutField<Path, TMethod, Field> & MergeMiddlewareField<Acc, Field>;
 
 type RouteChainField<
   Path extends RoutePath,
@@ -181,8 +198,6 @@ type RouteChainField<
   Acc extends readonly unknown[],
   Field extends "query" | "params" | "body" | "state",
 > = RouteResolvedField<Path, TMethod, Acc, Field>;
-
-type UnitRuntimeContext = Omit<RuntimeContextFields, "var">;
 
 export type RouteChainContext<
   Path extends RoutePath,
@@ -292,11 +307,7 @@ type RouteResolvedInputField<
   TMethod extends Method,
   Acc extends readonly unknown[],
   Field extends "query" | "params" | "body",
-> = MergeMiddlewareInputField<
-  ResolveLayoutChainMiddlewares<RouteLayoutChain<Path, TMethod>>,
-  Field
-> &
-  MergeMiddlewareInputField<Acc, Field>;
+> = RouteLayoutInputField<Path, TMethod, Field> & MergeMiddlewareInputField<Acc, Field>;
 
 type IsNever<T> = [T] extends [never] ? true : false;
 
@@ -414,12 +425,16 @@ export type InferRouteInputFromPath<Path extends RoutePath, TMethod extends Meth
       : never
     : never;
 
+export type MiddlewareLayoutField<
+  Layout extends LayoutId,
+  Field extends "query" | "params" | "body" | "state",
+> = MergeMiddlewareField<ResolveLayoutMiddlewares<LayoutParent<Layout>>, Field>;
+
 type MiddlewareChainField<
   Layout extends LayoutId,
   Acc extends readonly unknown[],
   Field extends "query" | "params" | "body" | "state",
-> = MergeMiddlewareField<ResolveLayoutMiddlewares<LayoutParent<Layout>>, Field> &
-  MergeMiddlewareField<Acc, Field>;
+> = MiddlewareLayoutField<Layout, Field> & MergeMiddlewareField<Acc, Field>;
 
 export type MiddlewareChainContext<
   Layout extends LayoutId,

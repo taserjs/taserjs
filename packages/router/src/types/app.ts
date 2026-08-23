@@ -1,4 +1,4 @@
-import type { RouteManifestShape } from "@taserjs/router-core";
+import type { CookieRuntimeConfig, RouteManifestShape } from "@taserjs/router-core";
 import type { ResponseValidationFailureHandler } from "@taserjs/router-utils";
 
 import type { TaserApp } from "../builder/app.js";
@@ -14,16 +14,7 @@ export type CreateTaserAppOptions = {
     onValidationFailure?: ResponseValidationFailureHandler;
   };
   /** Global cookie defaults and signing secret. Per-call `ctx.cookies.set` options override defaults. */
-  cookies?: {
-    secret?: string | BufferSource;
-    path?: string;
-    httpOnly?: boolean;
-    sameSite?: "Strict" | "Lax" | "None" | "strict" | "lax" | "none";
-    secure?: boolean;
-    domain?: string;
-    maxAge?: number;
-    expires?: Date;
-  };
+  cookies?: CookieRuntimeConfig;
 };
 
 export type ContextDefinition<

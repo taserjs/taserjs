@@ -48,4 +48,3 @@ export function composeBasePath(first?: string, second?: string): string {
   }
   return "";
 }
-
