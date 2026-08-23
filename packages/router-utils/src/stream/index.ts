@@ -4,7 +4,27 @@ import { lookup } from "mrmime";
 const APPLICATION_OCTET_STREAM = "application/octet-stream";
 const STATUS_OK = 200;
 
-import { mergeHeaders, toBodyBytes, toReplyResponse, toWebReadableStream } from "../reply/build.js";
+import {
+  mergeHeaders,
+  toBodyBytes,
+  toReplyResponse,
+  registerNodeStreamConverter,
+  toWebReadableStream,
+} from "../reply/build.js";
+import { Readable } from "node:stream";
+
+// Registers the Node.js stream converter so reply paths accept core streams.
+registerNodeStreamConverter((stream) => {
+  const web = Readable.toWeb(stream as import("node:stream").Readable);
+  return web as unknown as ReadableStream;
+});
+
+function ensureWebResponseStream(body: ReadableStream | NodeJS.ReadableStream): ReadableStream {
+  if (body instanceof ReadableStream) {
+    return body;
+  }
+  return Readable.toWeb(body as import("node:stream").Readable) as unknown as ReadableStream;
+}
 import { resolveSafeFilePath } from "../reply/safe-path.js";
 import type { ReplyOf } from "../reply/result.js";
 import type { BinaryBody, FileReplyInit, ReplyInit } from "../reply/types.js";
@@ -24,7 +44,7 @@ function pipe(
 ): ReplyOf<number, null> {
   const statusInit = { ...init, status: init?.status ?? STATUS_OK };
   return toReplyResponse(
-    toWebReadableStream(body),
+    toWebReadableStream(ensureWebResponseStream(body)),
     mergeHeaders(statusInit, "stream"),
     null,
     "stream",
@@ -80,7 +100,7 @@ function file(path: string, init?: FileReplyInit): ReplyOf<number, string> {
     contentType: contentType || APPLICATION_OCTET_STREAM,
   });
   return toReplyResponse(
-    toWebReadableStream(createReadStream(safePath)),
+    toWebReadableStream(ensureWebResponseStream(createReadStream(safePath))),
     mergedInit,
     safePath,
     "stream",

@@ -1,7 +1,7 @@
 import type { BodyMode, PipelineContext } from "../types.js";
 import { parseRequestBody } from "./parse-body.js";
 
-const bodyParsedKey = Symbol("taserBodyParsed");
+const bodyParsedKey = Symbol.for("taserjs.bodyParsed");
 
 /**
  * Parse request body once and cache on context.

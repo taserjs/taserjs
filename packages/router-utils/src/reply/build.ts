@@ -1,5 +1,3 @@
-import { Readable } from "node:stream";
-
 import {
   APPLICATION_JSON,
   APPLICATION_OCTET_STREAM,
@@ -45,8 +43,35 @@ export function toBodyBytes(data: BinaryBody): Uint8Array {
   return data instanceof Uint8Array ? data : new Uint8Array(data);
 }
 
-export function toWebReadableStream(body: ReadableStream | NodeJS.ReadableStream): ReadableStream {
-  return body instanceof ReadableStream ? body : (Readable.toWeb(body) as ReadableStream);
+/**
+ * Converts a body into a web ReadableStream. Web streams pass through;
+ * Node.js streams require the converter registered by importing
+ * `@taserjs/router-utils/stream` (kept out of this module so `reply` stays
+ * universal — zero node builtins).
+ */
+export function toWebReadableStream(body: ReadableStream): ReadableStream {
+  if (body instanceof ReadableStream) {
+    return body;
+  }
+  const streamLike = body as { on?: unknown; pipe?: unknown };
+  if (typeof streamLike?.on === "function" && typeof streamLike?.pipe === "function") {
+    if (nodeStreamConverter) {
+      return nodeStreamConverter(body);
+    }
+    throw new TypeError(
+      "[taser] Node.js streams in replies require importing '@taserjs/router-utils/stream' " +
+        "(registers the converter) or passing Readable.toWeb(stream) instead.",
+    );
+  }
+  throw new TypeError("[taser] Unsupported stream body: expected a ReadableStream");
+}
+
+type NodeStreamConverter = (stream: unknown) => ReadableStream;
+let nodeStreamConverter: NodeStreamConverter | undefined;
+
+/** Registers the Node.js stream converter (called by the `./stream` subpath). */
+export function registerNodeStreamConverter(converter: NodeStreamConverter): void {
+  nodeStreamConverter = converter;
 }
 
 export function classifyBody(body: unknown): BodyKind {
@@ -74,12 +99,12 @@ export function classifyBody(body: unknown): BodyKind {
     return "stream";
   }
 
-  if (
-    typeof body === "object" &&
-    body !== null &&
-    Readable.isReadable(body as NodeJS.ReadableStream)
-  ) {
-    return "stream";
+  if (typeof body === "object" && body !== null) {
+    // Duck-typed Node.js Readable (avoids importing node:stream here).
+    const candidate = body as { on?: unknown; pipe?: unknown };
+    if (typeof candidate.on === "function" && typeof candidate.pipe === "function") {
+      return "stream";
+    }
   }
 
   if (body instanceof FormData) {
@@ -191,7 +216,7 @@ export function buildBodyResponse(body: unknown, init?: ReplyInit): Response {
 
     case "stream":
       return toReplyResponse(
-        toWebReadableStream(body as ReadableStream | NodeJS.ReadableStream),
+        toWebReadableStream(body as ReadableStream),
         mergeHeaders(statusInit, kind),
         null,
         replyKind,

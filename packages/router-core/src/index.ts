@@ -5,7 +5,7 @@ export { handlePipelineError, toResponse } from "./http/error-handler.js";
 export { createTaserCompatHandler, createCompatHonoContext } from "./http/hono-compat.js";
 export { parseRequestBody } from "./http/parse-body.js";
 export { ensureBody } from "./http/ensure-body.js";
-export { toRou3RegisterPath } from "./http/route-path.js";
+export { toHonoRoutePath } from "./http/route-path.js";
 export { joinRoutePrefix, normalizeRoutePrefix } from "./http/route-prefix.js";
 export { handleRouteError } from "./http/route-handler.js";
 export { finalizeReply, type FinalizeResponseOptions } from "./http/finalize.js";

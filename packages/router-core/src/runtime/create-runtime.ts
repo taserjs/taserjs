@@ -1,6 +1,6 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { isPromise, normalizeOnError } from "@taserjs/router-utils";
-import { addRoute, createRouter, findRoute } from "rou3";
+import { RegExpRouter } from "hono/router/reg-exp-router";
 
 import { composePipeline } from "../pipeline/compose.js";
 import { buildPipelineLayers } from "../pipeline/layers.js";
@@ -17,7 +17,7 @@ import type {
 } from "../types.js";
 import { buildPipelineContext, getCookiesFromContext } from "../context/context.js";
 import { finalizeReply, type FinalizeResponseOptions } from "../http/finalize.js";
-import { toRou3RegisterPath } from "../http/route-path.js";
+import { toHonoRoutePath } from "../http/route-path.js";
 import { dispatchNotFound } from "./not-found.js";
 import { joinRoutePrefix, normalizeRoutePrefix } from "../http/route-prefix.js";
 import { buildEffectiveReturns } from "../pipeline/returns.js";
@@ -30,7 +30,7 @@ type PreparedRoute = {
   run: (ctx: PipelineContext) => Promise<Response> | Response;
 };
 
-type Rou3Router<T> = ReturnType<typeof createRouter<T>>;
+type HonoRegExpRouter<T> = InstanceType<typeof RegExpRouter<T>>;
 
 function extractPathname(url: string): string {
   const schemeEnd = url.indexOf("://");
@@ -57,7 +57,7 @@ function extractPathname(url: string): string {
 }
 
 function registerManifestRoutes(
-  router: Rou3Router<PreparedRoute>,
+  router: HonoRegExpRouter<PreparedRoute>,
   manifest: RouteManifestShape,
   pathPrefix: string,
 ): void {
@@ -83,9 +83,9 @@ function registerManifestRoutes(
       };
 
       const fullPath = joinRoutePrefix(normalizedPrefix, path);
-      const rou3Path = toRou3RegisterPath(fullPath);
+      const honoPath = toHonoRoutePath(fullPath);
 
-      addRoute(router, httpMethod, rou3Path, prepared);
+      router.add(httpMethod, honoPath, prepared);
     }
   }
 }
@@ -111,14 +111,29 @@ export function createTaserRuntime<
   const basePath = options.basePath ?? "";
   const passThroughOnMiss = options.passThroughOnMiss ?? false;
 
-  const router = createRouter<PreparedRoute>();
+  const router = new RegExpRouter<PreparedRoute>();
 
   registerManifestRoutes(router, manifest, basePath);
 
   function dispatchRequest(request: Request): Promise<Response | undefined> | Response | undefined {
     const pathname = extractPathname(request.url);
     const method = request.method as HttpMethod;
-    const match = findRoute(router, method, pathname);
+    const matchResult = router.match(method, pathname);
+    const firstMatch = matchResult?.[0]?.[0];
+    const match = firstMatch
+      ? (() => {
+          const [preparedRoute, paramLabels] = firstMatch;
+          const values = matchResult[1] ?? [];
+          const params: Record<string, string> = {};
+          for (const [name, index] of Object.entries(paramLabels ?? {})) {
+            const value = values[index as number];
+            if (value !== undefined && value !== null) {
+              params[name] = value;
+            }
+          }
+          return { data: preparedRoute as PreparedRoute, params };
+        })()
+      : undefined;
 
     if (!match) {
       if (passThroughOnMiss) {

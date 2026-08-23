@@ -1,13 +1,14 @@
 /**
- * Converts manifest wildcard routes (e.g. `/*`, `/files/*`)
- * to rou3 wildcard capturing format (`/**:_splat`, `/files/**:_splat`).
+ * Converts manifest wildcard routes to Hono RegExpRouter capturing format.
+ * `/*` -> `/:_splat{.+}` and `/files/*` -> `/files/:_splat{.+}`, preserving the
+ * `{ _splat }` param contract of the generated router/client types.
  */
-export function toRou3RegisterPath(manifestPath: string): string {
+export function toHonoRoutePath(manifestPath: string): string {
   if (manifestPath === "/*") {
-    return "/**:_splat";
+    return "/:_splat{.+}";
   }
   if (manifestPath.endsWith("/*")) {
-    return `${manifestPath.slice(0, -2)}/**:_splat`;
+    return `${manifestPath.slice(0, -2)}/:_splat{.+}`;
   }
   return manifestPath;
 }

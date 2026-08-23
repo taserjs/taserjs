@@ -272,9 +272,6 @@ importers:
       hono:
         specifier: ^4.10.3
         version: 4.12.33
-      rou3:
-        specifier: ^0.9.2
-        version: 0.9.2
     devDependencies:
       '@tanstack/vite-config':
         specifier: ^0.6.0
@@ -4471,9 +4468,6 @@ packages:
 
   rou3@0.8.1:
     resolution: {integrity: sha512-ePa+XGk00/3HuCqrEnK3LxJW7I0SdNg6EFzKUJG73hMAdDcOUC/i/aSz7LSDwLrGr33kal/rqOGydzwl6U7zBA==}
-
-  rou3@0.9.2:
-    resolution: {integrity: sha512-3SOzvaAg8rkHrXtRjpCvCvbyO5to9oOO27Z/XqHEYXfMRVSw/qMIVdmaOk9W2lcRLtR6dlqTjo9hDeJk70QBYQ==}
 
   router@2.2.0:
     resolution: {integrity: sha512-nLTrUKm2UyiL7rlhapu/Zl45FwNgkZGaCpZbIHajDYgwlJCOzLSk+cIPAnsEqV955GjILJnKbdQC1nVPz+gAYQ==}
@@ -9691,8 +9685,6 @@ snapshots:
       '@rolldown/binding-win32-x64-msvc': 1.2.3
 
   rou3@0.8.1: {}
-
-  rou3@0.9.2: {}
 
   router@2.2.0:
     dependencies:

@@ -114,11 +114,20 @@ export type CreateTaserRuntimeOptions = {
   };
 };
 
+/**
+ * Minimal structural stand-in for Hono's ExecutionContext (fetch environments).
+ * Kept local so the runtime carries no framework type dependency.
+ */
+export type FetchExecutionContext = {
+  waitUntil?(promise: Promise<unknown>): void;
+  passThroughOnException?(): void;
+};
+
 export type TaserRuntime<TPassThrough extends boolean = boolean> = {
   fetch(
     request: Request,
     env?: unknown,
-    executionCtx?: import("hono").ExecutionContext,
+    executionCtx?: FetchExecutionContext,
   ): TPassThrough extends true
     ? Promise<Response | undefined> | Response | undefined
     : Promise<Response> | Response;
