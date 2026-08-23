@@ -27,6 +27,7 @@ import {
 import { buildLayoutImportDeclarations, buildRouteImportDeclarations } from "./imports.js";
 import { buildLayoutTreeType, buildRouterRegisterAugmentation } from "./layout-tree-type.js";
 import { buildRouteByPathMethodType } from "./route-by-path-method-type.js";
+import { buildClientChainType } from "./client-chain-type.js";
 
 function buildManifestLayoutsObject(model: GeneratedModel): TSESTree.ObjectExpression {
   const layoutById = new Map(model.layouts.map((layout) => [layout.id, layout]));
@@ -102,6 +103,8 @@ function buildProgram(model: GeneratedModel): TSESTree.Program {
 
   const routeByPathMethodType = buildRouteByPathMethodType(model.routesByPath);
 
+  const clientChainType = buildClientChainType(model.routesByPath);
+
   const body: TSESTree.Statement[] = [
     ...buildLayoutImportDeclarations(model.layouts),
     ...buildRouteImportDeclarations(model.routes),
@@ -118,6 +121,7 @@ function buildProgram(model: GeneratedModel): TSESTree.Program {
     layoutIdType,
     layoutTreeType,
     routeByPathMethodType,
+    clientChainType,
     buildRouterRegisterAugmentation(),
     exportTypeAlias("RouteManifest", tsTypeQuery("routeManifest")),
   ];

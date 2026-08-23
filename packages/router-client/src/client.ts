@@ -13,6 +13,14 @@ type CallbackOptions = {
   args: unknown[];
 };
 
+function hasHeader(headers: Record<string, string>, target: string): boolean {
+  const lower = target.toLowerCase();
+  for (const k in headers) {
+    if (k.toLowerCase() === lower) return true;
+  }
+  return false;
+}
+
 async function executeRequest(
   options: CreateClientOptions,
   segments: string[],
@@ -30,10 +38,11 @@ async function executeRequest(
   const url = `${joinUrl(options.baseUrl, pathSegments)}${buildSearchParams(input.query)}`;
   const method = clientMethodToHttp(methodKey);
 
-  const headers = await resolveHeaders(options.headers, requestOptions.headers);
+  const resolvedHeaders = resolveHeaders(options.headers, requestOptions.headers);
+  const headers = resolvedHeaders instanceof Promise ? await resolvedHeaders : resolvedHeaders;
   let body: BodyInit | undefined;
 
-  const hasContentType = Object.keys(headers).some((k) => k.toLowerCase() === "content-type");
+  const hasContentType = hasHeader(headers, "content-type");
 
   if (method !== "GET" && method !== "HEAD" && input.body !== undefined) {
     if (input.body instanceof FormData) {
@@ -72,7 +81,14 @@ async function executeRequest(
   return response;
 }
 
-export function createClient<TApp>(options: CreateClientOptions): Client<TApp> {
+export function createClient<TApp = never>(options: CreateClientOptions): Client<TApp> {
+  const normalizedBaseUrl = options.baseUrl.endsWith("/")
+    ? options.baseUrl.replace(/\/+$/, "")
+    : options.baseUrl;
+  const clientOptions: CreateClientOptions =
+    normalizedBaseUrl === options.baseUrl
+      ? options
+      : { ...options, baseUrl: normalizedBaseUrl };
   const proxyCache = new Map<string, unknown>();
 
   function createProxy(path: string[]): unknown {
@@ -106,7 +122,7 @@ export function createClient<TApp>(options: CreateClientOptions): Client<TApp> {
     }
 
     const segments = parts.slice(0, -1);
-    return executeRequest(options, segments, methodKey, opts.args);
+    return executeRequest(clientOptions, segments, methodKey, opts.args);
   }
 
   return createProxy([]) as Client<TApp>;

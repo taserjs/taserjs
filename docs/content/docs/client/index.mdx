@@ -12,37 +12,20 @@ The `@taserjs/router-client` package generates an auto-completing, type-safe API
 
 ---
 
-## 1. Export the Router Type from Your Server
+## 1. Initialize the Client
 
-In your backend entry file, export the type of your initialized Taser app:
-
-```ts title="server/src/index.ts"
-import { routeManifest } from "#src/routeManifest.gen.js";
-import { t } from "#src/taser.js";
-
-export const app = t.create(routeManifest);
-
-// Export router type for the frontend:
-export type TaserAppRouter = typeof app;
-```
-
----
-
-## 2. Initialize the Client in Your Frontend
-
-Install the client package in your frontend or mobile project:
+Install the client package in your project:
 
 ```bash
 npm install @taserjs/router-client
 ```
 
-Initialize the client with your backend `baseUrl`:
+Initialize the client with your backend `baseUrl`. In a Taser project, route types are **automatically detected from ambient declarations** with zero generic arguments:
 
-```ts title="client/src/lib/api.ts"
+```ts title="src/lib/api.ts"
 import { createClient } from "@taserjs/router-client";
-import type { TaserAppRouter } from "../../../server/src/index";
 
-export const api = createClient<TaserAppRouter>({
+export const api = createClient({
   baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api",
   headers: async () => {
     const token = localStorage.getItem("auth_token");
@@ -50,6 +33,10 @@ export const api = createClient<TaserAppRouter>({
   },
 });
 ```
+
+<Callout type="info" title="Automatic Type Detection">
+  Because Taser automatically generates ambient route declarations at `.taser/types/routes.d.ts`, `createClient()` infers all available routes, methods, input schemas, and return contracts automatically without needing to manually import `RouteManifest` or `TaserAppRouter`.
+</Callout>
 
 ---
 
@@ -75,13 +62,15 @@ if (response.status === 200) {
 }
 ```
 
-### Dynamic Path Parameters (`$param`)
+### Dynamic Path Parameters (`_param`)
 
 For parameterized routes like `src/routes/users/$id.get.ts`:
 
 ```ts
 // Calls GET /api/users/user_456
-const response = await api.users.$id({ id: "user_456" }).$get();
+const response = await api.users._id.$get({
+  param: { id: "user_456" },
+});
 const user = await response.json();
 ```
 
@@ -113,7 +102,8 @@ import { formBody } from "@taserjs/router-client";
 const avatarFile = new File([blob], "avatar.png", { type: "image/png" });
 
 // Calls POST /api/users/user_123/avatar with multipart form payload:
-const response = await api.users.$id({ id: "user_123" }).avatar.$post({
+const response = await api.users._id.avatar.$post({
+  param: { id: "user_123" },
   body: formBody({
     label: "Profile Picture",
     file: avatarFile,

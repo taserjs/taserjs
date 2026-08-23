@@ -1,6 +1,8 @@
 import { describe, expectTypeOf, it } from "vitest";
 
+import { createClient } from "../src/client.js";
 import type {
+  BuildClientChain,
   Client,
   InferRequestType,
   InferResponseType,
@@ -137,6 +139,36 @@ type TestManifest = {
         };
       };
     };
+    "/index": {
+      GET: {
+        layoutChain: readonly ["/$"];
+        route: {
+          path: "/index";
+          method: "GET";
+          middlewares: readonly [];
+          $Infer: {
+            Input: {};
+            Output: ReplyOf<200, { isLiteralIndex: true }>;
+          };
+          handler: HelloHandler;
+        };
+      };
+    };
+    "/.well-known/jwks": {
+      GET: {
+        layoutChain: readonly ["/$"];
+        route: {
+          path: "/.well-known/jwks";
+          method: "GET";
+          middlewares: readonly [];
+          $Infer: {
+            Input: {};
+            Output: ReplyOf<200, { keys: string[] }>;
+          };
+          handler: HelloHandler;
+        };
+      };
+    };
   };
 };
 
@@ -145,6 +177,26 @@ type TestClient = Client<TestApp>;
 type DirectManifestClient = Client<TestManifest>;
 
 describe("client types", () => {
+  it("maps root route / methods directly to client root", () => {
+    expectTypeOf<TestClient>().toHaveProperty("$post");
+    expectTypeOf<DirectManifestClient>().toHaveProperty("$post");
+  });
+
+  it("maps literal /index to .index without colliding with root /", () => {
+    expectTypeOf<TestClient>().toHaveProperty("index");
+    expectTypeOf<TestClient["index"]>().toHaveProperty("$get");
+    type IndexJson = InferResponseType<TestClient["index"]["$get"]>;
+    expectTypeOf<IndexJson>().toEqualTypeOf<{ isLiteralIndex: true }>();
+  });
+
+  it("maps leading-dot routes to $ prefix (e.g. $well_known)", () => {
+    expectTypeOf<TestClient>().toHaveProperty("$well_known");
+    expectTypeOf<TestClient["$well_known"]>().toHaveProperty("jwks");
+    expectTypeOf<TestClient["$well_known"]["jwks"]>().toHaveProperty("$get");
+    type JwksJson = InferResponseType<TestClient["$well_known"]["jwks"]["$get"]>;
+    expectTypeOf<JwksJson>().toEqualTypeOf<{ keys: string[] }>();
+  });
+
   it("maps path segments to _id properties", () => {
     expectTypeOf<TestClient>().toHaveProperty("hello");
     expectTypeOf<TestClient["hello"]>().toHaveProperty("$get");
@@ -176,7 +228,7 @@ describe("client types", () => {
   });
 
   it("accepts formBody for object body schemas with files", () => {
-    type PostArgs = InferRequestType<TestClient["index"]["$post"]>;
+    type PostArgs = InferRequestType<TestClient["$post"]>;
     type PostBody = PostArgs["body"];
     expectTypeOf<PostBody>().toEqualTypeOf<FormBodyInput<{ name: string; file: File }>>();
     expectTypeOf(formBody({ name: "x", file: new File([], "a.txt") })).toMatchTypeOf<PostBody>();
@@ -195,13 +247,13 @@ describe("client types", () => {
   });
 
   it("prefers returns[200] schema over $Infer.Output", () => {
-    type SchemaWins = InferResponseType<TestClient["schema-wins"]["$get"]>;
+    type SchemaWins = InferResponseType<TestClient["schema_wins"]["$get"]>;
     expectTypeOf<SchemaWins>().toEqualTypeOf<{ fromSchema: true }>();
     expectTypeOf<SchemaWins>().not.toEqualTypeOf<{ fromHandler: true }>();
   });
 
   it("requires query and body when Input facets define required fields", () => {
-    type PostArgs = InferRequestType<TestClient["index"]["$post"]>;
+    type PostArgs = InferRequestType<TestClient["$post"]>;
     expectTypeOf<PostArgs>().toEqualTypeOf<{
       query: QueryWithOpen<{ page?: number; name: string }>;
       body: FormBodyInput<{ name: string; file: File }>;
@@ -209,7 +261,7 @@ describe("client types", () => {
   });
 
   it("allows extra open query keys when a query schema is defined", () => {
-    type PostCall = TestClient["index"]["$post"];
+    type PostCall = TestClient["$post"];
     expectTypeOf<PostCall>().toBeCallableWith({
       query: { name: "x", extra: "open" },
       body: formBody({ name: "x", file: new File([], "a.txt") }),
@@ -220,5 +272,47 @@ describe("client types", () => {
     type HelloCall = TestClient["hello"]["$get"];
     expectTypeOf<HelloCall>().toBeCallableWith();
     expectTypeOf<HelloCall>().toBeCallableWith({ query: { name: "x" } });
+  });
+
+  it("supports pre-nested generated ClientChain with BuildClientChain", () => {
+    type GeneratedChain = {
+      $get: { route: { $Infer: { Input: {}; Output: ReplyOf<200, { ok: true }> } } };
+      index: {
+        $get: { route: { $Infer: { Input: {}; Output: ReplyOf<200, { isLiteralIndex: true }> } } };
+      };
+      $well_known: {
+        jwks: {
+          $get: { route: { $Infer: { Input: {}; Output: ReplyOf<200, { keys: string[] }> } } };
+        };
+      };
+      users: {
+        _id: {
+          $get: {
+            route: {
+              $Infer: {
+                Input: { params: { id: string } };
+                Output: ReplyOf<200, { id: string }>;
+              };
+            };
+          };
+        };
+      };
+    };
+
+    type GenClient = BuildClientChain<GeneratedChain>;
+    expectTypeOf<GenClient>().toHaveProperty("$get");
+    expectTypeOf<GenClient>().toHaveProperty("index");
+    expectTypeOf<GenClient["index"]>().toHaveProperty("$get");
+    expectTypeOf<GenClient>().toHaveProperty("$well_known");
+    expectTypeOf<GenClient["$well_known"]["jwks"]>().toHaveProperty("$get");
+    expectTypeOf<GenClient["users"]["_id"]>().toHaveProperty("$get");
+
+    type UsersIdGet = InferRequestType<GenClient["users"]["_id"]["$get"]>;
+    expectTypeOf<UsersIdGet>().toEqualTypeOf<{ param: { id: string }; query?: OpenQuery }>();
+  });
+
+  it("automatically detects client types from ambient RouterRegister with zero type arguments", () => {
+    const client = createClient({ baseUrl: "http://localhost:3000" });
+    expectTypeOf(client).toBeObject();
   });
 });

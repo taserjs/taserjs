@@ -39,6 +39,17 @@ export function tsTypeReference(name: string): TSESTree.TSTypeReference {
   });
 }
 
+export function tsIndexedAccessType(
+  objectType: TSESTree.TypeNode,
+  indexType: TSESTree.TypeNode,
+): TSESTree.TSIndexedAccessType {
+  return asNode<TSESTree.TSIndexedAccessType>({
+    type: AST_NODE_TYPES.TSIndexedAccessType,
+    objectType,
+    indexType,
+  });
+}
+
 export function tsUnionType(members: TSESTree.TypeNode[]): TSESTree.TypeNode {
   if (members.length === 0) {
     return asNode<TSESTree.TSNeverKeyword>({ type: AST_NODE_TYPES.TSNeverKeyword });

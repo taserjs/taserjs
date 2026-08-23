@@ -1,17 +1,57 @@
-import type {
-  InferAppManifest,
-  InferOutput,
-  ReturnsMap,
-  RouteManifestShape,
-  Schema,
-  Simplify,
-} from "@taserjs/router";
-import type { SuccessReplyData } from "@taserjs/router/reply";
-
 import type { FormBody, FormBodyField, FormBodyInput } from "./form-body.js";
 import type { HttpMethodName } from "./constants/methods.js";
 
 export type { HttpMethodName };
+
+export type Simplify<T> = { [K in keyof T]: T[K] } & {};
+
+export type RouteManifestShape = {
+  layouts?: Record<string, unknown>;
+  routes: Record<string, Record<string, unknown>>;
+};
+
+export type ReturnsMap = Record<number, unknown>;
+
+export type Schema<T = unknown> =
+  | { readonly "~standard": unknown }
+  | { parse(data: unknown): T }
+  | { _output: T };
+
+export type InferOutput<T> = T extends {
+  readonly "~standard": { readonly types?: infer Types };
+}
+  ? NonNullable<Types> extends { readonly output?: infer O }
+    ? O
+    : T extends { _output: infer O }
+      ? O
+      : T extends { parse(data: unknown): infer O }
+        ? O
+        : unknown
+  : T extends { _output: infer O }
+    ? O
+    : T extends { parse(data: unknown): infer O }
+      ? O
+      : unknown;
+
+export type SuccessReplyData<R> =
+  R extends { readonly status: infer S; readonly data: infer B }
+    ? S extends 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207 | 208 | 226
+      ? B
+      : never
+    : never;
+
+export type InferAppManifest<TApp> =
+  TApp extends { __manifest?: infer TManifest }
+    ? TManifest
+    : TApp extends { manifest: infer TManifest }
+      ? TManifest
+      : TApp extends RouteManifestShape
+        ? TApp
+        : never;
+
+declare module "@taserjs/router" {
+  interface RouterRegister {}
+}
 
 export type OpenQuery = Record<string, string | number | boolean | string[]>;
 
@@ -98,36 +138,38 @@ type MethodToClientKey = {
   HEAD: "$head";
 };
 
-type ClientMethodFn<_Path extends string, _Method extends string, Entry> =
+export type ClientMethodFn<Entry> =
   HasRequiredKeys<ClientArgsFor<Entry>> extends true
     ? (args: ClientArgsFor<Entry>, options?: ClientRequestOptions) => ClientMethodReturn<Entry>
     : (args?: ClientArgsFor<Entry>, options?: ClientRequestOptions) => ClientMethodReturn<Entry>;
 
-type ClientMethodsForPath<Path extends string, Methods> = {
-  [M in keyof Methods & HttpMethodName as MethodToClientKey[M]]: ClientMethodFn<
-    Path,
-    M,
-    Methods[M]
-  >;
+type ClientMethods<Methods> = {
+  [M in keyof Methods & HttpMethodName as MethodToClientKey[M]]: ClientMethodFn<Methods[M]>;
 };
+
+type ReplaceHyphens<S extends string> = S extends `${infer A}-${infer B}`
+  ? `${A}_${ReplaceHyphens<B>}`
+  : S;
 
 type SegmentKey<Segment extends string> = Segment extends `:${infer Name}`
   ? `_${Name}`
   : Segment extends "*"
     ? "_splat"
-    : Segment extends ""
-      ? "index"
-      : Segment;
+    : Segment extends `.${infer DotName}`
+      ? `$${ReplaceHyphens<DotName>}`
+      : ReplaceHyphens<Segment>;
 
 type PathToChain<
   Path extends string,
   Methods,
   Remaining extends string = Path extends `/${infer R}` ? R : Path,
-> = Remaining extends `${infer Segment}/${infer Rest}`
-  ? { [K in SegmentKey<Segment>]: PathToChain<Path, Methods, Rest> }
-  : {
-      [K in SegmentKey<Remaining>]: ClientMethodsForPath<Path, Methods>;
-    };
+> = Remaining extends ""
+  ? ClientMethods<Methods>
+  : Remaining extends `${infer Segment}/${infer Rest}`
+    ? { [K in SegmentKey<Segment>]: PathToChain<Path, Methods, Rest> }
+    : {
+        [K in SegmentKey<Remaining>]: ClientMethods<Methods>;
+      };
 
 type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : never) extends (
   value: infer I,
@@ -145,12 +187,32 @@ type ClientFromRoutes<Manifest extends RouteManifestShape> = Manifest extends {
     >
   : never;
 
-export type Client<TApp> =
+export type BuildClientChain<T> = {
+  [K in keyof T]: K extends "$get" | "$post" | "$put" | "$patch" | "$delete" | "$options" | "$head"
+    ? ClientMethodFn<T[K]>
+    : BuildClientChain<T[K]>;
+};
+
+type RegisteredClientChain = import("@taserjs/router").RouterRegister extends {
+  ClientChain: infer C;
+}
+  ? [C] extends [never]
+    ? never
+    : BuildClientChain<C>
+  : never;
+
+type FallbackClient<TApp> =
   InferAppManifest<TApp> extends infer Manifest
     ? Manifest extends RouteManifestShape
-      ? Simplify<ClientFromRoutes<Manifest>>
+      ? ClientFromRoutes<Manifest>
       : never
     : never;
+
+export type Client<TApp = never> = [TApp] extends [never]
+  ? [RegisteredClientChain] extends [never]
+    ? Record<string, any>
+    : RegisteredClientChain
+  : FallbackClient<TApp>;
 
 export type InferRequestType<T> = T extends (
   args: infer R,

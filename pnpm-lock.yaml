@@ -41,6 +41,9 @@ importers:
       '@taserjs/router':
         specifier: workspace:*
         version: link:../../packages/router
+      '@taserjs/router-client':
+        specifier: workspace:*
+        version: link:../../packages/router-client
       dotenv:
         specifier: ^16.4.7
         version: 16.4.7

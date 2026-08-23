@@ -70,6 +70,7 @@ export function buildRouterRegisterAugmentation(): TSESTree.TSModuleDeclarationM
               tsPropertySignature(id("LayoutId"), tsTypeReference("LayoutIdGen")),
               tsPropertySignature(id("LayoutTree"), tsTypeReference("LayoutTreeGen")),
               tsPropertySignature(id("RouteByPathMethod"), tsTypeReference("RouteByPathMethodGen")),
+              tsPropertySignature(id("ClientChain"), tsTypeReference("ClientChainGen")),
             ],
           }),
         }),

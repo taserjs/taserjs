@@ -13,12 +13,12 @@ The `@taserjs/router-client` package provides an end-to-end typed client proxy S
 
 ## Core Functions
 
-### `createClient<TApp>(options)`
+### `createClient<TApp = never>(options)`
 
-Creates an auto-completing typed proxy client bound to your backend router type:
+Creates an auto-completing typed proxy client. When called with zero generic type arguments in a Taser project, it automatically infers all routes and schemas from ambient generated declarations:
 
 ```ts
-function createClient<TApp>(options: CreateClientOptions): Client<TApp>;
+function createClient<TApp = never>(options: CreateClientOptions): Client<TApp>;
 ```
 
 #### Options (`CreateClientOptions`)

@@ -47,12 +47,18 @@ type RouteByPathMethodGen = {
 	 }
  };
 
+type ClientChainGen = { 
+	$get: RouteByPathMethodGen["/"]["GET"];
+	posts: { _id: { $get: RouteByPathMethodGen["/posts/:id"]["GET"] } }
+ };
+
 declare module "@taserjs/router" {
 	interface RouterRegister {
 		RoutePath: RoutePathGen;
 		LayoutId: LayoutIdGen;
 		LayoutTree: LayoutTreeGen;
-		RouteByPathMethod: RouteByPathMethodGen
+		RouteByPathMethod: RouteByPathMethodGen;
+		ClientChain: ClientChainGen
 	}
 }
 

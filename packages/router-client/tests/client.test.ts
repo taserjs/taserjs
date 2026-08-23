@@ -5,10 +5,23 @@ import { applyPathParams, buildSearchParams, joinUrl, resolveHeaders } from "../
 
 describe("url utils", () => {
   it("joins base url and segments", () => {
+    expect(joinUrl("http://localhost:3000/api", [])).toBe("http://localhost:3000/api/");
     expect(joinUrl("http://localhost:3000/api", ["hello"])).toBe("http://localhost:3000/api/hello");
-    expect(joinUrl("http://localhost:3000/api/", ["index"])).toBe("http://localhost:3000/api/");
+    expect(joinUrl("http://localhost:3000/api", ["index"])).toBe("http://localhost:3000/api/index");
     expect(joinUrl("http://localhost:3000/api", ["account", "team"])).toBe(
       "http://localhost:3000/api/account/team",
+    );
+    expect(joinUrl("http://localhost:3000/api", ["gallery", "index", "list"])).toBe(
+      "http://localhost:3000/api/gallery/index/list",
+    );
+    expect(joinUrl("http://localhost:3000/api", ["$well_known", "jwks"])).toBe(
+      "http://localhost:3000/api/.well-known/jwks",
+    );
+    expect(joinUrl("http://localhost:3000/api", ["$well_known", "openid_configuration"])).toBe(
+      "http://localhost:3000/api/.well-known/openid-configuration",
+    );
+    expect(joinUrl("http://localhost:3000/api", ["user_profiles", "active_users"])).toBe(
+      "http://localhost:3000/api/user-profiles/active-users",
     );
   });
 
@@ -118,5 +131,73 @@ describe("createClient", () => {
     expect(anyClient.hello).toBe(anyClient.hello);
     expect(anyClient.posts._id).toBe(anyClient.posts._id);
     expect(anyClient.posts).toBe(anyClient.posts);
+  });
+
+  it("preserves mid-path index segment during client request", async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response("ok"));
+    const client = createClient({
+      baseUrl: "http://localhost:3000/api",
+      fetch: fetchMock,
+    });
+
+    const anyClient = client as unknown as {
+      gallery: {
+        index: {
+          list: {
+            $get: () => Promise<Response>;
+          };
+        };
+      };
+    };
+
+    await anyClient.gallery.index.list.$get();
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as FetchCall;
+    expect(url).toBe("http://localhost:3000/api/gallery/index/list");
+    expect(init?.method).toBe("GET");
+  });
+
+  it("supports root $get call directly on client", async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response("ok"));
+    const client = createClient({
+      baseUrl: "http://localhost:3000/api",
+      fetch: fetchMock,
+    });
+
+    const anyClient = client as unknown as {
+      $get: () => Promise<Response>;
+      index: { $get: () => Promise<Response> };
+    };
+
+    await anyClient.$get();
+    let [url] = fetchMock.mock.calls[0] as unknown as FetchCall;
+    expect(url).toBe("http://localhost:3000/api/");
+
+    await anyClient.index.$get();
+    [url] = fetchMock.mock.calls[1] as unknown as FetchCall;
+    expect(url).toBe("http://localhost:3000/api/index");
+  });
+
+  it("supports $ leading dots and hyphen translation in client calls", async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response("ok"));
+    const client = createClient({
+      baseUrl: "http://localhost:3000/api",
+      fetch: fetchMock,
+    });
+
+    const anyClient = client as unknown as {
+      $well_known: {
+        jwks: { $get: () => Promise<Response> };
+        openid_configuration: { $get: () => Promise<Response> };
+      };
+    };
+
+    await anyClient.$well_known.jwks.$get();
+    let [url] = fetchMock.mock.calls[0] as unknown as FetchCall;
+    expect(url).toBe("http://localhost:3000/api/.well-known/jwks");
+
+    await anyClient.$well_known.openid_configuration.$get();
+    [url] = fetchMock.mock.calls[1] as unknown as FetchCall;
+    expect(url).toBe("http://localhost:3000/api/.well-known/openid-configuration");
   });
 });

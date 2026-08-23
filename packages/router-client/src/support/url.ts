@@ -8,9 +8,22 @@ export function clientMethodToHttp(method: string): string {
   return method.slice(1).toUpperCase();
 }
 
+export function decodeClientSegment(segment: string): string {
+  if (segment === "_splat" || segment.startsWith("_")) {
+    return segment;
+  }
+  if (segment.startsWith("$")) {
+    return `.${segment.slice(1).replaceAll("_", "-")}`;
+  }
+  return segment.replaceAll("_", "-");
+}
+
 export function joinUrl(baseUrl: string, segments: string[]): string {
-  const base = baseUrl.replace(/\/+$/, "");
-  const path = segments.filter((segment) => segment.length > 0 && segment !== "index").join("/");
+  const base = baseUrl.endsWith("/") ? baseUrl.replace(/\/+$/, "") : baseUrl;
+  const decoded = segments
+    .filter((segment) => segment.length > 0)
+    .map(decodeClientSegment);
+  const path = decoded.join("/");
   if (path === "") {
     return `${base}/`;
   }

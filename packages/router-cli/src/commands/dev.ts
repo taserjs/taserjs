@@ -13,9 +13,7 @@ export async function runDev(argv: Record<string, any>): Promise<void> {
   });
 
   const server = createDevServer(nitro);
-  const listener = server.listen();
+  server.listen();
   await build(nitro);
 
-  const url = (listener as any)?.url || "http://localhost:3000/";
-  console.log(`\n  ⚡ \x1b[32m\x1b[1mTaser dev server ready\x1b[0m at \x1b[36m${url}\x1b[0m\n`);
 }
