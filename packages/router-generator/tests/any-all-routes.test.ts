@@ -39,7 +39,7 @@ export const Route = t.all('/order').handler(() => reply.json({ ok: true }))
 `,
     );
 
-    const files = await walkRouteFiles(routesDir, testGeneratorConfig);
+    const files = await walkRouteFiles(routesDir, testGeneratorConfig.ignore);
     const scan = await scanRouteFiles(routesDir, "./routes", files, {
       ...testGeneratorConfig,
       validate: true,
@@ -75,7 +75,7 @@ export const Route = t.any('/order', []).handler(() => reply.json({ ok: true }))
 `,
     );
 
-    const files = await walkRouteFiles(routesDir, testGeneratorConfig);
+    const files = await walkRouteFiles(routesDir, testGeneratorConfig.ignore);
     await expect(
       scanRouteFiles(routesDir, "./routes", files, {
         ...testGeneratorConfig,
@@ -93,7 +93,7 @@ export const Route = createAnyRoute('/order', ['GET']).handler(() => reply.json(
 `,
     );
 
-    const files = await walkRouteFiles(routesDir, testGeneratorConfig);
+    const files = await walkRouteFiles(routesDir, testGeneratorConfig.ignore);
     await expect(
       scanRouteFiles(routesDir, "./routes", files, {
         ...testGeneratorConfig,

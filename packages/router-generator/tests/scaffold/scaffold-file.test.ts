@@ -4,8 +4,9 @@ import { tmpdir } from "node:os";
 
 import { describe, expect, it } from "vitest";
 
-import { CONFIG_FILE_NAME, DEFAULT_ENTRY } from "../../src/constants.js";
-import { Generator } from "../../src/generator/generator.js";
+import { DEFAULT_ENTRY } from "../../src/constants.js";
+import { scanAndBuildModel } from "../../src/generator/scan-and-build.js";
+import { emitVirtualManifestSource } from "../../src/codegen/emit-route-manifest.js";
 import { scaffoldRouteFile, scaffoldRouteFileAtPath } from "../../src/scaffold/scaffold-file.js";
 
 const scaffoldOptions = { entry: DEFAULT_ENTRY };
@@ -100,25 +101,18 @@ describe("scaffold integration", () => {
   it("scaffolds empty route before manifest generation", async () => {
     const configDir = mkdtempSync(join(tmpdir(), "taser-scaffold-manifest-"));
     const routesDir = join(configDir, "routes");
-    const outputFile = join(configDir, "routeManifest.gen.ts");
     mkdirSync(routesDir, { recursive: true });
 
     const routePath = join(routesDir, "hello.get.ts");
     writeFileSync(routePath, "");
 
-    await scaffoldRouteFile(routesDir, routePath, scaffoldOptions);
+    // Scaffolding is an explicit write step, decoupled from the scan read path.
+    await scaffoldRouteFile(routesDir, routePath, { entry: "#src/taser.js" });
 
-    const generator = new Generator({
-      configFile: join(configDir, CONFIG_FILE_NAME),
-      routes: routesDir,
-      output: outputFile,
-      validate: true,
-      format: false,
-    });
-    const result = await generator.run();
+    const model = await scanAndBuildModel({ routesDir });
 
-    expect(result.written).toBe(true);
-    const manifest = readFileSync(outputFile, "utf8");
+    const manifest = emitVirtualManifestSource(model);
     expect(manifest).toContain("/hello");
+    expect(readFileSync(routePath, "utf8")).toContain("t.get('/hello')");
   });
 });

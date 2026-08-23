@@ -3,7 +3,7 @@ export type {
   DbOdm,
   LoggerId,
   PackageGroups,
-  ProjectType,
+  Preset,
   ScaffoldOptions,
   ScaffoldResult,
   ValidatorId,

@@ -26,7 +26,7 @@ describe("scanRouteFiles errors", () => {
     mkdirSync(join(routesDir, "posts"));
     writeFileSync(join(routesDir, "posts", "index.get.ts"), "export const Route = null;\n");
 
-    const files = await walkRouteFiles(routesDir, testGeneratorConfig);
+    const files = await walkRouteFiles(routesDir, testGeneratorConfig.ignore);
 
     await expect(scanRouteFiles(routesDir, "./routes", files, testGeneratorConfig)).rejects.toThrow(
       ScanErrorCollection,
@@ -37,7 +37,7 @@ describe("scanRouteFiles errors", () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-invalid-param-"));
     writeFileSync(join(routesDir, "items.$bad-name.get.ts"), "export const Route = null;\n");
 
-    const files = await walkRouteFiles(routesDir, testGeneratorConfig);
+    const files = await walkRouteFiles(routesDir, testGeneratorConfig.ignore);
 
     await expect(scanRouteFiles(routesDir, "./routes", files, testGeneratorConfig)).rejects.toThrow(
       ScanErrorCollection,
@@ -48,7 +48,7 @@ describe("scanRouteFiles errors", () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-export-validation-"));
     writeFileSync(join(routesDir, "posts.get.ts"), "export const Route = null;\n");
 
-    const files = await walkRouteFiles(routesDir, testGeneratorConfig);
+    const files = await walkRouteFiles(routesDir, testGeneratorConfig.ignore);
 
     await expect(
       scanRouteFiles(routesDir, "./routes", files, {

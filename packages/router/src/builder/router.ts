@@ -60,10 +60,13 @@ type RouterState = {
 
 const emptyContext: ContextDefinition<Record<string, unknown>, Record<string, unknown>> = {};
 
-export class TaserRouter<TAppContext extends Record<string, unknown> = AppContext> {
+export class TaserRouter<
+  TAppContext extends Record<string, unknown> = AppContext,
+  TOptions extends CreateTaserAppOptions = CreateTaserAppOptions,
+> {
   private readonly state: RouterState;
 
-  constructor(options: CreateTaserAppOptions = {}, state?: Partial<Omit<RouterState, "options">>) {
+  constructor(options: TOptions = {} as TOptions, state?: Partial<Omit<RouterState, "options">>) {
     this.state = {
       options,
       contextDef: state?.contextDef ?? emptyContext,
@@ -74,9 +77,9 @@ export class TaserRouter<TAppContext extends Record<string, unknown> = AppContex
 
   context<TBoot extends Record<string, unknown>, TReq extends Record<string, unknown>>(
     definition: ContextDefinition<TBoot, TReq>,
-  ): TaserRouter<TBoot & TReq> {
+  ): TaserRouter<TBoot & TReq, TOptions> {
     this.state.contextDef = definition;
-    return this as unknown as TaserRouter<TBoot & TReq>;
+    return this as unknown as TaserRouter<TBoot & TReq, TOptions>;
   }
 
   onError<TResponses extends ReturnsMap = ReturnsMap>(
@@ -273,7 +276,9 @@ export class TaserRouter<TAppContext extends Record<string, unknown> = AppContex
     return defineMiddleware(first, second);
   }
 
-  create<const TManifest extends RouteManifestShape>(manifest: TManifest): TaserApp<TManifest> {
+  create<const TManifest extends RouteManifestShape>(
+    manifest: TManifest,
+  ): TaserApp<TManifest, TOptions extends { passThroughOnMiss: true } ? true : false> {
     const definition = this.state.contextDef;
     const validateResponse = this.state.options.response?.validate ?? true;
     const onValidationFailure = this.state.options.response?.onValidationFailure;
@@ -329,6 +334,9 @@ export class TaserRouter<TAppContext extends Record<string, unknown> = AppContex
 
     const runtime = createTaserRuntime(manifest, contextFactory, {
       ...(basePath !== undefined ? { basePath } : {}),
+      ...(this.state.options.passThroughOnMiss !== undefined
+        ? { passThroughOnMiss: this.state.options.passThroughOnMiss }
+        : {}),
       response: {
         validate: validateResponse,
         ...(onValidationFailure !== undefined ? { onValidationFailure } : {}),
@@ -338,10 +346,15 @@ export class TaserRouter<TAppContext extends Record<string, unknown> = AppContex
       ...(this.state.options.cookies !== undefined ? { cookies: this.state.options.cookies } : {}),
     });
 
-    return new TaserApp(runtime, manifest);
+    return new TaserApp(runtime, manifest) as TaserApp<
+      TManifest,
+      TOptions extends { passThroughOnMiss: true } ? true : false
+    >;
   }
 }
 
-export function createTaserApp(options: CreateTaserAppOptions = {}): TaserRouter {
+export function createTaserApp<
+  const TOptions extends CreateTaserAppOptions = CreateTaserAppOptions,
+>(options: TOptions = {} as TOptions): TaserRouter<AppContext, TOptions> {
   return new TaserRouter(options);
 }

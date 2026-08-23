@@ -12,7 +12,7 @@ import {
 import {
   parseDbFlag,
   parseLoggerFlag,
-  parseTypeFlag,
+  parsePresetFlag,
   parseValidatorFlag,
   type ParsedCreateArgs,
   resolveScaffoldDefaults,
@@ -22,16 +22,16 @@ import type {
   DbDriver,
   DbOdm,
   LoggerId,
-  ProjectType,
+  Preset,
   ScaffoldResult,
   ValidatorId,
 } from "../core/types.js";
-import { DB_DRIVERS, DB_ODMS, LOGGERS, PROJECT_TYPES, VALIDATORS } from "../core/types.js";
+import { DB_DRIVERS, DB_ODMS, LOGGERS, PRESETS, VALIDATORS } from "../core/types.js";
 import { validateProjectName } from "../core/validate-project-name.js";
 import { resolveUserAgent, runScript } from "../core/package-manager.js";
 
-function isProjectType(value: unknown): value is ProjectType {
-  return typeof value === "string" && (PROJECT_TYPES as readonly string[]).includes(value);
+function isPreset(value: unknown): value is Preset {
+  return typeof value === "string" && (PRESETS as readonly string[]).includes(value);
 }
 
 function isDbOdm(value: unknown): value is DbOdm {
@@ -67,12 +67,12 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
     process.exit(0);
   }
 
-  const type =
-    args.type ??
+  const preset =
+    args.preset ??
     (await p.select({
-      message: "Project type (runtime / framework)",
+      message: "Deployment preset / host framework",
       options: [
-        { value: "node", label: "Node.js", hint: "default" },
+        { value: "node", label: "Node.js (Pure Taser)", hint: "default" },
         { value: "express", label: "Express" },
         { value: "fastify", label: "Fastify" },
         { value: "hono", label: "Hono" },
@@ -88,7 +88,7 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
       initialValue: "node",
     }));
 
-  if (p.isCancel(type) || !isProjectType(type)) {
+  if (p.isCancel(preset) || !isPreset(preset)) {
     p.cancel("Scaffold cancelled.");
     process.exit(0);
   }
@@ -182,7 +182,7 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
 
   return {
     projectName: String(projectName).trim(),
-    type,
+    preset,
     yes: args.yes,
     noInstall: args.noInstall,
     json: args.json,
@@ -207,7 +207,7 @@ export async function runCreateCommand(
     : {
         ...args,
         projectName: args.projectName?.trim(),
-        type: args.type ?? "node",
+        preset: args.preset ?? "node",
       };
 
   if (!resolved.projectName) {
@@ -268,11 +268,11 @@ export async function runCreateCommand(
 
 export function buildParsedArgsFromCli(
   values: {
-    type?: string;
-    framework?: string;
+    preset?: string;
     db?: string;
     logger?: string;
     validator?: string;
+    bare?: boolean;
     y?: boolean;
     noInstall?: boolean;
     json?: boolean;
@@ -283,15 +283,15 @@ export function buildParsedArgsFromCli(
     yes: values.y ?? false,
     noInstall: values.noInstall ?? false,
     json: values.json ?? false,
+    ...(values.bare !== undefined ? { bare: values.bare } : {}),
   };
 
   if (positionals[0]) {
     args.projectName = positionals[0];
   }
 
-  const typeFlag = values.type ?? values.framework;
-  if (typeFlag) {
-    args.type = parseTypeFlag(typeFlag);
+  if (values.preset) {
+    args.preset = parsePresetFlag(values.preset);
   }
 
   if (values.db) {

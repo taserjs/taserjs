@@ -4,9 +4,11 @@ export type { HttpVerb, RouteFileMethod } from "./http.js";
 export { HTTP_VERBS, ROUTE_VERB_PATTERN } from "./http.js";
 
 export type {
-  GeneratorConfigFile,
-  GeneratorRunOptions,
-  ResolvedGeneratorConfig,
+  TaserOptions,
+  TaserUserOptions,
+  TaserConfig,
+  TaserUserConfig,
+  ExtensionOption,
 } from "../config/schema.js";
 
 export interface LayoutFile {

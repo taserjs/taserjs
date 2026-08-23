@@ -7,12 +7,10 @@
       "@taserjs/router-utils",
       "@taserjs/router-core",
       "@taserjs/router",
-      "@taserjs/adapter-express",
-      "@taserjs/adapter-fastify",
-      "@taserjs/adapter-node",
       "@taserjs/router-generator",
       "@taserjs/router-cli",
-      "@taserjs/router-client"
+      "@taserjs/router-client",
+      "@taserjs/vite-plugin"
     ]
   ],
   "linked": [],

@@ -1,212 +1,91 @@
-import type { ProjectType } from "../core/types.js";
+import type { Preset } from "../core/types.js";
 
-export function indexTemplate(type: ProjectType): string {
-  switch (type) {
-    case "express":
-      return `import 'dotenv/config'
-
-import express from 'express'
-import { createExpressHandler } from '@taserjs/adapter-express'
-
-import { routeManifest } from '#src/routeManifest.gen.js'
-import { t } from '#src/taser.js'
-
-const router = t.create(routeManifest)
-
-const taser = createExpressHandler(router)
-const app = express()
-taser.mount('/{*splat}', app)
-
-const port = Number(process.env.PORT ?? 3000)
-app.listen(port, () => {
-  console.log(\`Express listening on http://localhost:\${port}\`)
-})
-`;
+export function serverEntryTemplate(preset: Preset): { fileName: string; content: string } | null {
+  switch (preset) {
     case "hono":
-      return `import 'dotenv/config'
-
-import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
-
-import { routeManifest } from '#src/routeManifest.gen.js'
-import { t } from '#src/taser.js'
-
-const router = t.create(routeManifest)
+      return {
+        fileName: "src/server.ts",
+        content: `import { Hono } from 'hono'
 
 const app = new Hono()
-app.all('/*', c => router.fetch(c.req.raw))
 
-const port = Number(process.env.PORT ?? 3000)
-serve({ fetch: app.fetch, port }, () => {
-  console.log(\`Hono listening on http://localhost:\${port}\`)
+app.get('/host', (c) => {
+  return c.text('Hello from Hono host!')
 })
-`;
+
+export default app
+`,
+      };
+    case "express":
+      return {
+        fileName: "src/server.node.ts",
+        content: `import express from 'express'
+
+const app = express()
+
+app.get('/host', (_req, res) => {
+  res.json({ message: 'Hello from Express host!' })
+})
+
+export default app
+`,
+      };
     case "fastify":
-      return `import 'dotenv/config'
+      return {
+        fileName: "src/server.node.ts",
+        content: `import Fastify from 'fastify'
 
-import Fastify from 'fastify'
-import { createFastifyHandler } from '@taserjs/adapter-fastify'
-
-import { routeManifest } from '#src/routeManifest.gen.js'
-import { t } from '#src/taser.js'
-
-const router = t.create(routeManifest)
-
-const taser = createFastifyHandler(router)
 const app = Fastify()
-taser.mount('/*', app)
 
-const port = Number(process.env.PORT ?? 3000)
-await app.listen({ port })
-console.log(\`Fastify listening on http://localhost:\${port}\`)
-`;
-    case "bun":
-      return `import 'dotenv/config'
-
-import { routeManifest } from '#src/routeManifest.gen.js'
-import { t } from '#src/taser.js'
-
-const router = t.create(routeManifest)
-
-const port = Number(process.env.PORT ?? 3000)
-
-export default {
-  port,
-  fetch(request: Request) {
-    return router.fetch(request)
-  },
-}
-`;
-    case "deno":
-      return `import 'dotenv/config'
-
-import { routeManifest } from '#src/routeManifest.gen.js'
-import { t } from '#src/taser.js'
-
-const router = t.create(routeManifest)
-
-const port = Number(process.env.PORT ?? 8000)
-Deno.serve({ port }, (request: Request) => router.fetch(request))
-`;
-    case "aws-lambda":
-      return `import 'dotenv/config'
-
-import { Hono } from 'hono'
-import { handle } from 'hono/aws-lambda'
-
-import { routeManifest } from '#src/routeManifest.gen.js'
-import { t } from '#src/taser.js'
-
-const router = t.create(routeManifest)
-
-const app = new Hono()
-app.all('/*', c => router.fetch(c.req.raw))
-
-export const handler = handle(app)
-`;
-    case "cloudflare-workers":
-      return `import 'dotenv/config'
-
-import { routeManifest } from '#src/routeManifest.gen.js'
-import { t } from '#src/taser.js'
-
-const router = t.create(routeManifest)
-
-export default {
-  fetch(request: Request, env: unknown, ctx: unknown) {
-    return router.fetch(request, env, ctx)
-  },
-}
-`;
-    case "netlify":
-      return `import 'dotenv/config'
-
-import { Hono } from 'hono'
-import { handle } from 'hono/netlify'
-
-import { routeManifest } from '#src/routeManifest.gen.js'
-import { t } from '#src/taser.js'
-
-const router = t.create(routeManifest)
-
-const app = new Hono()
-app.all('/*', c => router.fetch(c.req.raw))
-
-export default handle(app)
-`;
-    case "vercel":
-      return `import 'dotenv/config'
-
-import { Hono } from 'hono'
-import { handle } from 'hono/vercel'
-
-import { routeManifest } from '#src/routeManifest.gen.js'
-import { t } from '#src/taser.js'
-
-const router = t.create(routeManifest)
-
-const app = new Hono()
-app.all('/*', c => router.fetch(c.req.raw))
-
-export default handle(app)
-`;
-    case "azure-functions":
-      return `import 'dotenv/config'
-
-import { app } from '@azure/functions'
-import { Hono } from 'hono'
-import { azureHonoHandler } from '@marplex/hono-azurefunc-adapter'
-
-import { routeManifest } from '#src/routeManifest.gen.js'
-import { t } from '#src/taser.js'
-
-const router = t.create(routeManifest)
-
-const honoApp = new Hono()
-honoApp.all('/*', c => router.fetch(c.req.raw))
-
-app.http('httpTrigger', {
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'],
-  authLevel: 'anonymous',
-  route: '{*proxy}',
-  handler: azureHonoHandler(honoApp.fetch),
+app.get('/host', async (_req, reply) => {
+  return { message: 'Hello from Fastify host!' }
 })
-`;
-    case "google-cloud-run":
-      return `import 'dotenv/config'
 
-import { serve } from '@hono/node-server'
-
-import { routeManifest } from '#src/routeManifest.gen.js'
-import { t } from '#src/taser.js'
-
-const router = t.create(routeManifest)
-
-const port = Number(process.env.PORT ?? 8080)
-serve({ fetch: router.fetch, port }, () => {
-  console.log(\`Cloud Run listening on http://localhost:\${port}\`)
-})
-`;
-    case "node":
+export default app
+`,
+      };
     default:
-      return `import 'dotenv/config'
-
-import { serve } from '@hono/node-server'
-
-import { routeManifest } from '#src/routeManifest.gen.js'
-import { t } from '#src/taser.js'
-
-const router = t.create(routeManifest)
-
-const port = Number(process.env.PORT ?? 3000)
-serve({ fetch: router.fetch, port }, () => {
-  console.log(\`Node listening on http://localhost:\${port}\`)
-})
-`;
+      return null;
   }
 }
 
-export function taserTsTemplate(_type: ProjectType = "node"): string {
+export function nitroPresetForPreset(preset: Preset): string {
+  switch (preset) {
+    case "cloudflare-workers":
+      return "cloudflare-module";
+    case "vercel":
+      return "vercel";
+    case "aws-lambda":
+      return "aws-lambda";
+    case "netlify":
+      return "netlify";
+    case "bun":
+      return "bun";
+    case "deno":
+      return "deno";
+    case "azure-functions":
+      return "azure-functions";
+    case "google-cloud-run":
+    case "node":
+    case "express":
+    case "fastify":
+    case "hono":
+    default:
+      return "node-server";
+  }
+}
+
+export function nitroConfigTemplate(preset: Preset): string {
+  const nitroPreset = nitroPresetForPreset(preset);
+  return `import { defineConfig } from 'nitro/config'
+
+export default defineConfig({
+  preset: '${nitroPreset}',
+})
+`;
+}
+
+export function taserTsTemplate(_preset: Preset = "node"): string {
   return `import { createTaserApp } from '@taserjs/router'
 
 import { context } from '#src/context.js'

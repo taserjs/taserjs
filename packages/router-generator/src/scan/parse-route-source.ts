@@ -1,4 +1,4 @@
-import { parseSync } from "oxc-parser";
+import { parse, parseSync } from "oxc-parser";
 
 import { HTTP_VERBS } from "../constants.js";
 import type { HttpVerb, RouteFileMethod } from "../types/http.js";
@@ -228,6 +228,20 @@ function parseProgram(
   return { program: result.program as unknown as OxcNode };
 }
 
+async function parseProgramAsync(
+  source: string,
+  rawRel: string,
+): Promise<{ program: OxcNode } | { errors: ScanError[] }> {
+  // oxc's async parse offloads parsing to its native worker pool, keeping the
+  // main thread free while a cold scan processes many files concurrently.
+  const result = await parse(rawRel, source);
+  if (result.errors.length > 0) {
+    const message = result.errors.map((error) => error.message).join("; ");
+    return { errors: [new ScanError(`Failed to parse route file: ${message}`, rawRel)] };
+  }
+  return { program: result.program as unknown as OxcNode };
+}
+
 export function analyzeRouteFileSource(
   source: string,
   rawRel: string,
@@ -267,6 +281,67 @@ export function analyzeRouteFileSource(
 
 export function analyzeLayoutFileSource(source: string, rawRel: string): ParseRouteSourceResult {
   const parsed = parseProgram(source, rawRel);
+  if ("errors" in parsed) {
+    return { errors: parsed.errors };
+  }
+
+  const errors: ScanError[] = [];
+  const middlewareExport = findExportedConst(parsed.program, "Middleware");
+  if (!middlewareExport) {
+    errors.push(new ScanError("Layout file must export `Middleware`", rawRel));
+  }
+
+  const hasMiddleware = containsFactoryCall(parsed.program, "middleware");
+
+  if (!hasMiddleware) {
+    errors.push(new ScanError("Layout file must use `t.middleware(...)`", rawRel));
+  }
+
+  return { errors };
+}
+
+export async function analyzeRouteFileSourceAsync(
+  source: string,
+  rawRel: string,
+  method: RouteFileMethod,
+): Promise<ParseRouteSourceResult> {
+  const parsed = await parseProgramAsync(source, rawRel);
+  if ("errors" in parsed) {
+    return { errors: parsed.errors };
+  }
+
+  const errors: ScanError[] = [];
+  const routeExport = findExportedConst(parsed.program, "Route");
+  if (!routeExport) {
+    errors.push(new ScanError("Route file must export `Route`", rawRel));
+  }
+
+  const factoryMember = expectedFactoryMember(method);
+  const hasFactory = containsFactoryCall(parsed.program, factoryMember);
+
+  if (!hasFactory) {
+    const factoryName = createRouteFactoryName(method);
+    errors.push(
+      new ScanError(`Route file must use \`${factoryName}(...)\` for ${method} routes`, rawRel),
+    );
+  }
+
+  if (method === "ANY") {
+    const anyResult = parseAnyMethodsFromSource(parsed.program, rawRel);
+    return {
+      errors: [...errors, ...anyResult.errors],
+      ...(anyResult.anyMethods ? { anyMethods: anyResult.anyMethods } : {}),
+    };
+  }
+
+  return { errors };
+}
+
+export async function analyzeLayoutFileSourceAsync(
+  source: string,
+  rawRel: string,
+): Promise<ParseRouteSourceResult> {
+  const parsed = await parseProgramAsync(source, rawRel);
   if ("errors" in parsed) {
     return { errors: parsed.errors };
   }

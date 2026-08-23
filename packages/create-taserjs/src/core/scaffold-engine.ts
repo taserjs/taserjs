@@ -2,11 +2,11 @@ import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { collectBootBindings, resolveAddons } from "../addons/registry.js";
-import { indexTemplate, taserTsTemplate } from "../frameworks/index.js";
+import { nitroConfigTemplate, serverEntryTemplate, taserTsTemplate } from "../frameworks/index.js";
 import { installPackages, resolveUserAgent } from "./package-manager.js";
 import { writeProjectConfig } from "./project-config.js";
 import { resolvePackages } from "./resolve-packages.js";
-import type { ScaffoldOptions, ScaffoldResult } from "./types.js";
+import type { ScaffoldContext, ScaffoldOptions, ScaffoldResult } from "./types.js";
 import {
   contextTemplate,
   gitignoreTemplate,
@@ -14,9 +14,7 @@ import {
   indexRouteTemplate,
   packageJsonTemplate,
   rootLayoutTemplate,
-  starterManifestTemplate,
   tsconfigTemplate,
-  tsdownConfigTemplate,
 } from "../templates/base.js";
 
 async function write(filePath: string, contents: string): Promise<void> {
@@ -26,13 +24,17 @@ async function write(filePath: string, contents: string): Promise<void> {
 
 export async function scaffoldProject(options: ScaffoldOptions): Promise<ScaffoldResult> {
   const root = options.targetDir;
-  const ctx = {
+  const preset = options.preset ?? "node";
+  const bare = options.bare;
+
+  const ctx: ScaffoldContext = {
     projectName: options.projectName,
     targetDir: root,
-    type: options.type,
+    preset,
     ...(options.db ? { db: options.db, driver: options.driver } : {}),
     ...(options.logger ? { logger: options.logger } : {}),
     ...(options.validator ? { validator: options.validator } : {}),
+    ...(bare !== undefined ? { bare } : {}),
   };
 
   const addons = resolveAddons(ctx);
@@ -44,17 +46,23 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
     packageJsonTemplate(options.projectName, packages.scripts),
   );
   await write(path.join(root, "tsconfig.json"), tsconfigTemplate());
-  await write(path.join(root, "tsdown.config.ts"), tsdownConfigTemplate());
   await write(path.join(root, ".gitignore"), gitignoreTemplate());
   await write(path.join(root, "src/context.ts"), contextTemplate(bootBindings));
-  await write(path.join(root, "src/taser.ts"), taserTsTemplate(options.type));
-  await write(path.join(root, "src/index.ts"), indexTemplate(options.type));
+  await write(path.join(root, "src/taser.ts"), taserTsTemplate(preset));
   await write(path.join(root, "src/routes/$.ts"), rootLayoutTemplate());
   await write(path.join(root, "src/routes/index.get.ts"), indexRouteTemplate());
   await write(path.join(root, "src/routes/health.get.ts"), healthRouteTemplate(ctx));
-  await write(path.join(root, "src/routeManifest.gen.ts"), starterManifestTemplate());
 
-  if (options.type === "cloudflare-workers") {
+  const serverEntry = serverEntryTemplate(preset);
+  if (serverEntry) {
+    await write(path.join(root, serverEntry.fileName), serverEntry.content);
+  }
+
+  if (bare) {
+    await write(path.join(root, "nitro.config.ts"), nitroConfigTemplate(preset));
+  }
+
+  if (preset === "cloudflare-workers") {
     await write(
       path.join(root, "wrangler.jsonc"),
       JSON.stringify(
@@ -70,7 +78,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
     );
   }
 
-  if (options.type === "vercel") {
+  if (preset === "vercel") {
     await write(
       path.join(root, "vercel.json"),
       JSON.stringify(
@@ -83,7 +91,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
     );
   }
 
-  if (options.type === "azure-functions") {
+  if (preset === "azure-functions") {
     await write(
       path.join(root, "host.json"),
       JSON.stringify(

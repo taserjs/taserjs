@@ -532,5 +532,34 @@ describe("createTaserRuntime", () => {
         expect.stringMatching(/^logger-end:\d+ms$/),
       ]);
     });
+
+    it("returns undefined on route miss when passThroughOnMiss is true", async () => {
+      const manifest = {
+        layouts: {},
+        routes: {
+          "/exists": {
+            GET: {
+              layoutChain: [],
+              route: {
+                path: "/exists",
+                method: "GET" as const,
+                middlewares: [],
+                handler: () => reply.text("ok"),
+              },
+            },
+          },
+        },
+      };
+
+      const runtime = createTaserRuntime(manifest, () => ({}), {
+        passThroughOnMiss: true,
+      });
+
+      const matchedResponse = await runtime.fetch(new Request("http://localhost/exists"));
+      expect(matchedResponse?.status).toBe(200);
+
+      const missedResponse = await runtime.fetch(new Request("http://localhost/not-found"));
+      expect(missedResponse).toBeUndefined();
+    });
   });
 });

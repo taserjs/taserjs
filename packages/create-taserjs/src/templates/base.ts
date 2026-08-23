@@ -14,32 +14,15 @@ export function packageJsonTemplate(
       "#src/*": "./src/*",
     },
     scripts: {
-      dev: "run-p dev:server dev:taser",
-      "dev:server": "tsx watch src/index.ts",
-      "dev:taser": "taser watch",
-      start: "tsx src/index.ts",
+      dev: "taser dev",
+      build: "taser build",
       generate: "taser generate",
-      build: "taser generate && tsdown",
-      serve: "node dist/index.mjs",
       typecheck: "tsc --noEmit -p tsconfig.json",
       ...scripts,
     },
   };
 
   return `${JSON.stringify(pkg, null, 2)}\n`;
-}
-
-export function tsdownConfigTemplate(): string {
-  return `import { defineConfig } from 'tsdown'
-
-export default defineConfig({
-  entry: ['./src/index.ts'],
-  platform: 'node',
-  outDir: 'dist',
-  clean: true,
-  sourcemap: true,
-})
-`;
 }
 
 export function tsconfigTemplate(): string {
@@ -58,7 +41,7 @@ export function tsconfigTemplate(): string {
         noEmit: true,
         types: ["node"],
       },
-      include: ["src"],
+      include: ["src", ".taser/types/**/*.d.ts"],
     },
     null,
     2,
@@ -68,6 +51,8 @@ export function tsconfigTemplate(): string {
 export function gitignoreTemplate(): string {
   return `node_modules
 dist
+.output
+.taser
 .DS_Store
 *.log
 .env
@@ -147,72 +132,5 @@ export type RouteContext = typeof GET.$Infer.Context
 export const Route = GET.handler(${ctxArg} => {
 ${body}  return reply.json({ ok: true })
 })
-`;
-}
-
-/** Minimal placeholder until `taser generate` runs. */
-export function starterManifestTemplate(): string {
-  return `/* eslint-disable */
-// Run \`pnpm generate\` (taser generate) to replace this file.
-import { Middleware as RootSplatLayoutImport } from './routes/$.js'
-import { Route as RootIndexGetRouteImport } from './routes/index.get.js'
-import { Route as HealthGetRouteImport } from './routes/health.get.js'
-
-export const routeManifest = {
-  layouts: {
-    '/$': {
-      middlewares: RootSplatLayoutImport,
-    },
-  },
-  routes: {
-    '/': {
-      GET: {
-        layoutChain: ['/$'],
-        route: RootIndexGetRouteImport,
-      },
-    },
-    '/health': {
-      GET: {
-        layoutChain: ['/$'],
-        route: HealthGetRouteImport,
-      },
-    },
-  },
-} as const
-
-export type RoutePathGen = '/' | '/health'
-export type LayoutIdGen = '/$'
-export type LayoutTreeGen = {
-  '/$': {
-    parent: null
-    middlewares: typeof RootSplatLayoutImport
-  }
-}
-export type RouteByPathMethodGen = {
-  '/': {
-    GET: {
-      parent: '/$'
-      layoutChain: ['/$']
-      route: typeof RootIndexGetRouteImport
-    }
-  }
-  '/health': {
-    GET: {
-      parent: '/$'
-      layoutChain: ['/$']
-      route: typeof HealthGetRouteImport
-    }
-  }
-}
-export type RouteManifest = typeof routeManifest
-
-declare module '@taserjs/router' {
-  interface RouterRegister {
-    RoutePath: RoutePathGen
-    LayoutId: LayoutIdGen
-    LayoutTree: LayoutTreeGen
-    RouteByPathMethod: RouteByPathMethodGen
-  }
-}
 `;
 }

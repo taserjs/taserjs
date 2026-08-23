@@ -17,7 +17,7 @@ pnpm create taserjs@latest
 npx jsr @taserjs/create
 ```
 
-This will scaffold a new Taser application with your choice of framework adapter and optional add-ons.
+This will scaffold a new Taser application with your choice of deployment preset and optional add-ons.
 
 ## License
 

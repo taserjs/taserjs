@@ -13,13 +13,11 @@
   },
   "files": [
     "dist",
-    "src",
-    "taser.config.schema.json"
+    "src"
   ],
   "type": "module",
   "sideEffects": false,
   "exports": {
-    "./taser.config.schema.json": "./taser.config.schema.json",
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -28,14 +26,15 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "generate:schema": "node scripts/generate-config-schema.js",
-    "build": "pnpm run generate:schema && vite build && publint --strict",
+    "build": "vite build && publint --strict",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "pnpm run generate:schema && vitest run",
+    "test": "vitest run",
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "@taserjs/router-generator": "workspace:*",
+    "@taserjs/vite-plugin": "workspace:*",
+    "nitro": "^3.0.260610-beta",
     "yargs": "^18.0.0",
     "zod": "^4.4.3"
   },

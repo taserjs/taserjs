@@ -1,6 +1,6 @@
 import type { Agent } from "package-manager-detector";
 
-export type ProjectType =
+export type Preset =
   | "node"
   | "express"
   | "fastify"
@@ -14,7 +14,7 @@ export type ProjectType =
   | "azure-functions"
   | "google-cloud-run";
 
-export const PROJECT_TYPES: readonly ProjectType[] = [
+export const PRESETS: readonly Preset[] = [
   "node",
   "express",
   "fastify",
@@ -56,11 +56,12 @@ export type PackageGroups = {
 export type ScaffoldContext = {
   projectName: string;
   targetDir: string;
-  type: ProjectType;
+  preset: Preset;
   db?: DbOdm;
   driver?: DbDriver;
   logger?: LoggerId;
   validator?: ValidatorId;
+  bare?: boolean;
 };
 
 export type ScaffoldOptions = ScaffoldContext & {
@@ -71,7 +72,7 @@ export type ScaffoldOptions = ScaffoldContext & {
 export type ScaffoldResult = ScaffoldContext;
 
 export type CapabilitiesCatalog = {
-  types: ProjectType[];
+  presets: Preset[];
   db: {
     odms: DbOdm[];
     drivers: DbDriver[];

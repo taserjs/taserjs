@@ -1,26 +1,34 @@
-export { CONFIG_FILE_NAME } from "./constants.js";
-export { generateRouteTree, watchRouteTree, Generator } from "./generator/generator.js";
-export type {
-  GeneratorEvent,
-  GeneratorEventType,
-  GeneratorRunResult,
-  WatchRouteTreeHandle,
-} from "./generator/generator.js";
-export { findConfigFile, resolveGeneratorConfig } from "./config/resolve.js";
-export { formatDefaultConfigFile, defaultConfigValues } from "./config/default-config.js";
+export { DEFAULT_ROUTES_DIR, DEFAULT_ENTRY, DEFAULT_IGNORE } from "./constants.js";
+export { shouldIgnoreRoutePath, assertPhysicalRouteFile } from "./scan/filter.js";
+export { toPosixPath } from "./support/paths.js";
 export {
-  compileRouteFileIgnorePattern,
-  shouldIgnoreRouteFile,
-  shouldIgnoreRoutePath,
-} from "./scan/filter.js";
-export type { RouteIgnoreConfig } from "./scan/filter.js";
-export { scaffoldRouteFileAtPath } from "./scaffold/scaffold-file.js";
-export type { ScaffoldResult } from "./scaffold/scaffold-file.js";
-export { generatorConfigSchema } from "./config/schema.js";
-export { ALL_CLI_OPTIONS, CONFIG_CLI_OPTIONS, CLI_ONLY_OPTIONS } from "./config/cli-options.js";
-export type { ExtensionOption } from "./config/schema.js";
-export type {
-  GeneratorConfigFile,
-  GeneratorRunOptions,
-  ResolvedGeneratorConfig,
-} from "./types/index.js";
+  taserOptionsSchema,
+  taserConfigSchema,
+  resolveImportExtension,
+  type TaserOptions,
+  type TaserUserOptions,
+  type TaserConfig,
+  type TaserUserConfig,
+  type ExtensionOption,
+} from "./config/schema.js";
+export type { GeneratedModel } from "./types/index.js";
+export {
+  emitRouteManifestSource,
+  emitVirtualManifestSource,
+  emitTypeDeclarationsSource,
+} from "./codegen/emit-route-manifest.js";
+export {
+  emitVirtualEntrySource,
+  type EmitVirtualEntryOptions,
+} from "./codegen/emit-virtual-entry.js";
+export { scanAndBuildModel, type ScanAndBuildOptions } from "./generator/scan-and-build.js";
+export { buildGeneratedModelFromScan } from "./model/build-model.js";
+export { AnalysisCache, type AnalysisCacheStats } from "./scan/analysis-cache.js";
+export { FileIndex, type FileEntry } from "./fs/file-index.js";
+export { scanRouteFiles, scanSingleRouteFile } from "./scan/scan-routes.js";
+export {
+  scaffoldRouteFile,
+  scaffoldRouteFileAtPath,
+  type ScaffoldOptions,
+  type ScaffoldResult,
+} from "./scaffold/scaffold-file.js";

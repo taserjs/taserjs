@@ -1,6 +1,5 @@
 import { relative } from "node:path";
 
-import type { ResolvedGeneratorConfig } from "../config/schema.js";
 import { statFileMtimeMs, walkRouteFiles } from "./walk.js";
 import { shouldIgnoreRoutePath } from "../scan/filter.js";
 import { classifyRouteFile } from "../scan/classify.js";
@@ -20,14 +19,14 @@ export class FileIndex {
 
   static async fromDirectory(
     routesDir: string,
-    config: Pick<ResolvedGeneratorConfig, "ignorePrefix" | "ignorePattern">,
+    options?: { ignore?: readonly string[] },
   ): Promise<FileIndex> {
     const index = new FileIndex();
-    const absoluteFiles = await walkRouteFiles(routesDir, config);
+    const absoluteFiles = await walkRouteFiles(routesDir, options?.ignore);
 
     await Promise.all(
       absoluteFiles.map(async (absolutePath) => {
-        await index.upsert(absolutePath, routesDir, config);
+        await index.upsert(absolutePath, routesDir, options?.ignore);
       }),
     );
 
@@ -69,10 +68,10 @@ export class FileIndex {
   async upsert(
     absolutePath: string,
     routesDir: string,
-    config: Pick<ResolvedGeneratorConfig, "ignorePrefix" | "ignorePattern">,
+    ignore?: readonly string[],
   ): Promise<"added" | "updated" | "unchanged" | "ignored"> {
     const relativePath = toPosixPath(relative(routesDir, absolutePath));
-    if (shouldIgnoreRoutePath(relativePath, config)) {
+    if (shouldIgnoreRoutePath(relativePath, ignore)) {
       return "ignored";
     }
 

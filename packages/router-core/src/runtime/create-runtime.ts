@@ -90,11 +90,13 @@ function registerManifestRoutes(
   }
 }
 
-export function createTaserRuntime(
+export function createTaserRuntime<
+  const TOptions extends CreateTaserRuntimeOptions = CreateTaserRuntimeOptions,
+>(
   manifest: RouteManifestShape,
   createContext: ContextFactory,
-  options: CreateTaserRuntimeOptions = {},
-): TaserRuntime {
+  options: TOptions = {} as TOptions,
+): TaserRuntime<TOptions extends { passThroughOnMiss: true } ? true : false> {
   const validateResponse = options.response?.validate ?? true;
   const onValidationFailure = options.response?.onValidationFailure;
   const responseOptions: FinalizeResponseOptions = {
@@ -107,17 +109,21 @@ export function createTaserRuntime(
     options.cookies,
   );
   const basePath = options.basePath ?? "";
+  const passThroughOnMiss = options.passThroughOnMiss ?? false;
 
   const router = createRouter<PreparedRoute>();
 
   registerManifestRoutes(router, manifest, basePath);
 
-  function dispatchRequest(request: Request): Promise<Response> | Response {
+  function dispatchRequest(request: Request): Promise<Response | undefined> | Response | undefined {
     const pathname = extractPathname(request.url);
     const method = request.method as HttpMethod;
     const match = findRoute(router, method, pathname);
 
     if (!match) {
+      if (passThroughOnMiss) {
+        return undefined;
+      }
       return dispatchNotFound(
         request,
         pathname,
@@ -222,7 +228,7 @@ export function createTaserRuntime(
     }
   }
 
-  const runtime: TaserRuntime = {
+  const runtime: TaserRuntime<any> = {
     fetch(request) {
       return dispatchRequest(request);
     },
@@ -236,5 +242,5 @@ export function createTaserRuntime(
     },
   };
 
-  return runtime;
+  return runtime as TaserRuntime<TOptions extends { passThroughOnMiss: true } ? true : false>;
 }

@@ -20,23 +20,20 @@ import { ScanError, ScanErrorCollection } from "../support/errors.js";
 import { toPosixPath } from "../support/paths.js";
 import { collectInvalidRouteParams, formatInvalidParamMessage } from "./validate-route-params.js";
 import { analyzeLayoutFileSource, analyzeRouteFileSource } from "./parse-route-source.js";
+import type { AnalysisCache } from "./analysis-cache.js";
 
 export type ScanOptions = {
   extension?: ExtensionOption;
   validate?: boolean;
   ignorePrefix?: string | undefined;
   ignorePattern?: string | undefined;
+  cache?: AnalysisCache | undefined;
 };
-
-async function readRouteSource(absolutePath: string): Promise<string> {
-  return readFile(absolutePath, "utf8");
-}
 
 function parseRouteEntry(
   rawRel: string,
   routesImportBase: string,
   extension: ExtensionOption,
-  source?: string,
   anyMethods?: RouteEntry["anyMethods"],
 ): RouteEntry {
   const routeRel = normalizeRouteRel(rawRel);
@@ -94,26 +91,22 @@ function validateDuplicateRoutes(routes: RouteEntry[]): ScanError[] {
   return errors;
 }
 
-export async function scanRouteFiles(
-  routesDir: string,
-  routesImportBase: string,
+type PendingFile = {
+  absolutePath: string;
+  rawRel: string;
+  kind: "route" | "layout";
+  method?: RouteFileMethod;
+};
+
+function classifyPending(
   absoluteFiles: string[],
-  options: ScanOptions = {},
-): Promise<ScanResult> {
-  const extension = options.extension ?? true;
-  const validate = options.validate ?? true;
-  const errors: ScanError[] = [];
-  const layouts: LayoutFile[] = [];
-  const routes: RouteEntry[] = [];
-
-  type PendingFile = {
-    absolutePath: string;
-    rawRel: string;
-    kind: "route" | "layout";
-    method?: RouteFileMethod;
-  };
-
+  routesDir: string,
+): {
+  pending: PendingFile[];
+  errors: ScanError[];
+} {
   const pending: PendingFile[] = [];
+  const errors: ScanError[] = [];
 
   for (const absolutePath of absoluteFiles) {
     const rawRel = toPosixPath(relative(routesDir, absolutePath));
@@ -135,73 +128,124 @@ export async function scanRouteFiles(
     }
   }
 
-  // Read all required route/layout sources in parallel across libuv thread pool
-  const sources = await Promise.all(
+  return { pending, errors };
+}
+
+/**
+ * Analyze all pending files concurrently. Reads and parses go through the
+ * optional analysis cache; parsing itself runs on oxc's native worker pool,
+ * so a cold scan no longer blocks the event loop per file.
+ *
+ * Error semantics preserved from the sequential implementation:
+ * - validation errors are collected while the entry still participates
+ * - an ANY file analyzed without validation contributes no entry on errors
+ */
+async function analyzePending(
+  pending: PendingFile[],
+  routesImportBase: string,
+  extension: ExtensionOption,
+  validate: boolean,
+  cache: AnalysisCache | undefined,
+): Promise<{
+  layouts: LayoutFile[];
+  routes: RouteEntry[];
+  fileErrors: ScanError[];
+}> {
+  const layouts: LayoutFile[] = [];
+  const routes: RouteEntry[] = [];
+  const fileErrors: ScanError[] = [];
+
+  await Promise.all(
     pending.map(async (file) => {
-      if (validate || (file.kind === "route" && file.method === "ANY")) {
-        try {
-          return await readRouteSource(file.absolutePath);
-        } catch {
-          return undefined;
-        }
-      }
-      return undefined;
-    }),
-  );
-
-  for (let i = 0; i < pending.length; i++) {
-    const file = pending[i]!;
-    const source = sources[i];
-
-    if (file.kind === "route") {
-      try {
+      if (file.kind === "route") {
         const method = file.method!;
         let anyMethods: RouteEntry["anyMethods"] | undefined;
 
-        if (validate && source) {
-          const analyzed = analyzeRouteFileSource(source, file.rawRel, method);
-          errors.push(...analyzed.errors);
-          anyMethods = analyzed.anyMethods;
-        } else if (method === "ANY" && source) {
-          const analyzed = analyzeRouteFileSource(source, file.rawRel, method);
-          if (analyzed.errors.length > 0) {
-            throw new ScanErrorCollection(analyzed.errors);
+        if (validate || method === "ANY") {
+          let analysis;
+          if (cache) {
+            analysis = await cache.analyzeRoute(file.absolutePath, file.rawRel, method, {
+              validate,
+            });
+          } else {
+            const source = await readFile(file.absolutePath, "utf8").catch(() => undefined);
+            if (source !== undefined) {
+              analysis = await import("./parse-route-source.js").then((m) =>
+                m.analyzeRouteFileSourceAsync(source, file.rawRel, method),
+              );
+            }
           }
-          anyMethods = analyzed.anyMethods;
+
+          if (analysis) {
+            if (method === "ANY" && !validate) {
+              if (analysis.errors.length > 0) {
+                fileErrors.push(...analysis.errors);
+                return;
+              }
+            } else {
+              fileErrors.push(...analysis.errors);
+            }
+            anyMethods = analysis.anyMethods;
+          }
         }
 
-        const entry = parseRouteEntry(file.rawRel, routesImportBase, extension, source, anyMethods);
-        routes.push(entry);
-
-        for (const invalid of collectInvalidRouteParams(entry.routeRel)) {
-          errors.push(
-            new ScanError(
-              formatInvalidParamMessage(invalid.paramName, invalid.filePath),
-              file.rawRel,
-            ),
-          );
-        }
-      } catch (error) {
-        if (error instanceof ScanErrorCollection) {
-          errors.push(...error.errors);
-        } else {
-          errors.push(
-            new ScanError(
-              error instanceof Error ? error.message : "Unable to parse route file",
-              file.rawRel,
-            ),
-          );
-        }
+        routes.push(parseRouteEntry(file.rawRel, routesImportBase, extension, anyMethods));
+        return;
       }
-      continue;
-    }
 
-    if (file.kind === "layout") {
       layouts.push(parseLayoutEntry(file.rawRel, routesImportBase, extension));
 
-      if (validate && source) {
-        errors.push(...analyzeLayoutFileSource(source, file.rawRel).errors);
+      if (validate) {
+        let analysis;
+        if (cache) {
+          analysis = await cache.analyzeLayout(file.absolutePath, file.rawRel, { validate });
+        } else {
+          const source = await readFile(file.absolutePath, "utf8").catch(() => undefined);
+          if (source !== undefined) {
+            analysis = await import("./parse-route-source.js").then((m) =>
+              m.analyzeLayoutFileSourceAsync(source, file.rawRel),
+            );
+          }
+        }
+        if (analysis) {
+          fileErrors.push(...analysis.errors);
+        }
       }
+    }),
+  );
+
+  return { layouts, routes, fileErrors };
+}
+
+export async function scanRouteFiles(
+  routesDir: string,
+  routesImportBase: string,
+  absoluteFiles: string[],
+  options: ScanOptions = {},
+): Promise<ScanResult> {
+  const extension = options.extension ?? true;
+  const validate = options.validate ?? true;
+
+  const { pending, errors: classifyErrors } = classifyPending(absoluteFiles, routesDir);
+
+  const { layouts, routes, fileErrors } = await analyzePending(
+    pending,
+    routesImportBase,
+    extension,
+    validate,
+    options.cache,
+  );
+
+  const errors = [...classifyErrors, ...fileErrors];
+
+  for (const route of routes) {
+    for (const invalid of collectInvalidRouteParams(route.routeRel)) {
+      errors.push(
+        new ScanError(
+          formatInvalidParamMessage(invalid.paramName, invalid.filePath),
+          route.routeRel,
+        ),
+      );
     }
   }
 
@@ -239,15 +283,19 @@ export async function scanSingleRouteFile(
     const errors: ScanError[] = [];
     let anyMethods: RouteEntry["anyMethods"] | undefined;
 
-    let source: string | undefined;
     if (validate || method === "ANY") {
-      source = await readRouteSource(absolutePath);
-      const analyzed = analyzeRouteFileSource(source, rawRel, method);
-      errors.push(...analyzed.errors);
-      anyMethods = analyzed.anyMethods;
+      const source = await readFile(absolutePath, "utf8").catch(() => undefined);
+      if (source !== undefined) {
+        const analyzed = analyzeRouteFileSource(source, rawRel, method);
+        if (method === "ANY" && !validate && analyzed.errors.length > 0) {
+          throw new ScanErrorCollection(analyzed.errors);
+        }
+        errors.push(...analyzed.errors);
+        anyMethods = analyzed.anyMethods;
+      }
     }
 
-    const entry = parseRouteEntry(rawRel, routesImportBase, extension, source, anyMethods);
+    const entry = parseRouteEntry(rawRel, routesImportBase, extension, anyMethods);
 
     for (const invalid of collectInvalidRouteParams(entry.routeRel)) {
       errors.push(
@@ -266,7 +314,7 @@ export async function scanSingleRouteFile(
     const entry = parseLayoutEntry(rawRel, routesImportBase, extension);
 
     if (validate) {
-      const source = await readRouteSource(absolutePath);
+      const source = await readFile(absolutePath, "utf8");
       const errors = analyzeLayoutFileSource(source, rawRel).errors;
       if (errors.length > 0) {
         throw new ScanErrorCollection(errors);
@@ -282,11 +330,7 @@ export async function scanSingleRouteFile(
 export function finalizeScanResult(scan: ScanResult): ScanResult {
   const layouts = [...scan.layouts].sort((left, right) => left.id.localeCompare(right.id));
 
-  for (const route of scan.routes) {
-    const chain = routeLayoutChain(routePathWithoutVerb(route.routeRel), layouts);
-    route.layoutChain = chain;
-    route.parentLayout = chain.length > 0 ? chain[chain.length - 1]! : null;
-  }
+  recomputeLayoutChainsForRoutes(scan.routes, layouts);
 
   scan.routes.sort((left, right) => {
     const pathCompare = left.urlPath.localeCompare(right.urlPath);

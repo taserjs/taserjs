@@ -1,22 +1,24 @@
 import { readdir, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 
-import type { ResolvedGeneratorConfig } from "../config/schema.js";
-import { shouldIgnoreRouteFile } from "../scan/filter.js";
+import { shouldIgnoreRoutePath } from "../scan/filter.js";
+import { toPosixPath } from "../support/paths.js";
 
 export async function walkRouteFiles(
   routesDir: string,
-  config: Pick<ResolvedGeneratorConfig, "ignorePrefix" | "ignorePattern">,
+  ignore?: readonly string[],
+  baseRoutesDir: string = routesDir,
 ): Promise<string[]> {
   const topLevelEntries = await readdir(routesDir, { withFileTypes: true });
   const nestedResults = await Promise.all(
     topLevelEntries.map(async (entry) => {
       const fullPath = join(routesDir, entry.name);
-      if (shouldIgnoreRouteFile(entry.name, config)) {
+      const relPath = toPosixPath(relative(baseRoutesDir, fullPath));
+      if (shouldIgnoreRoutePath(relPath, ignore)) {
         return [];
       }
       if (entry.isDirectory()) {
-        return walkRouteFiles(fullPath, config);
+        return walkRouteFiles(fullPath, ignore, baseRoutesDir);
       }
       if (!entry.isFile() || !entry.name.endsWith(".ts")) {
         return [];

@@ -15,8 +15,7 @@ export type ScaffoldResult = "written" | "skipped" | "ignored";
 
 export type ScaffoldOptions = {
   entry: string;
-  ignorePrefix?: string | undefined;
-  ignorePattern?: string | undefined;
+  ignore?: readonly string[] | undefined;
 };
 
 function assertPathUnderRoutesDir(routesDir: string, absolutePath: string): void {
@@ -36,12 +35,7 @@ export async function scaffoldRouteFile(
   assertPathUnderRoutesDir(routesDir, absolutePath);
 
   const relativePath = toPosixPath(relative(routesDir, absolutePath));
-  if (
-    shouldIgnoreRoutePath(relativePath, {
-      ignorePrefix: options.ignorePrefix ?? "-",
-      ignorePattern: options.ignorePattern,
-    })
-  ) {
+  if (shouldIgnoreRoutePath(relativePath, options.ignore)) {
     return "ignored";
   }
 

@@ -1,13 +1,15 @@
 import type { RouteManifestShape, TaserRuntime } from "@taserjs/router-core";
 
-class TaserServeView {
+export class TaserServeView<TPassThrough extends boolean = boolean> {
   readonly fetch: (
     request: Request,
     env?: unknown,
     executionCtx?: unknown,
-  ) => Promise<Response> | Response;
+  ) => TPassThrough extends true
+    ? Promise<Response | undefined> | Response | undefined
+    : Promise<Response> | Response;
 
-  constructor(protected readonly runtime: TaserRuntime) {
+  constructor(protected readonly runtime: TaserRuntime<TPassThrough>) {
     this.fetch = (request: Request, env?: unknown, executionCtx?: unknown) => {
       return this.runtime.fetch(request, env, executionCtx as never);
     };
@@ -16,10 +18,11 @@ class TaserServeView {
 
 export class TaserApp<
   TManifest extends RouteManifestShape = RouteManifestShape,
-> extends TaserServeView {
+  TPassThrough extends boolean = boolean,
+> extends TaserServeView<TPassThrough> {
   readonly __manifest?: TManifest;
 
-  constructor(runtime: TaserRuntime, manifest?: TManifest) {
+  constructor(runtime: TaserRuntime<TPassThrough>, manifest?: TManifest) {
     super(runtime);
     if (manifest !== undefined) {
       this.__manifest = manifest;

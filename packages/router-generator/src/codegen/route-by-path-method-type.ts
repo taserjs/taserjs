@@ -25,15 +25,11 @@ export function buildRouteByPathMethodType(
   >,
 ): TSESTree.TSTypeAliasDeclaration {
   const properties: TSESTree.TypeElement[] = [];
-  const sortedPaths = [...routesByPath.keys()].sort();
-
-  for (const urlPath of sortedPaths) {
-    const entries = routesByPath.get(urlPath) ?? [];
+  // Invariant: routesByPath keys are urlPath-sorted, values method-sorted.
+  for (const [urlPath, entries] of routesByPath) {
     const methodProperties: TSESTree.TypeElement[] = [];
 
-    for (const entry of [...entries].sort((left, right) =>
-      left.method.localeCompare(right.method),
-    )) {
+    for (const entry of entries) {
       const parentType =
         entry.parentLayout === null ? tsNullKeyword() : tsLiteralType(entry.parentLayout);
 

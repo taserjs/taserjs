@@ -3,9 +3,7 @@ import { print } from "esrap";
 import ts from "esrap/languages/ts";
 
 import type { GeneratedModel } from "../types/index.js";
-import type { EmitManifestOptions } from "./format-manifest.js";
-import { joinManifestSections, formatManifestSource } from "./format-manifest.js";
-import type { FormatCache } from "./format-cache.js";
+import { joinManifestSections, type EmitManifestOptions } from "./format-manifest.js";
 
 type NodeFields = "parent" | "loc" | "range";
 
@@ -53,16 +51,16 @@ function buildManifestLayoutsObject(model: GeneratedModel): TSESTree.ObjectExpre
 
 function buildManifestRoutesObject(model: GeneratedModel): TSESTree.ObjectExpression {
   const properties: TSESTree.PropertyNonComputedName[] = [];
-  const sortedPaths = [...model.routesByPath.keys()].sort();
+  // Invariant: model.routesByPath insertion order is urlPath-sorted and each
+  // value array is method-sorted (assembleGeneratedModel derives both from the
+  // finalized, sorted route list) — no per-emit sorting needed.
+  const routeByRel = new Map(model.routes.map((route) => [route.routeRel, route]));
 
-  for (const urlPath of sortedPaths) {
-    const entries = model.routesByPath.get(urlPath) ?? [];
+  for (const [urlPath, entries] of model.routesByPath) {
     const methodProperties: TSESTree.PropertyNonComputedName[] = [];
 
-    for (const entry of [...entries].sort((left, right) =>
-      left.method.localeCompare(right.method),
-    )) {
-      const fullRoute = model.routes.find((route) => route.routeRel === entry.routeRel);
+    for (const entry of entries) {
+      const fullRoute = routeByRel.get(entry.routeRel);
       if (!fullRoute) {
         continue;
       }
@@ -133,25 +131,60 @@ function buildProgram(model: GeneratedModel): TSESTree.Program {
   });
 }
 
+function buildVirtualManifestProgram(model: GeneratedModel): TSESTree.Program {
+  const body: TSESTree.Statement[] = [
+    ...buildLayoutImportDeclarations(model.layouts),
+    ...buildRouteImportDeclarations(model.routes),
+    exportConst(
+      "routeManifest",
+      objectExpression([
+        objectProperty(id("layouts"), buildManifestLayoutsObject(model)),
+        objectProperty(id("routes"), buildManifestRoutesObject(model)),
+      ]),
+    ),
+  ];
+
+  return asNode<TSESTree.Program>({
+    type: AST_NODE_TYPES.Program,
+    body,
+    sourceType: "module",
+    comments: undefined,
+    tokens: undefined,
+  });
+}
+
+function buildTypeDeclarationsProgram(model: GeneratedModel): TSESTree.Program {
+  return buildProgram(model);
+}
+
 function printProgram(program: TSESTree.Program, quotes: "single" | "double"): string {
   const { code } = print(program, ts({ quotes }));
   return code;
 }
 
-export function emitRouteManifestSource(
+export function emitVirtualManifestSource(
   model: GeneratedModel,
-  options: EmitManifestOptions,
+  options: Partial<EmitManifestOptions> = {},
 ): string {
-  const program = buildProgram(model);
-  const body = printProgram(program, options.quotes);
+  const program = buildVirtualManifestProgram(model);
+  const body = printProgram(program, options.quotes ?? "double");
+  return joinManifestSections(options.header ?? [], body, options.footer ?? []);
+}
+
+export function emitTypeDeclarationsSource(
+  model: GeneratedModel,
+  options: Partial<EmitManifestOptions> = {},
+): string {
+  const program = buildTypeDeclarationsProgram(model);
+  const body = printProgram(program, options.quotes ?? "double");
   return joinManifestSections(options.header, body, options.footer);
 }
 
-export async function emitFormattedRouteManifestSource(
+export function emitRouteManifestSource(
   model: GeneratedModel,
-  options: EmitManifestOptions,
-  formatCache?: FormatCache,
-): Promise<string> {
-  const source = emitRouteManifestSource(model, options);
-  return formatManifestSource(source, options, formatCache);
+  options: EmitManifestOptions = {},
+): string {
+  const program = buildProgram(model);
+  const body = printProgram(program, options.quotes ?? "single");
+  return joinManifestSections(options.header, body, options.footer);
 }

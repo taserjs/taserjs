@@ -11,11 +11,11 @@ async function main(): Promise<void> {
   const { values, positionals } = parseArgs({
     args: process.argv.slice(2),
     options: {
-      type: { type: "string", short: "t" },
-      framework: { type: "string" },
+      preset: { type: "string", short: "p" },
       db: { type: "string" },
       logger: { type: "string" },
       validator: { type: "string" },
+      bare: { type: "boolean" },
       y: { type: "boolean", short: "y" },
       noInstall: { type: "boolean" },
       json: { type: "boolean" },
@@ -25,11 +25,11 @@ async function main(): Promise<void> {
 
   const parsed = buildParsedArgsFromCli(
     {
-      ...(values.type !== undefined ? { type: values.type } : {}),
-      ...(values.framework !== undefined ? { framework: values.framework } : {}),
+      ...(values.preset !== undefined ? { preset: values.preset } : {}),
       ...(values.db !== undefined ? { db: values.db } : {}),
       ...(values.logger !== undefined ? { logger: values.logger } : {}),
       ...(values.validator !== undefined ? { validator: values.validator } : {}),
+      ...(values.bare !== undefined ? { bare: values.bare } : {}),
       ...(values.y !== undefined ? { y: values.y } : {}),
       ...(values.noInstall !== undefined ? { noInstall: values.noInstall } : {}),
       ...(values.json !== undefined ? { json: values.json } : {}),

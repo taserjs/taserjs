@@ -1,5 +1,0 @@
-{
-  "name": "@taserjs/adapter-express",
-  "version": "0.0.5",
-  "exports": "./src/index.ts"
-}

@@ -7,6 +7,7 @@ import type { Schema } from "./schema.js";
 
 export type CreateTaserAppOptions = {
   basePath?: string;
+  passThroughOnMiss?: boolean;
   response?: {
     /** Validate handler replies against returns maps. Default true. */
     validate?: boolean;
@@ -50,15 +51,6 @@ export type InferAppManifest<TApp> =
       : TApp extends RouteManifestShape
         ? TApp
         : never;
-
-export type TaserHandler<TFrameworkApp> = {
-  /**
-   * Mount the Taser handler on a framework app.
-   * Use universal wildcard patterns (`/*`, `/prefix/*`) for Hono/Fastify.
-   * Use framework-native splat patterns for Express (e.g. `/{*splat}`, `/*splat`).
-   */
-  mount(pattern: string, frameworkApp: TFrameworkApp): void;
-};
 
 export type { RouteManifestShape } from "@taserjs/router-core";
 

@@ -93,6 +93,7 @@ export type NotFoundHandler = (ctx: PipelineContext) => Awaitable<unknown>;
 
 export type CreateTaserRuntimeOptions = {
   basePath?: string;
+  passThroughOnMiss?: boolean;
   onError?: OnErrorHandler;
   notFound?: NotFoundHandler;
   response?: {
@@ -113,12 +114,14 @@ export type CreateTaserRuntimeOptions = {
   };
 };
 
-export type TaserRuntime = {
+export type TaserRuntime<TPassThrough extends boolean = boolean> = {
   fetch(
     request: Request,
     env?: unknown,
     executionCtx?: import("hono").ExecutionContext,
-  ): Promise<Response> | Response;
-  onError(handler: OnErrorHandler | OnErrorHandler["handle"]): TaserRuntime;
-  notFound(handler: NotFoundHandler): TaserRuntime;
+  ): TPassThrough extends true
+    ? Promise<Response | undefined> | Response | undefined
+    : Promise<Response> | Response;
+  onError(handler: OnErrorHandler | OnErrorHandler["handle"]): TaserRuntime<TPassThrough>;
+  notFound(handler: NotFoundHandler): TaserRuntime<TPassThrough>;
 };

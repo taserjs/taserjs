@@ -1,6 +1,6 @@
 # @taserjs/router-utils
 
-HTTP reply helpers, mount adapters, and Standard Schema validation for Taser
+HTTP reply helpers, streams, and Standard Schema validation for Taser
 
 ## Installation
 

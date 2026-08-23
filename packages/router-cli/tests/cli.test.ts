@@ -1,36 +1,24 @@
-import { resolve } from "node:path";
-
+import { mkdtempSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 
-import { buildOptions } from "../src/options.js";
+import { runGenerate } from "../src/commands/generate.js";
 
-describe("buildOptions", () => {
-  it("maps argv flags to generator options", () => {
-    const options = buildOptions({
-      quiet: true,
-      routes: "./routes",
-      ignorePrefix: "-",
-      extension: "true",
-      validate: true,
-      config: "/app/taser.config.json",
-    });
+describe("runGenerate", () => {
+  it("generates ambient types from routes directory", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "taser-cli-test-"));
+    const routesDir = join(dir, "src", "routes");
+    mkdirSync(routesDir, { recursive: true });
 
-    expect(options.configFile).toBe(resolve("/app/taser.config.json"));
-    expect(options.quiet).toBe(true);
-    expect(options.routes).toContain("routes");
-    expect(options.ignorePrefix).toBe("-");
-    expect(options.extension).toBe(true);
-    expect(options.validate).toBe(true);
-  });
+    writeFileSync(
+      join(routesDir, "index.get.ts"),
+      `import { t } from "#src/taser.js";\nconst GET = t.get("/");\nexport const Route = GET.handler(() => ({ ok: true }));\n`,
+    );
 
-  it("maps force flag to generator options", () => {
-    expect(buildOptions({ force: true }).force).toBe(true);
-    expect(buildOptions({ force: false }).force).toBeUndefined();
-  });
+    await runGenerate({ dir });
 
-  it("parses extension boolean strings", () => {
-    expect(buildOptions({ extension: "true" }).extension).toBe(true);
-    expect(buildOptions({ extension: "false" }).extension).toBe(false);
-    expect(buildOptions({ extension: ".js" }).extension).toBe(".js");
+    const typesPath = join(dir, ".taser", "types", "routes.d.ts");
+    expect(existsSync(typesPath)).toBe(true);
   });
 });

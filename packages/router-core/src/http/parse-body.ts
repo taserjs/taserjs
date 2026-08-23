@@ -41,7 +41,7 @@ function isFormMediaType(type: string, subtype: string): boolean {
 
 function formDataToRecord(formData: FormData): Record<string, unknown> {
   const result: Record<string, unknown> = {};
-  for (const [key, value] of formData.entries()) {
+  formData.forEach((value, key) => {
     const existing = result[key];
     if (existing === undefined) {
       result[key] = value;
@@ -50,7 +50,7 @@ function formDataToRecord(formData: FormData): Record<string, unknown> {
     } else {
       result[key] = [existing, value];
     }
-  }
+  });
   return result;
 }
 

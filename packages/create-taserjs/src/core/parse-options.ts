@@ -3,30 +3,31 @@ import {
   DB_ODMS,
   DEFAULT_DB_DRIVER,
   LOGGERS,
-  PROJECT_TYPES,
+  PRESETS,
   VALIDATORS,
   type DbDriver,
   type DbOdm,
   type LoggerId,
-  type ProjectType,
+  type Preset,
   type ScaffoldContext,
   type ValidatorId,
 } from "./types.js";
 
 export type ParsedCreateArgs = {
   projectName?: string;
-  type?: ProjectType;
+  preset?: Preset;
   db?: DbOdm;
   driver?: DbDriver;
   logger?: LoggerId;
   validator?: ValidatorId;
+  bare?: boolean;
   yes: boolean;
   noInstall: boolean;
   json: boolean;
 };
 
-function isProjectType(value: string): value is ProjectType {
-  return (PROJECT_TYPES as readonly string[]).includes(value);
+function isPreset(value: string): value is Preset {
+  return (PRESETS as readonly string[]).includes(value);
 }
 
 function isDbOdm(value: string): value is DbOdm {
@@ -65,10 +66,11 @@ export function parseDbFlag(value: string): { db: DbOdm; driver: DbDriver } {
 }
 
 export function resolveScaffoldDefaults(args: ParsedCreateArgs): ScaffoldContext {
-  const type = args.type ?? "node";
+  const preset = args.preset ?? "node";
   const db = args.db;
   const logger = args.logger;
   const validator = args.validator;
+  const bare = args.bare;
 
   if (!args.projectName) {
     throw new Error("Project name is required");
@@ -77,7 +79,8 @@ export function resolveScaffoldDefaults(args: ParsedCreateArgs): ScaffoldContext
   const result: ScaffoldContext = {
     projectName: args.projectName.trim(),
     targetDir: "",
-    type,
+    preset,
+    ...(bare !== undefined ? { bare } : {}),
   };
 
   if (db) {
@@ -96,9 +99,9 @@ export function resolveScaffoldDefaults(args: ParsedCreateArgs): ScaffoldContext
   return result;
 }
 
-export function parseTypeFlag(value: string): ProjectType {
-  if (!isProjectType(value)) {
-    throw new Error(`Invalid --type "${value}". Use ${PROJECT_TYPES.join(", ")}.`);
+export function parsePresetFlag(value: string): Preset {
+  if (!isPreset(value)) {
+    throw new Error(`Invalid --preset "${value}". Use ${PRESETS.join(", ")}.`);
   }
   return value;
 }

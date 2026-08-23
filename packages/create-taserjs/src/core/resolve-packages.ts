@@ -1,69 +1,50 @@
 import { resolveAddons } from "../addons/registry.js";
-import type { PackageGroups, ProjectType, ScaffoldContext } from "../core/types.js";
+import type { PackageGroups, Preset, ScaffoldContext } from "../core/types.js";
 
-function typePackages(type: ProjectType): PackageGroups {
+function presetPackages(preset: Preset): PackageGroups {
   const dependencies = ["@taserjs/router", "dotenv"];
   const devDependencies = [
     "@taserjs/router-cli",
-    "npm-run-all2",
-    "tsdown",
-    "tsx",
+    "@taserjs/vite-plugin",
+    "nitro",
     "typescript@^5.9.3",
     "@types/node",
   ];
   const scripts: Record<string, string> = {};
 
-  switch (type) {
+  switch (preset) {
     case "express":
-      dependencies.push("@taserjs/adapter-express", "express");
+      dependencies.push("express");
       devDependencies.push("@types/express");
       break;
     case "fastify":
-      dependencies.push("@taserjs/adapter-fastify", "fastify");
+      dependencies.push("fastify");
       break;
     case "hono":
-      dependencies.push("@hono/node-server", "hono");
+      dependencies.push("hono");
       break;
     case "bun":
-      // Bun has native TypeScript and runtime execution
       devDependencies.push("@types/bun");
-      scripts["dev:server"] = "bun --watch src/index.ts";
-      scripts.start = "bun src/index.ts";
-      scripts.serve = "bun dist/index.mjs";
       break;
-    case "deno":
-      scripts["dev:server"] = "deno run --watch --allow-net --allow-env --allow-read src/index.ts";
-      scripts.start = "deno run --allow-net --allow-env --allow-read src/index.ts";
-      scripts.serve = "deno run --allow-net --allow-env --allow-read dist/index.mjs";
+    case "cloudflare-workers":
+      devDependencies.push("wrangler", "@cloudflare/workers-types");
       break;
     case "aws-lambda":
-      dependencies.push("hono");
       devDependencies.push("@types/aws-lambda");
       break;
-    case "cloudflare-workers": {
-      // Cloudflare workers uses wrangler
-      const cfDevDeps = devDependencies.filter((d) => d !== "tsx");
-      cfDevDeps.push("wrangler", "@cloudflare/workers-types");
-      devDependencies.length = 0;
-      devDependencies.push(...cfDevDeps);
-      scripts["dev:server"] = "wrangler dev";
-      scripts.deploy = "wrangler deploy";
-      break;
-    }
-    case "netlify":
-      dependencies.push("hono", "@netlify/functions");
-      break;
     case "vercel":
-      dependencies.push("hono");
       devDependencies.push("@vercel/node");
       break;
     case "azure-functions":
-      dependencies.push("hono", "@azure/functions", "@marplex/hono-azurefunc-adapter");
+      dependencies.push("@azure/functions");
+      break;
+    case "netlify":
+      dependencies.push("@netlify/functions");
       break;
     case "google-cloud-run":
+    case "deno":
     case "node":
     default:
-      dependencies.push("@hono/node-server");
       break;
   }
 
@@ -71,7 +52,7 @@ function typePackages(type: ProjectType): PackageGroups {
 }
 
 export function resolvePackages(ctx: ScaffoldContext): PackageGroups {
-  const base = typePackages(ctx.type);
+  const base = presetPackages(ctx.preset);
   const addons = resolveAddons(ctx);
 
   const dependencies = [...base.dependencies];
@@ -94,8 +75,7 @@ export function resolvePackages(ctx: ScaffoldContext): PackageGroups {
 }
 
 export function getPackageGroups(
-  type: ProjectType,
+  preset: Preset,
 ): Omit<PackageGroups, "scripts"> & { scripts?: Record<string, string> } {
-  const groups = typePackages(type);
-  return groups;
+  return presetPackages(preset);
 }

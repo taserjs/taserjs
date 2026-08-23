@@ -1,11 +1,11 @@
-import { ensureResponse } from "@taserjs/router-utils";
+import { ensureResponse, REPLY_DATA, REPLY_KIND } from "@taserjs/router-utils";
 import type { Context, MiddlewareHandler, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
 
 import type { MiddlewareDefinition, PipelineContext, PipelineNext } from "../types.js";
 
 /**
- * Lightweight Hono Context shim for standalone, Express, Fastify, and Node environments.
+ * Lightweight Hono Context bridge for Taser middleware execution.
  */
 export function createCompatHonoContext(ctx: PipelineContext): Context {
   const headers = new Headers();
@@ -103,11 +103,22 @@ function syncHonoHeadersToResponse(c: Context, response: Response): Response {
     newHeaders.set(key, value);
   });
 
-  return new Response(response.body, {
+  const newRes = new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers: newHeaders,
   });
+
+  const rawData = (response as unknown as Record<symbol, unknown>)[REPLY_DATA];
+  const rawKind = (response as unknown as Record<symbol, unknown>)[REPLY_KIND];
+  if (rawData !== undefined) {
+    (newRes as unknown as Record<symbol, unknown>)[REPLY_DATA] = rawData;
+  }
+  if (rawKind !== undefined) {
+    (newRes as unknown as Record<symbol, unknown>)[REPLY_KIND] = rawKind;
+  }
+
+  return newRes;
 }
 
 /**

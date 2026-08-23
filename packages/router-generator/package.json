@@ -43,14 +43,15 @@
   },
   "dependencies": {
     "@typescript-eslint/types": "^8.56.1",
-    "chokidar": "^5.0.0",
     "esrap": "^2.2.2",
     "oxc-parser": "^0.144.0",
     "oxfmt": "^0.63.0",
+    "picomatch": "^4.0.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tanstack/vite-config": "^0.6.0",
+    "@types/picomatch": "^4.0.3",
     "publint": "^0.3.22",
     "typescript": "^5.9.3",
     "vite": "^8.1.5",

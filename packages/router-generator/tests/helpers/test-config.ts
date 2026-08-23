@@ -1,21 +1,11 @@
-import type { ResolvedGeneratorConfig } from "../../src/config/schema.js";
-import type { GeneratorRunOptions } from "../../src/config/schema.js";
-import { resolveGeneratorConfig } from "../../src/config/resolve.js";
-import { toScanOptions } from "../../src/config/emit-options.js";
-import { walkRouteFiles } from "../../src/fs/walk.js";
-import { buildGeneratedModelFromScan } from "../../src/model/build-model.js";
-import { scanRouteFiles } from "../../src/scan/scan-routes.js";
-import { routesImportPrefix } from "../../src/support/paths.js";
+import { scanAndBuildModel, type ScanAndBuildOptions } from "../../src/generator/scan-and-build.js";
+import { DEFAULT_IGNORE } from "../../src/constants.js";
 
 export const testGeneratorConfig = {
-  ignorePrefix: "-",
-  ignorePattern: undefined,
+  ignore: [...DEFAULT_IGNORE],
   extension: true as const,
   validate: false,
-} satisfies Pick<
-  ResolvedGeneratorConfig,
-  "ignorePrefix" | "ignorePattern" | "extension" | "validate"
->;
+};
 
 export const testEmitOptions = {
   extension: true as const,
@@ -30,27 +20,16 @@ export const testEmitOptions = {
   format: false,
 };
 
-export function resolveTestConfig(options: GeneratorRunOptions = {}): ResolvedGeneratorConfig {
-  return resolveGeneratorConfig({
-    validate: false,
-    format: false,
-    ...options,
-  });
-}
-
 export async function buildTestModel(
   routesDir: string,
-  outputFile: string,
-  options: GeneratorRunOptions = {},
+  _unused?: string,
+  options: Partial<ScanAndBuildOptions> = {},
 ) {
-  const config = resolveTestConfig({ routes: routesDir, output: outputFile, ...options });
-  const routesImportBase = routesImportPrefix(routesDir, outputFile);
-  const absoluteFiles = await walkRouteFiles(routesDir, config);
-  const scan = await scanRouteFiles(
+  return scanAndBuildModel({
     routesDir,
-    routesImportBase,
-    absoluteFiles,
-    toScanOptions(config),
-  );
-  return buildGeneratedModelFromScan(scan);
+    routesImportBase: options.routesImportBase ?? "./routes",
+    extension: true,
+    validate: false,
+    ...options,
+  });
 }
