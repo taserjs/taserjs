@@ -339,4 +339,133 @@ export const Route = t.get("/taser-route").handler(() => json({ from: "taser" })
     const neitherRes = await fetch(new Request("http://localhost/non-existent"));
     expect(neitherRes.status).toBe(404);
   });
+
+  it("Scenario 5: Nitro baseURL (/api) automatically scopes Taser routes and redirects non-base requests", async () => {
+    const routesDir = join(testDir, "routes");
+    await fsp.mkdir(routesDir, { recursive: true });
+
+    await fsp.writeFile(
+      join(testDir, "taser.ts"),
+      `import { createTaserApp } from "@taserjs/router";
+export const t = createTaserApp();
+`,
+    );
+
+    await fsp.writeFile(
+      join(routesDir, "hello.get.ts"),
+      `import { t } from "../taser.js";
+import { json } from "@taserjs/router/reply";
+export const Route = t.get("/hello").handler(() => json({ message: "hello from api" }));
+`,
+    );
+
+    const nitro = await createNitro({
+      rootDir: testDir,
+      baseURL: "/api",
+      preset: "cloudflare-module",
+      alias: {
+        "@taserjs/router/reply": routerReplyPath,
+        "@taserjs/router": routerEntryPath,
+      },
+      output: {
+        dir: join(testDir, ".output"),
+      },
+      modules: [
+        taserNitro({
+          rootDir: testDir,
+          routesDir: "routes",
+          taserAppPath: "./taser.ts",
+        }),
+      ],
+    });
+
+    await build(nitro);
+
+    const entryPath = join(testDir, ".output", "server", "index.mjs");
+    const serverModule = await import(entryPath);
+    const fetchHandler = serverModule.default?.fetch || serverModule.fetch || serverModule.default;
+    const fetch = (req: Request) =>
+      fetchHandler(req, {
+        ASSETS: {
+          fetch: () => new Response(null, { status: 404 }),
+        },
+      });
+
+    // 1. Matched route within /api
+    const apiRes = await fetch(new Request("http://localhost/api/hello"));
+    expect(apiRes.status).toBe(200);
+    expect(await apiRes.json()).toEqual({ message: "hello from api" });
+
+    // 2. Request outside /api is 302 redirected to /api prefix
+    const redirectRes = await fetch(new Request("http://localhost/hello"));
+    expect(redirectRes.status).toBe(302);
+    expect(redirectRes.headers.get("location")).toBe("/api/hello");
+
+    const rootRedirectRes = await fetch(new Request("http://localhost/"));
+    expect(rootRedirectRes.status).toBe(302);
+    expect(rootRedirectRes.headers.get("location")).toBe("/api/");
+  });
+
+  it("Scenario 6: Nitro baseURL (/api) + Taser basePath (/v1) composes to /api/v1", async () => {
+    const routesDir = join(testDir, "routes");
+    await fsp.mkdir(routesDir, { recursive: true });
+
+    await fsp.writeFile(
+      join(testDir, "taser.ts"),
+      `import { createTaserApp } from "@taserjs/router";
+export const t = createTaserApp({ basePath: "/v1" });
+`,
+    );
+
+    await fsp.writeFile(
+      join(routesDir, "users.get.ts"),
+      `import { t } from "../taser.js";
+import { json } from "@taserjs/router/reply";
+export const Route = t.get("/users").handler(() => json({ users: ["charlie"] }));
+`,
+    );
+
+    const nitro = await createNitro({
+      rootDir: testDir,
+      baseURL: "/api",
+      preset: "cloudflare-module",
+      alias: {
+        "@taserjs/router/reply": routerReplyPath,
+        "@taserjs/router": routerEntryPath,
+      },
+      output: {
+        dir: join(testDir, ".output"),
+      },
+      modules: [
+        taserNitro({
+          rootDir: testDir,
+          routesDir: "routes",
+          basePath: "/v1",
+          taserAppPath: "./taser.ts",
+        }),
+      ],
+    });
+
+    await build(nitro);
+
+    const entryPath = join(testDir, ".output", "server", "index.mjs");
+    const serverModule = await import(entryPath);
+    const fetchHandler = serverModule.default?.fetch || serverModule.fetch || serverModule.default;
+    const fetch = (req: Request) =>
+      fetchHandler(req, {
+        ASSETS: {
+          fetch: () => new Response(null, { status: 404 }),
+        },
+      });
+
+    // 1. Matched route within /api/v1
+    const apiRes = await fetch(new Request("http://localhost/api/v1/users"));
+    expect(apiRes.status).toBe(200);
+    expect(await apiRes.json()).toEqual({ users: ["charlie"] });
+
+    // 2. Request to /v1/users (missing /api base) redirects to /api/v1/users
+    const redirectRes = await fetch(new Request("http://localhost/v1/users"));
+    expect(redirectRes.status).toBe(302);
+    expect(redirectRes.headers.get("location")).toBe("/api/v1/users");
+  });
 });

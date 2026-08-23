@@ -187,7 +187,7 @@ function buildManifests() {
               bodyMode: "form",
               middlewares: [],
               handlerMiddlewares: [],
-              handler: (ctx) => json({ received: true }),
+              handler: (_ctx) => json({ received: true }),
             },
           },
         },

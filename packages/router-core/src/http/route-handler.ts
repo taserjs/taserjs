@@ -3,10 +3,9 @@ import { ValidationError } from "@taserjs/router-utils";
 import { unprocessableEntity } from "@taserjs/router-utils/reply";
 
 import { handlePipelineError } from "./error-handler.js";
-import {
-  createTaserCookieJar,
-  type CookieDefaults,
-  type TaserCookieJar,
+import type {
+  CookieDefaults,
+  TaserCookieJar,
 } from "../cookies/taser-cookies.js";
 import type { OnErrorHandler, PipelineContext } from "../types.js";
 import { finalizeReply, type FinalizeResponseOptions } from "./finalize.js";

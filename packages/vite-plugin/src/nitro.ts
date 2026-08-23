@@ -2,6 +2,7 @@ import type { Nitro, NitroModule } from "nitro/types";
 import { existsSync } from "node:fs";
 import { resolve } from "pathe";
 import { DEFAULT_IGNORE } from "@taserjs/router-generator";
+import { composeBasePath } from "@taserjs/router-utils";
 import type { TaserNitroOptions } from "./types.js";
 import {
   createTaserVirtualContext,
@@ -34,17 +35,36 @@ export function findHostServerEntry(rootDir: string): string | undefined {
   return undefined;
 }
 
-function getVirtualAppCode(rootDir: string, nitro: Nitro, scope: string = "/"): string {
+function getVirtualAppCode(
+  rootDir: string,
+  nitro: Nitro,
+  nitroBase: string,
+  scope: string = "/",
+): string {
   const hostServer = findHostServerEntry(rootDir);
   const extraHandlers = (nitro.options.handlers || []).filter(
     (h) => h.handler !== VIRTUAL_ENTRY_ID,
   );
 
-  const cleanScope = scope.replace(/\/$/, "");
+  const cleanScope = scope === "/" ? "" : scope.replace(/\/+$/, "");
   const scopeCondition =
     scope === "/" || cleanScope === ""
       ? "true"
       : `url.pathname === "${cleanScope}" || url.pathname.startsWith("${cleanScope}/")`;
+
+  const baseRedirectCondition =
+    nitroBase && nitroBase !== "/" && nitroBase !== ""
+      ? `
+      if (!url.pathname.startsWith("${nitroBase}/") && url.pathname !== "${nitroBase}") {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            location: "${nitroBase}" + (url.pathname.startsWith("/") ? url.pathname : "/" + url.pathname) + url.search
+          }
+        });
+      }
+`
+      : "";
 
   if (!hostServer && extraHandlers.length === 0) {
     return `import entry from "${VIRTUAL_ENTRY_ID}";
@@ -61,6 +81,7 @@ export function createNitroApp() {
       if (${scopeCondition}) {
         return entry(req);
       }
+${baseRedirectCondition}
       return new Response(JSON.stringify({ error: "Not Found" }), {
         status: 404,
         headers: { "content-type": "application/json" }
@@ -125,6 +146,7 @@ export function createNitroApp() {
     }
 ${hostInvocation}
 ${extraInvocations}
+${baseRedirectCondition}
     return new Response(JSON.stringify({ error: "Not Found" }), {
       status: 404,
       headers: { "content-type": "application/json" }
@@ -161,11 +183,17 @@ export function taserNitro(options: TaserNitroOptions = {}): NitroModule {
         ...options,
       };
 
+      const nitroBase = (nitro.options.baseURL || "").replace(/\/+$/, "").replace(/^\/+/, "");
+      const normalizedNitroBase = nitroBase ? `/${nitroBase}` : "";
+      const taserBase = mergedTaserOptions.basePath;
+      const effectiveScope = composeBasePath(normalizedNitroBase, taserBase) || "/";
+
       const ctx = createTaserVirtualContext({
         rootDir,
         routesDir,
         ignore,
         ...mergedTaserOptions,
+        basePath: effectiveScope,
       });
 
       // 1. Disable Nitro built-in route scanner — file routing belongs to taser
@@ -174,18 +202,18 @@ export function taserNitro(options: TaserNitroOptions = {}): NitroModule {
       nitro.options.scanDirs = [];
       nitro.options.serverDir = false;
 
-      const scope = mergedTaserOptions.basePath || "/";
-
       // 2. Register virtual modules in Nitro options
       nitro.options.virtual = nitro.options.virtual || {};
       nitro.options.virtual[VIRTUAL_MANIFEST_ID] = () => ctx.getManifestCode();
       nitro.options.virtual[VIRTUAL_ENTRY_ID] = () => ctx.getEntryCode();
-      nitro.options.virtual["#nitro/virtual/app"] = () => getVirtualAppCode(rootDir, nitro, scope);
+      nitro.options.virtual["#nitro/virtual/app"] = () =>
+        getVirtualAppCode(rootDir, nitro, normalizedNitroBase, effectiveScope);
       nitro.options.virtual["#nitro/virtual/routing"] = () =>
         "export const findRouteRules = () => ({}); export const findRoute = () => undefined; export const globalMiddleware = []; export const findRoutedMiddleware = () => [];";
 
       // 3. Register Taser Route Handler in Nitro handlers
-      const routePattern = scope === "/" ? "/**" : `${scope.replace(/\/$/, "")}/**`;
+      const routePattern =
+        effectiveScope === "/" ? "/**" : `${effectiveScope.replace(/\/$/, "")}/**`;
 
       nitro.options.handlers.unshift({
         route: routePattern,

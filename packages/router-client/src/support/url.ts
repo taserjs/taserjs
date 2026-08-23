@@ -98,14 +98,19 @@ export function resolveHeaders(
   }
 
   return (async () => {
+    const resolvedSources = await Promise.all(
+      sources.map(async (source) => {
+        if (!source) return undefined;
+        if (typeof source === "function") {
+          return source();
+        }
+        return source;
+      }),
+    );
     const result: Record<string, string> = {};
-    for (const source of sources) {
-      if (!source) continue;
-      if (typeof source === "function") {
-        const resolved = await source();
+    for (const resolved of resolvedSources) {
+      if (resolved) {
         Object.assign(result, resolved);
-      } else {
-        Object.assign(result, source);
       }
     }
     return result;

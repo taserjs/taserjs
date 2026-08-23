@@ -121,6 +121,7 @@ export function createTaserVirtualContext(options: TaserPluginOptions = {}): Tas
     }
     cachedEntryCode = emitVirtualEntrySource({
       taserAppImportPath: taserAppPath,
+      ...(options.basePath !== undefined ? { basePath: options.basePath } : {}),
     });
     return cachedEntryCode;
   }

@@ -92,6 +92,37 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  apps/hono-app:
+    dependencies:
+      '@taserjs/router':
+        specifier: workspace:*
+        version: link:../../packages/router
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
+      hono:
+        specifier: ^4.12.33
+        version: 4.12.33
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      '@taserjs/router-cli':
+        specifier: workspace:*
+        version: link:../../packages/router-cli
+      '@taserjs/vite-plugin':
+        specifier: workspace:*
+        version: link:../../packages/vite-plugin
+      '@types/node':
+        specifier: ^22.13.10
+        version: 22.20.1
+      nitro:
+        specifier: ^3.0.260610-beta
+        version: 3.0.260610-beta(aws4fetch@1.0.20)(chokidar@5.0.0)(dotenv@16.4.7)(jiti@2.7.0)(lru-cache@11.5.2)(vite@8.2.1(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0))(wrangler@4.122.0)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   docs:
     dependencies:
       '@base-ui/react':

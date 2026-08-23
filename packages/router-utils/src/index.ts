@@ -1,4 +1,4 @@
-export { InvalidMountPatternError, resolveMountBase } from "./mount/index.js";
+export { InvalidMountPatternError, resolveMountBase, composeBasePath } from "./mount/index.js";
 export { isPromise } from "./async/is-promise.js";
 
 export type { SuccessStatusCode } from "./http/status.js";
