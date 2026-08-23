@@ -1,7 +1,7 @@
 export { createTaserRuntime, dispatchNotFound } from "./runtime/index.js";
 export type { CreateTaserRuntimeOptions, NotFoundHandler, TaserRuntime } from "./types.js";
 
-export { handlePipelineError, toResponse } from "./http/error-handler.js";
+export { handlePipelineError, ensureResponse } from "./http/error-handler.js";
 export { createTaserCompatHandler, createCompatHonoContext } from "./http/hono-compat.js";
 export { parseRequestBody } from "./http/parse-body.js";
 export { ensureBody } from "./http/ensure-body.js";

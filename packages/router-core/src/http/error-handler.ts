@@ -14,17 +14,5 @@ export function handlePipelineError(error: unknown): Response {
   return internalServerError();
 }
 
-/**
- * Coerce pipeline output to standard Web Response.
- */
-export function toResponse(value: unknown): Response {
-  if (value instanceof Response) {
-    return value;
-  }
+export { ensureResponse } from "@taserjs/router-utils/reply";
 
-  if (value === undefined || value === null) {
-    return noContent();
-  }
-
-  return json(value);
-}

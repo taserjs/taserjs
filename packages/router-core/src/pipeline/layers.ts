@@ -28,13 +28,6 @@ export async function mergeValidatedField(
   return validated;
 }
 
-async function validateOptionalSchema(schema: unknown, value: unknown): Promise<unknown> {
-  if (schema === undefined) {
-    return value;
-  }
-  return mergeValidatedField(schema as StandardSchemaV1, value);
-}
-
 async function applyRouteSchemas(
   route: RouteHandler,
   ctx: PipelineContext,
@@ -45,11 +38,21 @@ async function applyRouteSchemas(
   const body = prefix === "route" ? route.body : route.handlerBody;
   const bodyMode = prefix === "route" ? route.bodyMode : route.handlerBodyMode;
 
-  ctx.query = (await validateOptionalSchema(query, ctx.query)) as Record<string, unknown>;
-  ctx.params = (await validateOptionalSchema(params, ctx.params)) as Record<string, unknown>;
+  if (query !== undefined) {
+    ctx.query = (await mergeValidatedField(
+      query as StandardSchemaV1,
+      ctx.query,
+    )) as Record<string, unknown>;
+  }
+  if (params !== undefined) {
+    ctx.params = (await mergeValidatedField(
+      params as StandardSchemaV1,
+      ctx.params,
+    )) as Record<string, unknown>;
+  }
   if (body !== undefined) {
     await ensureBody(ctx, bodyMode);
-    ctx.body = await validateOptionalSchema(body, ctx.body);
+    ctx.body = await mergeValidatedField(body as StandardSchemaV1, ctx.body);
   }
 }
 

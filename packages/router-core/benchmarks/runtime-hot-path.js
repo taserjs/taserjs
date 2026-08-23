@@ -8,7 +8,7 @@ import { json } from "@taserjs/router-utils/reply";
 import { timing } from "hono/timing";
 import { z } from "zod";
 
-import { createTaserCompatHandler, createTaserRuntime } from "../src/index.js";
+import { createTaserCompatHandler, createTaserRuntime } from "../dist/esm/index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RESULTS_DIR = join(__dirname, "results");
@@ -65,6 +65,10 @@ function buildManifests() {
 
   const bodySchema = z.object({ name: z.string() });
 
+  const mw1 = { handler: async (_ctx, next) => next() };
+  const mw2 = { handler: async (_ctx, next) => next() };
+  const mw3 = { handler: async (_ctx, next) => next() };
+
   return {
     "get-simple": {
       layouts: {},
@@ -76,6 +80,40 @@ function buildManifests() {
               path: "/hello",
               method: "GET",
               middlewares: [],
+              handlerMiddlewares: [],
+              handler: () => json({ ok: true }),
+            },
+          },
+        },
+      },
+    },
+    "get-1mw": {
+      layouts: {},
+      routes: {
+        "/hello": {
+          GET: {
+            layoutChain: [],
+            route: {
+              path: "/hello",
+              method: "GET",
+              middlewares: [mw1],
+              handlerMiddlewares: [],
+              handler: () => json({ ok: true }),
+            },
+          },
+        },
+      },
+    },
+    "get-3mw": {
+      layouts: {},
+      routes: {
+        "/hello": {
+          GET: {
+            layoutChain: [],
+            route: {
+              path: "/hello",
+              method: "GET",
+              middlewares: [mw1, mw2, mw3],
               handlerMiddlewares: [],
               handler: () => json({ ok: true }),
             },
@@ -137,7 +175,25 @@ function buildManifests() {
         },
       },
     },
-    "get-with-hono-mw": {
+    "post-form": {
+      layouts: {},
+      routes: {
+        "/form": {
+          POST: {
+            layoutChain: [],
+            route: {
+              path: "/form",
+              method: "POST",
+              bodyMode: "form",
+              middlewares: [],
+              handlerMiddlewares: [],
+              handler: (ctx) => json({ received: true }),
+            },
+          },
+        },
+      },
+    },
+    "hono-mw-1": {
       layouts: {
         root: { middlewares: { middlewares: [honoTimingMiddleware] } },
       },
@@ -162,26 +218,38 @@ function buildManifests() {
 function createScenarios() {
   const manifests = buildManifests();
   const postBody = JSON.stringify({ name: "bench" });
+  const formBody = "name=bench&email=bench%40example.com";
 
   const getSimpleRuntime = createTaserRuntime(manifests["get-simple"], () => ({}));
+  const get1mwRuntime = createTaserRuntime(manifests["get-1mw"], () => ({}));
+  const get3mwRuntime = createTaserRuntime(manifests["get-3mw"], () => ({}));
   const getLayoutRuntime = createTaserRuntime(manifests["get-with-layout"], () => ({}));
   const postNoBodyRuntime = createTaserRuntime(manifests["post-no-body-schema"], () => ({}));
   const postBodyRuntime = createTaserRuntime(manifests["post-with-body-schema"], () => ({}));
-  const honoMwRuntime = createTaserRuntime(manifests["get-with-hono-mw"], () => ({}));
+  const postFormRuntime = createTaserRuntime(manifests["post-form"], () => ({}));
+  const honoMwRuntime = createTaserRuntime(manifests["hono-mw-1"], () => ({}));
 
   return [
     {
       name: "get-simple",
-      run: () => getSimpleRuntime.handle(new Request("http://localhost/hello")),
+      run: () => getSimpleRuntime.fetch(new Request("http://localhost/hello")),
+    },
+    {
+      name: "get-1mw",
+      run: () => get1mwRuntime.fetch(new Request("http://localhost/hello")),
+    },
+    {
+      name: "get-3mw",
+      run: () => get3mwRuntime.fetch(new Request("http://localhost/hello")),
     },
     {
       name: "get-with-layout",
-      run: () => getLayoutRuntime.handle(new Request("http://localhost/hello")),
+      run: () => getLayoutRuntime.fetch(new Request("http://localhost/hello")),
     },
     {
       name: "post-no-body-schema",
       run: () =>
-        postNoBodyRuntime.handle(
+        postNoBodyRuntime.fetch(
           new Request("http://localhost/items", {
             method: "POST",
             headers: { "content-type": "application/json" },
@@ -192,7 +260,7 @@ function createScenarios() {
     {
       name: "post-with-body-schema",
       run: () =>
-        postBodyRuntime.handle(
+        postBodyRuntime.fetch(
           new Request("http://localhost/items", {
             method: "POST",
             headers: { "content-type": "application/json" },
@@ -201,8 +269,19 @@ function createScenarios() {
         ),
     },
     {
-      name: "get-with-hono-mw",
-      run: () => honoMwRuntime.handle(new Request("http://localhost/hello")),
+      name: "post-form",
+      run: () =>
+        postFormRuntime.fetch(
+          new Request("http://localhost/form", {
+            method: "POST",
+            headers: { "content-type": "application/x-www-form-urlencoded" },
+            body: formBody,
+          }),
+        ),
+    },
+    {
+      name: "hono-mw-1",
+      run: () => honoMwRuntime.fetch(new Request("http://localhost/hello")),
     },
   ];
 }

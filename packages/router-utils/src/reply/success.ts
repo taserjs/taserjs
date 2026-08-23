@@ -6,6 +6,8 @@ import {
   TEXT_HTML,
 } from "../http/constants.js";
 import {
+  DEFAULT_HTML_HEADERS,
+  DEFAULT_TEXT_HEADERS,
   buildBodyResponse,
   jsonResponse,
   mergeHeaders,
@@ -13,7 +15,7 @@ import {
   toReplyResponse,
 } from "./build.js";
 import { validateRedirectLocation } from "./redirect-location.js";
-import type { ReplyOf } from "./result.js";
+import { createReply, type ReplyOf } from "./result.js";
 import type { RedirectInit, ReplyInit } from "./types.js";
 
 export function ok(body?: unknown, init?: ReplyInit) {
@@ -41,10 +43,7 @@ export function json<T, const S extends number>(
 ): ReplyOf<S, T>;
 export function json<T>(data: T, init?: ReplyInit): ReplyOf<number, T>;
 export function json<T>(data: T, init?: ReplyInit): ReplyOf<number, T> {
-  if (init === undefined) {
-    return jsonResponse(data) as ReplyOf<number, T>;
-  }
-  return jsonResponse(data, { ...init, status: init.status ?? STATUS_OK }) as ReplyOf<number, T>;
+  return jsonResponse(data, init) as ReplyOf<number, T>;
 }
 
 export function text(body: string): ReplyOf<200, string>;
@@ -55,10 +54,12 @@ export function text<const S extends number>(
 export function text(body: string, init?: ReplyInit): ReplyOf<number, string>;
 export function text(body: string, init?: ReplyInit): ReplyOf<number, string> {
   if (init === undefined) {
-    return toReplyResponse(body, mergeHeaders(undefined, "string"), body, "text") as ReplyOf<
-      number,
-      string
-    >;
+    return createReply(
+      body,
+      { status: STATUS_OK, headers: DEFAULT_TEXT_HEADERS },
+      body,
+      "text",
+    ) as ReplyOf<number, string>;
   }
   const statusInit = { ...init, status: init.status ?? STATUS_OK };
   return toReplyResponse(body, mergeHeaders(statusInit, "string"), body, "text") as ReplyOf<
@@ -75,9 +76,9 @@ export function html<const S extends number>(
 export function html(body: string, init?: ReplyInit): ReplyOf<number, string>;
 export function html(body: string, init?: ReplyInit): ReplyOf<number, string> {
   if (init === undefined) {
-    return toReplyResponse(
+    return createReply(
       body,
-      mergeHeaders(undefined, "empty", { contentType: TEXT_HTML }),
+      { status: STATUS_OK, headers: DEFAULT_HTML_HEADERS },
       body,
       "text",
     ) as ReplyOf<number, string>;

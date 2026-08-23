@@ -33,12 +33,14 @@ async function executeRequest(
   const headers = await resolveHeaders(options.headers, requestOptions.headers);
   let body: BodyInit | undefined;
 
+  const hasContentType = Object.keys(headers).some((k) => k.toLowerCase() === "content-type");
+
   if (method !== "GET" && method !== "HEAD" && input.body !== undefined) {
     if (input.body instanceof FormData) {
       body = input.body;
     } else if (input.body instanceof URLSearchParams) {
       body = input.body;
-      if (!headers["Content-Type"] && !headers["content-type"]) {
+      if (!hasContentType) {
         headers["Content-Type"] = "application/x-www-form-urlencoded";
       }
     } else if (
@@ -49,7 +51,7 @@ async function executeRequest(
       body = input.body as BodyInit;
     } else {
       body = JSON.stringify(input.body);
-      if (!headers["Content-Type"] && !headers["content-type"]) {
+      if (!hasContentType) {
         headers["Content-Type"] = "application/json";
       }
     }

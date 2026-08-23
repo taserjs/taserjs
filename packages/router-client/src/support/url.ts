@@ -72,23 +72,42 @@ export function buildSearchParams(query: Record<string, unknown> | undefined): s
   return serialized === "" ? "" : `?${serialized}`;
 }
 
-export async function resolveHeaders(
+export function resolveHeaders(
   ...sources: Array<
     | Record<string, string>
     | (() => Record<string, string> | Promise<Record<string, string>>)
     | undefined
   >
-): Promise<Record<string, string>> {
-  const result: Record<string, string> = {};
-  const _promises = sources.filter(Boolean).map(async (source) => {
-    if (typeof source === "function") {
-      return await source();
+): Promise<Record<string, string>> | Record<string, string> {
+  let hasFn = false;
+  for (const s of sources) {
+    if (typeof s === "function") {
+      hasFn = true;
+      break;
     }
-    return source;
-  });
-  const values = await Promise.all(_promises);
-  for (const value of values) {
-    Object.assign(result, value);
   }
-  return result;
+
+  if (!hasFn) {
+    const result: Record<string, string> = {};
+    for (const source of sources) {
+      if (source) {
+        Object.assign(result, source);
+      }
+    }
+    return result;
+  }
+
+  return (async () => {
+    const result: Record<string, string> = {};
+    for (const source of sources) {
+      if (!source) continue;
+      if (typeof source === "function") {
+        const resolved = await source();
+        Object.assign(result, resolved);
+      } else {
+        Object.assign(result, source);
+      }
+    }
+    return result;
+  })();
 }

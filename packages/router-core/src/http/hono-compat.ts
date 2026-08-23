@@ -4,6 +4,8 @@ import { HTTPException } from "hono/http-exception";
 
 import type { MiddlewareDefinition, PipelineContext, PipelineNext } from "../types.js";
 
+const DIRTY_HEADERS = Symbol.for("taser.hono.dirty_headers");
+
 /**
  * Lightweight Hono Context bridge for Taser middleware execution.
  */
@@ -19,7 +21,7 @@ export function createCompatHonoContext(ctx: PipelineContext): Context {
   const ctxQuery = (ctx.query ?? {}) as Record<string, string | string[]>;
   const varStore: Record<string, unknown> = (ctx.var as Record<string, unknown>) ?? {};
 
-  return {
+  const c = {
     req: {
       raw: request as never,
       method: ctx.method,
@@ -33,6 +35,7 @@ export function createCompatHonoContext(ctx: PipelineContext): Context {
     res,
     var: varStore,
     header(name: string, value: string, options?: { append?: boolean }) {
+      (c as unknown as Record<symbol, unknown>)[DIRTY_HEADERS] = true;
       if (options?.append) {
         headers.append(name, value);
       } else {
@@ -58,6 +61,8 @@ export function createCompatHonoContext(ctx: PipelineContext): Context {
       });
     },
   } as unknown as Context;
+
+  return c;
 }
 
 /**
@@ -82,26 +87,22 @@ function syncHonoVarToCtx(c: Context, ctx: PipelineContext): void {
 
 /**
  * Syncs headers from Hono context to the response.
- * This ensures any headers set by Hono middleware are preserved.
+ * Fast-paths when no headers were set by Hono middleware.
  */
 function syncHonoHeadersToResponse(c: Context, response: Response): Response {
   const honoHeaders = c.res.headers;
-  let needsHeaderSync = false;
+  let newHeaders: Headers | undefined;
 
   honoHeaders.forEach((value, key) => {
-    if (!response.headers.has(key) || response.headers.get(key) !== value) {
-      needsHeaderSync = true;
+    if (!newHeaders) {
+      newHeaders = new Headers(response.headers);
     }
-  });
-
-  if (!needsHeaderSync) {
-    return response;
-  }
-
-  const newHeaders = new Headers(response.headers);
-  honoHeaders.forEach((value, key) => {
     newHeaders.set(key, value);
   });
+
+  if (!newHeaders) {
+    return response;
+  }
 
   const newRes = new Response(response.body, {
     status: response.status,

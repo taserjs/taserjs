@@ -2,26 +2,39 @@ import { isPromise } from "@taserjs/router-utils";
 import { ensureResponse } from "@taserjs/router-utils/reply";
 import type { PipelineContext, PipelineLayer, PipelineNext } from "../types.js";
 
-function createNext(ctx: PipelineContext, remainder: () => Promise<Response>): PipelineNext {
-  return (state?: Record<string, unknown>) => {
-    if (state !== undefined && typeof state === "object" && state !== null) {
-      Object.assign(ctx.state, state);
-    }
-    return remainder();
-  };
-}
+type PipelineFn = (ctx: PipelineContext) => Promise<Response> | Response;
 
 /**
  * Compose onion layers around a terminal handler. Outer layers wrap inner ones.
- * Fast-paths directly to terminal when no layers are registered.
+ * Precompiles the dispatch chain at composition time and fast-paths sync returns.
  */
 export function composePipeline(
   layers: readonly PipelineLayer[],
   terminal: (ctx: PipelineContext) => unknown,
 ): (ctx: PipelineContext) => Promise<Response> | Response {
+  let curr: PipelineFn = (ctx) => {
+    const result = terminal(ctx);
+    if (isPromise(result)) {
+      return result.then(ensureResponse);
+    }
+    return ensureResponse(result);
+  };
+
   if (layers.length === 0) {
-    return (ctx) => {
-      const result = terminal(ctx);
+    return curr;
+  }
+
+  for (let i = layers.length - 1; i >= 0; i--) {
+    const layer = layers[i]!;
+    const nextFn = curr;
+    curr = (ctx) => {
+      const next: PipelineNext = (state) => {
+        if (state !== undefined && typeof state === "object" && state !== null) {
+          Object.assign(ctx.state, state);
+        }
+        return nextFn(ctx);
+      };
+      const result = layer.run(ctx, next);
       if (isPromise(result)) {
         return result.then(ensureResponse);
       }
@@ -29,16 +42,5 @@ export function composePipeline(
     };
   }
 
-  const dispatch = (index: number, ctx: PipelineContext): Promise<Response> => {
-    if (index >= layers.length) {
-      return Promise.resolve(terminal(ctx)).then(ensureResponse);
-    }
-
-    const layer = layers[index]!;
-    const next = createNext(ctx, () => dispatch(index + 1, ctx));
-
-    return Promise.resolve(layer.run(ctx, next)).then(ensureResponse);
-  };
-
-  return (ctx) => dispatch(0, ctx);
+  return curr;
 }

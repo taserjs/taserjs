@@ -5,7 +5,7 @@ import {
   validateReply,
 } from "@taserjs/router-utils";
 
-import { toResponse } from "./error-handler.js";
+import { ensureResponse } from "@taserjs/router-utils/reply";
 import type { TaserCookieJar } from "../cookies/taser-cookies.js";
 
 export type FinalizeResponseOptions = {
@@ -20,7 +20,7 @@ export function finalizeReply(
   request: Request,
   cookies?: TaserCookieJar | undefined,
 ): Promise<Response> | Response {
-  const response = toResponse(value);
+  const response = ensureResponse(value);
 
   if (!responseOptions.validate || !returnsMap) {
     return cookies ? cookies.applyTo(response) : response;

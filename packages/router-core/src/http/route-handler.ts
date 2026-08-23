@@ -23,8 +23,7 @@ export type RouteErrorState = {
 };
 
 export async function handleRouteError(error: unknown, state: RouteErrorState): Promise<Response> {
-  const jar =
-    state.cookies ?? createTaserCookieJar(null, state.cookieSecret, state.cookieDefaults ?? {});
+  const jar = state.cookies;
   const request = state.request;
 
   if (error instanceof Response) {
@@ -52,9 +51,11 @@ export async function handleRouteError(error: unknown, state: RouteErrorState): 
         jar,
       );
     } catch (onErrorFailure) {
-      return jar.applyTo(handlePipelineError(onErrorFailure));
+      const errRes = handlePipelineError(onErrorFailure);
+      return jar ? jar.applyTo(errRes) : errRes;
     }
   }
 
-  return jar.applyTo(handlePipelineError(error));
+  const errRes = handlePipelineError(error);
+  return jar ? jar.applyTo(errRes) : errRes;
 }

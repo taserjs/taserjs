@@ -5,9 +5,15 @@ import {
   ERROR_MESSAGES,
   STATUS_NO_CONTENT,
   STATUS_OK,
+  TEXT_HTML,
+  TEXT_PLAIN,
 } from "../http/constants.js";
 import type { BinaryBody, BodyKind, ReplyInit } from "./types.js";
 import { createReply, type ReplyBodyKind, type ReplyOf } from "./result.js";
+
+export const DEFAULT_JSON_HEADERS = Object.freeze({ "content-type": APPLICATION_JSON });
+export const DEFAULT_TEXT_HEADERS = Object.freeze({ "content-type": TEXT_PLAIN });
+export const DEFAULT_HTML_HEADERS = Object.freeze({ "content-type": TEXT_HTML });
 
 export function mergeHeaders(
   init: ReplyInit | undefined,
@@ -15,26 +21,37 @@ export function mergeHeaders(
   dynamic?: { contentType?: string },
 ): ReplyInit {
   const defaults = DEFAULT_HEADERS_BY_BODY_KIND[kind];
+  const defaultContentType = defaults?.["content-type"] ?? dynamic?.contentType;
+
   if (!init || !init.headers) {
-    const defaultHeaders = defaults
-      ? { ...defaults }
-      : dynamic?.contentType
-        ? { "content-type": dynamic.contentType }
-        : {};
-    return { ...init, headers: defaultHeaders };
+    const headers = defaultContentType ? { "content-type": defaultContentType } : {};
+    return init ? { ...init, headers } : { headers };
   }
 
-  const headers = new Headers(
-    defaults
-      ? defaults
-      : dynamic?.contentType
-        ? { "content-type": dynamic.contentType }
-        : undefined,
-  );
+  const rawHeaders = init.headers;
+  if (rawHeaders instanceof Headers) {
+    const headers = new Headers(rawHeaders);
+    if (defaultContentType && !headers.has("content-type")) {
+      headers.set("content-type", defaultContentType);
+    }
+    return { ...init, headers };
+  }
 
-  new Headers(init.headers).forEach((value, key) => {
-    headers.set(key, value);
-  });
+  if (Array.isArray(rawHeaders)) {
+    const headers = new Headers(rawHeaders);
+    if (defaultContentType && !headers.has("content-type")) {
+      headers.set("content-type", defaultContentType);
+    }
+    return { ...init, headers };
+  }
+
+  // Plain object Record<string, string>
+  const hasContentType = Object.keys(rawHeaders).some(
+    (k) => k.toLowerCase() === "content-type",
+  );
+  const headers = hasContentType || !defaultContentType
+    ? { ...rawHeaders }
+    : { "content-type": defaultContentType, ...rawHeaders };
 
   return { ...init, headers };
 }
@@ -148,11 +165,14 @@ export function toReplyResponse(
   data: unknown,
   kind: ReplyBodyKind,
 ): Response {
-  const status = init?.status ?? STATUS_OK;
+  if (init === undefined) {
+    return createReply(body, undefined, data, kind);
+  }
+  const status = init.status ?? STATUS_OK;
   const responseInit: ResponseInit = {
     status,
-    ...(init?.statusText !== undefined ? { statusText: init.statusText } : {}),
-    ...(init?.headers !== undefined ? { headers: init.headers } : {}),
+    ...(init.statusText !== undefined ? { statusText: init.statusText } : {}),
+    ...(init.headers !== undefined ? { headers: init.headers } : {}),
   };
   return createReply(body, responseInit, data, kind);
 }
@@ -161,7 +181,7 @@ export function jsonResponse(data: unknown, init?: ReplyInit): Response {
   if (!init) {
     return createReply(
       JSON.stringify(data),
-      { status: STATUS_OK, headers: { "content-type": APPLICATION_JSON } },
+      { status: STATUS_OK, headers: DEFAULT_JSON_HEADERS },
       data,
       "json",
     );
@@ -170,7 +190,7 @@ export function jsonResponse(data: unknown, init?: ReplyInit): Response {
   if (!init.headers) {
     return createReply(
       JSON.stringify(data),
-      { ...init, status, headers: { "content-type": APPLICATION_JSON } },
+      { ...init, status, headers: DEFAULT_JSON_HEADERS },
       data,
       "json",
     );

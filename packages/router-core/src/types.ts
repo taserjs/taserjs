@@ -21,10 +21,10 @@ export type PipelineContext = {
   [key: string]: unknown;
 };
 
-export type PipelineNext = (state?: Record<string, unknown>) => Promise<unknown>;
+export type PipelineNext = (state?: Record<string, unknown>) => Awaitable<unknown>;
 
 export type PipelineLayer = {
-  run: (ctx: PipelineContext, next: PipelineNext) => Promise<unknown>;
+  run: (ctx: PipelineContext, next: PipelineNext) => Awaitable<unknown>;
 };
 
 export type BodyMode = "json" | "form" | "urlencoded";
@@ -37,7 +37,7 @@ export type MiddlewareDefinition = {
   returns?: Record<number, unknown>;
   handler: (
     ctx: unknown,
-    next: (state?: Record<string, unknown>) => Promise<unknown>,
+    next: PipelineNext,
   ) => Awaitable<unknown>;
 };
 
