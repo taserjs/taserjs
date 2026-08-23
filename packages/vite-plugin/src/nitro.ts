@@ -48,6 +48,11 @@ function getVirtualAppCode(rootDir: string, nitro: Nitro, scope: string = "/"): 
 
   if (!hostServer && extraHandlers.length === 0) {
     return `import entry from "${VIRTUAL_ENTRY_ID}";
+import { FastResponse } from "srvx";
+
+if (typeof FastResponse !== "undefined") {
+  globalThis.Response = FastResponse;
+}
 
 export function createNitroApp() {
   return {
@@ -69,7 +74,11 @@ export function initNitroPlugins() {}
 `;
   }
 
-  const imports: string[] = [`import taserEntry from "${VIRTUAL_ENTRY_ID}";`];
+  const imports: string[] = [
+    `import taserEntry from "${VIRTUAL_ENTRY_ID}";`,
+    `import { FastResponse } from "srvx";`,
+    `if (typeof FastResponse !== "undefined") { globalThis.Response = FastResponse; }`,
+  ];
   let hostInvocation = "";
 
   if (hostServer) {
