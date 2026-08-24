@@ -225,7 +225,7 @@ describe("pipeline response validation + onError", () => {
     const response = await createTaserRuntime(manifest, () => ({})).fetch(
       new Request("http://localhost/hello"),
     );
-    expect(response.status).toBe(502);
+    expect(response!.status).toBe(502);
   });
 
   it("merges layout middleware returns at runtime", async () => {
@@ -257,8 +257,8 @@ describe("pipeline response validation + onError", () => {
     const response = await createTaserRuntime(manifest, () => ({})).fetch(
       new Request("http://localhost/hello"),
     );
-    expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ error: "nope" });
+    expect(response!.status).toBe(401);
+    expect(await response!.json()).toEqual({ error: "nope" });
   });
 
   it("routes unexpected errors through onError", async () => {
@@ -287,7 +287,7 @@ describe("pipeline response validation + onError", () => {
       .create(manifest);
 
     const response = await app.fetch(new Request("http://localhost/hello"));
-    expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({ message: "handled" });
+    expect(response!.status).toBe(500);
+    expect(await response!.json()).toEqual({ message: "handled" });
   });
 });

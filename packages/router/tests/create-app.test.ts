@@ -56,8 +56,8 @@ describe("createContext + createTaserApp", () => {
     } satisfies RouteManifestShape;
 
     const app = t.create(manifest);
-    const a = await (await app.fetch(new Request("http://localhost/hello"))).json();
-    const b = await (await app.fetch(new Request("http://localhost/hello"))).json();
+    const a = await (await app.fetch(new Request("http://localhost/hello")))!.json();
+    const b = await (await app.fetch(new Request("http://localhost/hello")))!.json();
 
     expect(bootCount).toBe(1);
     expect(requestCount).toBe(2);
@@ -91,11 +91,11 @@ describe("createContext + createTaserApp", () => {
       .create(manifest);
 
     const strictRes = await strict.fetch(new Request("http://localhost/hello"));
-    expect(strictRes.status).toBe(502);
+    expect(strictRes!.status).toBe(502);
 
     const looseRes = await loose.fetch(new Request("http://localhost/hello"));
-    expect(looseRes.status).toBe(200);
-    expect(await looseRes.json()).toEqual({ id: 1 });
+    expect(looseRes!.status).toBe(200);
+    expect(await looseRes!.json()).toEqual({ id: 1 });
   });
 
   it("wires onError from the app builder before create", async () => {
@@ -118,8 +118,8 @@ describe("createContext + createTaserApp", () => {
 
     const app = t.create(manifest);
     const response = await app.fetch(new Request("http://localhost/hello"));
-    expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({ message: "builder-handled" });
+    expect(response!.status).toBe(500);
+    expect(await response!.json()).toEqual({ message: "builder-handled" });
   });
 
   it("creates app without context()", async () => {
@@ -137,8 +137,8 @@ describe("createContext + createTaserApp", () => {
 
     const app = createTaserApp().create(manifest);
     const response = await app.fetch(new Request("http://localhost/hello"));
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true });
+    expect(response!.status).toBe(200);
+    expect(await response!.json()).toEqual({ ok: true });
   });
 
   it("chains onError and notFound before create", async () => {
@@ -163,6 +163,23 @@ describe("createContext + createTaserApp", () => {
     expect(await missing.json()).toEqual({ missing: true });
   });
 
+  it("passes through on miss by default when notFound is not chained", async () => {
+    const t = createTaserApp().context({});
+    const route = t.get("/hello").handler(() => json({ ok: true }));
+    const manifest = {
+      layouts: {},
+      routes: {
+        "/hello": {
+          GET: { layoutChain: [], route },
+        },
+      },
+    } satisfies RouteManifestShape;
+
+    const app = t.create(manifest);
+    const missing = await app.fetch(new Request("http://localhost/missing"));
+    expect(missing).toBeUndefined();
+  });
+
   it("supports basePath option at app.create", async () => {
     const t = createTaserApp();
     const route = t.get("/hello").handler(() => json({ ok: true }));
@@ -177,8 +194,52 @@ describe("createContext + createTaserApp", () => {
 
     const app = t.create(manifest, { basePath: "/api" });
     const response = await app.fetch(new Request("http://localhost/api/hello"));
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true });
+    expect(response!.status).toBe(200);
+    expect(await response!.json()).toEqual({ ok: true });
+  });
+
+  it("supports app.request convenience helper", async () => {
+    const t = createTaserApp()
+      .notFound(() => notFound({ error: "missing" }));
+
+    const getRoute = t.get("/hello").handler(() => json([{ id: "item-1" }]));
+    const postRoute = t.post("/search").handler(async (ctx) => {
+      const data = await ctx.request.json();
+      return json({ created: data }, { status: 201 });
+    });
+
+    const manifest = {
+      layouts: {},
+      routes: {
+        "/hello": {
+          GET: { layoutChain: [], route: getRoute },
+        },
+        "/search": {
+          POST: { layoutChain: [], route: postRoute },
+        },
+      },
+    } satisfies RouteManifestShape;
+
+    const app = t.create(manifest);
+
+    // GET with relative path
+    const getRes = await app.request("/hello");
+    expect(getRes.status).toBe(200);
+    expect(await getRes.json()).toEqual([{ id: "item-1" }]);
+
+    // POST with init
+    const postRes = await app.request("/search", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Gadget" }),
+    });
+    expect(postRes.status).toBe(201);
+    expect(await postRes.json()).toEqual({ created: { name: "Gadget" } });
+
+    // 404 handler via request
+    const notFoundRes = await app.request("/missing-path");
+    expect(notFoundRes.status).toBe(404);
+    expect(await notFoundRes.json()).toEqual({ error: "missing" });
   });
 });
 

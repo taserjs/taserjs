@@ -35,8 +35,8 @@ describe("runtime hot path", () => {
       }),
     );
 
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true });
+    expect(response!.status).toBe(200);
+    expect(await response!.json()).toEqual({ ok: true });
   });
 
   it("parses body when route declares a body schema", async () => {
@@ -68,8 +68,8 @@ describe("runtime hot path", () => {
       }),
     );
 
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ name: "taser" });
+    expect(response!.status).toBe(200);
+    expect(await response!.json()).toEqual({ name: "taser" });
   });
 
   it("rejects oversized body via bodyLimit before handler runs", async () => {
@@ -114,7 +114,7 @@ describe("runtime hot path", () => {
       }),
     );
 
-    expect(response.status).toBe(413);
+    expect(response!.status).toBe(413);
     expect(handlerCalled).toBe(false);
   });
 
@@ -151,8 +151,8 @@ describe("runtime hot path", () => {
     const runtime = createTaserRuntime(manifest, () => ({}));
     const response = await runtime.fetch(new Request("http://localhost/search?page=1&extra=drop"));
 
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ page: "1", extra: "drop" });
+    expect(response!.status).toBe(200);
+    expect(await response!.json()).toEqual({ page: "1", extra: "drop" });
   });
 
   it("merges layered query validation across middleware and route schemas", async () => {
@@ -189,8 +189,8 @@ describe("runtime hot path", () => {
     const runtime = createTaserRuntime(manifest, () => ({}));
     const response = await runtime.fetch(new Request("http://localhost/?name=foo"));
 
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ name: "foo", page: 1 });
+    expect(response!.status).toBe(200);
+    expect(await response!.json()).toEqual({ name: "foo", page: 1 });
   });
 
   it("does not rebuild pipeline layers on each request", async () => {
@@ -247,8 +247,8 @@ describe("runtime hot path", () => {
     const runtime = createTaserRuntime(manifest, () => ({}));
     const response = await runtime.fetch(new Request("http://localhost/search"));
 
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ page: 1 });
+    expect(response!.status).toBe(200);
+    expect(await response!.json()).toEqual({ page: 1 });
   });
 
   it("validates field-level requirements when empty body is sent", async () => {
@@ -274,8 +274,8 @@ describe("runtime hot path", () => {
     const runtime = createTaserRuntime(manifest, () => ({}));
     const response = await runtime.fetch(new Request("http://localhost/items", { method: "POST" }));
 
-    expect(response.status).toBe(422);
-    const result = (await response.json()) as {
+    expect(response!.status).toBe(422);
+    const result = (await response!.json()) as {
       errors: Array<{ path?: string[]; message?: string }>;
     };
     // Verifies the error is for the missing "name" field rather than root object being undefined

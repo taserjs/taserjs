@@ -1,28 +1,38 @@
 import type { RouteManifestShape, TaserRuntime } from "@taserjs/router-core";
 
-export class TaserServeView<TPassThrough extends boolean = boolean> {
+export class TaserServeView<THasNotFound extends boolean = boolean> {
   readonly fetch: (
     request: Request,
     env?: unknown,
     executionCtx?: unknown,
-  ) => TPassThrough extends true
-    ? Promise<Response | undefined> | Response | undefined
-    : Promise<Response> | Response;
+  ) => THasNotFound extends true
+    ? Promise<Response> | Response
+    : Promise<Response | undefined> | Response | undefined;
 
-  constructor(protected readonly runtime: TaserRuntime<TPassThrough>) {
+  readonly request: (
+    path: string,
+    init?: RequestInit,
+  ) => THasNotFound extends true
+    ? Promise<Response>
+    : Promise<Response | undefined>;
+
+  constructor(protected readonly runtime: TaserRuntime<THasNotFound>) {
     this.fetch = (request: Request, env?: unknown, executionCtx?: unknown) => {
       return this.runtime.fetch(request, env, executionCtx as never);
+    };
+    this.request = (path: string, init?: RequestInit) => {
+      return this.runtime.request(path, init);
     };
   }
 }
 
 export class TaserApp<
   TManifest extends RouteManifestShape = RouteManifestShape,
-  TPassThrough extends boolean = boolean,
-> extends TaserServeView<TPassThrough> {
+  THasNotFound extends boolean = boolean,
+> extends TaserServeView<THasNotFound> {
   readonly __manifest?: TManifest;
 
-  constructor(runtime: TaserRuntime<TPassThrough>, manifest?: TManifest) {
+  constructor(runtime: TaserRuntime<THasNotFound>, manifest?: TManifest) {
     super(runtime);
     if (manifest !== undefined) {
       this.__manifest = manifest;

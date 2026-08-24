@@ -26,7 +26,8 @@ describe("jwt and jwk middleware", () => {
       },
     };
     const runtime = createTaserRuntime(manifest, () => ({}));
-    return runtime.fetch(request);
+    const res = await runtime.fetch(request);
+    return res!;
   }
 
   it("returns 401 when token is missing or invalid", async () => {

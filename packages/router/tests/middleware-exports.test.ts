@@ -38,8 +38,8 @@ describe("middleware subpath exports", () => {
     const response = await createTaserRuntime(manifest, () => ({})).fetch(
       new Request("http://localhost/hello"),
     );
-    expect(response.status).toBe(200);
-    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(response!.status).toBe(200);
+    expect(response!.headers.get("Access-Control-Allow-Origin")).toBe("*");
   });
 
   it("jwt injects validated payload into ctx.state.jwtPayload", async () => {
@@ -69,14 +69,14 @@ describe("middleware subpath exports", () => {
     const runtime = createTaserRuntime(manifest, () => ({}));
 
     const unauthorized = await runtime.fetch(new Request("http://localhost/hello"));
-    expect(unauthorized.status).toBe(401);
+    expect(unauthorized!.status).toBe(401);
 
     const authorized = await runtime.fetch(
       new Request("http://localhost/hello", {
         headers: { Authorization: `Bearer ${token}` },
       }),
     );
-    expect(authorized.status).toBe(200);
-    expect(await authorized.json()).toEqual({ sub: "user-123" });
+    expect(authorized!.status).toBe(200);
+    expect(await authorized!.json()).toEqual({ sub: "user-123" });
   });
 });

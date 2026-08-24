@@ -55,9 +55,9 @@ describe("createTaserRuntime", () => {
 
     const runtime = createTaserRuntime(manifest, () => ({}));
     const response = await runtime.fetch(new Request("http://localhost/test"));
-    expect(response.status).toBe(200);
+    expect(response!.status).toBe(200);
     expect(response instanceof Response).toBe(true);
-    expect(await response.json()).toEqual({ ok: true });
+    expect(await response!.json()).toEqual({ ok: true });
     expect(order).toEqual([
       "layout-before",
       "route-before",
@@ -101,10 +101,10 @@ describe("createTaserRuntime", () => {
     const runtime = createTaserRuntime(manifest, () => ({}));
 
     const postRes = await runtime.fetch(new Request("http://localhost/posts/42"));
-    expect(await postRes.json()).toEqual({ id: "42" });
+    expect(await postRes!.json()).toEqual({ id: "42" });
 
     const splatRes = await runtime.fetch(new Request("http://localhost/files/a/b/c"));
-    expect(await splatRes.json()).toEqual({ splat: "a/b/c" });
+    expect(await splatRes!.json()).toEqual({ splat: "a/b/c" });
   });
 
   it("exposes headers and cookies helpers", async () => {
@@ -142,7 +142,7 @@ describe("createTaserRuntime", () => {
         },
       }),
     );
-    expect(await response.json()).toEqual({ auth: "Bearer abc", token: "xyz" });
+    expect(await response!.json()).toEqual({ auth: "Bearer abc", token: "xyz" });
   });
 
   it("sets cookies on the response via ctx.cookies.set", async () => {
@@ -169,7 +169,7 @@ describe("createTaserRuntime", () => {
 
     const runtime = createTaserRuntime(manifest, () => ({}));
     const response = await runtime.fetch(new Request("http://localhost/test"));
-    const cookies = response.headers.getSetCookie?.() ?? [response.headers.get("set-cookie")!];
+    const cookies = response!.headers.getSetCookie?.() ?? [response!.headers.get("set-cookie")!];
     expect(cookies).toEqual(expect.arrayContaining([expect.stringContaining("session=abc")]));
     expect(cookies.join("; ")).toMatch(/HttpOnly/i);
     expect(cookies.join("; ")).toMatch(/SameSite=Lax/i);
@@ -211,8 +211,8 @@ describe("createTaserRuntime", () => {
     const response = await createTaserRuntime(manifest, () => ({})).fetch(
       new Request("http://localhost/test"),
     );
-    expect(response.headers.get("X-Layout")).toBe("1");
-    expect(await response.json()).toEqual({ ok: true });
+    expect(response!.headers.get("X-Layout")).toBe("1");
+    expect(await response!.json()).toEqual({ ok: true });
   });
 
   it("matches prefixed route registrations", async () => {
@@ -236,8 +236,8 @@ describe("createTaserRuntime", () => {
 
     const runtime = createTaserRuntime(manifest, () => ({}), { basePath: "/api" });
     const response = await runtime.fetch(new Request("http://localhost/api/hello"));
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true });
+    expect(response!.status).toBe(200);
+    expect(await response!.json()).toEqual({ ok: true });
   });
 
   it("fetch matches route created with basePath", async () => {
@@ -261,8 +261,8 @@ describe("createTaserRuntime", () => {
 
     const runtime = createTaserRuntime(manifest, () => ({}), { basePath: "/api" });
     const response = await runtime.fetch(new Request("http://localhost/api/hello"));
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true });
+    expect(response!.status).toBe(200);
+    expect(await response!.json()).toEqual({ ok: true });
   });
 
   it("wires notFound and onError post-create", async () => {
@@ -271,8 +271,8 @@ describe("createTaserRuntime", () => {
       .onError(() => internalServerError({ message: "handled" }));
 
     const missing = await runtime.fetch(new Request("http://localhost/missing"));
-    expect(missing.status).toBe(404);
-    expect(await missing.text()).toBe("gone");
+    expect(missing!.status).toBe(404);
+    expect(await missing!.text()).toBe("gone");
   });
 
   it("parses JSON body via Hono", async () => {
@@ -303,7 +303,7 @@ describe("createTaserRuntime", () => {
         body: JSON.stringify({ name: "Ada" }),
       }),
     );
-    expect(await response.json()).toEqual({ name: "Ada" });
+    expect(await response!.json()).toEqual({ name: "Ada" });
   });
 
   it("parses urlencoded body via Hono parseBody", async () => {
@@ -334,7 +334,7 @@ describe("createTaserRuntime", () => {
         body: "title=Hello",
       }),
     );
-    expect(await response.json()).toEqual({ title: "Hello" });
+    expect(await response!.json()).toEqual({ title: "Hello" });
   });
 
   it("returns 422 when route query validation fails", async () => {
@@ -359,8 +359,8 @@ describe("createTaserRuntime", () => {
 
     const runtime = createTaserRuntime(manifest, () => ({}));
     const response = await runtime.fetch(new Request("http://localhost/search?page=1"));
-    expect(response.status).toBe(422);
-    const body = (await response.json()) as { errors: unknown[] };
+    expect(response!.status).toBe(422);
+    const body = (await response!.json()) as { errors: unknown[] };
     expect(body.errors.length).toBeGreaterThan(0);
   });
 
@@ -409,8 +409,8 @@ describe("createTaserRuntime", () => {
       const runtime = createTaserRuntime(manifest, () => ({}));
       const response = await runtime.fetch(new Request("http://localhost/api/test"));
 
-      expect(response.status).toBe(200);
-      expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+      expect(response!.status).toBe(200);
+      expect(response!.headers.get("Access-Control-Allow-Origin")).toBe("*");
       expect(order).toEqual(["cors-before", "handler", "cors-after"]);
     });
 
@@ -454,8 +454,8 @@ describe("createTaserRuntime", () => {
 
       // Test unauthorized request
       const unauthorizedResponse = await runtime.fetch(new Request("http://localhost/protected"));
-      expect(unauthorizedResponse.status).toBe(401);
-      expect(await unauthorizedResponse.text()).toBe("Unauthorized");
+      expect(unauthorizedResponse!.status).toBe(401);
+      expect(await unauthorizedResponse!.text()).toBe("Unauthorized");
 
       // Test authorized request
       const authorizedResponse = await runtime.fetch(
@@ -463,8 +463,8 @@ describe("createTaserRuntime", () => {
           headers: { authorization: "Bearer valid-token" },
         }),
       );
-      expect(authorizedResponse.status).toBe(200);
-      const body = await authorizedResponse.json();
+      expect(authorizedResponse!.status).toBe(200);
+      const body = (await authorizedResponse!.json()) as { message: string; user: { id: string } };
       expect(body).toEqual({
         message: "Protected resource",
         user: { id: "test-user" },
@@ -520,9 +520,9 @@ describe("createTaserRuntime", () => {
       const runtime = createTaserRuntime(manifest, () => ({}));
       const response = await runtime.fetch(new Request("http://localhost/chained"));
 
-      expect(response.status).toBe(200);
-      expect(response.headers.get("Content-Encoding")).toBe("gzip");
-      expect(response.headers.get("X-Response-Time")).toMatch(/^\d+ms$/);
+      expect(response!.status).toBe(200);
+      expect(response!.headers.get("Content-Encoding")).toBe("gzip");
+      expect(response!.headers.get("X-Response-Time")).toMatch(/^\d+ms$/);
       expect(order).toEqual([
         "logger-start",
         "compression-start",
@@ -532,7 +532,34 @@ describe("createTaserRuntime", () => {
       ]);
     });
 
-    it("returns undefined on route miss when passThroughOnMiss is true", async () => {
+    it("returns undefined on route miss when notFound is not registered", async () => {
+      const manifest = {
+        layouts: {},
+        routes: {
+          "/exists": {
+            GET: {
+              layoutChain: [],
+              route: {
+                path: "/exists",
+                method: "GET" as const,
+                middlewares: [],
+                handler: () => text("ok"),
+              },
+            },
+          },
+        },
+      };
+
+      const runtime = createTaserRuntime(manifest, () => ({}));
+
+      const matchedResponse = await runtime.fetch(new Request("http://localhost/exists"));
+      expect(matchedResponse?.status).toBe(200);
+
+      const missedResponse = await runtime.fetch(new Request("http://localhost/not-found"));
+      expect(missedResponse).toBeUndefined();
+    });
+
+    it("returns custom 404 response on route miss when notFound is registered", async () => {
       const manifest = {
         layouts: {},
         routes: {
@@ -551,14 +578,68 @@ describe("createTaserRuntime", () => {
       };
 
       const runtime = createTaserRuntime(manifest, () => ({}), {
-        passThroughOnMiss: true,
+        notFound: () => text("custom 404", { status: 404 }),
       });
 
       const matchedResponse = await runtime.fetch(new Request("http://localhost/exists"));
-      expect(matchedResponse?.status).toBe(200);
+      expect(matchedResponse.status).toBe(200);
 
       const missedResponse = await runtime.fetch(new Request("http://localhost/not-found"));
-      expect(missedResponse).toBeUndefined();
+      expect(missedResponse.status).toBe(404);
+      expect(await missedResponse.text()).toBe("custom 404");
+    });
+
+    it("executes routes via runtime.request helper with relative and absolute URLs", async () => {
+      const manifest = {
+        layouts: {},
+        routes: {
+          "/users": {
+            GET: {
+              layoutChain: [],
+              route: {
+                path: "/users",
+                method: "GET" as const,
+                middlewares: [],
+                handler: () => json([{ id: "u1" }]),
+              },
+            },
+            POST: {
+              layoutChain: [],
+              route: {
+                path: "/users",
+                method: "POST" as const,
+                middlewares: [],
+                handler: (ctx: { request: Request }) =>
+                  ctx.request.json().then((body) => json(body, { status: 201 })),
+              },
+            },
+          },
+        },
+      };
+
+      const runtime = createTaserRuntime(manifest, () => ({}));
+
+      // Relative path GET
+      const getRes = await runtime.request("/users");
+      expect(getRes!.status).toBe(200);
+      expect(await getRes!.json()).toEqual([{ id: "u1" }]);
+
+      // Relative path POST with init
+      const postRes = await runtime.request("users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Alice" }),
+      });
+      expect(postRes!.status).toBe(201);
+      expect(await postRes!.json()).toEqual({ name: "Alice" });
+
+      // Absolute URL
+      const absRes = await runtime.request("http://custom-domain.com/users");
+      expect(absRes!.status).toBe(200);
+
+      // Route miss returns undefined without notFound
+      const missRes = await runtime.request("/non-existent");
+      expect(missRes).toBeUndefined();
     });
   });
 });

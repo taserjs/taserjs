@@ -50,11 +50,14 @@ const emptyContext: ContextDefinition<Record<string, unknown>, Record<string, un
 
 export class TaserRouter<
   TAppContext extends Record<string, unknown> = AppContext,
-  TOptions extends CreateTaserAppOptions = CreateTaserAppOptions,
+  THasNotFound extends boolean = false,
 > {
   private readonly state: RouterState;
 
-  constructor(options: TOptions = {} as TOptions, state?: Partial<Omit<RouterState, "options">>) {
+  constructor(
+    options: CreateTaserAppOptions = {},
+    state?: Partial<Omit<RouterState, "options">>,
+  ) {
     this.state = {
       options,
       contextDef: state?.contextDef ?? emptyContext,
@@ -65,9 +68,9 @@ export class TaserRouter<
 
   context<TBoot extends Record<string, unknown>, TReq extends Record<string, unknown>>(
     definition: ContextDefinition<TBoot, TReq>,
-  ): TaserRouter<TBoot & TReq, TOptions> {
+  ): TaserRouter<TBoot & TReq, THasNotFound> {
     this.state.contextDef = definition;
-    return this as unknown as TaserRouter<TBoot & TReq, TOptions>;
+    return this as unknown as TaserRouter<TBoot & TReq, THasNotFound>;
   }
 
   onError<TResponses extends ReturnsMap = ReturnsMap>(
@@ -77,9 +80,11 @@ export class TaserRouter<
     return this;
   }
 
-  notFound(handler: (ctx: unknown) => Response | Promise<Response> | unknown): this {
+  notFound(
+    handler: (ctx: unknown) => Response | Promise<Response> | unknown,
+  ): TaserRouter<TAppContext, true> {
     this.state.notFound = (ctx) => handler(ctx);
-    return this;
+    return this as unknown as TaserRouter<TAppContext, true>;
   }
 
   get: CreateWithoutBodyRoute<"GET", TAppContext> = createGetRoute as CreateWithoutBodyRoute<
@@ -136,7 +141,7 @@ export class TaserRouter<
   create<const TManifest extends RouteManifestShape>(
     manifest: TManifest,
     runtimeOptions?: { basePath?: string },
-  ): TaserApp<TManifest, TOptions extends { passThroughOnMiss: true } ? true : false> {
+  ): TaserApp<TManifest, THasNotFound> {
     const definition = this.state.contextDef;
     const validateResponse = this.state.options.response?.validate ?? true;
     const onValidationFailure = this.state.options.response?.onValidationFailure;
@@ -192,9 +197,6 @@ export class TaserRouter<
 
     const runtime = createTaserRuntime(manifest, contextFactory, {
       ...(basePath !== undefined ? { basePath } : {}),
-      ...(this.state.options.passThroughOnMiss !== undefined
-        ? { passThroughOnMiss: this.state.options.passThroughOnMiss }
-        : {}),
       response: {
         validate: validateResponse,
         ...(onValidationFailure !== undefined ? { onValidationFailure } : {}),
@@ -204,15 +206,12 @@ export class TaserRouter<
       ...(this.state.options.cookies !== undefined ? { cookies: this.state.options.cookies } : {}),
     });
 
-    return new TaserApp(runtime, manifest) as TaserApp<
-      TManifest,
-      TOptions extends { passThroughOnMiss: true } ? true : false
-    >;
+    return new TaserApp(runtime, manifest) as unknown as TaserApp<TManifest, THasNotFound>;
   }
 }
 
-export function createTaserApp<
-  const TOptions extends CreateTaserAppOptions = CreateTaserAppOptions,
->(options: TOptions = {} as TOptions): TaserRouter<AppContext, TOptions> {
-  return new TaserRouter(options);
+export function createTaserApp(
+  options: CreateTaserAppOptions = {},
+): TaserRouter<AppContext, false> {
+  return new TaserRouter<AppContext, false>(options);
 }

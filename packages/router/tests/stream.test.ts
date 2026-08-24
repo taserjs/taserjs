@@ -25,9 +25,9 @@ describe("router stream export", () => {
 
     const app = t.create(manifest);
     const response = await app.fetch(new Request("http://localhost/file"));
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toBe("application/json");
-    expect(await response.json()).toEqual({ message: "streamed from file" });
+    expect(response!.status).toBe(200);
+    expect(response!.headers.get("content-type")).toBe("application/json");
+    expect(await response!.json()).toEqual({ message: "streamed from file" });
   });
 
   it("serves pipe stream from route handler", async () => {
@@ -46,9 +46,9 @@ describe("router stream export", () => {
 
     const app = t.create(manifest);
     const response = await app.fetch(new Request("http://localhost/pipe"));
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toBe("text/plain");
-    expect(await response.text()).toBe("piped-stream-data");
+    expect(response!.status).toBe(200);
+    expect(response!.headers.get("content-type")).toBe("text/plain");
+    expect(await response!.text()).toBe("piped-stream-data");
   });
 
   it("serves buffer from route handler", async () => {
@@ -63,9 +63,9 @@ describe("router stream export", () => {
 
     const app = t.create(manifest);
     const response = await app.fetch(new Request("http://localhost/buffer"));
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toBe("application/octet-stream");
-    expect(await response.text()).toBe("binary-stream");
+    expect(response!.status).toBe(200);
+    expect(response!.headers.get("content-type")).toBe("application/octet-stream");
+    expect(await response!.text()).toBe("binary-stream");
   });
 
   it("serves blob from route handler", async () => {
@@ -82,9 +82,9 @@ describe("router stream export", () => {
 
     const app = t.create(manifest);
     const response = await app.fetch(new Request("http://localhost/blob"));
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toBe("text/html");
-    expect(await response.text()).toBe("blob data");
+    expect(response!.status).toBe(200);
+    expect(response!.headers.get("content-type")).toBe("text/html");
+    expect(await response!.text()).toBe("blob data");
   });
 
   it("supports direct functions from stream subpath", () => {

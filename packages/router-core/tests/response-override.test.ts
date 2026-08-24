@@ -50,8 +50,8 @@ describe("runtime with global.Response override", () => {
         new Request("http://localhost/account/plain"),
       );
 
-      expect(response.headers.get("content-type")).toMatch(/text\/plain/);
-      expect(await response.text()).toBe("Hello, world!");
+      expect(response!.headers.get("content-type")).toMatch(/text\/plain/);
+      expect(await response!.text()).toBe("Hello, world!");
     } finally {
       restore();
     }

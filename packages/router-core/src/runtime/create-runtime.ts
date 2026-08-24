@@ -9,6 +9,7 @@ import type {
   ContextFactory,
   CreateTaserRuntimeOptions,
   HttpMethod,
+  NotFoundHandler,
   OnErrorHandler,
   PipelineContext,
   RouteHandler,
@@ -96,7 +97,7 @@ export function createTaserRuntime<
   manifest: RouteManifestShape,
   createContext: ContextFactory,
   options: TOptions = {} as TOptions,
-): TaserRuntime<TOptions extends { passThroughOnMiss: true } ? true : false> {
+): TaserRuntime<TOptions extends { notFound: NotFoundHandler } ? true : false> {
   const validateResponse = options.response?.validate ?? true;
   const onValidationFailure = options.response?.onValidationFailure;
   const responseOptions: FinalizeResponseOptions = {
@@ -109,7 +110,6 @@ export function createTaserRuntime<
     options.cookies,
   );
   const basePath = options.basePath ?? "";
-  const passThroughOnMiss = options.passThroughOnMiss ?? false;
 
   const router = new RegExpRouter<PreparedRoute>();
 
@@ -136,7 +136,7 @@ export function createTaserRuntime<
       : undefined;
 
     if (!match) {
-      if (passThroughOnMiss) {
+      if (!notFoundHandler) {
         return undefined;
       }
       return dispatchNotFound(
@@ -247,15 +247,23 @@ export function createTaserRuntime<
     fetch(request) {
       return dispatchRequest(request);
     },
+    request(path, init) {
+      const url =
+        path.startsWith("http://") || path.startsWith("https://")
+          ? path
+          : `http://localhost${path.startsWith("/") ? "" : "/"}${path}`;
+      const req = new Request(url, init);
+      return Promise.resolve(dispatchRequest(req));
+    },
     onError(handler: OnErrorHandler | OnErrorHandler["handle"]) {
       onErrorHandler = normalizeOnError(handler);
       return runtime;
     },
     notFound(handler) {
       notFoundHandler = handler;
-      return runtime;
+      return runtime as TaserRuntime<true>;
     },
   };
 
-  return runtime as TaserRuntime<TOptions extends { passThroughOnMiss: true } ? true : false>;
+  return runtime as TaserRuntime<TOptions extends { notFound: NotFoundHandler } ? true : false>;
 }

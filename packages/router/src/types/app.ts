@@ -6,7 +6,6 @@ import type { ReturnsMap } from "./returns.js";
 import type { Schema } from "./schema.js";
 
 export type CreateTaserAppOptions = {
-  passThroughOnMiss?: boolean;
   response?: {
     /** Validate handler replies against returns maps. Default true. */
     validate?: boolean;
@@ -34,7 +33,7 @@ export type OnErrorOptions<TResponses extends ReturnsMap = ReturnsMap> = {
 };
 
 export type InferAppManifest<TApp> =
-  TApp extends TaserApp<infer TManifest>
+  TApp extends TaserApp<infer TManifest, any>
     ? TManifest
     : TApp extends { manifest: infer TManifest }
       ? TManifest
