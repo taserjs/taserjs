@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import { join } from "pathe";
 import type { ViteDevServer } from "vite";
-import { VIRTUAL_APP_ID } from "./virtual.js";
+import { VIRTUAL_APP_ID } from "./core/context.js";
 
 type SrvxModule = typeof import("srvx");
 

@@ -163,8 +163,8 @@ describe("createContext + createTaserApp", () => {
     expect(await missing.json()).toEqual({ missing: true });
   });
 
-  it("supports basePath option at app creation", async () => {
-    const t = createTaserApp({ basePath: "/api" });
+  it("supports basePath option at app.create", async () => {
+    const t = createTaserApp();
     const route = t.get("/hello").handler(() => json({ ok: true }));
     const manifest = {
       layouts: {},
@@ -175,7 +175,7 @@ describe("createContext + createTaserApp", () => {
       },
     } satisfies RouteManifestShape;
 
-    const app = t.create(manifest);
+    const app = t.create(manifest, { basePath: "/api" });
     const response = await app.fetch(new Request("http://localhost/api/hello"));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });

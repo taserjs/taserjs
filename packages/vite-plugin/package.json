@@ -55,7 +55,7 @@
     "registry": "https://registry.npmjs.org"
   },
   "scripts": {
-    "clean": "rimraf dist",
+    "clean": "rimraf dist .taser",
     "build": "vite build && publint --strict",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",

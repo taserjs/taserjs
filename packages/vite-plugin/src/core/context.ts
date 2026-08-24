@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { resolve } from "pathe";
 import {
   AnalysisCache,
@@ -7,10 +6,14 @@ import {
   emitVirtualEntrySource,
   taserOptionsSchema,
   DEFAULT_IGNORE,
+  resolveServerDir,
+  resolveTaserEntry,
+  resolveRoutesDir,
+  resolveServerEntry,
   type GeneratedModel,
 } from "@taserjs/router-generator";
-import type { TaserPluginOptions, TaserVirtualContext } from "./types.js";
-import { writeTaserTypes } from "./writer.js";
+import type { TaserUserConfig, TaserVirtualContext } from "../types.js";
+import { writeTaserTypes } from "../writer.js";
 
 export const VIRTUAL_MANIFEST_ID = "#taserjs/virtual/manifest";
 export const RESOLVED_VIRTUAL_MANIFEST_ID = "\0" + VIRTUAL_MANIFEST_ID;
@@ -18,64 +21,22 @@ export const RESOLVED_VIRTUAL_MANIFEST_ID = "\0" + VIRTUAL_MANIFEST_ID;
 export const VIRTUAL_ENTRY_ID = "#taserjs/virtual/entry";
 export const RESOLVED_VIRTUAL_ENTRY_ID = "\0" + VIRTUAL_ENTRY_ID;
 
-/** Composed taser + host-server app (srvx-compatible `{ fetch }`). */
 export const VIRTUAL_APP_ID = "#taserjs/virtual/app";
 export const RESOLVED_VIRTUAL_APP_ID = "\0" + VIRTUAL_APP_ID;
 
-export function resolveTaserAppPath(rootDir: string, entry: string): string {
-  const relativeCandidate = entry.replace(/^#src\//, "src/");
-  const directPath = resolve(rootDir, relativeCandidate);
-  if (existsSync(directPath)) {
-    return directPath;
-  }
-
-  // Probe without extension or with .ts / .js
-  const withoutExt = directPath.replace(/\.[cm]?[jt]sx?$/, "");
-  const extensions = [".ts", ".js", ".tsx", ".jsx", ".mts", ".mjs"];
-  for (const ext of extensions) {
-    const candidate = `${withoutExt}${ext}`;
-    if (existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  // Fallback defaults
-  const fallbackCandidates = [
-    resolve(rootDir, "src/taser.ts"),
-    resolve(rootDir, "src/taser.js"),
-    resolve(rootDir, "taser.ts"),
-    resolve(rootDir, "taser.js"),
-  ];
-  for (const candidate of fallbackCandidates) {
-    if (existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  return resolve(rootDir, "src/taser.ts");
-}
-
-export function resolveRoutesDir(rootDir: string, explicitPath?: string): string {
-  if (explicitPath) {
-    return resolve(rootDir, explicitPath);
-  }
-  const srcRoutes = resolve(rootDir, "src/routes");
-  if (existsSync(srcRoutes)) {
-    return srcRoutes;
-  }
-  const rootRoutes = resolve(rootDir, "routes");
-  if (existsSync(rootRoutes)) {
-    return rootRoutes;
-  }
-  return srcRoutes;
-}
-
-export function createTaserVirtualContext(options: TaserPluginOptions = {}): TaserVirtualContext {
-  const rootDir = resolve(options.rootDir || ".");
-  const routesDir = resolveRoutesDir(rootDir, options.routesDir);
+/**
+ * Creates the shared VirtualContext that manages model scanning,
+ * AnalysisCache, virtual manifest/entry generation, and type generation.
+ */
+export function createTaserVirtualContext(options: TaserUserConfig = {}): TaserVirtualContext {
+  const rootDir = resolve(options.rootDir || process.cwd());
   const parsedOptions = taserOptionsSchema.parse(options);
+  const serverDir = resolveServerDir(rootDir, options.serverDir);
+  const entryPath = resolveTaserEntry(rootDir, serverDir, options.entry);
+  const serverEntryPath = resolveServerEntry(rootDir, serverDir, options.serverEntry);
+  const routesDir = resolveRoutesDir(rootDir, serverDir, options.routesDir);
   const ignore = options.ignore && options.ignore.length > 0 ? options.ignore : [...DEFAULT_IGNORE];
-  const taserAppPath = resolveTaserAppPath(rootDir, parsedOptions.entry);
+  const basePath = options.basePath;
 
   let cachedModel: GeneratedModel | undefined;
   let cachedManifestCode: string | undefined;
@@ -86,9 +47,6 @@ export function createTaserVirtualContext(options: TaserPluginOptions = {}): Tas
     if (cachedModel) {
       return cachedModel;
     }
-    // Pure read path: the stat-keyed analysis cache makes rebuilds after a
-    // single file change re-parse only that file; scaffolding is deliberately
-    // not performed here (watcher "add" and `taser generate` own it).
     cachedModel = await scanAndBuildModel({
       routesDir,
       routesImportBase: routesDir,
@@ -124,8 +82,8 @@ export function createTaserVirtualContext(options: TaserPluginOptions = {}): Tas
       return cachedEntryCode;
     }
     cachedEntryCode = emitVirtualEntrySource({
-      taserAppImportPath: taserAppPath,
-      ...(options.basePath !== undefined ? { basePath: options.basePath } : {}),
+      taserAppImportPath: entryPath,
+      ...(basePath !== undefined ? { basePath } : {}),
     });
     return cachedEntryCode;
   }
@@ -141,7 +99,11 @@ export function createTaserVirtualContext(options: TaserPluginOptions = {}): Tas
 
   return {
     rootDir,
+    serverDir,
     routesDir,
+    entryPath,
+    serverEntryPath,
+    basePath,
     ignore,
     options: parsedOptions,
     analysisCache,

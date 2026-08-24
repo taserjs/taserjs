@@ -4,7 +4,7 @@ import {
   type OnErrorHandler,
   type RouteManifestShape,
 } from "@taserjs/router-core";
-import { isPromise, normalizeOnError, composeBasePath } from "@taserjs/router-utils";
+import { isPromise, normalizeOnError } from "@taserjs/router-utils";
 
 import {
   createAllRoute,
@@ -140,13 +140,7 @@ export class TaserRouter<
     const definition = this.state.contextDef;
     const validateResponse = this.state.options.response?.validate ?? true;
     const onValidationFailure = this.state.options.response?.onValidationFailure;
-    const appBasePath = this.state.options.basePath;
-    const basePath =
-      runtimeOptions?.basePath !== undefined
-        ? appBasePath
-          ? composeBasePath(runtimeOptions.basePath, appBasePath)
-          : runtimeOptions.basePath
-        : appBasePath;
+    const basePath = runtimeOptions?.basePath;
 
     const hasCustomContext = definition.boot !== undefined || definition.request !== undefined;
     let bootContextResolved: Record<string, unknown> | undefined;

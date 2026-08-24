@@ -5,6 +5,7 @@ import {
   DEFAULT_IGNORE,
   DEFAULT_MANIFEST_HEADER,
   DEFAULT_ROUTES_DIR,
+  DEFAULT_SERVER_DIR,
 } from "../constants.js";
 
 export const extensionSchema = z
@@ -22,7 +23,12 @@ export type ExtensionOption = z.infer<typeof extensionSchema>;
 
 /** Taser-specific codegen, syntax, and route validation options */
 export const taserOptionsSchema = z.object({
+  rootDir: z.string().optional(),
+  serverDir: z.string().default(DEFAULT_SERVER_DIR),
   entry: z.string().default(DEFAULT_ENTRY),
+  serverEntry: z.string().optional(),
+  routesDir: z.string().default(DEFAULT_ROUTES_DIR),
+  basePath: z.string().optional(),
   extension: extensionSchema,
   quotes: z.enum(["single", "double"]).default("single"),
   semi: z.boolean().default(false),
@@ -34,9 +40,8 @@ export const taserOptionsSchema = z.object({
 export type TaserOptions = z.infer<typeof taserOptionsSchema>;
 export type TaserUserOptions = z.input<typeof taserOptionsSchema>;
 
-/** Full combined config including Nitro-level routing and ignore patterns */
+/** Full combined config including routing and ignore patterns */
 export const taserConfigSchema = taserOptionsSchema.extend({
-  routesDir: z.string().default(DEFAULT_ROUTES_DIR),
   ignore: z.array(z.string()).default([...DEFAULT_IGNORE]),
   logLevel: z.number().default(3),
 });

@@ -1,35 +1,32 @@
-import type { AnalysisCache, ExtensionOption, TaserOptions } from "@taserjs/router-generator";
+import type { TaserUserConfig, TaserOptions, AnalysisCache } from "@taserjs/router-generator";
+export type { TaserUserConfig, TaserOptions, AnalysisCache };
 
-/** Options for taserNitro() module / taser config block in nitro.config.ts */
-export type TaserNitroOptions = {
-  entry?: string | undefined;
-  extension?: ExtensionOption | undefined;
-  quotes?: "single" | "double" | undefined;
-  semi?: boolean | undefined;
-  header?: string[] | undefined;
-  format?: boolean | undefined;
-  validate?: boolean | undefined;
-  basePath?: string | undefined;
-};
+/**
+ * Options accepted by the taser() Nitro module in nitro.config.ts (or programmatic createNitro).
+ */
+export type TaserNitroOptions = TaserUserConfig;
 
-/** Options for standalone Vite plugin taser() */
-export type TaserPluginOptions = TaserNitroOptions & {
-  rootDir?: string | undefined;
-  routesDir?: string | undefined;
-  ignore?: string[] | undefined;
+/**
+ * Options accepted by the taser() Vite plugin in vite.config.ts.
+ */
+export type TaserPluginOptions = TaserUserConfig & {
   /**
-   * Built-in serving (srvx adapter): dev server + production serve shim.
-   * Requires srvx to be installed in the app. Enabled by default;
-   * set false when only the virtual modules / route watching are wanted.
+   * Built-in serving when running standalone (no nitro() plugin): srvx dev
+   * server + production serve shim. Enabled by default; set false to use the
+   * plugin for virtual modules / route watching only.
    */
   server?: boolean | undefined;
-  /** Dev/prod listen port when server is enabled. Defaults to PORT env or 3000. */
+  /** Standalone dev/prod listen port. Defaults to PORT env or 3000. */
   port?: number | undefined;
 };
 
 export type TaserVirtualContext = {
   rootDir: string;
+  serverDir: string;
   routesDir: string;
+  entryPath: string;
+  serverEntryPath?: string | undefined;
+  basePath?: string | undefined;
   ignore: readonly string[];
   options: TaserOptions;
   /** Shared stat-keyed parse cache; survives invalidations so unchanged files are never re-parsed. */

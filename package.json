@@ -16,7 +16,7 @@
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "clean": "turbo run clean && rimraf node_modules/.cache/taser.json",
+    "clean": "turbo run clean",
     "docs:dev": "turbo run dev --filter=docs",
     "docs:build": "turbo run build --filter=docs",
     "changeset": "changeset",

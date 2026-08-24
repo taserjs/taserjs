@@ -1,6 +1,18 @@
-export { DEFAULT_ROUTES_DIR, DEFAULT_ENTRY, DEFAULT_IGNORE } from "./constants.js";
+export {
+  DEFAULT_SERVER_DIR,
+  DEFAULT_ROUTES_DIR,
+  DEFAULT_ENTRY,
+  DEFAULT_SERVER_ENTRY,
+  DEFAULT_IGNORE,
+} from "./constants.js";
 export { shouldIgnoreRoutePath, assertPhysicalRouteFile } from "./scan/filter.js";
-export { toPosixPath } from "./support/paths.js";
+export {
+  toPosixPath,
+  resolveServerDir,
+  resolveRoutesDir,
+  resolveTaserEntry,
+  resolveServerEntry,
+} from "./support/paths.js";
 export {
   taserOptionsSchema,
   taserConfigSchema,

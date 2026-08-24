@@ -8,12 +8,18 @@ import { runGenerate } from "../src/commands/generate.js";
 describe("runGenerate", () => {
   it("generates ambient types from routes directory", async () => {
     const dir = mkdtempSync(join(tmpdir(), "taser-cli-test-"));
-    const routesDir = join(dir, "src", "routes");
+    const srcDir = join(dir, "src");
+    const routesDir = join(srcDir, "routes");
     mkdirSync(routesDir, { recursive: true });
 
     writeFileSync(
+      join(srcDir, "taser.ts"),
+      `import { createTaserApp } from "@taserjs/router";\nexport const t = createTaserApp();\n`,
+    );
+
+    writeFileSync(
       join(routesDir, "index.get.ts"),
-      `import { t } from "#src/taser.js";\nconst GET = t.get("/");\nexport const Route = GET.handler(() => ({ ok: true }));\n`,
+      `import { t } from "../taser.js";\nconst GET = t.get("/");\nexport const Route = GET.handler(() => ({ ok: true }));\n`,
     );
 
     await runGenerate({ dir });

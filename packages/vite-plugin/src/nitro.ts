@@ -1,253 +1,108 @@
 import { existsSync } from "node:fs";
-import type { Nitro, NitroModule } from "nitro/types";
+import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 import { DEFAULT_IGNORE } from "@taserjs/router-generator";
 import { composeBasePath } from "@taserjs/router-utils";
 import type { TaserNitroOptions } from "./types.js";
-import { findHostServerEntry } from "./compose.js";
 import {
   createTaserVirtualContext,
-  resolveRoutesDir,
   VIRTUAL_MANIFEST_ID,
   VIRTUAL_ENTRY_ID,
-} from "./virtual.js";
-import { watchRoutesDir } from "./routes-watcher.js";
-import { applyRouteBatch } from "./batch.js";
+} from "./core/context.js";
+import { watchAndSyncRoutes } from "./core/watcher.js";
 
-function getVirtualAppCode(
-  rootDir: string,
-  nitro: Nitro,
-  nitroBase: string,
-  scope: string = "/",
-): string {
-  const hostServer = findHostServerEntry(rootDir);
-  const extraHandlers = (nitro.options.handlers || []).filter(
-    (h) => h.handler !== VIRTUAL_ENTRY_ID,
-  );
-
-  const cleanScope = scope === "/" ? "" : scope.replace(/\/+$/, "");
-  const scopeCondition =
-    scope === "/" || cleanScope === ""
-      ? "true"
-      : `url.pathname === "${cleanScope}" || url.pathname.startsWith("${cleanScope}/")`;
-
-  const baseRedirectCondition =
-    nitroBase && nitroBase !== "/" && nitroBase !== ""
-      ? `
-      if (!url.pathname.startsWith("${nitroBase}/") && url.pathname !== "${nitroBase}") {
-        return new Response(null, {
-          status: 302,
-          headers: {
-            location: "${nitroBase}" + (url.pathname.startsWith("/") ? url.pathname : "/" + url.pathname) + url.search
-          }
-        });
-      }
-`
-      : "";
-
-  if (!hostServer && extraHandlers.length === 0) {
-    return `import entry from "${VIRTUAL_ENTRY_ID}";
-import { FastResponse } from "srvx";
-
-globalThis.Response = FastResponse;
-
-export function createNitroApp() {
+/**
+ * Standalone Nitro Module for Taser.
+ *
+ * Used directly in `nitro.config.ts` via `modules: [taser()]` or loaded
+ * automatically by `nitro()` when chained in `vite.config.ts`.
+ */
+export function taser(options: TaserNitroOptions = {}) {
   return {
-    fetch: (req) => {
-      const url = new URL(req.url);
-      if (${scopeCondition}) {
-        return entry(req);
-      }
-${baseRedirectCondition}
-      return new Response(JSON.stringify({ error: "Not Found" }), {
-        status: 404,
-        headers: { "content-type": "application/json" }
-      });
-    },
-    captureError: (error) => console.error(error),
+    name: "taser",
+    setup: (nitro: Nitro) => setupTaserNitro(nitro, options),
   };
 }
 
-export function initNitroPlugins() {}
-`;
+export const taserNitro = taser;
+
+export function setupTaserNitro(nitro: Nitro, options: TaserNitroOptions = {}): void {
+  const state = nitro.options as unknown as Record<string, unknown>;
+  if (state._taserHookRegistered) {
+    return;
   }
+  state._taserHookRegistered = true;
 
-  const imports: string[] = [
-    `import taserEntry from "${VIRTUAL_ENTRY_ID}";`,
-    `import { FastResponse } from "srvx";`,
-    `globalThis.Response = FastResponse;`,
-  ];
-  let hostInvocation = "";
+  nitro.hooks.hookOnce("build:before", async () => {
+    await applyTaserNitro(nitro, options);
+  });
+}
 
-  if (hostServer) {
-    imports.push(`import hostServer from "${hostServer}";`);
-    hostInvocation = `
-    const hostFetch = typeof hostServer === "function"
-      ? hostServer
-      : hostServer?.fetch || hostServer?.default?.fetch || hostServer?.default;
-    if (typeof hostFetch === "function") {
-      const hostRes = await hostFetch(req);
-      if (hostRes !== undefined) return hostRes;
-    }
-`;
-  }
+async function applyTaserNitro(nitro: Nitro, options: TaserNitroOptions): Promise<void> {
+  const rootDir = resolve(nitro.options.rootDir || options.rootDir || process.cwd());
 
-  extraHandlers.forEach((h, i) => {
-    imports.push(`import handler${i} from "${h.handler}";`);
+  const nitroIgnore = (nitro.options.ignore || []) as string[];
+  const ignore = Array.from(
+    new Set([...nitroIgnore, ...(options.ignore || []), ...DEFAULT_IGNORE]),
+  );
+  nitro.options.ignore = ignore;
+
+  const nitroBase = (nitro.options.baseURL || "").replace(/\/+$/, "").replace(/^\/+/, "");
+  const normalizedNitroBase = nitroBase ? `/${nitroBase}` : "";
+  const effectiveScope = composeBasePath(normalizedNitroBase, options.basePath) || "/";
+
+  const ctx = createTaserVirtualContext({
+    ...options,
+    rootDir,
+    ignore,
+    basePath: effectiveScope,
   });
 
-  const extraInvocations = extraHandlers
-    .map(
-      (h, i) => `
-    const h${i}Fetch = typeof handler${i} === "function"
-      ? handler${i}
-      : handler${i}?.fetch || handler${i}?.default?.fetch || handler${i}?.default;
-    if (typeof h${i}Fetch === "function") {
-      const res${i} = await h${i}Fetch(req);
-      if (res${i} !== undefined) return res${i};
-    }
-`,
-    )
-    .join("\n");
+  // 1. Disable Nitro built-in route scanner — file routing belongs to Taser
+  nitro.options.routesDir = "";
+  nitro.options.apiDir = "";
+  nitro.options.scanDirs = [];
+  nitro.options.serverDir = false;
 
-  return `${imports.join("\n")}
+  // 2. Register virtual modules in Nitro options
+  nitro.options.virtual = nitro.options.virtual || {};
+  nitro.options.virtual[VIRTUAL_MANIFEST_ID] = () => ctx.getManifestCode();
+  nitro.options.virtual[VIRTUAL_ENTRY_ID] = () => ctx.getEntryCode();
 
-export function createNitroApp() {
-  const fetchHandler = async (req) => {
-    const url = new URL(req.url);
-    if (${scopeCondition}) {
-      const res = await taserEntry(req);
-      if (res !== undefined) {
-        return res;
-      }
-    }
-${hostInvocation}
-${extraInvocations}
-${baseRedirectCondition}
-    return new Response(JSON.stringify({ error: "Not Found" }), {
-      status: 404,
-      headers: { "content-type": "application/json" }
+  // 3. Register Taser Route Handler in Nitro handlers
+  const routePattern =
+    options.basePath && options.basePath !== "/"
+      ? `${options.basePath.replace(/\/+$/, "")}/**`
+      : "/**";
+
+  nitro.options.handlers.unshift({
+    route: routePattern,
+    lazy: false,
+    handler: VIRTUAL_ENTRY_ID,
+  });
+
+  // 4. Generate ambient route types initially & on types:extend
+  await ctx.writeTypes();
+  nitro.hooks.hook("types:extend", async () => {
+    await ctx.writeTypes();
+  });
+
+  // 5. Invalidate the analysis/model caches on dev reloads
+  nitro.hooks.hook("dev:reload", () => {
+    ctx.invalidate();
+  });
+
+  let closeWatcher: (() => Promise<void>) | undefined;
+
+  // 6. Dev watcher for Nitro
+  if (nitro.options.dev && existsSync(ctx.routesDir)) {
+    const watcher = watchAndSyncRoutes(ctx, async () => {
+      await nitro.hooks.callHook("rollup:reload");
     });
-  };
+    closeWatcher = watcher.close;
+  }
 
-  return {
-    fetch: fetchHandler,
-    captureError: (error) => console.error(error),
-  };
-}
-
-export function initNitroPlugins() {}
-`;
-}
-
-export function taserNitro(options: TaserNitroOptions = {}): NitroModule {
-  return {
-    name: "taser-nitro",
-    setup(nitro: Nitro) {
-      // The taser CLI injects this module itself, and users may also list it
-      // in their nitro.config `modules` array with inline options. Collect
-      // every instance's options and apply exactly once, on the first
-      // lifecycle hook (registration-order merge: later instances override).
-      const state = nitro.options as unknown as Record<string, unknown>;
-      const pending = (state._taserPendingOptions as TaserNitroOptions[] | undefined) ?? [];
-      pending.push(options);
-      state._taserPendingOptions = pending;
-
-      if (state._taserHookRegistered) {
-        return;
-      }
-      state._taserHookRegistered = true;
-
-      nitro.hooks.hookOnce("build:before", () => {
-        const collected = (state._taserPendingOptions as TaserNitroOptions[]) ?? [];
-        const moduleOptions: Record<string, unknown> = {};
-        for (const opts of collected) {
-          Object.assign(moduleOptions, opts);
-        }
-        applyTaserNitro(nitro, moduleOptions as TaserNitroOptions);
-      });
-    },
-  };
-}
-
-function applyTaserNitro(nitro: Nitro, moduleOptions: TaserNitroOptions): void {
-  const rootDir = resolve(nitro.options.rootDir || ".");
-      const explicitRoutes = nitro.options.routesDir as string | undefined;
-      const routesDir = explicitRoutes
-        ? resolve(rootDir, explicitRoutes)
-        : resolveRoutesDir(rootDir);
-
-      const nitroIgnore = (nitro.options.ignore || []) as string[];
-      const ignore = Array.from(new Set([...nitroIgnore, ...DEFAULT_IGNORE]));
-      nitro.options.ignore = ignore;
-
-      const nitroTaserConfig = ((nitro.options as any).taser || {}) as TaserNitroOptions;
-      const mergedTaserOptions: TaserNitroOptions = {
-        ...nitroTaserConfig,
-        ...moduleOptions,
-      };
-
-      const nitroBase = (nitro.options.baseURL || "").replace(/\/+$/, "").replace(/^\/+/, "");
-      const normalizedNitroBase = nitroBase ? `/${nitroBase}` : "";
-      const taserBase = mergedTaserOptions.basePath;
-      const effectiveScope = composeBasePath(normalizedNitroBase, taserBase) || "/";
-
-      const ctx = createTaserVirtualContext({
-        rootDir,
-        routesDir,
-        ignore,
-        ...mergedTaserOptions,
-        basePath: effectiveScope,
-      });
-
-      // 1. Disable Nitro built-in route scanner — file routing belongs to taser
-      nitro.options.routesDir = "";
-      nitro.options.apiDir = "";
-      nitro.options.scanDirs = [];
-      nitro.options.serverDir = false;
-
-      // 2. Register virtual modules in Nitro options
-      nitro.options.virtual = nitro.options.virtual || {};
-      nitro.options.virtual[VIRTUAL_MANIFEST_ID] = () => ctx.getManifestCode();
-      nitro.options.virtual[VIRTUAL_ENTRY_ID] = () => ctx.getEntryCode();
-      nitro.options.virtual["#nitro/virtual/app"] = () =>
-        getVirtualAppCode(rootDir, nitro, normalizedNitroBase, effectiveScope);
-      nitro.options.virtual["#nitro/virtual/routing"] = () =>
-        "export const findRouteRules = () => ({}); export const findRoute = () => undefined; export const globalMiddleware = []; export const findRoutedMiddleware = () => [];";
-
-      // 3. Register Taser Route Handler in Nitro handlers
-      const routePattern =
-        effectiveScope === "/" ? "/**" : `${effectiveScope.replace(/\/$/, "")}/**`;
-
-      nitro.options.handlers.unshift({
-        route: routePattern,
-        lazy: false,
-        handler: VIRTUAL_ENTRY_ID,
-      });
-
-      // 4. Hook into type generation
-      nitro.hooks.hook("types:extend", async () => {
-        await ctx.writeTypes();
-      });
-
-      // 5. Invalidate the analysis/model caches on dev reloads
-      nitro.hooks.hook("dev:reload", () => {
-        ctx.invalidate();
-      });
-
-      let closeWatcher: (() => Promise<void>) | undefined;
-
-      // 6. Dev watcher: one shared chokidar instance (never double-watches),
-      //    debounced batches → scaffold adds → invalidate → types → reload
-      if (nitro.options.dev && existsSync(ctx.routesDir)) {
-        const watcher = watchRoutesDir(ctx.routesDir, { ignore }, async (batch) => {
-          await applyRouteBatch(ctx, batch);
-          await nitro.hooks.callHook("rollup:reload");
-        });
-        closeWatcher = watcher.close;
-      }
-
-      nitro.hooks.hook("close", async () => {
-        await closeWatcher?.();
-      });
+  nitro.hooks.hook("close", async () => {
+    await closeWatcher?.();
+  });
 }

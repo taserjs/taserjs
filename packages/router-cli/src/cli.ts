@@ -1,71 +1,41 @@
 #!/usr/bin/env node
 import yargs from "yargs";
-import { hideBin } from "yargs/helpers";
-
 import { runGenerate } from "./commands/generate.js";
-import { runDev } from "./commands/dev.js";
-import { runBuild } from "./commands/build.js";
+import { hideBin } from "yargs/helpers";
 
 async function main(): Promise<void> {
   const builder = yargs(hideBin(process.argv))
     .scriptName("taser")
-    .command("generate", "Generate ambient type declarations and project types", (yargsBuilder) => {
-      return yargsBuilder
-        .option("dir", {
-          type: "string",
-          describe: "Project root directory",
-        })
-        .option("routesDir", {
-          type: "string",
-          alias: "routes",
-          describe: "Routes directory",
-        });
-    })
-    .command("dev", "Start Taser development server with Nitro", (yargsBuilder) => {
-      return yargsBuilder
-        .option("dir", {
-          type: "string",
-          describe: "Project root directory",
-        })
-        .option("routesDir", {
-          type: "string",
-          alias: "routes",
-          describe: "Routes directory",
-        });
-    })
-    .command("build", "Build Taser server for production with Nitro", (yargsBuilder) => {
-      return yargsBuilder
-        .option("dir", {
-          type: "string",
-          describe: "Project root directory",
-        })
-        .option("routesDir", {
-          type: "string",
-          alias: "routes",
-          describe: "Routes directory",
-        });
-    })
-    .demandCommand(1, "You must provide a valid command: generate, dev, or build")
+    .usage("$0 generate")
+    .command(
+      "generate",
+      "Generate route types by reading the app's taser config (vite.config, nitro.config, or defaults)",
+      (yargsBuilder) => {
+        return yargsBuilder
+          .option("dir", {
+            type: "string",
+            describe: "Project root directory",
+          })
+          .option("routesDir", {
+            type: "string",
+            alias: "routes",
+            describe: "Routes directory (overrides detected config)",
+          });
+      },
+      async (argv) => {
+        await runGenerate(argv);
+      },
+    )
+    .demandCommand(1, "You must provide a valid command: generate")
     .strict()
-    .help();
+    .help()
+    .epilogue(
+      "Development and production serving is handled by Vite:\n" +
+        "  vite dev / vite build\n" +
+        "with the taser() plugin — alone, or chained with nitro() from nitro/vite.",
+    );
 
-  const argv = await builder.parse();
-  const command = argv._[0];
-
-  if (command === "generate") {
-    await runGenerate(argv);
-    return;
-  }
-
-  if (command === "dev") {
-    await runDev(argv);
-    return;
-  }
-
-  if (command === "build") {
-    await runBuild(argv);
-    return;
-  }
+  await builder.parse();
 }
 
 main().catch((error: unknown) => {

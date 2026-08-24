@@ -6,7 +6,6 @@ import type { ReturnsMap } from "./returns.js";
 import type { Schema } from "./schema.js";
 
 export type CreateTaserAppOptions = {
-  basePath?: string;
   passThroughOnMiss?: boolean;
   response?: {
     /** Validate handler replies against returns maps. Default true. */

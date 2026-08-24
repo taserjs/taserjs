@@ -1,56 +1,102 @@
-import type { Plugin } from "vite";
+import type { Plugin, ViteDevServer } from "vite";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "pathe";
 import { scaffoldRouteFile } from "@taserjs/router-generator";
 
 import {
   createTaserVirtualContext,
-  resolveRoutesDir,
   VIRTUAL_MANIFEST_ID,
   RESOLVED_VIRTUAL_MANIFEST_ID,
   VIRTUAL_ENTRY_ID,
   RESOLVED_VIRTUAL_ENTRY_ID,
   VIRTUAL_APP_ID,
   RESOLVED_VIRTUAL_APP_ID,
-} from "./virtual.js";
-export { VIRTUAL_APP_ID } from "./virtual.js";
-import { applyRouteBatch } from "./batch.js";
-import { watchRoutesDir } from "./routes-watcher.js";
-import { getComposedAppCode, getServeShimCode } from "./compose.js";
+} from "./core/context.js";
+import { getComposedAppCode, getServeShimCode } from "./core/compose.js";
+import { watchAndSyncRoutes } from "./core/watcher.js";
 import { startDevServer } from "./dev-server.js";
+import { setupTaserNitro } from "./nitro.js";
 import type { TaserPluginOptions } from "./types.js";
 
 export * from "./types.js";
-export { resolveRoutesDir, resolveTaserAppPath } from "./virtual.js";
-export { findHostServerEntry, getComposedAppCode, getServeShimCode } from "./compose.js";
-export { watchRoutesDir, type RouteChangeBatch, type RoutesWatcher } from "./routes-watcher.js";
-export { applyRouteBatch } from "./batch.js";
-export type { RouteChangeEvent } from "./routes-watcher.js";
+export { VIRTUAL_APP_ID } from "./core/context.js";
+export { taserNitro } from "./nitro.js";
+export { scaffoldRouteFile };
 
-/** Where the production serve shim is written; becomes the SSR build input. */
+/** Where the standalone production serve shim is written; SSR build input. */
 const SERVE_SHIM_PATH = ".taser/serve.mjs";
 
-export function taser(options: TaserPluginOptions = {}): Plugin[] {
-  const serverEnabled = options.server !== false;
-  let ctx: ReturnType<typeof createTaserVirtualContext> | undefined;
-  let routesDir: string;
-  let rootDir: string;
-  let serveShimPath: string;
+function flattenPlugins(plugins: readonly unknown[]): unknown[] {
+  const flat: unknown[] = [];
+  for (const plugin of plugins) {
+    if (Array.isArray(plugin)) {
+      flat.push(...flattenPlugins(plugin));
+    } else if (plugin) {
+      flat.push(plugin);
+    }
+  }
+  return flat;
+}
 
-  const virtualPlugin: Plugin = {
-    name: "taser:virtual",
-    // Must resolve before Vite's core resolver, which treats "#..." ids as
-    // package subpath imports and fails when they're absent from "imports".
+function detectNitro(config: unknown): boolean {
+  const cfg = config as {
+    plugins?: readonly unknown[];
+    nitro?: unknown;
+  };
+  if (cfg.nitro) {
+    return true;
+  }
+  return flattenPlugins(cfg.plugins ?? []).some((plugin) => {
+    const name = (plugin as { name?: string } | undefined)?.name;
+    return typeof name === "string" && (name === "nitro" || name.startsWith("nitro:"));
+  });
+}
+
+function invalidateModules(server: ViteDevServer) {
+  const ids = [RESOLVED_VIRTUAL_MANIFEST_ID, RESOLVED_VIRTUAL_ENTRY_ID, RESOLVED_VIRTUAL_APP_ID];
+  for (const id of ids) {
+    const legacyMod = server.moduleGraph.getModuleById(id);
+    if (legacyMod) {
+      server.moduleGraph.invalidateModule(legacyMod);
+    }
+    for (const environment of Object.values(server.environments ?? {})) {
+      const mod = environment.moduleGraph.getModuleById(id);
+      if (mod) {
+        environment.moduleGraph.invalidateModule(mod);
+      }
+    }
+  }
+}
+
+/**
+ * The unified Taser Vite plugin.
+ *
+ * - Mode 1 (Standalone): Runs built-in srvx dev server and bundles a standalone
+ *   SSR production serve shim.
+ * - Mode 2 (Vite + Nitro): Attaches `.nitro` hook so `nitro()` from `nitro/vite`
+ *   automatically discovers and registers Taser as a Nitro module.
+ */
+export function taser(options: TaserPluginOptions = {}): Plugin {
+  const serveEnabled = options.server !== false;
+  let mode: "nitro" | "standalone" = "standalone";
+  let rootDir = resolve(options.rootDir || process.cwd());
+  let serveShimPath = resolve(rootDir, SERVE_SHIM_PATH);
+  let devServerInstance: Awaited<ReturnType<typeof startDevServer>> | undefined;
+  let ctx: ReturnType<typeof createTaserVirtualContext> | undefined;
+
+  const plugin = {
+    name: "taser",
     enforce: "pre",
-    config(config, configEnv) {
-      if (!serverEnabled || configEnv.command !== "build") {
+    __taserOptions: options,
+    nitro: {
+      name: "taser",
+      setup: (nitro: Parameters<typeof setupTaserNitro>[0]) => setupTaserNitro(nitro, options),
+    },
+    config(config: unknown, env: { command?: string }) {
+      mode = detectNitro(config) ? "nitro" : "standalone";
+      if (mode === "nitro" || !serveEnabled || env.command !== "build") {
         return;
       }
-      // Production: build the serve shim (which boots srvx and dispatches
-      // into the composed app) as an SSR bundle. Vite's default outDir
-      // (dist) is used unless the user configures their own.
-      rootDir = resolve(options.rootDir || process.cwd());
-      serveShimPath = resolve(rootDir, SERVE_SHIM_PATH);
       return {
         build: {
           ssr: serveShimPath,
@@ -58,40 +104,46 @@ export function taser(options: TaserPluginOptions = {}): Plugin[] {
         },
       };
     },
-    configResolved(config) {
-      rootDir = resolve(options.rootDir || config.root || ".");
-      routesDir = resolveRoutesDir(rootDir, options.routesDir);
+    configResolved(resolvedConfig: {
+      root?: string;
+      plugins?: readonly unknown[];
+      nitro?: unknown;
+    }) {
+      mode = detectNitro(resolvedConfig) ? "nitro" : "standalone";
+      rootDir = resolve(options.rootDir || resolvedConfig.root || process.cwd());
       serveShimPath = resolve(rootDir, SERVE_SHIM_PATH);
+
+      if (mode === "nitro") {
+        ctx = undefined;
+        return;
+      }
+
       ctx = createTaserVirtualContext({
         ...options,
         rootDir,
-        routesDir: resolveRoutesDir(rootDir, options.routesDir),
       });
     },
     async buildStart() {
-      if (!ctx) {
+      if (mode === "nitro" || !ctx) {
         return;
       }
       await ctx.writeTypes();
-      if (serverEnabled) {
+      if (serveEnabled) {
         await mkdir(resolve(serveShimPath, ".."), { recursive: true });
         await writeFile(serveShimPath, getServeShimCode(), "utf8");
       }
     },
-    resolveId(id) {
-      if (id === VIRTUAL_MANIFEST_ID) {
-        return RESOLVED_VIRTUAL_MANIFEST_ID;
+    resolveId(id: string) {
+      if (mode === "nitro") {
+        return null;
       }
-      if (id === VIRTUAL_ENTRY_ID) {
-        return RESOLVED_VIRTUAL_ENTRY_ID;
-      }
-      if (id === VIRTUAL_APP_ID) {
-        return RESOLVED_VIRTUAL_APP_ID;
-      }
+      if (id === VIRTUAL_MANIFEST_ID) return RESOLVED_VIRTUAL_MANIFEST_ID;
+      if (id === VIRTUAL_ENTRY_ID) return RESOLVED_VIRTUAL_ENTRY_ID;
+      if (id === VIRTUAL_APP_ID) return RESOLVED_VIRTUAL_APP_ID;
       return null;
     },
-    async load(id) {
-      if (!ctx) {
+    async load(id: string) {
+      if (mode === "nitro" || !ctx) {
         return null;
       }
       if (id === RESOLVED_VIRTUAL_MANIFEST_ID || id === VIRTUAL_MANIFEST_ID) {
@@ -101,85 +153,51 @@ export function taser(options: TaserPluginOptions = {}): Plugin[] {
         return await ctx.getEntryCode();
       }
       if (id === RESOLVED_VIRTUAL_APP_ID || id === VIRTUAL_APP_ID) {
-        return getComposedAppCode({ rootDir, scope: options.basePath });
+        return getComposedAppCode({
+          serverEntryPath: ctx.serverEntryPath,
+          scope: ctx.basePath,
+        });
       }
       return null;
     },
-    configureServer(server) {
-      if (!ctx) {
+    configureServer(server: ViteDevServer) {
+      if (mode === "nitro") {
+        server.httpServer?.once("close", () => {
+          void devServerInstance?.close();
+        });
         return;
       }
 
-      // Invalidate across every module graph: the legacy server.moduleGraph
-      // (client + compat) AND each environment graph — modules loaded via
-      // ssrLoadModule/Environments API live in their own graph, so touching
-      // only the legacy one leaves stale virtual modules in SSR dev.
-      const invalidateId = (id: string) => {
-        const legacyMod = server.moduleGraph.getModuleById(id);
-        if (legacyMod) {
-          server.moduleGraph.invalidateModule(legacyMod);
-        }
-        for (const environment of Object.values(server.environments ?? {})) {
-          const mod = environment.moduleGraph.getModuleById(id);
-          if (mod) {
-            environment.moduleGraph.invalidateModule(mod);
-          }
-        }
-      };
+      let watcherHandle: ReturnType<typeof watchAndSyncRoutes> | undefined;
 
-      let watcher: ReturnType<typeof watchRoutesDir> | undefined;
-
-      // One shared chokidar watcher for the whole tree: events coalesce into a
-      // single debounced batch → scaffold adds → invalidate model → rewrite
-      // types once → one full-reload. No per-keystroke write storms.
-      const startWatcher = () => {
-        if (watcher || !ctx) {
-          return;
-        }
+      return () => {
+        if (!ctx) return;
         const activeCtx = ctx;
-        watcher = watchRoutesDir(routesDir, { ignore: activeCtx.ignore }, async (batch) => {
-          const changed = await applyRouteBatch(activeCtx, batch);
-          if (!changed) {
-            return;
-          }
 
-          invalidateId(RESOLVED_VIRTUAL_MANIFEST_ID);
-          invalidateId(RESOLVED_VIRTUAL_ENTRY_ID);
-          invalidateId(RESOLVED_VIRTUAL_APP_ID);
-
+        watcherHandle = watchAndSyncRoutes(activeCtx, () => {
+          invalidateModules(server);
           server.ws.send({ type: "full-reload", path: "*" });
         });
-      };
 
-      // Start the watcher only after Vite finished installing its own
-      // internals; creating it mid-startup silently breaks chokidar init.
-      return () => {
-        startWatcher();
-
-        if (!serverEnabled) {
-          return;
+        if (serveEnabled) {
+          const port = options.port ?? (Number(process.env.PORT) || 3000);
+          startDevServer(server, { rootDir, port })
+            .then((instance) => {
+              devServerInstance = instance;
+              console.log(`[taser] dev server ready on http://localhost:${port}`);
+            })
+            .catch((error) => {
+              console.error(error.message ?? error);
+            });
         }
 
-        let devServer: Awaited<ReturnType<typeof startDevServer>> | undefined;
-        const port = options.port ?? (Number(process.env.PORT) || 3000);
-        startDevServer(server, { rootDir, port })
-          .then((instance) => {
-            devServer = instance;
-            console.log(`[taser] dev server ready on http://localhost:${port}`);
-          })
-          .catch((error) => {
-            console.error(error.message ?? error);
-          });
-
         server.httpServer?.once("close", () => {
-          void watcher?.close();
-          void devServer?.close();
+          void watcherHandle?.close();
+          void devServerInstance?.close();
         });
       };
     },
   };
 
-  return [virtualPlugin];
+  return plugin as unknown as Plugin;
 }
-
-export { scaffoldRouteFile };

@@ -1,4 +1,5 @@
-import { dirname, relative, sep } from "node:path";
+import { existsSync } from "node:fs";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 
 export function toPosixPath(filePath: string): string {
   return filePath.split(sep).join("/");
@@ -11,4 +12,149 @@ export function routesImportPrefix(routesDir: string, outputFile: string): strin
     return ".";
   }
   return relativeRoutes.startsWith(".") ? relativeRoutes : `./${relativeRoutes}`;
+}
+
+const COMMON_JS_EXTS = [".ts", ".js", ".tsx", ".jsx", ".mts", ".mjs"];
+
+/**
+ * Resolves the server directory (<rootDir>/<serverDir>).
+ * Defaults to "src" if present, otherwise falls back to rootDir.
+ */
+export function resolveServerDir(rootDir: string, serverDir?: string): string {
+  const resolvedRoot = resolve(rootDir || process.cwd());
+  if (serverDir) {
+    const candidate = isAbsolute(serverDir) ? serverDir : resolve(resolvedRoot, serverDir);
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+    throw new Error(
+      `[taser] Configured serverDir does not exist: "${candidate}". Please check your taser configuration.`,
+    );
+  }
+
+  const srcDir = resolve(resolvedRoot, "src");
+  if (existsSync(srcDir)) {
+    return srcDir;
+  }
+  return resolvedRoot;
+}
+
+/**
+ * Resolves the taser app entry file (e.g. taser.ts), relative to serverDir.
+ * Throws a descriptive error if not found.
+ */
+export function resolveTaserEntry(rootDir: string, serverDir: string, entry?: string): string {
+  const resolvedRoot = resolve(rootDir || process.cwd());
+  const rawEntry = (entry || "taser.ts").replace(/^#src\//, "").replace(/^#/, "");
+
+  // 1. Direct path check (relative to serverDir, or absolute)
+  const candidate = isAbsolute(rawEntry) ? rawEntry : resolve(serverDir, rawEntry);
+  if (existsSync(candidate)) {
+    return candidate;
+  }
+
+  // 2. Probe extensions
+  const withoutExt = candidate.replace(/\.[cm]?[jt]sx?$/, "");
+  for (const ext of COMMON_JS_EXTS) {
+    const withExt = `${withoutExt}${ext}`;
+    if (existsSync(withExt)) {
+      return withExt;
+    }
+  }
+
+  // 3. Fallback check at rootDir if serverDir differed
+  if (serverDir !== resolvedRoot) {
+    const rootCandidate = resolve(resolvedRoot, rawEntry);
+    if (existsSync(rootCandidate)) {
+      return rootCandidate;
+    }
+    const rootWithoutExt = rootCandidate.replace(/\.[cm]?[jt]sx?$/, "");
+    for (const ext of COMMON_JS_EXTS) {
+      const withExt = `${rootWithoutExt}${ext}`;
+      if (existsSync(withExt)) {
+        return withExt;
+      }
+    }
+  }
+
+  throw new Error(
+    `[taser] Taser entry file not found. Looked at "${candidate}".\nExpected a taser app entry file (e.g. 'export const t = createTaserApp()').`,
+  );
+}
+
+/**
+ * Resolves optional host server entry (e.g. server.ts), relative to serverDir.
+ * If explicitly provided and missing, throws an error. If omitted, returns undefined if absent.
+ */
+export function resolveServerEntry(
+  rootDir: string,
+  serverDir: string,
+  serverEntry?: string,
+): string | undefined {
+  const resolvedRoot = resolve(rootDir || process.cwd());
+
+  if (serverEntry) {
+    const candidate = isAbsolute(serverEntry) ? serverEntry : resolve(serverDir, serverEntry);
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+    const withoutExt = candidate.replace(/\.[cm]?[jt]sx?$/, "");
+    for (const ext of COMMON_JS_EXTS) {
+      const withExt = `${withoutExt}${ext}`;
+      if (existsSync(withExt)) {
+        return withExt;
+      }
+    }
+    throw new Error(`[taser] Configured serverEntry does not exist: "${candidate}".`);
+  }
+
+  // Probe default candidates in serverDir and rootDir
+  const defaultNames = ["server.node.ts", "server.node.js", "server.ts", "server.js", "server.mjs"];
+  for (const name of defaultNames) {
+    const candidate = resolve(serverDir, name);
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  if (serverDir !== resolvedRoot) {
+    for (const name of defaultNames) {
+      const candidate = resolve(resolvedRoot, name);
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Resolves routes directory relative to serverDir.
+ */
+export function resolveRoutesDir(rootDir: string, serverDir: string, routesDir?: string): string {
+  const resolvedRoot = resolve(rootDir || process.cwd());
+
+  if (routesDir) {
+    const candidate = isAbsolute(routesDir) ? routesDir : resolve(serverDir, routesDir);
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+    // Also check relative to rootDir
+    const rootCandidate = resolve(resolvedRoot, routesDir);
+    if (existsSync(rootCandidate)) {
+      return rootCandidate;
+    }
+    // If explicit routesDir is given, return the resolved path under serverDir
+    return candidate;
+  }
+
+  // Default "routes"
+  const serverRoutes = resolve(serverDir, "routes");
+  if (existsSync(serverRoutes)) {
+    return serverRoutes;
+  }
+  const rootRoutes = resolve(resolvedRoot, "routes");
+  if (existsSync(rootRoutes)) {
+    return rootRoutes;
+  }
+  return serverRoutes;
 }

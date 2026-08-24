@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "clean": "rimraf .next .source .output",
+    "clean": "rimraf .next .source .output out",
     "dev": "next dev",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
