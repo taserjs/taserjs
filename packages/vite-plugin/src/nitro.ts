@@ -1,9 +1,10 @@
-import type { Nitro, NitroModule } from "nitro/types";
 import { existsSync } from "node:fs";
+import type { Nitro, NitroModule } from "nitro/types";
 import { resolve } from "pathe";
 import { DEFAULT_IGNORE } from "@taserjs/router-generator";
 import { composeBasePath } from "@taserjs/router-utils";
 import type { TaserNitroOptions } from "./types.js";
+import { findHostServerEntry } from "./compose.js";
 import {
   createTaserVirtualContext,
   resolveRoutesDir,
@@ -12,28 +13,6 @@ import {
 } from "./virtual.js";
 import { watchRoutesDir } from "./routes-watcher.js";
 import { applyRouteBatch } from "./batch.js";
-
-export function findHostServerEntry(rootDir: string): string | undefined {
-  const candidates = [
-    "src/server.node.ts",
-    "src/server.node.js",
-    "server.node.ts",
-    "server.node.js",
-    "src/server.ts",
-    "src/server.js",
-    "src/server.mjs",
-    "server.ts",
-    "server.js",
-    "server.mjs",
-  ];
-  for (const candidate of candidates) {
-    const fullPath = resolve(rootDir, candidate);
-    if (existsSync(fullPath)) {
-      return fullPath;
-    }
-  }
-  return undefined;
-}
 
 function getVirtualAppCode(
   rootDir: string,
@@ -70,9 +49,7 @@ function getVirtualAppCode(
     return `import entry from "${VIRTUAL_ENTRY_ID}";
 import { FastResponse } from "srvx";
 
-if (typeof FastResponse !== "undefined") {
-  globalThis.Response = FastResponse;
-}
+globalThis.Response = FastResponse;
 
 export function createNitroApp() {
   return {
@@ -98,7 +75,7 @@ export function initNitroPlugins() {}
   const imports: string[] = [
     `import taserEntry from "${VIRTUAL_ENTRY_ID}";`,
     `import { FastResponse } from "srvx";`,
-    `if (typeof FastResponse !== "undefined") { globalThis.Response = FastResponse; }`,
+    `globalThis.Response = FastResponse;`,
   ];
   let hostInvocation = "";
 

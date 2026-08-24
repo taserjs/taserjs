@@ -71,8 +71,12 @@ export function watchRoutesDir(
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 25 },
       ignored(absolutePath: string) {
-        const rel = toPosixPath(relative(routesDir, absolutePath));
-        return rel !== "" && shouldIgnoreRoutePath(rel, options.ignore);
+        try {
+          const rel = toPosixPath(relative(routesDir, absolutePath));
+          return rel !== "" && shouldIgnoreRoutePath(rel, options.ignore);
+        } catch {
+          return false;
+        }
       },
     });
 

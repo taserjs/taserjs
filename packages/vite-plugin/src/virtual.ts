@@ -18,6 +18,10 @@ export const RESOLVED_VIRTUAL_MANIFEST_ID = "\0" + VIRTUAL_MANIFEST_ID;
 export const VIRTUAL_ENTRY_ID = "#taserjs/virtual/entry";
 export const RESOLVED_VIRTUAL_ENTRY_ID = "\0" + VIRTUAL_ENTRY_ID;
 
+/** Composed taser + host-server app (srvx-compatible `{ fetch }`). */
+export const VIRTUAL_APP_ID = "#taserjs/virtual/app";
+export const RESOLVED_VIRTUAL_APP_ID = "\0" + VIRTUAL_APP_ID;
+
 export function resolveTaserAppPath(rootDir: string, entry: string): string {
   const relativeCandidate = entry.replace(/^#src\//, "src/");
   const directPath = resolve(rootDir, relativeCandidate);

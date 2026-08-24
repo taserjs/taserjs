@@ -17,6 +17,14 @@ export type TaserPluginOptions = TaserNitroOptions & {
   rootDir?: string | undefined;
   routesDir?: string | undefined;
   ignore?: string[] | undefined;
+  /**
+   * Built-in serving (srvx adapter): dev server + production serve shim.
+   * Requires srvx to be installed in the app. Enabled by default;
+   * set false when only the virtual modules / route watching are wanted.
+   */
+  server?: boolean | undefined;
+  /** Dev/prod listen port when server is enabled. Defaults to PORT env or 3000. */
+  port?: number | undefined;
 };
 
 export type TaserVirtualContext = {
