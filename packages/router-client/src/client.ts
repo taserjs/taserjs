@@ -86,9 +86,7 @@ export function createClient<TApp = never>(options: CreateClientOptions): Client
     ? options.baseUrl.replace(/\/+$/, "")
     : options.baseUrl;
   const clientOptions: CreateClientOptions =
-    normalizedBaseUrl === options.baseUrl
-      ? options
-      : { ...options, baseUrl: normalizedBaseUrl };
+    normalizedBaseUrl === options.baseUrl ? options : { ...options, baseUrl: normalizedBaseUrl };
   const proxyCache = new Map<string, unknown>();
 
   function createProxy(path: string[]): unknown {

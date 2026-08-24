@@ -20,9 +20,7 @@ export function decodeClientSegment(segment: string): string {
 
 export function joinUrl(baseUrl: string, segments: string[]): string {
   const base = baseUrl.endsWith("/") ? baseUrl.replace(/\/+$/, "") : baseUrl;
-  const decoded = segments
-    .filter((segment) => segment.length > 0)
-    .map(decodeClientSegment);
+  const decoded = segments.filter((segment) => segment.length > 0).map(decodeClientSegment);
   const path = decoded.join("/");
   if (path === "") {
     return `${base}/`;

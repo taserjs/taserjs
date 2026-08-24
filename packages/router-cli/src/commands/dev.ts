@@ -15,5 +15,4 @@ export async function runDev(argv: Record<string, any>): Promise<void> {
   const server = createDevServer(nitro);
   server.listen();
   await build(nitro);
-
 }

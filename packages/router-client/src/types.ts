@@ -33,21 +33,19 @@ export type InferOutput<T> = T extends {
       ? O
       : unknown;
 
-export type SuccessReplyData<R> =
-  R extends { readonly status: infer S; readonly data: infer B }
-    ? S extends 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207 | 208 | 226
-      ? B
-      : never
-    : never;
+export type SuccessReplyData<R> = R extends { readonly status: infer S; readonly data: infer B }
+  ? S extends 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207 | 208 | 226
+    ? B
+    : never
+  : never;
 
-export type InferAppManifest<TApp> =
-  TApp extends { __manifest?: infer TManifest }
+export type InferAppManifest<TApp> = TApp extends { __manifest?: infer TManifest }
+  ? TManifest
+  : TApp extends { manifest: infer TManifest }
     ? TManifest
-    : TApp extends { manifest: infer TManifest }
-      ? TManifest
-      : TApp extends RouteManifestShape
-        ? TApp
-        : never;
+    : TApp extends RouteManifestShape
+      ? TApp
+      : never;
 
 declare module "@taserjs/router" {
   interface RouterRegister {}
