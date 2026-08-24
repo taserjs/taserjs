@@ -55,6 +55,18 @@ ${hostInvocation}
   });
 }
 
+export function createNitroApp() {
+  return {
+    fetch: handler,
+    captureError: (error) => console.error(error),
+    hooks: undefined,
+  };
+}
+
+export function initNitroPlugins(app) {
+  return app;
+}
+
 export default { fetch: handler };
 `;
 }

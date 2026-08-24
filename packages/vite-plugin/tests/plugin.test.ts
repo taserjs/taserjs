@@ -99,7 +99,7 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
     expect(writtenAgain).toBe(false);
   });
 
-  it("configures Nitro to disable scanning and add Taser handler", async () => {
+  it("configures Nitro to disable scanning and inject virtual app", async () => {
     const mod = {
       rootDir: testDir,
       basePath: "/api",
@@ -126,8 +126,6 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
 
     setupTaserNitro(mockNitro as Nitro, mod);
 
-    // Real configuration is deferred to the build lifecycle so that multiple
-    // multiple setup registrations merge into one application.
     expect(mockNitro.options.routesDir).toBe("routes");
     await hooksOnce["build:before"]();
 
@@ -135,16 +133,14 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
     expect(mockNitro.options.apiDir).toBe("");
     expect(mockNitro.options.scanDirs).toEqual([]);
     expect(mockNitro.options.serverDir).toBe(false);
-    expect(mockNitro.options.handlers).toHaveLength(1);
-    expect(mockNitro.options.handlers[0].route).toBe("/api/**");
-    expect(mockNitro.options.handlers[0].handler).toBe("#taserjs/virtual/entry");
     expect(mockNitro.options.virtual["#taserjs/virtual/manifest"]).toBeDefined();
     expect(mockNitro.options.virtual["#taserjs/virtual/entry"]).toBeDefined();
+    expect(mockNitro.options.virtual["#nitro/virtual/app"]).toBeDefined();
+    expect(mockNitro.options.virtual["#nitro/virtual/routing"]).toBeDefined();
   });
 
-  it("ignores duplicate taser setup registrations", async () => {
-    const modA = { rootDir: testDir, basePath: "/api" };
-    const modB = { rootDir: testDir, basePath: "/other" };
+  it("registers in nitro.options.handlers when standalone is false", async () => {
+    const mod = { rootDir: testDir, basePath: "/api", standalone: false };
 
     const hooksOnce: Record<string, () => void | Promise<void>> = {};
     const mockNitro: any = {
@@ -154,12 +150,45 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
         apiDir: "api",
         scanDirs: [],
         serverDir: false,
-        handlers: [{ route: "/pre-existing", handler: "x" }],
+        handlers: [],
         virtual: {},
       },
       hooks: {
         hook: () => {},
-        // Mimic hookable(): hookOnce handlers unregister after first call.
+        hookOnce: (name: string, fn: () => void | Promise<void>) => {
+          hooksOnce[name] = fn;
+        },
+      },
+    };
+
+    setupTaserNitro(mockNitro as Nitro, mod);
+    await hooksOnce["build:before"]();
+
+    expect(mockNitro.options.handlers).toHaveLength(1);
+    expect(mockNitro.options.handlers[0]).toEqual({
+      route: "/api/**",
+      lazy: false,
+      handler: "#taserjs/virtual/entry",
+    });
+  });
+
+  it("ignores duplicate taser setup registrations", async () => {
+    const modA = { rootDir: testDir, basePath: "/api", standalone: false };
+    const modB = { rootDir: testDir, basePath: "/other", standalone: false };
+
+    const hooksOnce: Record<string, () => void | Promise<void>> = {};
+    const mockNitro: any = {
+      options: {
+        rootDir: testDir,
+        routesDir: "routes",
+        apiDir: "api",
+        scanDirs: [],
+        serverDir: false,
+        handlers: [],
+        virtual: {},
+      },
+      hooks: {
+        hook: () => {},
         hookOnce: (name: string, fn: () => void | Promise<void>) => {
           hooksOnce[name] = () => {
             delete hooksOnce[name];
@@ -175,10 +204,7 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
 
     // hookOnce semantics: the setup cannot run a second time.
     expect(hooksOnce["build:before"]).toBeUndefined();
-
-    // Handler registered once; the first registration wins.
-    expect(mockNitro.options.handlers).toHaveLength(2);
-    expect(mockNitro.options.handlers[0].route).toBe("/api/**");
+    expect(mockNitro.options.handlers).toHaveLength(1);
   });
 
   it("scaffolds newly added route files via the batch pipeline, not during scans", async () => {

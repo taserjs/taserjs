@@ -9,6 +9,7 @@ import {
   VIRTUAL_MANIFEST_ID,
   VIRTUAL_ENTRY_ID,
 } from "./core/context.js";
+import { getComposedAppCode } from "./core/compose.js";
 import { watchAndSyncRoutes } from "./core/watcher.js";
 
 /**
@@ -69,17 +70,30 @@ async function applyTaserNitro(nitro: Nitro, options: TaserNitroOptions): Promis
   nitro.options.virtual[VIRTUAL_MANIFEST_ID] = () => ctx.getManifestCode();
   nitro.options.virtual[VIRTUAL_ENTRY_ID] = () => ctx.getEntryCode();
 
-  // 3. Register Taser Route Handler in Nitro handlers
-  const routePattern =
-    options.basePath && options.basePath !== "/"
-      ? `${options.basePath.replace(/\/+$/, "")}/**`
-      : "/**";
+  const isStandalone = options.standalone !== false;
 
-  nitro.options.handlers.unshift({
-    route: routePattern,
-    lazy: false,
-    handler: VIRTUAL_ENTRY_ID,
-  });
+  if (isStandalone) {
+    // Standalone mode: override Nitro virtual app (0 h3, 0 rou3)
+    nitro.options.virtual["#nitro/virtual/app"] = () =>
+      getComposedAppCode({
+        serverEntryPath: ctx.serverEntryPath,
+        scope: effectiveScope,
+      });
+    nitro.options.virtual["#nitro/virtual/routing"] = () =>
+      "export const findRouteRules = () => ({}); export const findRoute = () => undefined; export const globalMiddleware = []; export const findRoutedMiddleware = () => [];";
+  } else {
+    // Fullstack / Module mode: unshift into Nitro's standard handlers pipeline
+    const routePattern =
+      effectiveScope && effectiveScope !== "/"
+        ? `${effectiveScope.replace(/\/+$/, "")}/**`
+        : "/**";
+
+    nitro.options.handlers.unshift({
+      route: routePattern,
+      lazy: false,
+      handler: VIRTUAL_ENTRY_ID,
+    });
+  }
 
   // 4. Generate ambient route types initially & on types:extend
   await ctx.writeTypes();

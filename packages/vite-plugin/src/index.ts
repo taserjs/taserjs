@@ -14,7 +14,7 @@ import {
 } from "./core/context.js";
 import { getComposedAppCode, getServeShimCode } from "./core/compose.js";
 import { watchAndSyncRoutes } from "./core/watcher.js";
-import { startDevServer } from "./dev-server.js";
+import { createViteDevMiddleware } from "./dev-server.js";
 import { setupTaserNitro } from "./nitro.js";
 import type { TaserPluginOptions } from "./types.js";
 
@@ -81,7 +81,6 @@ export function taser(options: TaserPluginOptions = {}): Plugin {
   let mode: "nitro" | "standalone" = "standalone";
   let rootDir = resolve(options.rootDir || process.cwd());
   let serveShimPath = resolve(rootDir, SERVE_SHIM_PATH);
-  let devServerInstance: Awaited<ReturnType<typeof startDevServer>> | undefined;
   let ctx: ReturnType<typeof createTaserVirtualContext> | undefined;
 
   const plugin = {
@@ -162,40 +161,24 @@ export function taser(options: TaserPluginOptions = {}): Plugin {
     },
     configureServer(server: ViteDevServer) {
       if (mode === "nitro") {
-        server.httpServer?.once("close", () => {
-          void devServerInstance?.close();
-        });
         return;
       }
 
-      let watcherHandle: ReturnType<typeof watchAndSyncRoutes> | undefined;
+      if (serveEnabled) {
+        server.middlewares.use(createViteDevMiddleware(server, rootDir));
+      }
 
-      return () => {
-        if (!ctx) return;
+      if (ctx) {
         const activeCtx = ctx;
-
-        watcherHandle = watchAndSyncRoutes(activeCtx, () => {
+        const watcherHandle = watchAndSyncRoutes(activeCtx, () => {
           invalidateModules(server);
           server.ws.send({ type: "full-reload", path: "*" });
         });
 
-        if (serveEnabled) {
-          const port = options.port ?? (Number(process.env.PORT) || 3000);
-          startDevServer(server, { rootDir, port })
-            .then((instance) => {
-              devServerInstance = instance;
-              console.log(`[taser] dev server ready on http://localhost:${port}`);
-            })
-            .catch((error) => {
-              console.error(error.message ?? error);
-            });
-        }
-
         server.httpServer?.once("close", () => {
           void watcherHandle?.close();
-          void devServerInstance?.close();
         });
-      };
+      }
     },
   };
 
