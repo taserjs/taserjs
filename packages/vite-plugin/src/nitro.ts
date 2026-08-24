@@ -144,7 +144,34 @@ export function taserNitro(options: TaserNitroOptions = {}): NitroModule {
   return {
     name: "taser-nitro",
     setup(nitro: Nitro) {
-      const rootDir = resolve(nitro.options.rootDir || ".");
+      // The taser CLI injects this module itself, and users may also list it
+      // in their nitro.config `modules` array with inline options. Collect
+      // every instance's options and apply exactly once, on the first
+      // lifecycle hook (registration-order merge: later instances override).
+      const state = nitro.options as unknown as Record<string, unknown>;
+      const pending = (state._taserPendingOptions as TaserNitroOptions[] | undefined) ?? [];
+      pending.push(options);
+      state._taserPendingOptions = pending;
+
+      if (state._taserHookRegistered) {
+        return;
+      }
+      state._taserHookRegistered = true;
+
+      nitro.hooks.hookOnce("build:before", () => {
+        const collected = (state._taserPendingOptions as TaserNitroOptions[]) ?? [];
+        const moduleOptions: Record<string, unknown> = {};
+        for (const opts of collected) {
+          Object.assign(moduleOptions, opts);
+        }
+        applyTaserNitro(nitro, moduleOptions as TaserNitroOptions);
+      });
+    },
+  };
+}
+
+function applyTaserNitro(nitro: Nitro, moduleOptions: TaserNitroOptions): void {
+  const rootDir = resolve(nitro.options.rootDir || ".");
       const explicitRoutes = nitro.options.routesDir as string | undefined;
       const routesDir = explicitRoutes
         ? resolve(rootDir, explicitRoutes)
@@ -157,7 +184,7 @@ export function taserNitro(options: TaserNitroOptions = {}): NitroModule {
       const nitroTaserConfig = ((nitro.options as any).taser || {}) as TaserNitroOptions;
       const mergedTaserOptions: TaserNitroOptions = {
         ...nitroTaserConfig,
-        ...options,
+        ...moduleOptions,
       };
 
       const nitroBase = (nitro.options.baseURL || "").replace(/\/+$/, "").replace(/^\/+/, "");
@@ -223,6 +250,4 @@ export function taserNitro(options: TaserNitroOptions = {}): NitroModule {
       nitro.hooks.hook("close", async () => {
         await closeWatcher?.();
       });
-    },
-  };
 }

@@ -93,6 +93,7 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
       basePath: "/api",
     });
 
+    const hooksOnce: Record<string, () => void | Promise<void>> = {};
     const mockNitro: any = {
       options: {
         rootDir: testDir,
@@ -105,10 +106,18 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
       },
       hooks: {
         hook: () => {},
+        hookOnce: (name: string, fn: () => void | Promise<void>) => {
+          hooksOnce[name] = fn;
+        },
       },
     };
 
     await mod.setup(mockNitro);
+
+    // Real configuration is deferred to the build lifecycle so that multiple
+    // taserNitro() instances (CLI-injected + user config) merge first.
+    expect(mockNitro.options.routesDir).toBe("routes");
+    await hooksOnce["build:before"]();
 
     expect(mockNitro.options.routesDir).toBe("");
     expect(mockNitro.options.apiDir).toBe("");
@@ -119,6 +128,45 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
     expect(mockNitro.options.handlers[0].handler).toBe("#taserjs/virtual/entry");
     expect(mockNitro.options.virtual["#taserjs/virtual/manifest"]).toBeDefined();
     expect(mockNitro.options.virtual["#taserjs/virtual/entry"]).toBeDefined();
+  });
+
+  it("applies taserNitro setup exactly once when registered multiple times", async () => {
+    const modA = taserNitro({ rootDir: testDir, basePath: "/api" });
+    const modB = taserNitro({ rootDir: testDir, basePath: "/other" });
+
+    const hooksOnce: Record<string, () => void | Promise<void>> = {};
+    const mockNitro: any = {
+      options: {
+        rootDir: testDir,
+        routesDir: "routes",
+        apiDir: "api",
+        scanDirs: [],
+        serverDir: false,
+        handlers: [{ route: "/pre-existing", handler: "x" }],
+        virtual: {},
+      },
+      hooks: {
+        hook: () => {},
+        // Mimic hookable(): hookOnce handlers unregister after first call.
+        hookOnce: (name: string, fn: () => void | Promise<void>) => {
+          hooksOnce[name] = () => {
+            delete hooksOnce[name];
+            void fn();
+          };
+        },
+      },
+    };
+
+    await modA.setup(mockNitro);
+    await modB.setup(mockNitro);
+    await hooksOnce["build:before"]();
+
+    // hookOnce semantics: the setup cannot run a second time.
+    expect(hooksOnce["build:before"]).toBeUndefined();
+
+    // Handler registered once; later instance's options win the merge.
+    expect(mockNitro.options.handlers).toHaveLength(2);
+    expect(mockNitro.options.handlers[0].route).toBe("/other/**");
   });
 
   it("scaffolds newly added route files via the batch pipeline, not during scans", async () => {
