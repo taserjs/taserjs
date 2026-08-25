@@ -537,7 +537,7 @@ describe("resolvePackages", () => {
     });
     expect(groups.dependencies).toEqual(["@taserjs/router", "dotenv"]);
     expect(groups.devDependencies).toEqual([
-      "@taserjs/vite-plugin",
+      "@taserjs/router-plugin",
       "nitro",
       "typescript@^5.9.3",
       "vite@^8.1.5",

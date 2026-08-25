@@ -87,7 +87,7 @@ export default defineConfig({
 export function viteConfigTemplate(): string {
   return `import { defineConfig } from 'vite'
 import { nitro } from 'nitro/vite'
-import { taser } from '@taserjs/vite-plugin'
+import { taser } from '@taserjs/router-plugin/vite'
 
 export default defineConfig({
   plugins: [taser(), nitro()],

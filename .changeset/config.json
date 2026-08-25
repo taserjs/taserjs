@@ -10,7 +10,7 @@
       "@taserjs/router-generator",
       "@taserjs/router-cli",
       "@taserjs/router-client",
-      "@taserjs/vite-plugin"
+      "@taserjs/router-plugin"
     ]
   ],
   "linked": [],

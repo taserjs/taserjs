@@ -1,20 +1,23 @@
 /**
- * Codegen for `#taserjs/virtual/app`: composes the taser route handler with an
- * optional user-provided host server (e.g. server.ts).
+ * Codegen for the composed Taser app module.
+ *
+ * - `standalone` (default): full runner for Nitro/srvx hosts — installs srvx's
+ *   FastResponse as global Response, supports optional host-server passthrough,
+ *   and emits Nitro interop helpers.
+ * - `hosted`: for embedding inside another framework's runtime (e.g. Next route
+ *   handlers) — keeps the native global Response untouched, skips Nitro
+ *   interop, and only exports a fetch-style handler.
  *
  * Dispatch order: taser routes (pass-through on miss) → host fetch → 404.
- * Installs srvx's FastResponse as global Response before any route code runs.
- *
- * Error contract (standalone mode): thrown errors propagate to the Nitro/srvx
- * error boundary; `captureError` logs via console.error and does not swallow
- * or transform responses. Structured reporters can replace this in future
- * without changing dispatch semantics.
  */
 export function getComposedAppCode(options: {
   /** Import specifier for the optional host server entry (alias, not a path). */
   serverEntrySpecifier?: string | undefined;
   scope?: string | undefined;
+  /** Composition target runtime. Defaults to `"standalone"`. */
+  composeStyle?: "standalone" | "hosted" | undefined;
 }): string {
+  const hosted = options.composeStyle === "hosted";
   const hostServer = options.serverEntrySpecifier;
 
   const cleanScope =
@@ -26,8 +29,9 @@ export function getComposedAppCode(options: {
 
   const imports = [
     `import taserEntry from "#taserjs/virtual/entry";`,
-    `import { FastResponse } from "srvx";`,
-    `globalThis.Response = FastResponse;`,
+    ...(hosted
+      ? []
+      : [`import { FastResponse } from "srvx";`, `globalThis.Response = FastResponse;`]),
   ];
   let hostInvocation = "";
 
@@ -44,23 +48,19 @@ export function getComposedAppCode(options: {
 `;
   }
 
-  return `${imports.join("\n")}
+  const notFound = hosted
+    ? `return new Response(JSON.stringify({ error: "Not Found" }), {
+      status: 404,
+      headers: { "content-type": "application/json" },
+    });`
+    : `return new FastResponse(JSON.stringify({ error: "Not Found" }), {
+      status: 404,
+      headers: { "content-type": "application/json" },
+    });`;
 
-export async function handler(req) {
-  const url = new URL(req.url);
-  if (${scopeCondition}) {
-    const res = await taserEntry(req);
-    if (res !== undefined) {
-      return res;
-    }
-  }
-${hostInvocation}
-  return new FastResponse(JSON.stringify({ error: "Not Found" }), {
-    status: 404,
-    headers: { "content-type": "application/json" },
-  });
-}
-
+  const nitroInterop = hosted
+    ? ""
+    : `
 export function createNitroApp() {
   return {
     fetch: handler,
@@ -72,8 +72,25 @@ export function createNitroApp() {
 export function initNitroPlugins(app) {
   return app;
 }
+`;
 
-export default { fetch: handler };
+  return `${imports.join("\n")}
+
+export async function handler(req) {
+  const url = new URL(req.url);
+  if (${scopeCondition}) {
+    const res = await taserEntry(req);
+    if (res !== undefined) {
+      return res;
+    }
+  }
+${hostInvocation}
+${notFound}
+}
+${nitroInterop}
+export const taserApp = { fetch: handler };
+export const app = taserApp;
+export default taserApp;
 `;
 }
 

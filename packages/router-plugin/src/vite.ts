@@ -77,6 +77,9 @@ function invalidateModules(server: ViteDevServer) {
  *   SSR production serve shim.
  * - Mode 2 (Vite + Nitro): Attaches `.nitro` hook so `nitro()` from `nitro/vite`
  *   automatically discovers and registers Taser as a Nitro module.
+ *
+ * This is the `@taserjs/router-plugin/vite` entry; shared core lives at the
+ * package root, the Next.js adapter at `/next`.
  */
 export function taser(options: TaserPluginOptions = {}): Plugin {
   const serveEnabled = options.server !== false;

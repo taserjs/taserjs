@@ -8,6 +8,6 @@
     { "path": "./packages/router-client" },
     { "path": "./packages/router-generator" },
     { "path": "./packages/router-cli" },
-    { "path": "./packages/vite-plugin" }
+    { "path": "./packages/router-plugin" }
   ]
 }

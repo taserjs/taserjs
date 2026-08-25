@@ -54,9 +54,9 @@ importers:
       '@taserjs/router-cli':
         specifier: workspace:*
         version: link:../../packages/router-cli
-      '@taserjs/vite-plugin':
+      '@taserjs/router-plugin':
         specifier: workspace:*
-        version: link:../../packages/vite-plugin
+        version: link:../../packages/router-plugin
       '@types/node':
         specifier: ^22.13.10
         version: 22.20.1
@@ -85,9 +85,9 @@ importers:
       '@taserjs/router-cli':
         specifier: workspace:*
         version: link:../../packages/router-cli
-      '@taserjs/vite-plugin':
+      '@taserjs/router-plugin':
         specifier: workspace:*
-        version: link:../../packages/vite-plugin
+        version: link:../../packages/router-plugin
       '@types/bun':
         specifier: ^1.2.0
         version: 1.4.0
@@ -119,9 +119,9 @@ importers:
       '@taserjs/router-cli':
         specifier: workspace:*
         version: link:../../packages/router-cli
-      '@taserjs/vite-plugin':
+      '@taserjs/router-plugin':
         specifier: workspace:*
-        version: link:../../packages/vite-plugin
+        version: link:../../packages/router-plugin
       '@types/node':
         specifier: ^22.13.10
         version: 22.20.1
@@ -140,9 +140,9 @@ importers:
       '@taserjs/router':
         specifier: workspace:*
         version: link:../../packages/router
-      '@taserjs/vite-plugin':
+      '@taserjs/router-plugin':
         specifier: workspace:*
-        version: link:../../packages/vite-plugin
+        version: link:../../packages/router-plugin
       srvx:
         specifier: ^0.11.22
         version: 0.11.22
@@ -184,9 +184,9 @@ importers:
         specifier: ^19.2.4
         version: 19.2.8(react@19.2.8)
     devDependencies:
-      '@taserjs/vite-plugin':
+      '@taserjs/router-plugin':
         specifier: workspace:*
-        version: link:../../packages/vite-plugin
+        version: link:../../packages/router-plugin
       '@types/node':
         specifier: ^22.13.10
         version: 22.20.1
@@ -349,9 +349,9 @@ importers:
       '@taserjs/router-generator':
         specifier: workspace:*
         version: link:../router-generator
-      '@taserjs/vite-plugin':
+      '@taserjs/router-plugin':
         specifier: workspace:*
-        version: link:../vite-plugin
+        version: link:../router-plugin
       jiti:
         specifier: ^2.7.0
         version: 2.7.0
@@ -474,32 +474,7 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.2)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0))
 
-  packages/router-utils:
-    dependencies:
-      '@standard-schema/spec':
-        specifier: ^1.1.0
-        version: 1.1.0
-      mrmime:
-        specifier: ^2.0.1
-        version: 2.0.1
-    devDependencies:
-      '@tanstack/vite-config':
-        specifier: ^0.6.0
-        version: 0.6.0(esbuild@0.28.1)(rolldown@1.2.3)(rollup@4.62.5)(typescript@5.9.3)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0))
-      publint:
-        specifier: ^0.3.22
-        version: 0.3.22
-      vite:
-        specifier: ^8.1.5
-        version: 8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0)
-      vitest:
-        specifier: ^4.1.10
-        version: 4.1.10(@types/node@26.1.2)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0))
-      zod:
-        specifier: ^4.4.3
-        version: 4.4.3
-
-  packages/vite-plugin:
+  packages/router-plugin:
     dependencies:
       '@taserjs/router-generator':
         specifier: workspace:*
@@ -513,6 +488,9 @@ importers:
       jsonc-parser:
         specifier: ^3.3.1
         version: 3.3.1
+      next:
+        specifier: '>=15.0.0'
+        version: 16.3.0(@types/node@26.1.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       pathe:
         specifier: ^2.0.3
         version: 2.0.3
@@ -544,6 +522,31 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.2)(vite@8.2.1(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0))
+
+  packages/router-utils:
+    dependencies:
+      '@standard-schema/spec':
+        specifier: ^1.1.0
+        version: 1.1.0
+      mrmime:
+        specifier: ^2.0.1
+        version: 2.0.1
+    devDependencies:
+      '@tanstack/vite-config':
+        specifier: ^0.6.0
+        version: 0.6.0(esbuild@0.28.1)(rolldown@1.2.3)(rollup@4.62.5)(typescript@5.9.3)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0))
+      publint:
+        specifier: ^0.3.22
+        version: 0.3.22
+      vite:
+        specifier: ^8.1.5
+        version: 8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0)
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@26.1.2)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0))
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
 packages:
 

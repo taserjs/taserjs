@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@taserjs/router-generator": "workspace:*",
-    "@taserjs/vite-plugin": "workspace:*",
+    "@taserjs/router-plugin": "workspace:*",
     "jiti": "^2.7.0",
     "yargs": "^18.0.0"
   },

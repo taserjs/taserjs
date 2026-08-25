@@ -9,8 +9,8 @@ import {
   resolveServerDir,
   resolveTaserEntry,
 } from "@taserjs/router-generator";
-import { writeTaserTypes, type TypeWriterState } from "@taserjs/vite-plugin/writer";
-import { ROUTES_ALIAS_ID } from "@taserjs/vite-plugin/aliases";
+import { writeTaserTypes, type TypeWriterState } from "@taserjs/router-plugin/writer";
+import { ROUTES_ALIAS_ID } from "@taserjs/router-plugin/aliases";
 import { resolveAppConfig } from "./resolve-app-config.js";
 
 export async function runGenerate(argv: Record<string, any>): Promise<void> {

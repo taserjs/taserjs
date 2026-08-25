@@ -6,7 +6,12 @@ import { resolveDeployEntry } from "./targets.js";
 const BASE_DEPENDENCIES = ["@taserjs/router", "dotenv"];
 
 /** Runtime-agnostic build/dev tooling every scaffolded project needs. */
-const BASE_DEV_DEPENDENCIES = ["@taserjs/vite-plugin", "nitro", "typescript@^5.9.3", "vite@^8.1.5"];
+const BASE_DEV_DEPENDENCIES = [
+  "@taserjs/router-plugin",
+  "nitro",
+  "typescript@^5.9.3",
+  "vite@^8.1.5",
+];
 
 function runtimeDevDeps(ctx: ScaffoldContext): string[] {
   const { entry } = resolveDeployEntry(ctx.preset ?? "node-server");
