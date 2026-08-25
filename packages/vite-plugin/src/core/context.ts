@@ -13,7 +13,8 @@ import {
   type GeneratedModel,
 } from "@taserjs/router-generator";
 import type { TaserUserConfig, TaserVirtualContext } from "../types.js";
-import { writeTaserTypes } from "../writer.js";
+import { writeTaserTypes, type TypeWriterState } from "../writer.js";
+import { ROUTES_ALIAS_ID, ENTRY_ALIAS_ID } from "../aliases.js";
 
 export const VIRTUAL_MANIFEST_ID = "#taserjs/virtual/manifest";
 export const RESOLVED_VIRTUAL_MANIFEST_ID = "\0" + VIRTUAL_MANIFEST_ID;
@@ -42,6 +43,7 @@ export function createTaserVirtualContext(options: TaserUserConfig = {}): TaserV
   let cachedManifestCode: string | undefined;
   let cachedEntryCode: string | undefined;
   const analysisCache = new AnalysisCache();
+  const typeWriterState: TypeWriterState = {};
 
   async function getModel(): Promise<GeneratedModel> {
     if (cachedModel) {
@@ -49,7 +51,9 @@ export function createTaserVirtualContext(options: TaserUserConfig = {}): TaserV
     }
     cachedModel = await scanAndBuildModel({
       routesDir,
-      routesImportBase: routesDir,
+      // Bundler-facing alias; resolved to the real routes dir by the Nitro
+      // module or the Vite plugin. Never leaks absolute paths into artifacts.
+      routesImportBase: ROUTES_ALIAS_ID,
       extension: parsedOptions.extension,
       validate: parsedOptions.validate,
       cache: analysisCache,
@@ -81,8 +85,9 @@ export function createTaserVirtualContext(options: TaserUserConfig = {}): TaserV
     if (cachedEntryCode) {
       return cachedEntryCode;
     }
+    // Alias, not an absolute path: the host integration resolves it to entryPath.
     cachedEntryCode = emitVirtualEntrySource({
-      taserAppImportPath: entryPath,
+      taserAppImportPath: ENTRY_ALIAS_ID,
       ...(basePath !== undefined ? { basePath } : {}),
     });
     return cachedEntryCode;
@@ -94,6 +99,8 @@ export function createTaserVirtualContext(options: TaserUserConfig = {}): TaserV
       rootDir,
       quotes: parsedOptions.quotes,
       header: parsedOptions.header,
+      routesDir,
+      state: typeWriterState,
     });
   }
 

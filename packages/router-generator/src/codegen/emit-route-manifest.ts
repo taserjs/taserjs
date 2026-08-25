@@ -88,7 +88,10 @@ function buildManifestRoutesObject(model: GeneratedModel): TSESTree.ObjectExpres
   return objectExpression(properties);
 }
 
-function buildProgram(model: GeneratedModel): TSESTree.Program {
+function buildProgram(
+  model: GeneratedModel,
+  rewriteImportPath?: EmitManifestOptions["rewriteImportPath"],
+): TSESTree.Program {
   const routePathType = tsTypeAlias(
     "RoutePathGen",
     tsUnionType(model.routePaths.map((path) => tsLiteralType(path))),
@@ -106,8 +109,8 @@ function buildProgram(model: GeneratedModel): TSESTree.Program {
   const clientChainType = buildClientChainType(model.routesByPath);
 
   const body: TSESTree.Statement[] = [
-    ...buildLayoutImportDeclarations(model.layouts),
-    ...buildRouteImportDeclarations(model.routes),
+    ...buildLayoutImportDeclarations(model.layouts, rewriteImportPath),
+    ...buildRouteImportDeclarations(model.routes, rewriteImportPath),
     exportConst(
       "routeManifest",
       tsAsConst(
@@ -135,10 +138,13 @@ function buildProgram(model: GeneratedModel): TSESTree.Program {
   });
 }
 
-function buildVirtualManifestProgram(model: GeneratedModel): TSESTree.Program {
+function buildVirtualManifestProgram(
+  model: GeneratedModel,
+  rewriteImportPath?: EmitManifestOptions["rewriteImportPath"],
+): TSESTree.Program {
   const body: TSESTree.Statement[] = [
-    ...buildLayoutImportDeclarations(model.layouts),
-    ...buildRouteImportDeclarations(model.routes),
+    ...buildLayoutImportDeclarations(model.layouts, rewriteImportPath),
+    ...buildRouteImportDeclarations(model.routes, rewriteImportPath),
     exportConst(
       "routeManifest",
       objectExpression([
@@ -157,8 +163,11 @@ function buildVirtualManifestProgram(model: GeneratedModel): TSESTree.Program {
   });
 }
 
-function buildTypeDeclarationsProgram(model: GeneratedModel): TSESTree.Program {
-  return buildProgram(model);
+function buildTypeDeclarationsProgram(
+  model: GeneratedModel,
+  rewriteImportPath?: EmitManifestOptions["rewriteImportPath"],
+): TSESTree.Program {
+  return buildProgram(model, rewriteImportPath);
 }
 
 function printProgram(program: TSESTree.Program, quotes: "single" | "double"): string {
@@ -170,7 +179,7 @@ export function emitVirtualManifestSource(
   model: GeneratedModel,
   options: Partial<EmitManifestOptions> = {},
 ): string {
-  const program = buildVirtualManifestProgram(model);
+  const program = buildVirtualManifestProgram(model, options.rewriteImportPath);
   const body = printProgram(program, options.quotes ?? "double");
   return joinManifestSections(options.header ?? [], body, options.footer ?? []);
 }
@@ -179,7 +188,7 @@ export function emitTypeDeclarationsSource(
   model: GeneratedModel,
   options: Partial<EmitManifestOptions> = {},
 ): string {
-  const program = buildTypeDeclarationsProgram(model);
+  const program = buildTypeDeclarationsProgram(model, options.rewriteImportPath);
   const body = printProgram(program, options.quotes ?? "double");
   return joinManifestSections(options.header, body, options.footer);
 }
@@ -188,7 +197,7 @@ export function emitRouteManifestSource(
   model: GeneratedModel,
   options: EmitManifestOptions = {},
 ): string {
-  const program = buildProgram(model);
+  const program = buildProgram(model, options.rewriteImportPath);
   const body = printProgram(program, options.quotes ?? "single");
   return joinManifestSections(options.header, body, options.footer);
 }

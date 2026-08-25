@@ -120,9 +120,7 @@ export type TaserRuntime<THasNotFound extends boolean = boolean> = {
   request(
     path: string,
     init?: RequestInit,
-  ): THasNotFound extends true
-    ? Promise<Response>
-    : Promise<Response | undefined>;
+  ): THasNotFound extends true ? Promise<Response> : Promise<Response | undefined>;
   onError(handler: OnErrorHandler | OnErrorHandler["handle"]): TaserRuntime<THasNotFound>;
   notFound(handler: NotFoundHandler): TaserRuntime<true>;
 };

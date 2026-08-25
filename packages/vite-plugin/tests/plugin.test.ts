@@ -127,7 +127,7 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
     setupTaserNitro(mockNitro as Nitro, mod);
 
     expect(mockNitro.options.routesDir).toBe("routes");
-    await hooksOnce["build:before"]();
+    await hooksOnce["build:before"]?.();
 
     expect(mockNitro.options.routesDir).toBe("");
     expect(mockNitro.options.apiDir).toBe("");
@@ -162,7 +162,7 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
     };
 
     setupTaserNitro(mockNitro as Nitro, mod);
-    await hooksOnce["build:before"]();
+    await hooksOnce["build:before"]?.();
 
     expect(mockNitro.options.handlers).toHaveLength(1);
     expect(mockNitro.options.handlers[0]).toEqual({
@@ -200,7 +200,7 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
 
     setupTaserNitro(mockNitro as Nitro, modA);
     setupTaserNitro(mockNitro as Nitro, modB);
-    await hooksOnce["build:before"]();
+    await hooksOnce["build:before"]?.();
 
     // hookOnce semantics: the setup cannot run a second time.
     expect(hooksOnce["build:before"]).toBeUndefined();

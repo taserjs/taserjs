@@ -54,10 +54,7 @@ export class TaserRouter<
 > {
   private readonly state: RouterState;
 
-  constructor(
-    options: CreateTaserAppOptions = {},
-    state?: Partial<Omit<RouterState, "options">>,
-  ) {
+  constructor(options: CreateTaserAppOptions = {}, state?: Partial<Omit<RouterState, "options">>) {
     this.state = {
       options,
       contextDef: state?.contextDef ?? emptyContext,

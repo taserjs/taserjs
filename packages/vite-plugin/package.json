@@ -48,6 +48,16 @@
         "default": "./dist/cjs/writer.cjs"
       }
     },
+    "./aliases": {
+      "import": {
+        "types": "./dist/esm/aliases.d.ts",
+        "default": "./dist/esm/aliases.js"
+      },
+      "require": {
+        "types": "./dist/cjs/aliases.d.cts",
+        "default": "./dist/cjs/aliases.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -62,15 +72,16 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@taserjs/router": "workspace:*",
-    "@taserjs/router-core": "workspace:*",
     "@taserjs/router-generator": "workspace:*",
     "@taserjs/router-utils": "workspace:*",
     "chokidar": "^5.0.0",
+    "jsonc-parser": "^3.3.1",
     "pathe": "^2.0.3"
   },
   "devDependencies": {
     "@tanstack/vite-config": "^0.6.0",
+    "@taserjs/router-client": "workspace:*",
+    "@taserjs/router-core": "workspace:*",
     "nitro": "^3.0.260610-beta",
     "publint": "^0.3.22",
     "srvx": "^0.11.22",

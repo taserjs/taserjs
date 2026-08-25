@@ -1,6 +1,7 @@
 import type { Plugin, ViteDevServer } from "vite";
+import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
-import { resolve } from "pathe";
+import { join, resolve } from "pathe";
 import { scaffoldRouteFile } from "@taserjs/router-generator";
 
 import {
@@ -12,6 +13,7 @@ import {
   VIRTUAL_APP_ID,
   RESOLVED_VIRTUAL_APP_ID,
 } from "./core/context.js";
+import { ROUTES_ALIAS_ID, ENTRY_ALIAS_ID, SERVER_ENTRY_ALIAS_ID } from "./aliases.js";
 import { getComposedAppCode, getServeShimCode } from "./core/compose.js";
 import { watchAndSyncRoutes } from "./core/watcher.js";
 import { createViteDevMiddleware } from "./dev-server.js";
@@ -139,6 +141,24 @@ export function taser(options: TaserPluginOptions = {}): Plugin {
       if (id === VIRTUAL_MANIFEST_ID) return RESOLVED_VIRTUAL_MANIFEST_ID;
       if (id === VIRTUAL_ENTRY_ID) return RESOLVED_VIRTUAL_ENTRY_ID;
       if (id === VIRTUAL_APP_ID) return RESOLVED_VIRTUAL_APP_ID;
+
+      // Resolve Taser's virtual aliases to real files (Nitro gets these via
+      // nitro.options.alias; standalone mode goes through this hook).
+      if (!ctx) {
+        return null;
+      }
+      if (id === ENTRY_ALIAS_ID) return ctx.entryPath;
+      if (id === SERVER_ENTRY_ALIAS_ID && ctx.serverEntryPath) return ctx.serverEntryPath;
+      if (id.startsWith(`${ROUTES_ALIAS_ID}/`)) {
+        let target = join(ctx.routesDir, id.slice(ROUTES_ALIAS_ID.length + 1));
+        // Emitted specifiers carry the compiled `.js` extension; map onto the
+        // on-disk `.ts` source when the literal file does not exist.
+        const tsCandidate = target.replace(/\.(js|mjs|cjs)$/, ".ts");
+        if (!existsSync(target) && tsCandidate !== target && existsSync(tsCandidate)) {
+          target = tsCandidate;
+        }
+        return target;
+      }
       return null;
     },
     async load(id: string) {
@@ -153,7 +173,7 @@ export function taser(options: TaserPluginOptions = {}): Plugin {
       }
       if (id === RESOLVED_VIRTUAL_APP_ID || id === VIRTUAL_APP_ID) {
         return getComposedAppCode({
-          serverEntryPath: ctx.serverEntryPath,
+          ...(ctx.serverEntryPath ? { serverEntrySpecifier: SERVER_ENTRY_ALIAS_ID } : {}),
           scope: ctx.basePath,
         });
       }

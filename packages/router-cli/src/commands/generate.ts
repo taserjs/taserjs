@@ -9,7 +9,8 @@ import {
   resolveServerDir,
   resolveTaserEntry,
 } from "@taserjs/router-generator";
-import { writeTaserTypes } from "@taserjs/vite-plugin/writer";
+import { writeTaserTypes, type TypeWriterState } from "@taserjs/vite-plugin/writer";
+import { ROUTES_ALIAS_ID } from "@taserjs/vite-plugin/aliases";
 import { resolveAppConfig } from "./resolve-app-config.js";
 
 export async function runGenerate(argv: Record<string, any>): Promise<void> {
@@ -47,17 +48,22 @@ export async function runGenerate(argv: Record<string, any>): Promise<void> {
 
   const model = await scanAndBuildModel({
     routesDir,
-    routesImportBase: routesDir,
+    // Alias base keeps generated specifiers portable; the writer rebases them
+    // onto typesDir-relative paths for the emitted d.ts.
+    routesImportBase: ROUTES_ALIAS_ID,
     extension,
     validate,
     cache: new AnalysisCache(),
     ignore,
   });
 
+  const writerState: TypeWriterState = {};
   const written = await writeTaserTypes(model, {
     rootDir,
     quotes: taserOptions.quotes,
     header: taserOptions.header,
+    routesDir,
+    state: writerState,
   });
 
   if (written) {

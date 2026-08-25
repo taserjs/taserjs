@@ -4,6 +4,7 @@ import { resolve } from "pathe";
 import { DEFAULT_IGNORE } from "@taserjs/router-generator";
 import { composeBasePath } from "@taserjs/router-utils";
 import type { TaserNitroOptions } from "./types.js";
+import { ROUTES_ALIAS_ID, ENTRY_ALIAS_ID, SERVER_ENTRY_ALIAS_ID } from "./aliases.js";
 import {
   createTaserVirtualContext,
   VIRTUAL_MANIFEST_ID,
@@ -59,6 +60,15 @@ async function applyTaserNitro(nitro: Nitro, options: TaserNitroOptions): Promis
     basePath: effectiveScope,
   });
 
+  // Resolve Taser's virtual aliases to real files so emitted code never
+  // carries absolute machine paths.
+  nitro.options.alias = {
+    ...nitro.options.alias,
+    [ROUTES_ALIAS_ID]: ctx.routesDir,
+    [ENTRY_ALIAS_ID]: ctx.entryPath,
+    ...(ctx.serverEntryPath ? { [SERVER_ENTRY_ALIAS_ID]: ctx.serverEntryPath } : {}),
+  };
+
   // 1. Disable Nitro built-in route scanner — file routing belongs to Taser
   nitro.options.routesDir = "";
   nitro.options.apiDir = "";
@@ -76,7 +86,7 @@ async function applyTaserNitro(nitro: Nitro, options: TaserNitroOptions): Promis
     // Standalone mode: override Nitro virtual app (0 h3, 0 rou3)
     nitro.options.virtual["#nitro/virtual/app"] = () =>
       getComposedAppCode({
-        serverEntryPath: ctx.serverEntryPath,
+        ...(ctx.serverEntryPath ? { serverEntrySpecifier: SERVER_ENTRY_ALIAS_ID } : {}),
         scope: effectiveScope,
       });
     nitro.options.virtual["#nitro/virtual/routing"] = () =>
@@ -84,9 +94,7 @@ async function applyTaserNitro(nitro: Nitro, options: TaserNitroOptions): Promis
   } else {
     // Fullstack / Module mode: unshift into Nitro's standard handlers pipeline
     const routePattern =
-      effectiveScope && effectiveScope !== "/"
-        ? `${effectiveScope.replace(/\/+$/, "")}/**`
-        : "/**";
+      effectiveScope && effectiveScope !== "/" ? `${effectiveScope.replace(/\/+$/, "")}/**` : "/**";
 
     nitro.options.handlers.unshift({
       route: routePattern,

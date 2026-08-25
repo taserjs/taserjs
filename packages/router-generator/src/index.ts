@@ -4,6 +4,8 @@ export {
   DEFAULT_ENTRY,
   DEFAULT_SERVER_ENTRY,
   DEFAULT_IGNORE,
+  HTTP_VERBS,
+  ROUTE_VERB_PATTERN,
 } from "./constants.js";
 export { shouldIgnoreRoutePath, assertPhysicalRouteFile } from "./scan/filter.js";
 export {
@@ -44,3 +46,4 @@ export {
   type ScaffoldOptions,
   type ScaffoldResult,
 } from "./scaffold/scaffold-file.js";
+export { routeScaffoldSource, layoutScaffoldSource } from "./scaffold/route-template.js";

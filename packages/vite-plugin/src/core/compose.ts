@@ -4,12 +4,18 @@
  *
  * Dispatch order: taser routes (pass-through on miss) → host fetch → 404.
  * Installs srvx's FastResponse as global Response before any route code runs.
+ *
+ * Error contract (standalone mode): thrown errors propagate to the Nitro/srvx
+ * error boundary; `captureError` logs via console.error and does not swallow
+ * or transform responses. Structured reporters can replace this in future
+ * without changing dispatch semantics.
  */
 export function getComposedAppCode(options: {
-  serverEntryPath?: string | undefined;
+  /** Import specifier for the optional host server entry (alias, not a path). */
+  serverEntrySpecifier?: string | undefined;
   scope?: string | undefined;
 }): string {
-  const hostServer = options.serverEntryPath;
+  const hostServer = options.serverEntrySpecifier;
 
   const cleanScope =
     !options.scope || options.scope === "/" ? "" : options.scope.replace(/\/+$/, "");

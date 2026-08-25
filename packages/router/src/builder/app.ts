@@ -12,9 +12,7 @@ export class TaserServeView<THasNotFound extends boolean = boolean> {
   readonly request: (
     path: string,
     init?: RequestInit,
-  ) => THasNotFound extends true
-    ? Promise<Response>
-    : Promise<Response | undefined>;
+  ) => THasNotFound extends true ? Promise<Response> : Promise<Response | undefined>;
 
   constructor(protected readonly runtime: TaserRuntime<THasNotFound>) {
     this.fetch = (request: Request, env?: unknown, executionCtx?: unknown) => {

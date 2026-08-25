@@ -1,3 +1,5 @@
+import { ROUTE_VERB_PATTERN } from "../constants.js";
+
 const VALID_PARAM_NAME_REGEX = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
 
 type ExtractedParam = {
@@ -57,10 +59,7 @@ function extractParamsFromFilename(filePath: string): ExtractedParam[] {
   const allParams: ExtractedParam[] = [];
   for (const segment of filePath.replace(/\\/g, "/").split("/")) {
     // Strip verb + extension from last segment: `$id.get.ts` → `$id`
-    const basename = segment.replace(
-      /\.(get|post|put|patch|delete|options|head|any|all)\.ts$/i,
-      "",
-    );
+    const basename = segment.replace(ROUTE_VERB_PATTERN, "");
     allParams.push(...extractParamsFromSegment(basename));
   }
 

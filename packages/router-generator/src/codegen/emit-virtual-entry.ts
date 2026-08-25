@@ -3,6 +3,12 @@ export type EmitVirtualEntryOptions = {
   basePath?: string | undefined;
 };
 
+/**
+ * Emits the virtual entry module. NOTE: the app is constructed eagerly at
+ * import time (`export const app = t.create(…)`) — importing this module has
+ * the side effect of booting the Taser app from the route manifest. The host
+ * integration relies on this for zero-lazy-init request handling.
+ */
 export function emitVirtualEntrySource(options: EmitVirtualEntryOptions): string {
   const createArgs =
     options.basePath && options.basePath !== "/" && options.basePath !== ""

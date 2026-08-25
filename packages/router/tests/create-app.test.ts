@@ -199,8 +199,7 @@ describe("createContext + createTaserApp", () => {
   });
 
   it("supports app.request convenience helper", async () => {
-    const t = createTaserApp()
-      .notFound(() => notFound({ error: "missing" }));
+    const t = createTaserApp().notFound(() => notFound({ error: "missing" }));
 
     const getRoute = t.get("/hello").handler(() => json([{ id: "item-1" }]));
     const postRoute = t.post("/search").handler(async (ctx) => {

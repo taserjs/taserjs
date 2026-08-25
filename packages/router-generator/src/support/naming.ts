@@ -10,10 +10,6 @@ export function layoutIdFromPath(relativePath: string): string {
     return "/$";
   }
 
-  if (posix.endsWith("/$")) {
-    return posix;
-  }
-
   return posix;
 }
 
