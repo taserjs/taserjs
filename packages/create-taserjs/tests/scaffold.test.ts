@@ -394,6 +394,14 @@ describe("scaffoldProject", () => {
       const serverNode = await readFile(path.join(dir, "src/server.node.ts"), "utf8");
       expect(serverNode).toContain("import express from 'express'");
       expect(serverNode).toContain("export default app");
+
+      const packages = resolvePackages({
+        projectName: "demo-express",
+        targetDir: dir,
+        framework: "express",
+        preset: "node-server",
+      });
+      expect(packages.dependencies).toContain("srvx");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -411,6 +419,16 @@ describe("scaffoldProject", () => {
       const server = await readFile(path.join(dir, "src/server.ts"), "utf8");
       expect(server).toContain("import { Hono } from 'hono'");
       expect(server).toContain("export default app");
+
+      // Fetch-native hosts never need the srvx bridge.
+      const packages = resolvePackages({
+        projectName: "demo-hono",
+        targetDir: dir,
+        framework: "hono",
+        preset: "node-server",
+      });
+      expect(packages.dependencies).toContain("hono");
+      expect(packages.dependencies).not.toContain("srvx");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -427,7 +445,8 @@ describe("scaffoldProject", () => {
       });
       const serverNode = await readFile(path.join(dir, "src/server.node.ts"), "utf8");
       expect(serverNode).toContain("import Fastify from 'fastify'");
-      expect(serverNode).toContain("export default app");
+      expect(serverNode).toContain("await app.ready()");
+      expect(serverNode).toContain("export default app.routing");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

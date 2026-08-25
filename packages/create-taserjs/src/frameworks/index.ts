@@ -39,11 +39,13 @@ export default app
 
 const app = Fastify()
 
-app.get('/host', async (_req, reply) => {
+app.get('/host', async () => {
   return { message: 'Hello from Fastify host!' }
 })
 
-export default app
+await app.ready()
+
+export default app.routing
 `,
       };
     default:
@@ -64,13 +66,14 @@ export const FRAMEWORK_ENTRIES: Record<Framework, FrameworkEntry> = {
   express: {
     id: "express",
     serverEntry: serverEntryTemplate("express"),
-    deps: ["express"],
+    deps: ["express", "srvx"],
     devDeps: ["@types/express"],
   },
   fastify: {
     id: "fastify",
+    // srvx bridges the Fastify Node handler to fetch (see compose codegen).
     serverEntry: serverEntryTemplate("fastify"),
-    deps: ["fastify"],
+    deps: ["fastify", "srvx"],
     devDeps: [],
   },
 };
