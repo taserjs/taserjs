@@ -1,32 +1,39 @@
 import type { Agent } from "package-manager-detector";
 
-export type Preset =
-  | "node"
-  | "express"
-  | "fastify"
-  | "hono"
-  | "bun"
-  | "deno"
-  | "aws-lambda"
-  | "cloudflare-workers"
-  | "netlify"
-  | "vercel"
-  | "azure-functions"
-  | "google-cloud-run";
+/** Host framework layered on top of pure Taser pass-through dispatch. */
+export type Framework = "none" | "hono" | "express" | "fastify";
 
-export const PRESETS: readonly Preset[] = [
-  "node",
-  "express",
-  "fastify",
-  "hono",
+export const FRAMEWORKS: readonly Framework[] = ["none", "hono", "express", "fastify"];
+
+export type Runtime = "node" | "bun" | "deno";
+
+export const RUNTIMES: readonly Runtime[] = ["node", "bun", "deno"];
+
+/**
+ * Deployment target. Values are Nitro preset ids (see `nitro/config`
+ * PresetNameInput) so `--preset` passes straight through to Nitro.
+ */
+export type DeployTarget =
+  | "node-server"
+  | "node-cluster"
+  | "bun"
+  | "deno-server"
+  | "deno-deploy"
+  | "cloudflare-module"
+  | "vercel"
+  | "aws-lambda"
+  | "netlify";
+
+export const DEPLOY_TARGETS: readonly DeployTarget[] = [
+  "node-server",
+  "node-cluster",
   "bun",
-  "deno",
-  "aws-lambda",
-  "cloudflare-workers",
-  "netlify",
+  "deno-server",
+  "deno-deploy",
+  "cloudflare-module",
   "vercel",
-  "azure-functions",
-  "google-cloud-run",
+  "aws-lambda",
+  "netlify",
 ];
 
 export type DbOdm = "drizzle" | "prisma" | "kysely";
@@ -56,12 +63,16 @@ export type PackageGroups = {
 export type ScaffoldContext = {
   projectName: string;
   targetDir: string;
-  preset: Preset;
+  /** Host framework; "none" is pure Taser pass-through dispatch. Defaults to "none". */
+  framework?: Framework;
+  /** Deployment target — a Nitro preset id. Defaults to "node-server". */
+  preset?: DeployTarget;
+  /** Set only when explicitly overriding the runtime implied by the preset. */
+  runtime?: Runtime;
   db?: DbOdm;
   driver?: DbDriver;
   logger?: LoggerId;
   validator?: ValidatorId;
-  bare?: boolean;
 };
 
 export type ScaffoldOptions = ScaffoldContext & {
@@ -72,7 +83,9 @@ export type ScaffoldOptions = ScaffoldContext & {
 export type ScaffoldResult = ScaffoldContext;
 
 export type CapabilitiesCatalog = {
-  presets: Preset[];
+  frameworks: Framework[];
+  deployTargets: DeployTarget[];
+  runtimes: Runtime[];
   db: {
     odms: DbOdm[];
     drivers: DbDriver[];

@@ -1,64 +1,47 @@
 import { resolveAddons } from "../addons/registry.js";
-import type { PackageGroups, Preset, ScaffoldContext } from "../core/types.js";
+import { FRAMEWORK_ENTRIES } from "../frameworks/index.js";
+import type { PackageGroups, ScaffoldContext } from "../core/types.js";
+import { resolveDeployEntry } from "./targets.js";
 
-function presetPackages(preset: Preset): PackageGroups {
-  const dependencies = ["@taserjs/router", "dotenv"];
-  const devDependencies = [
-    "@taserjs/router-cli",
-    "@taserjs/vite-plugin",
-    "nitro",
-    "typescript@^5.9.3",
-    "@types/node",
-  ];
-  const scripts: Record<string, string> = {};
+const BASE_DEPENDENCIES = ["@taserjs/router", "dotenv"];
 
-  switch (preset) {
-    case "express":
-      dependencies.push("express");
-      devDependencies.push("@types/express");
-      break;
-    case "fastify":
-      dependencies.push("fastify");
-      break;
-    case "hono":
-      dependencies.push("hono");
-      break;
+/** Runtime-agnostic build/dev tooling every scaffolded project needs. */
+const BASE_DEV_DEPENDENCIES = ["@taserjs/vite-plugin", "nitro", "typescript@^5.9.3", "vite@^8.1.5"];
+
+function runtimeDevDeps(ctx: ScaffoldContext): string[] {
+  const { entry } = resolveDeployEntry(ctx.preset ?? "node-server");
+  const effective = ctx.runtime ?? entry.impliedRuntime;
+  switch (effective) {
     case "bun":
-      devDependencies.push("@types/bun");
-      break;
-    case "cloudflare-workers":
-      devDependencies.push("wrangler", "@cloudflare/workers-types");
-      break;
-    case "aws-lambda":
-      devDependencies.push("@types/aws-lambda");
-      break;
-    case "vercel":
-      devDependencies.push("@vercel/node");
-      break;
-    case "azure-functions":
-      dependencies.push("@azure/functions");
-      break;
-    case "netlify":
-      dependencies.push("@netlify/functions");
-      break;
-    case "google-cloud-run":
+      return ["@types/bun"];
     case "deno":
+      return []; // Deno ships its own tooling and types.
+    case "workerd":
+      return ["@cloudflare/workers-types"];
     case "node":
     default:
-      break;
+      return ["@types/node"];
   }
-
-  return { dependencies, devDependencies, scripts };
 }
 
 export function resolvePackages(ctx: ScaffoldContext): PackageGroups {
-  const base = presetPackages(ctx.preset);
+  const frameworkEntry = FRAMEWORK_ENTRIES[ctx.framework ?? "none"];
+  const { entry: deployEntry } = resolveDeployEntry(ctx.preset ?? "node-server");
+
+  const dependencies = [...BASE_DEPENDENCIES, ...frameworkEntry.deps];
+  const devDependencies = [
+    ...BASE_DEV_DEPENDENCIES,
+    ...runtimeDevDeps(ctx),
+    ...deployEntry.devDeps,
+    ...frameworkEntry.devDeps,
+  ];
+
+  const scripts: Record<string, string> = {};
+  if (deployEntry.startScript) {
+    scripts.start = deployEntry.startScript;
+  }
+
   const addons = resolveAddons(ctx);
-
-  const dependencies = [...base.dependencies];
-  const devDependencies = [...base.devDependencies];
-  const scripts = { ...base.scripts };
-
   for (const addon of addons) {
     dependencies.push(...addon.dependencies(ctx));
     devDependencies.push(...addon.devDependencies(ctx));
@@ -72,10 +55,4 @@ export function resolvePackages(ctx: ScaffoldContext): PackageGroups {
     devDependencies: [...new Set(devDependencies)],
     scripts,
   };
-}
-
-export function getPackageGroups(
-  preset: Preset,
-): Omit<PackageGroups, "scripts"> & { scripts?: Record<string, string> } {
-  return presetPackages(preset);
 }

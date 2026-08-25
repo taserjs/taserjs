@@ -1,7 +1,9 @@
-import type { Preset } from "../core/types.js";
+import type { Framework } from "../core/types.js";
 
-export function serverEntryTemplate(preset: Preset): { fileName: string; content: string } | null {
-  switch (preset) {
+export function serverEntryTemplate(
+  framework: Framework,
+): { fileName: string; content: string } | null {
+  switch (framework) {
     case "hono":
       return {
         fileName: "src/server.ts",
@@ -49,34 +51,31 @@ export default app
   }
 }
 
-export function nitroPresetForPreset(preset: Preset): string {
-  switch (preset) {
-    case "cloudflare-workers":
-      return "cloudflare-module";
-    case "vercel":
-      return "vercel";
-    case "aws-lambda":
-      return "aws-lambda";
-    case "netlify":
-      return "netlify";
-    case "bun":
-      return "bun";
-    case "deno":
-      return "deno";
-    case "azure-functions":
-      return "azure-functions";
-    case "google-cloud-run":
-    case "node":
-    case "express":
-    case "fastify":
-    case "hono":
-    default:
-      return "node-server";
-  }
-}
+export type FrameworkEntry = {
+  id: Framework;
+  serverEntry: { fileName: string; content: string } | null;
+  deps: string[];
+  devDeps: string[];
+};
 
-export function nitroConfigTemplate(preset: Preset): string {
-  const nitroPreset = nitroPresetForPreset(preset);
+export const FRAMEWORK_ENTRIES: Record<Framework, FrameworkEntry> = {
+  none: { id: "none", serverEntry: null, deps: [], devDeps: [] },
+  hono: { id: "hono", serverEntry: serverEntryTemplate("hono"), deps: ["hono"], devDeps: [] },
+  express: {
+    id: "express",
+    serverEntry: serverEntryTemplate("express"),
+    deps: ["express"],
+    devDeps: ["@types/express"],
+  },
+  fastify: {
+    id: "fastify",
+    serverEntry: serverEntryTemplate("fastify"),
+    deps: ["fastify"],
+    devDeps: [],
+  },
+};
+
+export function nitroConfigTemplate(nitroPreset: string): string {
   return `import { defineConfig } from 'nitro/config'
 
 export default defineConfig({
@@ -85,7 +84,18 @@ export default defineConfig({
 `;
 }
 
-export function taserTsTemplate(_preset: Preset = "node"): string {
+export function viteConfigTemplate(): string {
+  return `import { defineConfig } from 'vite'
+import { nitro } from 'nitro/vite'
+import { taser } from '@taserjs/vite-plugin'
+
+export default defineConfig({
+  plugins: [taser(), nitro()],
+})
+`;
+}
+
+export function taserTsTemplate(): string {
   return `import { createTaserApp } from '@taserjs/router'
 
 import { context } from '#src/context.js'

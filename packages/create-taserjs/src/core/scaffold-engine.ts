@@ -2,10 +2,12 @@ import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { collectBootBindings, resolveAddons } from "../addons/registry.js";
-import { nitroConfigTemplate, serverEntryTemplate, taserTsTemplate } from "../frameworks/index.js";
+import { nitroConfigTemplate, taserTsTemplate, viteConfigTemplate } from "../frameworks/index.js";
 import { installPackages, resolveUserAgent } from "./package-manager.js";
 import { writeProjectConfig } from "./project-config.js";
 import { resolvePackages } from "./resolve-packages.js";
+import { resolveDeployEntry, validateCombination } from "./targets.js";
+import { FRAMEWORK_ENTRIES } from "../frameworks/index.js";
 import type { ScaffoldContext, ScaffoldOptions, ScaffoldResult } from "./types.js";
 import {
   contextTemplate,
@@ -24,101 +26,67 @@ async function write(filePath: string, contents: string): Promise<void> {
 
 export async function scaffoldProject(options: ScaffoldOptions): Promise<ScaffoldResult> {
   const root = options.targetDir;
-  const preset = options.preset ?? "node";
-  const bare = options.bare;
+  const preset = options.preset ?? "node-server";
+  const framework = options.framework ?? "none";
+
+  // Guards direct/library callers; the CLI path is validated earlier in
+  // resolveScaffoldDefaults. Throws with a precise reason on impossible
+  // runtime × framework × deploy combinations.
+  const combination = validateCombination(options.runtime, framework, preset);
+  if (!combination.ok) {
+    throw new Error(combination.reason);
+  }
 
   const ctx: ScaffoldContext = {
     projectName: options.projectName,
     targetDir: root,
+    framework,
     preset,
+    ...(options.runtime !== undefined ? { runtime: options.runtime } : {}),
     ...(options.db ? { db: options.db, driver: options.driver } : {}),
     ...(options.logger ? { logger: options.logger } : {}),
     ...(options.validator ? { validator: options.validator } : {}),
-    ...(bare !== undefined ? { bare } : {}),
   };
 
   const addons = resolveAddons(ctx);
   const packages = resolvePackages(ctx);
   const bootBindings = collectBootBindings(ctx);
+  const frameworkEntry = FRAMEWORK_ENTRIES[framework];
+  const { entry: deployEntry } = resolveDeployEntry(ctx.preset ?? "node-server");
 
   await write(
     path.join(root, "package.json"),
     packageJsonTemplate(options.projectName, packages.scripts),
   );
   await write(path.join(root, "tsconfig.json"), tsconfigTemplate());
+  await write(path.join(root, "vite.config.ts"), viteConfigTemplate());
   await write(path.join(root, ".gitignore"), gitignoreTemplate());
   await write(path.join(root, "src/context.ts"), contextTemplate(bootBindings));
-  await write(path.join(root, "src/taser.ts"), taserTsTemplate(preset));
+  await write(path.join(root, "src/taser.ts"), taserTsTemplate());
   await write(path.join(root, "src/routes/$.ts"), rootLayoutTemplate());
   await write(path.join(root, "src/routes/index.get.ts"), indexRouteTemplate());
   await write(path.join(root, "src/routes/health.get.ts"), healthRouteTemplate(ctx));
 
-  const serverEntry = serverEntryTemplate(preset);
+  // Nitro's default preset is node-server — only emit an explicit config when
+  // the deployment target differs.
+  if (ctx.preset !== "node-server") {
+    await write(path.join(root, "nitro.config.ts"), nitroConfigTemplate(deployEntry.id));
+  }
+
+  await Promise.all(
+    deployEntry.files.map((file) =>
+      write(
+        path.join(root, file.name),
+        typeof file.content === "function"
+          ? file.content({ projectName: options.projectName })
+          : file.content,
+      ),
+    ),
+  );
+
+  const serverEntry = frameworkEntry.serverEntry;
   if (serverEntry) {
     await write(path.join(root, serverEntry.fileName), serverEntry.content);
-  }
-
-  if (bare) {
-    await write(path.join(root, "nitro.config.ts"), nitroConfigTemplate(preset));
-  }
-
-  if (preset === "cloudflare-workers") {
-    await write(
-      path.join(root, "wrangler.jsonc"),
-      JSON.stringify(
-        {
-          $schema: "node_modules/wrangler/config-schema.json",
-          name: options.projectName,
-          main: "src/index.ts",
-          compatibility_date: "2024-11-01",
-        },
-        null,
-        2,
-      ) + "\n",
-    );
-  }
-
-  if (preset === "vercel") {
-    await write(
-      path.join(root, "vercel.json"),
-      JSON.stringify(
-        {
-          rewrites: [{ source: "/(.*)", destination: "/src/index.ts" }],
-        },
-        null,
-        2,
-      ) + "\n",
-    );
-  }
-
-  if (preset === "azure-functions") {
-    await write(
-      path.join(root, "host.json"),
-      JSON.stringify(
-        {
-          version: "2.0",
-          logging: {
-            applicationInsights: {
-              samplingSettings: {
-                isEnabled: true,
-                excludedTypes: "Request",
-              },
-            },
-          },
-          extensionBundle: {
-            id: "Microsoft.Azure.Functions.ExtensionBundle",
-            version: "[4.*, 5.0.0)",
-          },
-          extensions: {
-            http: {
-              routePrefix: "",
-            },
-          },
-        },
-        null,
-        2,
-      ) + "\n",
-    );
   }
 
   await Promise.all(

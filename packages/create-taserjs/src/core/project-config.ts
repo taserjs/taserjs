@@ -5,8 +5,13 @@ import type { ScaffoldContext } from "./types.js";
 
 export async function writeProjectConfig(root: string, ctx: ScaffoldContext): Promise<void> {
   const config: Record<string, string> = {
-    preset: ctx.preset,
+    framework: ctx.framework ?? "none",
+    preset: ctx.preset ?? "node-server",
   };
+
+  if (ctx.runtime) {
+    config.runtime = ctx.runtime;
+  }
 
   if (ctx.db) {
     config.db = ctx.db;

@@ -1,9 +1,11 @@
 export type {
   DbDriver,
   DbOdm,
+  DeployTarget,
+  Framework,
   LoggerId,
   PackageGroups,
-  Preset,
+  Runtime,
   ScaffoldOptions,
   ScaffoldResult,
   ValidatorId,

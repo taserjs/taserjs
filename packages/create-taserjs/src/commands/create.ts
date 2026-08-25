@@ -11,27 +11,30 @@ import {
 } from "../core/json-output.js";
 import {
   parseDbFlag,
+  parseFrameworkFlag,
   parseLoggerFlag,
   parsePresetFlag,
+  parseRuntimeFlag,
   parseValidatorFlag,
   type ParsedCreateArgs,
   resolveScaffoldDefaults,
 } from "../core/parse-options.js";
 import { scaffoldProject } from "../core/scaffold-engine.js";
+import { allowedRuntimeOverrides } from "../core/targets.js";
 import type {
   DbDriver,
   DbOdm,
+  DeployTarget,
   LoggerId,
-  Preset,
   ScaffoldResult,
   ValidatorId,
 } from "../core/types.js";
-import { DB_DRIVERS, DB_ODMS, LOGGERS, PRESETS, VALIDATORS } from "../core/types.js";
+import { DB_DRIVERS, DB_ODMS, DEPLOY_TARGETS, LOGGERS, VALIDATORS } from "../core/types.js";
 import { validateProjectName } from "../core/validate-project-name.js";
 import { resolveUserAgent, runScript } from "../core/package-manager.js";
 
-function isPreset(value: unknown): value is Preset {
-  return typeof value === "string" && (PRESETS as readonly string[]).includes(value);
+function isDeployTarget(value: unknown): value is DeployTarget {
+  return typeof value === "string" && (DEPLOY_TARGETS as readonly string[]).includes(value);
 }
 
 function isDbOdm(value: unknown): value is DbOdm {
@@ -67,30 +70,69 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
     process.exit(0);
   }
 
+  const framework =
+    args.framework ??
+    (await p.select({
+      message: "Host framework",
+      options: [
+        { value: "none", label: "Pure Taser", hint: "default" },
+        { value: "hono", label: "Hono" },
+        { value: "express", label: "Express" },
+        { value: "fastify", label: "Fastify" },
+      ],
+      initialValue: "none",
+    }));
+
+  if (p.isCancel(framework)) {
+    p.cancel("Scaffold cancelled.");
+    process.exit(0);
+  }
+
+  const DEPLOY_LABELS: Record<DeployTarget, string> = {
+    "node-server": "Node.js server",
+    "node-cluster": "Node.js cluster",
+    bun: "Bun",
+    "deno-server": "Deno",
+    "deno-deploy": "Deno Deploy",
+    "cloudflare-module": "Cloudflare Workers",
+    vercel: "Vercel",
+    "aws-lambda": "AWS Lambda",
+    netlify: "Netlify",
+  };
+
   const preset =
     args.preset ??
     (await p.select({
-      message: "Deployment preset / host framework",
-      options: [
-        { value: "node", label: "Node.js (Pure Taser)", hint: "default" },
-        { value: "express", label: "Express" },
-        { value: "fastify", label: "Fastify" },
-        { value: "hono", label: "Hono" },
-        { value: "bun", label: "Bun" },
-        { value: "deno", label: "Deno" },
-        { value: "aws-lambda", label: "AWS Lambda" },
-        { value: "cloudflare-workers", label: "Cloudflare Workers" },
-        { value: "netlify", label: "Netlify" },
-        { value: "vercel", label: "Vercel" },
-        { value: "azure-functions", label: "Azure Functions" },
-        { value: "google-cloud-run", label: "Google Cloud Run" },
-      ],
-      initialValue: "node",
+      message: "Deployment target",
+      options: DEPLOY_TARGETS.map((id) => ({ value: id, label: DEPLOY_LABELS[id] })),
+      initialValue: "node-server",
     }));
 
-  if (p.isCancel(preset) || !isPreset(preset)) {
+  if (p.isCancel(preset) || !isDeployTarget(preset)) {
     p.cancel("Scaffold cancelled.");
     process.exit(0);
+  }
+
+  let runtime: import("../core/types.js").Runtime | undefined;
+  const runtimeOverrides = allowedRuntimeOverrides(preset);
+  if (runtimeOverrides.length > 0) {
+    const runtimeChoice =
+      args.runtime ??
+      (await p.select({
+        message: "Runtime",
+        options: [
+          ...runtimeOverrides.map((rt) => ({ value: rt, label: rt })),
+          { value: "default", label: `Preset default`, hint: "no override" },
+        ],
+        initialValue: "default",
+      }));
+
+    if (p.isCancel(runtimeChoice)) {
+      p.cancel("Scaffold cancelled.");
+      process.exit(0);
+    }
+
+    runtime = runtimeChoice === "default" ? undefined : runtimeChoice;
   }
 
   const dbChoice =
@@ -182,7 +224,9 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
 
   return {
     projectName: String(projectName).trim(),
+    framework,
     preset,
+    ...(runtime !== undefined ? { runtime } : {}),
     yes: args.yes,
     noInstall: args.noInstall,
     json: args.json,
@@ -207,7 +251,7 @@ export async function runCreateCommand(
     : {
         ...args,
         projectName: args.projectName?.trim(),
-        preset: args.preset ?? "node",
+        preset: args.preset ?? "node-server",
       };
 
   if (!resolved.projectName) {
@@ -269,10 +313,11 @@ export async function runCreateCommand(
 export function buildParsedArgsFromCli(
   values: {
     preset?: string;
+    framework?: string;
+    runtime?: string;
     db?: string;
     logger?: string;
     validator?: string;
-    bare?: boolean;
     y?: boolean;
     noInstall?: boolean;
     json?: boolean;
@@ -283,7 +328,6 @@ export function buildParsedArgsFromCli(
     yes: values.y ?? false,
     noInstall: values.noInstall ?? false,
     json: values.json ?? false,
-    ...(values.bare !== undefined ? { bare: values.bare } : {}),
   };
 
   if (positionals[0]) {
@@ -291,7 +335,19 @@ export function buildParsedArgsFromCli(
   }
 
   if (values.preset) {
-    args.preset = parsePresetFlag(values.preset);
+    const parsed = parsePresetFlag(values.preset);
+    args.preset = parsed.preset;
+    if (parsed.warning && !args.json) {
+      console.warn(`warning: ${parsed.warning}`);
+    }
+  }
+
+  if (values.framework) {
+    args.framework = parseFrameworkFlag(values.framework);
+  }
+
+  if (values.runtime) {
+    args.runtime = parseRuntimeFlag(values.runtime);
   }
 
   if (values.db) {

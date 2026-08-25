@@ -2,32 +2,47 @@ import {
   DB_DRIVERS,
   DB_ODMS,
   DEFAULT_DB_DRIVER,
+  FRAMEWORKS,
   LOGGERS,
-  PRESETS,
+  RUNTIMES,
   VALIDATORS,
   type DbDriver,
   type DbOdm,
+  type DeployTarget,
+  type Framework,
   type LoggerId,
-  type Preset,
+  type Runtime,
   type ScaffoldContext,
   type ValidatorId,
 } from "./types.js";
+import {
+  DEFAULT_DEPLOY,
+  isCuratedDeploy,
+  resolveDeployEntry,
+  validateCombination,
+} from "./targets.js";
 
 export type ParsedCreateArgs = {
   projectName?: string;
-  preset?: Preset;
+  framework?: Framework;
+  /** Deployment target — a Nitro preset id. */
+  preset?: string;
+  runtime?: Runtime;
   db?: DbOdm;
   driver?: DbDriver;
   logger?: LoggerId;
   validator?: ValidatorId;
-  bare?: boolean;
   yes: boolean;
   noInstall: boolean;
   json: boolean;
 };
 
-function isPreset(value: string): value is Preset {
-  return (PRESETS as readonly string[]).includes(value);
+function isFramework(value: string): value is Framework {
+  return (FRAMEWORKS as readonly string[]).includes(value);
+}
+
+function isRuntime(value: string): value is Runtime {
+  return (RUNTIMES as readonly string[]).includes(value);
 }
 
 function isDbOdm(value: string): value is DbOdm {
@@ -65,43 +80,33 @@ export function parseDbFlag(value: string): { db: DbOdm; driver: DbDriver } {
   return { db: odm, driver };
 }
 
-export function resolveScaffoldDefaults(args: ParsedCreateArgs): ScaffoldContext {
-  const preset = args.preset ?? "node";
-  const db = args.db;
-  const logger = args.logger;
-  const validator = args.validator;
-  const bare = args.bare;
-
-  if (!args.projectName) {
-    throw new Error("Project name is required");
+export function parseFrameworkFlag(value: string): Framework {
+  if (!isFramework(value)) {
+    throw new Error(`Invalid --framework "${value}". Use ${FRAMEWORKS.join(", ")}.`);
   }
-
-  const result: ScaffoldContext = {
-    projectName: args.projectName.trim(),
-    targetDir: "",
-    preset,
-    ...(bare !== undefined ? { bare } : {}),
-  };
-
-  if (db) {
-    result.db = db;
-    result.driver = args.driver ?? DEFAULT_DB_DRIVER;
-  }
-
-  if (logger) {
-    result.logger = logger;
-  }
-
-  if (validator) {
-    result.validator = validator;
-  }
-
-  return result;
+  return value;
 }
 
-export function parsePresetFlag(value: string): Preset {
-  if (!isPreset(value)) {
-    throw new Error(`Invalid --preset "${value}". Use ${PRESETS.join(", ")}.`);
+/**
+ * Accepts curated deploy targets verbatim; unknown ids pass through to Nitro.
+ * Returns a warning for passthrough ids so callers can surface it.
+ */
+export function parsePresetFlag(value: string): { preset: string; warning?: string } {
+  if (!isCuratedDeploy(value)) {
+    if (!/^[a-z0-9][a-z0-9-_]*$/i.test(value)) {
+      throw new Error(`Invalid --preset "${value}".`);
+    }
+    return {
+      preset: value,
+      warning: `"${value}" is not a curated Taser deploy target; passing it through to Nitro as-is.`,
+    };
+  }
+  return { preset: value };
+}
+
+export function parseRuntimeFlag(value: string): Runtime {
+  if (!isRuntime(value)) {
+    throw new Error(`Invalid --runtime "${value}". Use node, bun, or deno.`);
   }
   return value;
 }
@@ -119,3 +124,44 @@ export function parseValidatorFlag(value: string): ValidatorId {
   }
   return value;
 }
+
+export function resolveScaffoldDefaults(args: ParsedCreateArgs): ScaffoldContext {
+  const framework: Framework = args.framework ?? "none";
+  const preset = args.preset ?? DEFAULT_DEPLOY;
+
+  if (!args.projectName) {
+    throw new Error("Project name is required");
+  }
+
+  // Throws with a precise reason when runtime × framework × deploy clash.
+  const combination = validateCombination(args.runtime, framework, preset);
+  if (!combination.ok) {
+    throw new Error(combination.reason);
+  }
+
+  const result: ScaffoldContext = {
+    projectName: args.projectName.trim(),
+    targetDir: "",
+    framework,
+    preset: preset as DeployTarget,
+    ...(args.runtime !== undefined ? { runtime: args.runtime } : {}),
+  };
+
+  if (args.db) {
+    result.db = args.db;
+    result.driver = args.driver ?? DEFAULT_DB_DRIVER;
+  }
+
+  if (args.logger) {
+    result.logger = args.logger;
+  }
+
+  if (args.validator) {
+    result.validator = args.validator;
+  }
+
+  return result;
+}
+
+/** Re-exported for CLI layers that need to warn about passthrough presets. */
+export { resolveDeployEntry };

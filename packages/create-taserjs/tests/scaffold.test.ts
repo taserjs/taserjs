@@ -9,7 +9,8 @@ import { validateProjectName } from "../src/core/validate-project-name.js";
 import { resolveInstallCommand, resolveUserAgent } from "../src/core/package-manager.js";
 import { parsePresetFlag, parseValidatorFlag } from "../src/core/parse-options.js";
 import { buildParsedArgsFromCli } from "../src/commands/create.js";
-import { getPackageGroups, resolvePackages, scaffoldProject } from "../src/scaffold.js";
+import { resolveScaffoldDefaults } from "../src/core/parse-options.js";
+import { resolvePackages, scaffoldProject } from "../src/scaffold.js";
 
 describe("validateProjectName", () => {
   it("rejects traversal and separators", () => {
@@ -31,7 +32,7 @@ describe("scaffoldProject", () => {
       await scaffoldProject({
         projectName: "demo",
         targetDir: dir,
-        preset: "node",
+        preset: "node-server",
         skipInstall: true,
       });
 
@@ -40,15 +41,19 @@ describe("scaffoldProject", () => {
       await expect(readFile(path.join(dir, "nitro.config.ts"), "utf8")).rejects.toThrow();
       await expect(readFile(path.join(dir, ".env"), "utf8")).rejects.toThrow();
 
+      const viteConfig = await readFile(path.join(dir, "vite.config.ts"), "utf8");
+      expect(viteConfig).toContain("taser()");
+      expect(viteConfig).toContain("nitro()");
+
       const pkg = JSON.parse(await readFile(path.join(dir, "package.json"), "utf8")) as {
         dependencies?: Record<string, string>;
         imports?: Record<string, string>;
         scripts: Record<string, string>;
       };
       expect(pkg.imports?.["#src/*"]).toBe("./src/*");
-      expect(pkg.scripts.dev).toBe("taser dev");
-      expect(pkg.scripts.build).toBe("taser build");
-      expect(pkg.scripts.generate).toBe("taser generate");
+      expect(pkg.scripts.dev).toBe("vite");
+      expect(pkg.scripts.build).toBe("vite build");
+      expect(pkg.scripts.start).toBe("node .output/server/index.mjs");
 
       const tsconfig = JSON.parse(await readFile(path.join(dir, "tsconfig.json"), "utf8")) as {
         compilerOptions: { baseUrl?: string; paths?: Record<string, string[]> };
@@ -75,19 +80,29 @@ describe("scaffoldProject", () => {
     }
   });
 
-  it("emits nitro.config.ts when bare is true", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "create-taser-bare-"));
+  it("emits nitro.config.ts for non-node presets", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "create-taser-cloudflare-"));
     try {
       await scaffoldProject({
-        projectName: "demo-bare",
+        projectName: "demo-cloudflare",
         targetDir: dir,
-        preset: "cloudflare-workers",
-        bare: true,
+        preset: "cloudflare-module",
         skipInstall: true,
       });
 
       const config = await readFile(path.join(dir, "nitro.config.ts"), "utf8");
       expect(config).toContain("preset: 'cloudflare-module'");
+
+      const wrangler = JSON.parse(
+        (await readFile(path.join(dir, "wrangler.jsonc"), "utf8")).replace(/^\/\/.*$/gm, ""),
+      ) as { name?: string };
+      expect(wrangler.name).toBe("demo-cloudflare");
+
+      const pkg = JSON.parse(await readFile(path.join(dir, "package.json"), "utf8")) as {
+        scripts: Record<string, string>;
+      };
+      // Platform-deployed targets must not emit a local start script.
+      expect(pkg.scripts.start).toBeUndefined();
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -99,7 +114,7 @@ describe("scaffoldProject", () => {
       await scaffoldProject({
         projectName: "demo-db",
         targetDir: dir,
-        preset: "node",
+        preset: "node-server",
         db: "drizzle",
         driver: "postgres",
         skipInstall: true,
@@ -112,7 +127,7 @@ describe("scaffoldProject", () => {
       const packages = resolvePackages({
         projectName: "demo-db",
         targetDir: dir,
-        preset: "node",
+        preset: "node-server",
         db: "drizzle",
         driver: "postgres",
       });
@@ -137,7 +152,7 @@ describe("scaffoldProject", () => {
     const packages = resolvePackages({
       projectName: "demo",
       targetDir: "/tmp/demo",
-      preset: "node",
+      preset: "node-server",
       db: "drizzle",
       driver: "sqlite",
     });
@@ -150,7 +165,7 @@ describe("scaffoldProject", () => {
     const pgPackages = resolvePackages({
       projectName: "demo-kysely-pg",
       targetDir: "/tmp/demo",
-      preset: "node",
+      preset: "node-server",
       db: "kysely",
       driver: "postgres",
     });
@@ -162,7 +177,7 @@ describe("scaffoldProject", () => {
     const sqlitePackages = resolvePackages({
       projectName: "demo-kysely-sqlite",
       targetDir: "/tmp/demo",
-      preset: "node",
+      preset: "node-server",
       db: "kysely",
       driver: "sqlite",
     });
@@ -178,7 +193,7 @@ describe("scaffoldProject", () => {
       await scaffoldProject({
         projectName: "demo-prisma-pg",
         targetDir: dir,
-        preset: "node",
+        preset: "node-server",
         db: "prisma",
         driver: "postgres",
         skipInstall: true,
@@ -207,7 +222,7 @@ describe("scaffoldProject", () => {
       const packages = resolvePackages({
         projectName: "demo-prisma-pg",
         targetDir: dir,
-        preset: "node",
+        preset: "node-server",
         db: "prisma",
         driver: "postgres",
       });
@@ -227,7 +242,7 @@ describe("scaffoldProject", () => {
     const sqlitePackages = resolvePackages({
       projectName: "demo-prisma-sqlite",
       targetDir: "/tmp/demo",
-      preset: "node",
+      preset: "node-server",
       db: "prisma",
       driver: "sqlite",
     });
@@ -242,7 +257,7 @@ describe("scaffoldProject", () => {
     const mysqlPackages = resolvePackages({
       projectName: "demo-prisma-mysql",
       targetDir: "/tmp/demo",
-      preset: "node",
+      preset: "node-server",
       db: "prisma",
       driver: "mysql",
     });
@@ -260,7 +275,7 @@ describe("scaffoldProject", () => {
       await scaffoldProject({
         projectName: "demo-log",
         targetDir: dir,
-        preset: "node",
+        preset: "node-server",
         logger: "pino",
         skipInstall: true,
       });
@@ -274,7 +289,7 @@ describe("scaffoldProject", () => {
       const packages = resolvePackages({
         projectName: "demo-log",
         targetDir: dir,
-        preset: "node",
+        preset: "node-server",
         logger: "pino",
       });
       expect(packages.dependencies).toContain("pino");
@@ -289,7 +304,7 @@ describe("scaffoldProject", () => {
       const result = await scaffoldProject({
         projectName: "demo-zod",
         targetDir: dir,
-        preset: "node",
+        preset: "node-server",
         validator: "zod",
         skipInstall: true,
       });
@@ -302,7 +317,7 @@ describe("scaffoldProject", () => {
       const packages = resolvePackages({
         projectName: "demo-zod",
         targetDir: dir,
-        preset: "node",
+        preset: "node-server",
         validator: "zod",
       });
       expect(packages.dependencies).toContain("zod");
@@ -317,7 +332,7 @@ describe("scaffoldProject", () => {
       const result = await scaffoldProject({
         projectName: "demo-arktype",
         targetDir: dir,
-        preset: "node",
+        preset: "node-server",
         validator: "arktype",
         skipInstall: true,
       });
@@ -330,7 +345,7 @@ describe("scaffoldProject", () => {
       const packages = resolvePackages({
         projectName: "demo-arktype",
         targetDir: dir,
-        preset: "node",
+        preset: "node-server",
         validator: "arktype",
       });
       expect(packages.dependencies).toContain("arktype");
@@ -345,7 +360,7 @@ describe("scaffoldProject", () => {
       const result = await scaffoldProject({
         projectName: "demo-valibot",
         targetDir: dir,
-        preset: "node",
+        preset: "node-server",
         validator: "valibot",
         skipInstall: true,
       });
@@ -358,7 +373,7 @@ describe("scaffoldProject", () => {
       const packages = resolvePackages({
         projectName: "demo-valibot",
         targetDir: dir,
-        preset: "node",
+        preset: "node-server",
         validator: "valibot",
       });
       expect(packages.dependencies).toContain("valibot");
@@ -373,7 +388,7 @@ describe("scaffoldProject", () => {
       await scaffoldProject({
         projectName: "demo-express",
         targetDir: dir,
-        preset: "express",
+        framework: "express",
         skipInstall: true,
       });
       const serverNode = await readFile(path.join(dir, "src/server.node.ts"), "utf8");
@@ -390,7 +405,7 @@ describe("scaffoldProject", () => {
       await scaffoldProject({
         projectName: "demo-hono",
         targetDir: dir,
-        preset: "hono",
+        framework: "hono",
         skipInstall: true,
       });
       const server = await readFile(path.join(dir, "src/server.ts"), "utf8");
@@ -407,7 +422,7 @@ describe("scaffoldProject", () => {
       await scaffoldProject({
         projectName: "demo-fastify",
         targetDir: dir,
-        preset: "fastify",
+        framework: "fastify",
         skipInstall: true,
       });
       const serverNode = await readFile(path.join(dir, "src/server.node.ts"), "utf8");
@@ -418,13 +433,30 @@ describe("scaffoldProject", () => {
     }
   });
 
-  it("writes .taser.json project config with preset", async () => {
+  it("rejects framework × deploy combinations that cannot run", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "create-taser-clash-"));
+    try {
+      await expect(
+        scaffoldProject({
+          projectName: "demo-clash",
+          targetDir: dir,
+          framework: "express",
+          preset: "cloudflare-module",
+          skipInstall: true,
+        }),
+      ).rejects.toThrowError(/requires the Node runtime/i);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("writes .taser.json project config with framework and preset", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "create-taser-config-"));
     try {
       await scaffoldProject({
         projectName: "demo-config",
         targetDir: dir,
-        preset: "hono",
+        framework: "hono",
         db: "prisma",
         driver: "mysql",
         logger: "winston",
@@ -433,6 +465,7 @@ describe("scaffoldProject", () => {
       });
 
       const config = JSON.parse(await readFile(path.join(dir, ".taser.json"), "utf8")) as {
+        framework: string;
         preset: string;
         db: string;
         driver: string;
@@ -440,7 +473,8 @@ describe("scaffoldProject", () => {
         validator: string;
       };
       expect(config).toEqual({
-        preset: "hono",
+        framework: "hono",
+        preset: "node-server",
         db: "prisma",
         driver: "mysql",
         logger: "winston",
@@ -453,34 +487,27 @@ describe("scaffoldProject", () => {
 });
 
 describe("cli preset & validator parsing", () => {
-  it("parses valid preset flags", () => {
-    expect(parsePresetFlag("node")).toBe("node");
-    expect(parsePresetFlag("express")).toBe("express");
-    expect(parsePresetFlag("hono")).toBe("hono");
-    expect(parsePresetFlag("fastify")).toBe("fastify");
-    expect(parsePresetFlag("bun")).toBe("bun");
-    expect(parsePresetFlag("deno")).toBe("deno");
-    expect(parsePresetFlag("aws-lambda")).toBe("aws-lambda");
-    expect(parsePresetFlag("cloudflare-workers")).toBe("cloudflare-workers");
-    expect(parsePresetFlag("netlify")).toBe("netlify");
-    expect(parsePresetFlag("vercel")).toBe("vercel");
-    expect(parsePresetFlag("azure-functions")).toBe("azure-functions");
-    expect(parsePresetFlag("google-cloud-run")).toBe("google-cloud-run");
+  it("accepts curated deploy targets verbatim", () => {
+    for (const id of ["node-server", "bun", "deno-deploy", "cloudflare-module", "vercel"]) {
+      expect(parsePresetFlag(id)).toEqual({ preset: id });
+    }
   });
 
-  it("rejects invalid preset flag", () => {
-    expect(() => parsePresetFlag("unknown-platform")).toThrowError(/Invalid --preset/);
+  it("passes unknown ids through to Nitro with a warning", () => {
+    const parsed = parsePresetFlag("some-exotic-preset");
+    expect(parsed.preset).toBe("some-exotic-preset");
+    expect(parsed.warning).toMatch(/passing it through to Nitro/i);
+  });
+
+  it("rejects malformed preset ids", () => {
+    expect(() => parsePresetFlag("../evil")).toThrowError(/Invalid --preset/);
+    expect(() => parsePresetFlag("has space")).toThrowError(/Invalid --preset/);
   });
 
   it("buildParsedArgsFromCli parses preset flag", () => {
     const args = buildParsedArgsFromCli({ preset: "bun" }, ["test-app"]);
     expect(args.preset).toBe("bun");
     expect(args.projectName).toBe("test-app");
-  });
-
-  it("buildParsedArgsFromCli parses bare flag", () => {
-    const args = buildParsedArgsFromCli({ bare: true }, ["test-app"]);
-    expect(args.bare).toBe(true);
   });
 
   it("parses valid validator flags", () => {
@@ -500,32 +527,80 @@ describe("cli preset & validator parsing", () => {
   });
 });
 
-describe("getPackageGroups", () => {
-  it("groups node deps and devDeps", () => {
-    const groups = getPackageGroups("node");
+describe("resolvePackages", () => {
+  it("groups pure node deps and devDeps", () => {
+    const groups = resolvePackages({
+      projectName: "demo",
+      targetDir: "/tmp/demo",
+      framework: "none",
+      preset: "node-server",
+    });
     expect(groups.dependencies).toEqual(["@taserjs/router", "dotenv"]);
     expect(groups.devDependencies).toEqual([
-      "@taserjs/router-cli",
       "@taserjs/vite-plugin",
       "nitro",
       "typescript@^5.9.3",
+      "vite@^8.1.5",
       "@types/node",
     ]);
+    expect(groups.scripts.start).toBe("node .output/server/index.mjs");
   });
 
-  it("includes express packages", () => {
-    const groups = getPackageGroups("express");
+  it("includes framework packages for express", () => {
+    const groups = resolvePackages({
+      projectName: "demo",
+      targetDir: "/tmp/demo",
+      framework: "express",
+      preset: "node-server",
+    });
     expect(groups.dependencies).toContain("express");
     expect(groups.devDependencies).toContain("@types/express");
+  });
+
+  it("adds wrangler tooling for cloudflare-module", () => {
+    const groups = resolvePackages({
+      projectName: "demo",
+      targetDir: "/tmp/demo",
+      framework: "none",
+      preset: "cloudflare-module",
+    });
+    expect(groups.devDependencies).toContain("wrangler");
+    expect(groups.devDependencies).toContain("@cloudflare/workers-types");
+    expect(groups.scripts.start).toBeUndefined();
+  });
+
+  it("rejects runtime overrides that clash with the deploy target", () => {
+    expect(() =>
+      resolveScaffoldDefaults({
+        projectName: "demo",
+        preset: "bun",
+        runtime: "node",
+        yes: false,
+        noInstall: false,
+        json: false,
+      }),
+    ).toThrowError(/not valid for deploy target/i);
+
+    expect(() =>
+      resolveScaffoldDefaults({
+        projectName: "demo",
+        framework: "express",
+        preset: "bun",
+        yes: false,
+        noInstall: false,
+        json: false,
+      }),
+    ).toThrowError(/requires the Node runtime/i);
   });
 });
 
 describe("capabilities catalog", () => {
-  it("lists presets, db options, loggers, and validators", () => {
+  it("lists frameworks, deploy targets, runtimes, db options, loggers, and validators", () => {
     const catalog = getCapabilitiesCatalog();
-    expect(catalog.presets).toContain("hono");
-    expect(catalog.presets).toContain("bun");
-    expect(catalog.presets).toContain("cloudflare-workers");
+    expect(catalog.frameworks).toContain("hono");
+    expect(catalog.deployTargets).toContain("bun");
+    expect(catalog.deployTargets).toContain("cloudflare-module");
+    expect(catalog.runtimes).toEqual(["node", "bun", "deno"]);
     expect(catalog.db.odms).toContain("drizzle");
     expect(catalog.db.defaultDriver).toBe("sqlite");
     expect(catalog.loggers).toContain("pino");
