@@ -8,8 +8,8 @@ import { indexRouteTemplate, rootLayoutTemplate } from "../src/templates/base.js
  * These anchors fail when one side evolves without the other.
  */
 describe("template shape parity with generator scaffold", () => {
-  const generatorRoute = routeScaffoldSource("/", "GET", "#src/taser.js");
-  const generatorLayout = layoutScaffoldSource("/$", "#src/taser.js");
+  const generatorRoute = routeScaffoldSource("/", "GET");
+  const generatorLayout = layoutScaffoldSource("/$");
 
   it("route templates share the fluent builder shape", () => {
     expect(generatorRoute).toMatch(/const GET = t\.get\('/);

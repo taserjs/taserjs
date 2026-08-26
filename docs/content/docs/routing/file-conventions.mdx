@@ -124,7 +124,7 @@ Inside your route handler, parameters are automatically typed and validated on `
 ```ts title="src/routes/tasks/$id.complete.patch.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Route = t
   .patch("/tasks/:id/complete", {
@@ -160,7 +160,7 @@ A top-level file named `src/routes/$.ts` serves as the **Root Layout Middleware*
 ```ts title="src/routes/$.ts"
 import { bodyLimit } from "@taserjs/router/body-limit";
 import { secureHeaders } from "@taserjs/router/secure-headers";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Middleware = t
   .middleware("/$")

@@ -17,7 +17,7 @@ A layout file is any TypeScript file inside `src/routes/` that does not end with
 
 ```ts title="src/routes/admin.ts"
 import { reply } from "@taserjs/router";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Middleware = t.middleware("admin").use({
   handler: async (ctx, next) => {
@@ -50,7 +50,7 @@ The root layout applies to every route in your application. It is the ideal plac
 import { cors } from "@taserjs/router/cors";
 import { secureHeaders } from "@taserjs/router/secure-headers";
 import { timing } from "@taserjs/router/timing";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Middleware = t
   .middleware("/$")
@@ -71,7 +71,7 @@ export const Middleware = t
 While `src/routes/$.ts` applies globally to every route in your application, `src/routes/index.ts` is scoped specifically to root index endpoints (such as `src/routes/index.get.ts`). It mounts with `t.middleware('index')`:
 
 ```ts title="src/routes/index.ts"
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Middleware = t.middleware("index").use({
   handler: async (_ctx, next) => {
@@ -129,7 +129,7 @@ When middleware calls `next({ session })`, the properties merge directly into `c
   <Tab value="Middleware">
     ```ts title="src/routes/dashboard.ts"
     import { reply } from "@taserjs/router";
-    import { t } from "#src/taser.js";
+    import { t } from "#taserjs/router";
 
     export const Middleware = t.middleware("dashboard").use({
       handler: async (ctx, next) => {
@@ -147,7 +147,7 @@ When middleware calls `next({ session })`, the properties merge directly into `c
   <Tab value="Route Handler">
     ```ts title="src/routes/dashboard/metrics.get.ts"
     import { reply } from "@taserjs/router";
-    import { t } from "#src/taser.js";
+    import { t } from "#taserjs/router";
 
     export const Route = t.get("/dashboard/metrics").handler(async (ctx) => {
       // ctx.state.session is 100% typed from dashboard.ts:
@@ -192,7 +192,7 @@ When creating middlewares within your application, use `t.defineMiddleware` from
 
 ```ts title="src/middleware/tenant-logger.ts"
 import { reply } from "@taserjs/router";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const tenantLogger = t.defineMiddleware({
   handler: async (ctx, next) => {
@@ -243,7 +243,7 @@ TypeScript guarantees that `requireActiveUser` can only be attached to routes or
 
 ```ts title="src/routes/users/settings.get.ts"
 import { reply } from "@taserjs/router";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 import { requireActiveUser } from "../../middleware/user-guard";
 
 // Allowed: Route inherits "users" layout

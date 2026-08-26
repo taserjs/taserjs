@@ -17,7 +17,7 @@ Any uncaught exception thrown during middleware execution, input validation, or 
 
 ```ts title="src/taser.ts"
 import { createTaserApp, reply, ValidationError, type InferAppContext } from "@taserjs/router";
-import { context } from "#src/context.js";
+import { context } from "./context.js";
 
 export class ResourceNotFoundError extends Error {
   constructor(public resource: string) {
@@ -84,8 +84,9 @@ export const t = createTaserApp()
 Because `.onError()` catches all unhandled exceptions, you can throw errors directly inside services or handlers without manual `try/catch` boilerplate:
 
 ```ts title="src/routes/teams/$id.get.ts"
-import { reply } from "@taserjs/router";
-import { t, ResourceNotFoundError } from "#src/taser.js";
+import { json } from "@taserjs/router/reply";
+import { t } from "#taserjs/router";
+import { ResourceNotFoundError } from "../../errors.js";
 
 export const Route = t.get("/teams/:id").handler(async (ctx) => {
   const team = await ctx.db.findTeam(ctx.params.id);
@@ -95,7 +96,7 @@ export const Route = t.get("/teams/:id").handler(async (ctx) => {
     throw new ResourceNotFoundError("Team");
   }
 
-  return reply.json(team);
+  return json(team);
 });
 ```
 

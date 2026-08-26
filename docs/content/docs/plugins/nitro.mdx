@@ -1,0 +1,148 @@
+---
+title: Nitro Module
+description: Deploy Taser across edge, serverless, and multi-cloud runtimes using the @taserjs/router-plugin/nitro module.
+icon: Workflow
+---
+
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { TypeTable } from "@/components/type-table";
+
+The `@taserjs/router-plugin/nitro` package connects Taser directly to the Nitro server engine. It allows you to package and deploy Taser APIs to any platform (Cloudflare Workers, Vercel, AWS Lambda, Bun, Deno, or standalone Node.js) with zero runtime overhead.
+
+---
+
+## Setup & Usage
+
+You can use Taser with Nitro in two ways:
+
+### 1. Via Vite (`vite.config.ts`)
+
+When building with Vite, simply chain `taser()` and `nitro()` together:
+
+```ts title="vite.config.ts"
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+import { taser } from "@taserjs/router-plugin/vite";
+
+export default defineConfig({
+  plugins: [taser(), nitro()],
+});
+```
+
+Nitro automatically detects the `taser()` plugin and activates its lifecycle hooks.
+
+### 2. Standalone `nitro.config.ts`
+
+If you are running a pure Nitro project without Vite, register `taser()` in the `modules` array:
+
+```ts title="nitro.config.ts"
+import { defineConfig } from "nitro/config";
+import { taser } from "@taserjs/router-plugin/nitro";
+
+export default defineConfig({
+  modules: [taser()],
+  preset: "node-server",
+});
+```
+
+---
+
+## Operational Modes
+
+The Nitro module supports two operational modes controlled by the `standalone` option:
+
+### 1. Standalone Mode (`standalone: true`, Default)
+
+In Standalone Mode, Taser replaces Nitro's internal router entirely. Requests are dispatched directly through Taser's radix tree with zero intermediate framework layers or overhead.
+
+```ts title="nitro.config.ts"
+import { defineConfig } from "nitro/config";
+import { taser } from "@taserjs/router-plugin/nitro";
+
+export default defineConfig({
+  modules: [
+    taser({
+      standalone: true, // Default
+    }),
+  ],
+});
+```
+
+### 2. Fullstack / Module Mode (`standalone: false`)
+
+If you have an existing Nitro or Nuxt project with existing server handlers, setting `standalone: false` unshifts Taser onto Nitro's handler pipeline:
+
+```ts title="nitro.config.ts"
+import { defineConfig } from "nitro/config";
+import { taser } from "@taserjs/router-plugin/nitro";
+
+export default defineConfig({
+  modules: [
+    taser({
+      standalone: false,
+      basePath: "/api",
+    }),
+  ],
+});
+```
+
+In this mode, requests matching `/api/**` are handled by Taser, while other routes continue to execute through Nitro.
+
+---
+
+## Module Options
+
+<TypeTable
+  type={{
+    standalone: {
+      description:
+        "When true, Taser acts as the standalone app runner with zero overhead. When false, mounts as a sub-handler in Nitro.",
+      type: "boolean",
+      default: "true",
+    },
+    basePath: {
+      description: "Root URL prefix Taser routes dispatch under.",
+      type: "string",
+      default: "'/'",
+    },
+    routesDir: {
+      description: "Path to your file-based routes directory.",
+      type: "string",
+      default: "'src/routes'",
+    },
+    entryPath: {
+      description: "Path to the taser router instance definition file.",
+      type: "string",
+      default: "'src/taser.ts'",
+    },
+    serverEntryPath: {
+      description: "Path to optional host server entry (e.g. 'src/server.ts').",
+      type: "string",
+      default: "undefined",
+    },
+    ignore: {
+      description: "Glob patterns of files inside routesDir to exclude from routing.",
+      type: "string[]",
+      default: "['**/*.test.ts', '**/*.spec.ts', '**/*.d.ts']",
+    },
+  }}
+/>
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Deployment Presets"
+    href="/docs/deployments/presets"
+    description="Learn how to configure presets for Cloudflare, Vercel, Node, and AWS Lambda."
+  />
+  <Card
+    title="Vite Plugin"
+    href="/docs/plugins/vite"
+    description="Explore Vite dev server middleware and virtual module architecture."
+  />
+</Cards>

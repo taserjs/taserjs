@@ -1,48 +1,24 @@
 ---
 title: "@taserjs/router-cli"
-description: Complete CLI command options, flags, and taser.config.json schema reference.
+description: Complete CLI command options and flag reference for @taserjs/router-cli.
 icon: Terminal
 ---
 
-import { Callout } from "fumadocs-ui/components/callout";
-import { Card, Cards } from "fumadocs-ui/components/card";
+import { TypeTable } from "@/components/type-table";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
-The `@taserjs/router-cli` provides code generation, route discovery, and developer tooling.
+The `@taserjs/router-cli` package provides command-line tooling to generate ambient TypeScript definitions and scaffold empty route files outside the development server.
 
 ---
 
 ## Commands
 
-### `taser generate` (alias: `taser gen`)
+### `taser generate`
 
-Scans the routes directory once and writes the generated manifest file.
-
-```bash
-taser generate [options]
-```
-
-### `taser watch` (alias: `taser dev`)
-
-Watches route files and regenerates the manifest on save.
+Scans the routes directory, resolves project configuration, fills blank route files, and writes `.taser/types/routes.d.ts`.
 
 ```bash
-taser watch [options]
-```
-
-### `taser init`
-
-Creates a starter `taser.config.json` in the current working directory.
-
-```bash
-taser init [--dir <path>]
-```
-
-### `taser scaffold <path>` (alias: `taser add`)
-
-Generates a boilerplate route or layout file.
-
-```bash
-taser scaffold users/$id.get.ts
+taser generate [--dir <path>] [--routesDir <path>]
 ```
 
 ---
@@ -51,108 +27,39 @@ taser scaffold users/$id.get.ts
 
 <TypeTable
   type={{
-    "--routes": {
-      description: "Path to routes directory.",
+    "--dir": {
+      description: "Project root directory.",
       type: "string",
-      default: "'src/routes'",
+      default: "process.cwd()",
     },
-    "--output": {
-      description: "Manifest destination file path.",
+    "--routesDir": {
+      description: "Custom routes directory path (alias: --routes, overrides detected config).",
       type: "string",
-      default: "'src/routeManifest.gen.ts'",
-    },
-    "--entry": {
-      description: "Application entry file where the router instance (t) is configured.",
-      type: "string",
-      default: "'src/taser.ts'",
-    },
-    "--config": {
-      description: "Custom path to taser.config.json file.",
-      type: "string",
-    },
-    "--watch": {
-      description: "Enables file watching mode for continuous codegen.",
-      type: "boolean",
-      default: "false",
-    },
-    "--quiet": {
-      description: "Suppresses non-error console output.",
-      type: "boolean",
-      default: "false",
-    },
-    "--force": {
-      description: "Forces manifest regeneration without reading file cache.",
-      type: "boolean",
-      default: "false",
-    },
-    "--quotes": {
-      description: "Quote style for imports in the generated manifest.",
-      type: "'single' | 'double'",
-      default: "'single'",
-    },
-    "--semi": {
-      description: "Appends semicolons to generated TypeScript statements.",
-      type: "boolean",
-      default: "false",
+      default: "Auto-detected from vite.config.ts / nitro.config.ts",
     },
   }}
 />
 
 ---
 
-## `taser.config.json` Schema
+## Configuration Resolution
 
-```json
+`taser generate` automatically inspects your project build configuration in the following order:
+
+1. **`vite.config.ts`**: Extracts `taser()` plugin options (`routesDir`, `serverDir`, `entry`, `ignore`).
+2. **`nitro.config.ts`**: Extracts `taser()` module options.
+3. **Defaults**: Falls back to `src/routes` and `src/taser.ts`.
+
+---
+
+## TypeScript Integration
+
+To ensure TypeScript checks your route files accurately in CI or pre-commit hooks, prepend `taser generate` to your typecheck script:
+
+```json title="package.json"
 {
-  "$schema": "https://raw.githubusercontent.com/taserjs/taserjs/main/packages/router-cli/taser.config.schema.json",
-  "routes": "src/routes",
-  "output": "src/routeManifest.gen.ts",
-  "entry": "src/taser.ts",
-  "extension": true,
-  "ignorePrefix": "_",
-  "quotes": "single",
-  "semi": false,
-  "format": true,
-  "validate": true
+  "scripts": {
+    "typecheck": "taser generate && tsc --noEmit -p tsconfig.json"
+  }
 }
 ```
-
-<TypeTable
-  type={{
-    routes: {
-      description: "Directory containing route files.",
-      type: "string",
-      default: "'src/routes'",
-    },
-    output: {
-      description: "Destination path for generated route manifest.",
-      type: "string",
-      default: "'src/routeManifest.gen.ts'",
-    },
-    entry: {
-      description: "Router setup file path.",
-      type: "string",
-      default: "'src/taser.ts'",
-    },
-    extension: {
-      description: "Appends .js extension to TypeScript imports for ESM runtimes.",
-      type: "boolean | string",
-      default: "true",
-    },
-    ignorePrefix: {
-      description: "Prefix for files that should be ignored during route discovery.",
-      type: "string",
-      default: "'_'",
-    },
-    format: {
-      description: "Automatically formats generated code using prettier or oxfmtrc.",
-      type: "boolean",
-      default: "true",
-    },
-    validate: {
-      description: "Validates route file exports during generation.",
-      type: "boolean",
-      default: "true",
-    },
-  }}
-/>

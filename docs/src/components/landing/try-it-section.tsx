@@ -7,19 +7,16 @@ import { SectionAccent, SectionHeader } from "./section-header";
 import { SectionSeparator } from "./section-separator";
 import { WindowFrame } from "./window-frame";
 
-type ProjectType =
-  | "node"
-  | "express"
-  | "fastify"
-  | "hono"
+type Framework = "none" | "hono" | "express" | "fastify";
+type DeployPreset =
+  | "node-server"
+  | "node-cluster"
   | "bun"
-  | "deno"
-  | "aws-lambda"
-  | "cloudflare-workers"
-  | "netlify"
+  | "deno-server"
+  | "cloudflare-module"
   | "vercel"
-  | "azure-functions"
-  | "google-cloud-run";
+  | "aws-lambda"
+  | "netlify";
 
 type Database = "drizzle" | "prisma" | "kysely" | "none";
 type Driver = "sqlite" | "postgres" | "mysql";
@@ -27,19 +24,22 @@ type Validator = "zod" | "arktype" | "valibot";
 type Logger = "pino" | "winston" | "none";
 type PackageManager = "pnpm" | "npm" | "bun" | "yarn";
 
-const projectTypes: { id: ProjectType; label: string }[] = [
-  { id: "node", label: "Node.js" },
+const frameworks: { id: Framework; label: string }[] = [
+  { id: "none", label: "None (Standalone)" },
+  { id: "hono", label: "Hono" },
   { id: "express", label: "Express" },
   { id: "fastify", label: "Fastify" },
-  { id: "hono", label: "Hono" },
+];
+
+const deployPresets: { id: DeployPreset; label: string }[] = [
+  { id: "node-server", label: "Node Server" },
+  { id: "node-cluster", label: "Node Cluster" },
   { id: "bun", label: "Bun" },
-  { id: "deno", label: "Deno" },
-  { id: "aws-lambda", label: "AWS Lambda" },
-  { id: "cloudflare-workers", label: "Cloudflare" },
-  { id: "netlify", label: "Netlify" },
+  { id: "deno-server", label: "Deno" },
+  { id: "cloudflare-module", label: "Cloudflare" },
   { id: "vercel", label: "Vercel" },
-  { id: "azure-functions", label: "Azure" },
-  { id: "google-cloud-run", label: "Cloud Run" },
+  { id: "aws-lambda", label: "AWS Lambda" },
+  { id: "netlify", label: "Netlify" },
 ];
 
 const databases: { id: Database; label: string }[] = [
@@ -75,9 +75,10 @@ const packageManagers: { id: PackageManager; prefix: string }[] = [
 ];
 
 export function TryItSection() {
-  const [projectType, setProjectType] = useState<ProjectType>("express");
+  const [framework, setFramework] = useState<Framework>("none");
+  const [preset, setPreset] = useState<DeployPreset>("node-server");
   const [db, setDb] = useState<Database>("drizzle");
-  const [driver, setDriver] = useState<Driver>("postgres");
+  const [driver, setDriver] = useState<Driver>("sqlite");
   const [validator, setValidator] = useState<Validator>("zod");
   const [logger, setLogger] = useState<Logger>("pino");
   const [pm, setPm] = useState<PackageManager>("pnpm");
@@ -86,7 +87,7 @@ export function TryItSection() {
   // Generate the reactive command string
   const getCommand = () => {
     const pmConfig = packageManagers.find((p) => p.id === pm) ?? packageManagers[0];
-    const parts = [pmConfig.prefix, "my-api", `--type ${projectType}`];
+    const parts = [pmConfig.prefix, "my-api", `--framework ${framework}`, `--preset ${preset}`];
 
     if (db !== "none") {
       parts.push(`--db ${db}`);
@@ -113,9 +114,11 @@ export function TryItSection() {
     }
   };
 
-  const currentTypeLabel = projectTypes.find((t) => t.id === projectType)?.label ?? "Express";
+  const currentFrameworkLabel =
+    frameworks.find((f) => f.id === framework)?.label ?? "None (Standalone)";
+  const currentPresetLabel = deployPresets.find((p) => p.id === preset)?.label ?? "Node Server";
   const currentDbLabel = databases.find((d) => d.id === db)?.label ?? "None";
-  const currentDriverLabel = drivers.find((d) => d.id === driver)?.label ?? "PostgreSQL";
+  const currentDriverLabel = drivers.find((d) => d.id === driver)?.label ?? "SQLite";
   const currentValidatorLabel = validators.find((v) => v.id === validator)?.label ?? "Zod";
   const currentLoggerLabel = loggers.find((l) => l.id === logger)?.label ?? "None";
 
@@ -132,7 +135,7 @@ export function TryItSection() {
               Scaffold your stack <SectionAccent>in seconds</SectionAccent>
             </>
           }
-          description="Interactive CLI with batteries included: pick your runtime adapter, database ORM, Standard Schema validator, and logger."
+          description="Interactive CLI with batteries included: pick your framework, Nitro preset, database ORM, Standard Schema validator, and logger."
         />
 
         {/* Top 2 Cards: Height-Aligned Grid */}
@@ -155,7 +158,7 @@ export function TryItSection() {
                     <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[11px] font-bold text-cyan-600 dark:text-cyan-300">
                       create-taserjs
                     </span>
-                    <span className="ml-2 text-fd-muted-foreground text-[11px]">v0.0.14</span>
+                    <span className="ml-2 text-fd-muted-foreground text-[11px]">v0.1.0</span>
                   </div>
 
                   {/* Step 1: Project Name */}
@@ -169,31 +172,55 @@ export function TryItSection() {
                     </div>
                   </div>
 
-                  {/* Step 2: Project Type (all 12 runtimes/frameworks) */}
+                  {/* Step 2: Framework */}
                   <div className="space-y-0.5 mt-2">
                     <div className="flex items-center gap-2 text-fd-muted-foreground">
                       <span className="text-cyan-500">◇</span>
-                      <span>Project type (runtime / framework)</span>
+                      <span>Host framework</span>
                     </div>
                     <div className="border-l-2 border-fd-border/70 pl-4 flex flex-wrap gap-x-2.5 gap-y-1">
-                      {projectTypes.map((t) => (
+                      {frameworks.map((f) => (
                         <span
-                          key={t.id}
+                          key={f.id}
                           className={cn(
                             "transition-colors text-[11px]",
-                            t.id === projectType
+                            f.id === framework
                               ? "text-orange-500 font-bold"
                               : "text-fd-muted-foreground/60",
                           )}
                         >
-                          {t.id === projectType ? "● " : "○ "}
-                          {t.label}
+                          {f.id === framework ? "● " : "○ "}
+                          {f.label}
                         </span>
                       ))}
                     </div>
                   </div>
 
-                  {/* Step 3: Database Selection (Blue tint) */}
+                  {/* Step 3: Preset */}
+                  <div className="space-y-0.5 mt-2">
+                    <div className="flex items-center gap-2 text-fd-muted-foreground">
+                      <span className="text-cyan-500">◇</span>
+                      <span>Deployment target (preset)</span>
+                    </div>
+                    <div className="border-l-2 border-fd-border/70 pl-4 flex flex-wrap gap-x-2.5 gap-y-1">
+                      {deployPresets.map((p) => (
+                        <span
+                          key={p.id}
+                          className={cn(
+                            "transition-colors text-[11px]",
+                            p.id === preset
+                              ? "text-amber-500 font-bold"
+                              : "text-fd-muted-foreground/60",
+                          )}
+                        >
+                          {p.id === preset ? "● " : "○ "}
+                          {p.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Step 4: Database Selection (Blue tint) */}
                   <div className="space-y-0.5 mt-2">
                     <div className="flex items-center gap-2 text-fd-muted-foreground">
                       <span className="text-cyan-500">◇</span>
@@ -215,7 +242,7 @@ export function TryItSection() {
                     </div>
                   </div>
 
-                  {/* Step 3b: Driver Selection (if DB selected) */}
+                  {/* Step 4b: Driver Selection (if DB selected) */}
                   {db !== "none" && (
                     <div className="space-y-0.5 mt-2">
                       <div className="flex items-center gap-2 text-fd-muted-foreground">
@@ -241,7 +268,7 @@ export function TryItSection() {
                     </div>
                   )}
 
-                  {/* Step 4: Validator Selection (Green tint) */}
+                  {/* Step 5: Validator Selection (Green tint) */}
                   <div className="space-y-0.5 mt-2">
                     <div className="flex items-center gap-2 text-fd-muted-foreground">
                       <span className="text-cyan-500">◇</span>
@@ -265,7 +292,7 @@ export function TryItSection() {
                     </div>
                   </div>
 
-                  {/* Step 5: Logger Selection (Purple tint) */}
+                  {/* Step 6: Logger Selection (Purple tint) */}
                   <div className="space-y-0.5 mt-2">
                     <div className="flex items-center gap-2 text-fd-muted-foreground">
                       <span className="text-cyan-500">◇</span>
@@ -298,7 +325,9 @@ export function TryItSection() {
                   </div>
                   <div className="text-fd-muted-foreground pl-4 text-[11px]">
                     Created{" "}
-                    <span className="text-fd-foreground font-medium">{currentTypeLabel}</span> app
+                    <span className="text-fd-foreground font-medium">{currentFrameworkLabel}</span>{" "}
+                    app targeted for{" "}
+                    <span className="text-fd-foreground font-medium">{currentPresetLabel}</span>{" "}
                     with{" "}
                     {db !== "none" ? (
                       <span className="text-fd-foreground font-medium">
@@ -322,7 +351,7 @@ export function TryItSection() {
             </WindowFrame>
           </div>
 
-          {/* Right Column: Stack Configurator (Badge style narrow pills scattered under labels) */}
+          {/* Right Column: Stack Configurator */}
           <div className="h-full flex flex-col">
             <div className="rounded-2xl border border-fd-border bg-fd-card p-6 shadow-sm flex flex-col justify-between h-full space-y-6">
               <div className="space-y-6">
@@ -335,31 +364,55 @@ export function TryItSection() {
                   </h3>
                 </div>
 
-                {/* 1. Framework / Runtime (Badge pills with orange tint) */}
+                {/* 1. Host Framework */}
                 <div>
                   <label className="block mb-2 text-[11px] font-semibold text-fd-muted-foreground uppercase tracking-wider">
-                    Runtime / Framework
+                    Host Framework
                   </label>
                   <div className="flex flex-wrap gap-1.5">
-                    {projectTypes.map((t) => (
+                    {frameworks.map((f) => (
                       <button
-                        key={t.id}
+                        key={f.id}
                         type="button"
-                        onClick={() => setProjectType(t.id)}
+                        onClick={() => setFramework(f.id)}
                         className={cn(
                           "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all cursor-pointer",
-                          projectType === t.id
+                          framework === f.id
                             ? "border-orange-500/40 bg-orange-500/15 text-orange-600 dark:text-orange-400 ring-1 ring-orange-500/30 font-semibold"
                             : "border-fd-border bg-fd-muted/30 text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground",
                         )}
                       >
-                        {t.label}
+                        {f.label}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* 2. Database & Driver (Badge pills with blue & gray tints) */}
+                {/* 2. Deployment Preset */}
+                <div>
+                  <label className="block mb-2 text-[11px] font-semibold text-fd-muted-foreground uppercase tracking-wider">
+                    Deployment Preset
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {deployPresets.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setPreset(p.id)}
+                        className={cn(
+                          "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all cursor-pointer",
+                          preset === p.id
+                            ? "border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30 font-semibold"
+                            : "border-fd-border bg-fd-muted/30 text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground",
+                        )}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. Database & Driver */}
                 <div>
                   <label className="block mb-2 text-[11px] font-semibold text-fd-muted-foreground uppercase tracking-wider">
                     Database ORM
@@ -408,7 +461,7 @@ export function TryItSection() {
                   )}
                 </div>
 
-                {/* 3. Validator (Badge pills with green tint) */}
+                {/* 4. Validator */}
                 <div>
                   <label className="block mb-2 text-[11px] font-semibold text-fd-muted-foreground uppercase tracking-wider">
                     Validator
@@ -432,7 +485,7 @@ export function TryItSection() {
                   </div>
                 </div>
 
-                {/* 4. Logger (Badge pills with purple tint) */}
+                {/* 5. Logger */}
                 <div>
                   <label className="block mb-2 text-[11px] font-semibold text-fd-muted-foreground uppercase tracking-wider">
                     Logger

@@ -18,13 +18,12 @@ Use `file()` imported from `@taserjs/router/stream` to serve files from disk. It
 ```ts title="src/routes/downloads/$file.get.ts"
 import { file } from "@taserjs/router/stream";
 import { z } from "zod";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 import path from "node:path";
 
 export const Route = t
-  .get("/downloads/:file", {
-    params: z.object({ file: z.string() }),
-  })
+  .get("/downloads/:file")
+  .params(z.object({ file: z.string() }))
   .handler((ctx) => {
     const publicStorageDir = path.resolve(process.cwd(), "storage/public");
 
@@ -48,7 +47,7 @@ To stream dynamically generated data, AI completions, or proxy upstream streams,
 
 ```ts title="src/routes/ai/generate.post.ts"
 import { pipe } from "@taserjs/router/stream";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Route = t.post("/ai/generate").handler(async (ctx) => {
   const encoder = new TextEncoder();
@@ -80,7 +79,7 @@ When returning generated images, PDFs, or ZIP archives:
 
 ```ts title="src/routes/export/pdf.get.ts"
 import { buffer } from "@taserjs/router/stream";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Route = t.get("/export/pdf").handler(async (ctx) => {
   const pdfBytes: Uint8Array = await generateInvoicePdf(ctx.query);
@@ -102,7 +101,7 @@ You can build Server-Sent Events (SSE) streams by piping formatted SSE message e
 
 ```ts title="src/routes/events/notifications.get.ts"
 import { stream } from "@taserjs/router";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Route = t.get("/events/notifications").handler((ctx) => {
   const encoder = new TextEncoder();

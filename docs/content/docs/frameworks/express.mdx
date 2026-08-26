@@ -1,0 +1,129 @@
+---
+title: Express Integration
+description: Add Taser file-based routing to an Express application. Coexist with legacy controllers and middleware using the host pass-through architecture.
+icon: Server
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+Taser integrates with Express applications using the **Host Pass-Through Architecture**. You can keep your existing Express routes, controllers, and middleware active while writing all new endpoints with Taser's type-safe file conventions.
+
+---
+
+## How It Works
+
+1. **Taser First**: Taser evaluates requests against your `src/routes/` directory.
+2. **Express Fall-Through**: If no Taser route matches, the request automatically falls through to your Express application.
+3. **404 Handling**: If neither Taser nor Express handles the request, Taser returns a standard 404 response.
+
+```
+[Incoming Request]
+       │
+       ▼
+[Taser File Routes] ── Match? ──► [Execute Taser Handler]
+       │ (No match)
+       ▼
+[Express Host App] ─── Match? ──► [Execute Express Route / Middleware]
+       │ (No match)
+       ▼
+[404 Not Found]
+```
+
+---
+
+## Quickstart
+
+<Steps>
+  <Step>
+    ### 1. Scaffold with Express Host
+
+    ```bash
+    pnpm create taserjs@latest my-express-app --framework express -y
+    ```
+
+  </Step>
+
+  <Step>
+    ### 2. Configure `src/server.node.ts`
+
+    Create `src/server.node.ts` exporting your Express application:
+
+    ```ts title="src/server.node.ts"
+    import express from "express";
+
+    const app = express();
+
+    // Standard Express middleware:
+    app.use(express.json());
+
+    // Legacy or host Express routes:
+    app.get("/express-legacy", (req, res) => {
+      res.json({ message: "Hello from legacy Express route!" });
+    });
+
+    export default app;
+    ```
+
+  </Step>
+
+  <Step>
+    ### 3. Add Taser Routes
+
+    Create `src/routes/users.get.ts`:
+
+    ```ts title="src/routes/users.get.ts"
+    import { json } from "@taserjs/router/reply";
+    import { t } from "#taserjs/router";
+
+    const GET = t.get("/users");
+
+    export const Route = GET.handler(() => {
+      return json({ users: [{ id: "1", name: "Alice" }] });
+    });
+    ```
+
+  </Step>
+
+  <Step>
+    ### 4. Start Development
+
+    ```bash
+    pnpm dev
+    ```
+
+    - Requests to `/users` run through Taser with complete type safety.
+    - Requests to `/express-legacy` execute your Express controller.
+
+  </Step>
+</Steps>
+
+---
+
+## Incremental Migration Strategy
+
+When migrating a large Express codebase to Taser:
+
+1. Move shared database pools and Redis clients into `src/context.ts`.
+2. Move authentication middleware into root layout `src/routes/$.ts`.
+3. Incrementally port controllers into verb files inside `src/routes/`.
+4. Keep complex legacy routes in `src/server.node.ts` until ready to migrate.
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Defining Routes"
+    href="/docs/routing/defining-routes"
+    description="Learn about path parameters, query validation, and return contracts."
+  />
+  <Card
+    title="Context and State"
+    href="/docs/routing/context-and-state"
+    description="Bridge database singletons into ctx with createContext."
+  />
+</Cards>

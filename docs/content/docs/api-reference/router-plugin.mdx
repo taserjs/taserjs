@@ -1,0 +1,160 @@
+---
+title: "@taserjs/router-plugin"
+description: Complete API reference for Vite, Next.js, and Nitro integration plugins.
+icon: Layers
+---
+
+import { TypeTable } from "@/components/type-table";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+
+The `@taserjs/router-plugin` package provides framework adapters, virtual module compilation, and ambient TypeScript generation for Vite, Next.js, and Nitro.
+
+---
+
+## Exports Overview
+
+| Subpath Export                 | Description                                       | Target Framework       |
+| :----------------------------- | :------------------------------------------------ | :--------------------- |
+| `@taserjs/router-plugin/vite`  | Vite compiler plugin with virtual routing and HMR | Vite, TanStack Start   |
+| `@taserjs/router-plugin/next`  | Next.js curried configuration wrapper             | Next.js App Router     |
+| `@taserjs/router-plugin/nitro` | Nitro server engine module                        | Standalone Nitro, Nuxt |
+
+---
+
+## Vite Plugin (`@taserjs/router-plugin/vite`)
+
+```ts
+import { taser } from "@taserjs/router-plugin/vite";
+
+export default defineConfig({
+  plugins: [taser(options?)],
+});
+```
+
+### `TaserPluginOptions`
+
+<TypeTable
+  type={{
+    basePath: {
+      description: "Root URL prefix Taser routes dispatch under.",
+      type: "string",
+      default: "'/'",
+    },
+    routesDir: {
+      description: "Path to your file-based routes directory.",
+      type: "string",
+      default: "'src/routes'",
+    },
+    entryPath: {
+      description: "Path to the taser router instance definition file.",
+      type: "string",
+      default: "'src/taser.ts'",
+    },
+    serverEntryPath: {
+      description:
+        "Path to optional host server entry (e.g. 'src/server.ts' or 'src/server.node.ts').",
+      type: "string",
+      default: "undefined",
+    },
+    server: {
+      description:
+        "Whether to enable the dev server middleware and generate production serve shim.",
+      type: "boolean",
+      default: "true",
+    },
+    ignore: {
+      description: "Glob patterns of files inside routesDir to exclude from routing.",
+      type: "string[]",
+      default: "['**/*.test.ts', '**/*.spec.ts', '**/*.d.ts']",
+    },
+    rootDir: {
+      description: "Root directory of the project.",
+      type: "string",
+      default: "process.cwd()",
+    },
+  }}
+/>
+
+---
+
+## Next.js Plugin (`@taserjs/router-plugin/next`)
+
+```ts
+import createTaser from "@taserjs/router-plugin/next";
+
+const withTaser = createTaser(options?);
+export default withTaser(nextConfig);
+```
+
+### `TaserNextOptions`
+
+<TypeTable
+  type={{
+    basePath: {
+      description: "URL prefix Taser dispatches under.",
+      type: "string",
+      default: "'/'",
+    },
+    routesDir: {
+      description: "Path to your file-based routes directory.",
+      type: "string",
+      default: "'src/routes'",
+    },
+    entryPath: {
+      description: "Path to the taser router instance definition file.",
+      type: "string",
+      default: "'src/taser.ts'",
+    },
+    outDir: {
+      description: "Output directory where generated artifacts and types are written.",
+      type: "string",
+      default: "'.taser'",
+    },
+  }}
+/>
+
+---
+
+## Nitro Module (`@taserjs/router-plugin/nitro`)
+
+```ts
+import { taser } from "@taserjs/router-plugin/nitro";
+
+export default defineConfig({
+  modules: [taser(options?)],
+});
+```
+
+### `TaserNitroOptions`
+
+<TypeTable
+  type={{
+    standalone: {
+      description:
+        "When true, Taser acts as the standalone app runner with zero overhead. When false, mounts as a sub-handler in Nitro.",
+      type: "boolean",
+      default: "true",
+    },
+    basePath: {
+      description: "Root URL prefix Taser routes dispatch under.",
+      type: "string",
+      default: "'/'",
+    },
+    routesDir: {
+      description: "Path to your file-based routes directory.",
+      type: "string",
+      default: "'src/routes'",
+    },
+    entryPath: {
+      description: "Path to the taser router instance definition file.",
+      type: "string",
+      default: "'src/taser.ts'",
+    },
+    serverEntryPath: {
+      description: "Path to optional host server entry (e.g. 'src/server.ts').",
+      type: "string",
+      default: "undefined",
+    },
+  }}
+/>

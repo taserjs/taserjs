@@ -13,15 +13,14 @@ import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 Traditional Node.js routing forces you to write manual route registries, perform unsafe type assertions on `req.user`, and maintain separate client types that drift over time. Taser solves these challenges by treating the filesystem as the source of truth, cascading middleware state through directory layouts, and generating a 100% typed client SDK.
 
 ```ts title="src/routes/users/$id.get.ts"
-import { reply } from "@taserjs/router";
+import { json, notFound } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 const GET = t
-  .get("/users/:id", {
-    params: z.object({ id: z.string().uuid() }),
-    query: z.object({ includeProfile: z.coerce.boolean().default(false) }),
-  })
+  .get("/users/:id")
+  .params(z.object({ id: z.string().uuid() }))
+  .query(z.object({ includeProfile: z.coerce.boolean().default(false) }))
   .returns({
     200: z.object({ id: z.string(), name: z.string(), email: z.string() }),
     404: z.object({ message: z.string() }),
@@ -34,10 +33,10 @@ export const Route = GET.handler(async (ctx) => {
   // ctx.state contains data injected by layout middlewares
   const user = await ctx.db.findUserById(ctx.params.id);
   if (!user) {
-    return reply.notFound({ message: "User not found" });
+    return notFound({ message: "User not found" });
   }
 
-  return reply.json(user);
+  return json(user);
 });
 ```
 
@@ -48,7 +47,7 @@ export const Route = GET.handler(async (ctx) => {
 <Cards>
   <Card
     title="Deterministic File Routing"
-    description="Drop .get.ts, .post.ts, or .put.ts files into your routes directory. Routes, parameters, and splats are inferred automatically without manual route tables."
+    description="Drop .get.ts, .post.ts, or .put.ts files into your routes directory. Routes, parameters, and splats are discovered automatically with virtual module HMR."
   />
   <Card
     title="Cascading Context Inference"
@@ -63,8 +62,8 @@ export const Route = GET.handler(async (ctx) => {
     description="Validate query parameters, path params, headers, and request bodies using Zod, ArkType, Valibot, or any Standard Schema library."
   />
   <Card
-    title="Framework Agnostic"
-    description="Write your API logic once. Mount seamlessly on Express, Fastify, Hono, Node HTTP, Bun, Deno, Cloudflare Workers, or AWS Lambda."
+    title="Vite & Nitro Powered"
+    description="Build standalone APIs with Vite and deploy anywhere using Nitro presets, or embed inside Next.js, Hono, Express, and Fastify host apps."
   />
   <Card
     title="Zero-Drift Typed Client"
@@ -82,7 +81,7 @@ Taser operates around a simple, powerful lifecycle:
 [HTTP Request]
        │
        ▼
-[Server Adapter] ──── Express, Fastify, Hono, Node HTTP, Edge
+[Runtime Platform] ── Vite / Nitro Standalone, Next.js, Hono, Express, Fastify
        │
        ▼
 [Dual Context] ────── Boot singletons + Request-scoped metadata
@@ -94,18 +93,19 @@ Taser operates around a simple, powerful lifecycle:
 [Input Validation] ── Standard Schema parsing for params, query, body
        │
        ▼
-[Route Handler] ───── Fully typed ctx execution
+[Route Handler] ───── Fully typed ctx execution with fluent or options API
        │
        ▼
-[Response Contract] ── .returns() compiler check & payload formatting
+[Response Contract] ── .returns() compiler check & payload validation
        │
        ▼
-[Typed Response] ──── Status-discriminated JSON or stream reply
+[Typed Response] ──── Tree-shakeable reply helpers or binary streams
 ```
 
-<Callout type="info" title="Zero Runtime Overhead">
-  Taser compiles file structures into a static route manifest during development watch mode (`taser
-  watch`). At runtime in production, routing runs on ultra-fast radix trees with minimal overhead.
+<Callout type="info" title="Vite-Powered Virtual Modules">
+  Taser integrates with Vite via `@taserjs/router-plugin/vite`. Routes are loaded virtually during
+  development with instant HMR and bundled into optimized production artifacts via Nitro deployment
+  presets.
 </Callout>
 
 ---

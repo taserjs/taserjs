@@ -8,7 +8,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
-In production applications, route handlers can easily grow into monolithic blocks of business logic—mixing input validation, database transactions, third-party payment processing, and notification dispatching.
+In production applications, route handlers can easily grow into monolithic blocks of business logic, mixing input validation, database transactions, third-party payment processing, and notification dispatching.
 
 In traditional frameworks, breaking these monolithic handlers into smaller helper functions often forces developers to write verbose, manually duplicated TypeScript interfaces for the request context, params, and state.
 
@@ -26,15 +26,15 @@ To extract helper functions without repeating type definitions:
 4. **Call `.handler()`** on your route builder and orchestrate the helpers.
 
 ```ts title="src/routes/users/$id.get.ts"
-import { reply } from "@taserjs/router";
+import { notFound, ok } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 // 1. Declare the verb builder
-const GET = t.get("/users/:id", {
-  params: z.object({ id: z.string().uuid() }),
-  query: z.object({ includeOrders: z.coerce.boolean().default(false) }),
-});
+const GET = t
+  .get("/users/:id")
+  .params(z.object({ id: z.string().uuid() }))
+  .query(z.object({ includeOrders: z.coerce.boolean().default(false) }));
 
 // 2. Extract the exact compile-time context type
 export type RouteContext = typeof GET.$Infer.Context;
@@ -57,11 +57,11 @@ async function fetchUserOrders(ctx: RouteContext) {
 export const Route = GET.handler(async (ctx) => {
   const user = await fetchUser(ctx);
   if (!user) {
-    return reply.notFound({ message: "User not found" });
+    return notFound({ message: "User not found" });
   }
 
   const orders = await fetchUserOrders(ctx);
-  return reply.ok({ user, orders });
+  return ok({ user, orders });
 });
 ```
 
@@ -76,13 +76,14 @@ Consider an e-commerce checkout route that handles inventory verification, payme
 ```ts title="src/routes/checkout.post.ts"
 // A 100+ line handler that is difficult to test and maintain
 export const Route = t
-  .post("/checkout", {
-    body: z.object({
+  .post("/checkout")
+  .body(
+    z.object({
       itemId: z.string(),
       quantity: z.number().min(1),
       paymentMethodId: z.string(),
     }),
-  })
+  )
   .handler(async (ctx) => {
     // 1. Check inventory inline...
     const item = await ctx.db.item.findUnique({ where: { id: ctx.body.itemId } });
@@ -124,17 +125,18 @@ By extracting `RouteContext`, each step becomes a pure or focused async helper:
 ```ts title="src/routes/checkout.post.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 // 1. Route builder definition
 const POST = t
-  .post("/checkout", {
-    body: z.object({
+  .post("/checkout")
+  .body(
+    z.object({
       itemId: z.string(),
       quantity: z.number().min(1),
       paymentMethodId: z.string(),
     }),
-  })
+  )
   .returns({
     200: z.object({ orderId: z.string(), status: z.literal("confirmed") }),
     400: z.object({ error: z.string() }),
@@ -234,12 +236,12 @@ For larger projects, you can organize helpers into dedicated service files:
     ```ts title="src/routes/users/$id.get.ts"
     import { reply } from "@taserjs/router";
     import { z } from "zod";
-    import { t } from "#src/taser.js";
+    import { t } from "#taserjs/router";
     import { fetchUserProfile } from "../../services/user-service.js";
 
-    const GET = t.get("/users/:id", {
-      params: z.object({ id: z.string().uuid() }),
-    });
+    const GET = t
+      .get("/users/:id")
+      .params(z.object({ id: z.string().uuid() }));
 
     export type UserRouteContext = typeof GET.$Infer.Context;
 
@@ -295,7 +297,7 @@ For larger projects, you can organize helpers into dedicated service files:
 
 | Feature         | Monolithic Handlers                   | Taser `$Infer.Context` Helpers                 |
 | :-------------- | :------------------------------------ | :--------------------------------------------- |
-| **Readability** | 100+ line functions mixing concerns   | 5–15 line orchestration handlers               |
+| **Readability** | 100+ line functions mixing concerns   | 5 to 15 line orchestration handlers            |
 | **Type Safety** | Implicit types inside single scope    | Explicitly typed `ctx` across all functions    |
 | **Testability** | Hard to isolate sub-operations        | Every helper is an independently testable unit |
-| **Boilerplate** | Manually handwritten param interfaces | **Zero** handwritten interfaces—100% inferred  |
+| **Boilerplate** | Manually handwritten param interfaces | **Zero** handwritten interfaces, 100% inferred |

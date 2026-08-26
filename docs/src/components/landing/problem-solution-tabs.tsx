@@ -58,9 +58,7 @@ export const Middleware = t.middleware('admin').use({
 });
 
 // Handler receives fully-inferred ctx automatically
-const POST = t.post("/admin/reports", {
-  body: ReportInputSchema,
-});
+const POST = t.post("/admin/reports").body(ReportInputSchema);
 
 export const Route = POST.handler(async (ctx) => {
   const user = ctx.state.user; // ✓ Inferred User from next({ user })
@@ -135,7 +133,7 @@ adminRouter.get("/reports/:id", getReportHandler);
   .handler(async (ctx) => {
     const data = await getReports();
     // ✓ Type-checked: Compiler errors if return shape doesn't match!
-    return reply.json({ reports: data.items, total: data.count });
+    return json({ reports: data.items, total: data.count });
   });`,
     takeaway:
       "Taser catches response schema breakages at compile time before your code ever deploys to staging or production.",

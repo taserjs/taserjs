@@ -1,6 +1,6 @@
 ---
 title: Manual Installation
-description: Step-by-step guide to installing and integrating Taser into an existing Node.js or TypeScript server application (Express, Fastify, Hono, or Node HTTP).
+description: Step-by-step guide to installing and configuring Taser manually for Standalone Vite, Vite + Nitro, Next.js, or Host Framework setups.
 icon: Wrench
 ---
 
@@ -9,43 +9,50 @@ import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-If you already have an existing Node.js application, you do not need to scaffold a new repository. You can incrementally adopt Taser alongside your existing routes or migrate entirely.
+If you have an existing project or prefer setting up dependencies manually without the `create-taserjs` wizard, this guide provides complete step-by-step instructions.
 
-This guide walks you through adding Taser into an existing Express, Fastify, Hono, or native Node.js application.
+You can configure Taser in four ways:
+
+1. **Vite Native Backend**: Standalone, lightweight server powered directly by Vite and `@taserjs/router-plugin/vite`.
+2. **Vite + Nitro**: Multi-cloud deployments targeting Cloudflare Workers, Vercel, AWS Lambda, and Node servers via Nitro presets.
+3. **Next.js App Router**: Embedded type-safe API router mounted inside Next.js.
+4. **Host Framework Pass-Through**: Layering Taser file routes on top of an existing Express, Fastify, or Hono server.
 
 ---
 
-## Installation Steps
+## Setup 1: Vite Native Backend (Standalone)
+
+Standalone mode leverages Vite for local development with instant Hot Module Replacement (HMR) and compiles an optimized production server bundle to `dist/`.
 
 <Steps>
   <Step>
-    ### Install Core Dependencies
+    ### 1. Install Dependencies
 
-    Install `@taserjs/router` along with your preferred schema validation library (such as `zod`) and your server adapter.
+    Install `@taserjs/router`, `@taserjs/router-plugin`, `vite`, `srvx`, and your schema validator:
 
-    <Tabs items={["Express", "Fastify", "Hono", "Node HTTP"]}>
-      <Tab value="Express">
+    <Tabs items={["pnpm", "npm", "bun", "yarn"]}>
+      <Tab value="pnpm">
         ```bash
-        npm install @taserjs/router @taserjs/adapter-express zod
-        npm install -D @taserjs/router-cli
+        pnpm add @taserjs/router zod
+        pnpm add -D @taserjs/router-plugin vite srvx
         ```
       </Tab>
-      <Tab value="Fastify">
+      <Tab value="npm">
         ```bash
-        npm install @taserjs/router @taserjs/adapter-fastify zod
-        npm install -D @taserjs/router-cli
+        npm install @taserjs/router zod
+        npm install -D @taserjs/router-plugin vite srvx
         ```
       </Tab>
-      <Tab value="Hono">
+      <Tab value="bun">
         ```bash
-        npm install @taserjs/router hono @hono/node-server zod
-        npm install -D @taserjs/router-cli
+        bun add @taserjs/router zod
+        bun add -d @taserjs/router-plugin vite srvx
         ```
       </Tab>
-      <Tab value="Node HTTP">
+      <Tab value="yarn">
         ```bash
-        npm install @taserjs/router @taserjs/adapter-node zod
-        npm install -D @taserjs/router-cli
+        yarn add @taserjs/router zod
+        yarn add -D @taserjs/router-plugin vite srvx
         ```
       </Tab>
     </Tabs>
@@ -53,35 +60,32 @@ This guide walks you through adding Taser into an existing Express, Fastify, Hon
   </Step>
 
   <Step>
-    ### Configure Subpath Imports in `package.json`
+    ### 2. Configure `package.json`
 
-    Add Node.js subpath imports (`#src/*`) to your `package.json`. This allows deeply nested route files (for example, `src/routes/admin/users/$id.get.ts`) to cleanly import your router instance and context without messy relative path traversals (`../../../taser`):
+    Configure the `#taserjs/router` subpath import and Vite lifecycle scripts:
 
     ```json title="package.json"
     {
+      "name": "my-taser-app",
       "type": "module",
       "imports": {
-        "#src/*": "./src/*"
+        "#taserjs/router": "./src/taser.ts"
       },
       "scripts": {
-        "dev": "concurrently \"taser watch\" \"tsx watch src/index.ts\"",
-        "build": "taser generate && tsc",
-        "taser:generate": "taser generate",
-        "taser:watch": "taser watch"
+        "dev": "vite",
+        "build": "vite build",
+        "start": "node dist/serve.mjs",
+        "typecheck": "tsc --noEmit -p tsconfig.json"
       }
     }
     ```
 
-    <Callout type="tip" title="Why Node.js Subpath Imports?">
-      The `#src/*` prefix is a native Node.js and TypeScript ESM standard. It eliminates fragile `../../` relative import paths across nested directory layouts.
-    </Callout>
-
   </Step>
 
   <Step>
-    ### Configure TypeScript (`tsconfig.json`)
+    ### 3. Configure TypeScript (`tsconfig.json`)
 
-    Configure your `tsconfig.json` with modern `NodeNext` resolution and path aliases matching `#src/*`:
+    Include the `.taser/types/**/*.d.ts` directory to enable ambient route typing:
 
     ```json title="tsconfig.json"
     {
@@ -90,275 +94,367 @@ This guide walks you through adding Taser into an existing Express, Fastify, Hon
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
         "paths": {
-          "#src/*": ["./src/*"]
+          "#taserjs/router": ["./src/taser.ts"]
         },
         "strict": true,
-        "esModuleInterop": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "isolatedModules": true,
+        "noEmit": true
       },
-      "include": ["src/**/*"]
+      "include": ["src", ".taser/types/**/*.d.ts"]
     }
     ```
 
   </Step>
 
   <Step>
-    ### Create Application Context
+    ### 4. Create `vite.config.ts`
 
-    Create `src/context.ts` to define application dependencies (database, cache, loggers) and per-request metadata (request ID, timestamps).
+    Attach the `taser()` plugin to your Vite config:
 
-    ```ts title="src/context.ts"
-    import { createContext } from "@taserjs/router";
+    ```ts title="vite.config.ts"
+    import { defineConfig } from "vite";
+    import { taser } from "@taserjs/router-plugin/vite";
 
-    export const context = createContext({
-      boot: async () => {
-        // Initialized once at server boot
-        return {
-          db: {
-            users: [{ id: "1", name: "Alice" }],
-          },
-        };
-      },
-      request: () => {
-        // Created fresh for every incoming HTTP request
-        return {
-          requestId: crypto.randomUUID(),
-          startTime: Date.now(),
-        };
-      },
+    export default defineConfig({
+      plugins: [taser()],
     });
     ```
 
   </Step>
 
   <Step>
-    ### Initialize Taser Router Instance
+    ### 5. Create Router Instance and Context
 
-    Create `src/taser.ts` to configure the router builder, error boundaries, and context binding:
+    Create `src/context.ts`:
+
+    ```ts title="src/context.ts"
+    import { createContext } from "@taserjs/router";
+
+    export const context = createContext({
+      boot: () => ({
+        logger: console,
+      }),
+      request: () => ({
+        requestId: crypto.randomUUID(),
+      }),
+    });
+    ```
+
+    Create `src/taser.ts`:
 
     ```ts title="src/taser.ts"
-    import {
-      createTaserApp,
-      reply,
-      ValidationError,
-      type InferAppContext,
-    } from "@taserjs/router";
-    import { context } from "#src/context.js";
+    import { createTaserApp } from "@taserjs/router";
+    import { context } from "./context.js";
 
-    export const t = createTaserApp()
-      .context(context)
-      .onError((error) => {
-        if (error instanceof ValidationError) {
-          return reply.unprocessableEntity({
-            status: 422,
-            message: "Validation failed",
-            issues: error.issues,
-          });
-        }
-
-        console.error("[taser:error]", error);
-        return reply.internalServerError({
-          status: 500,
-          message: error instanceof Error ? error.message : "Internal Server Error",
-        });
-      })
-      .notFound(() => {
-        return reply.notFound({
-          status: 404,
-          message: "Route not found",
-        });
-      });
-
-    export type AppContext = InferAppContext<typeof context>;
+    export const t = createTaserApp({
+      response: { validate: true },
+    }).context(context);
     ```
 
   </Step>
 
   <Step>
-    ### Create a Test Route
+    ### 6. Create Your First Route
 
-    Create a directory named `src/routes/` and add your first endpoint using the clean `#src/taser.js` import:
+    Create `src/routes/index.get.ts`:
 
-    ```ts title="src/routes/health.get.ts"
-    import { reply } from "@taserjs/router";
-    import { z } from "zod";
-    import { t } from "#src/taser.js";
+    ```ts title="src/routes/index.get.ts"
+    import { json } from "@taserjs/router/reply";
+    import { t } from "#taserjs/router";
 
-    export const Route = t
-      .get("/health")
-      .returns({
-        200: z.object({
-          status: z.literal("ok"),
-          requestId: z.string(),
-          uptime: z.number(),
-        }),
-      })
-      .handler((ctx) => {
-        return reply.json({
-          status: "ok",
-          requestId: ctx.requestId,
-          uptime: process.uptime(),
-        });
-      });
+    const GET = t.get("/");
+
+    export type RouteContext = typeof GET.$Infer.Context;
+    export const Route = GET.handler((ctx) => {
+      return json({ message: "Welcome to Taser!", requestId: ctx.requestId });
+    });
     ```
 
-  </Step>
-
-  <Step>
-    ### Generate the Manifest
-
-    Run the generator to create `src/routeManifest.gen.ts`:
+    Start the development server:
 
     ```bash
-    npx taser generate
+    pnpm dev
     ```
 
-  </Step>
+    To build and run in production:
 
-  <Step>
-    ### Mount Taser in Your Existing Server
-
-    Import the generated manifest and mount Taser into your existing server file:
-
-    <Tabs items={["Express", "Fastify", "Hono", "Node HTTP"]}>
-      <Tab value="Express">
-        ```ts title="src/index.ts"
-        import express from "express";
-        import { createExpressHandler } from "@taserjs/adapter-express";
-        import { routeManifest } from "#src/routeManifest.gen.js";
-        import { t } from "#src/taser.js";
-
-        const app = express();
-
-        // 1. Initialize Taser application
-        export const taserRouter = t.create(routeManifest);
-        export type TaserAppRouter = typeof taserRouter;
-
-        // 2. Mount Taser under /api prefix (or root with /{*splat})
-        const taser = createExpressHandler(taserRouter);
-        taser.mount("/api{/*splat}", app);
-
-        // 3. Existing Express routes continue to work seamlessly!
-        app.get("/legacy", (req, res) => {
-          res.json({ message: "Legacy Express endpoint" });
-        });
-
-        const port = Number(process.env.PORT ?? 3000);
-        app.listen(port, () => {
-          console.log(`Server running at http://localhost:${port}`);
-        });
-        ```
-      </Tab>
-      <Tab value="Fastify">
-        ```ts title="src/index.ts"
-        import Fastify from "fastify";
-        import { createFastifyHandler } from "@taserjs/adapter-fastify";
-        import { routeManifest } from "#src/routeManifest.gen.js";
-        import { t } from "#src/taser.js";
-
-        const app = Fastify({ logger: true });
-
-        // 1. Initialize Taser application
-        export const taserRouter = t.create(routeManifest);
-        export type TaserAppRouter = typeof taserRouter;
-
-        // 2. Mount Taser handler
-        const taser = createFastifyHandler(taserRouter);
-        taser.mount("/api/*", app);
-
-        // 3. Existing Fastify routes continue to work
-        app.get("/legacy", async () => {
-          return { message: "Legacy Fastify endpoint" };
-        });
-
-        const port = Number(process.env.PORT ?? 3000);
-        await app.listen({ port });
-        ```
-      </Tab>
-      <Tab value="Hono">
-        ```ts title="src/index.ts"
-        import { Hono } from "hono";
-        import { serve } from "@hono/node-server";
-        import { routeManifest } from "#src/routeManifest.gen.js";
-        import { t } from "#src/taser.js";
-
-        const app = new Hono();
-
-        // 1. Initialize Taser application
-        export const taserRouter = t.create(routeManifest);
-        export type TaserAppRouter = typeof taserRouter;
-
-        // 2. Forward requests to Taser
-        app.all("/api/*", (c) => taserRouter.fetch(c.req.raw));
-
-        // 3. Existing Hono routes
-        app.get("/legacy", (c) => c.text("Legacy Hono endpoint"));
-
-        const port = Number(process.env.PORT ?? 3000);
-        serve({ fetch: app.fetch, port }, () => {
-          console.log(`Server running at http://localhost:${port}`);
-        });
-        ```
-      </Tab>
-      <Tab value="Node HTTP">
-        ```ts title="src/index.ts"
-        import { createServer } from "node:http";
-        import { createNodeHandler } from "@taserjs/adapter-node";
-        import { routeManifest } from "#src/routeManifest.gen.js";
-        import { t } from "#src/taser.js";
-
-        // 1. Initialize Taser application
-        export const taserRouter = t.create(routeManifest);
-        export type TaserAppRouter = typeof taserRouter;
-
-        // 2. Mount on Node HTTP server
-        const server = createServer();
-        const taser = createNodeHandler(taserRouter);
-        taser.mount("/api", server);
-
-        const port = Number(process.env.PORT ?? 3000);
-        server.listen(port, () => {
-          console.log(`Server running at http://localhost:${port}`);
-        });
-        ```
-      </Tab>
-    </Tabs>
+    ```bash
+    pnpm build
+    pnpm start
+    ```
 
   </Step>
 </Steps>
 
 ---
 
-## Coexistence and Incremental Adoption
+## Setup 2: Vite + Nitro (Multi-Cloud / Serverless Presets)
 
-Taser is designed to coexist peacefully with existing server routing tables.
+When you need to deploy your Taser API to Cloudflare Workers, Vercel, AWS Lambda, Netlify, or clustered Node environments, pair Vite with Nitro:
 
-- **Prefix-based mounting**: You can mount Taser under `/api` while keeping the rest of your server serving webhooks, legacy controllers, or static files.
-- **Shared middleware**: You can reuse existing Hono or connect middlewares inside Taser layouts with `defineMiddleware()`.
+<Steps>
+  <Step>
+    ### 1. Install Dependencies
 
-<Callout type="info" title="Next Step: Watch Mode">
-  During active development, run `npx taser watch` alongside your server hot-reloader (`tsx watch
-  src/index.ts` or `nodemon`) so newly created route files are registered instantly.
-</Callout>
+    Install `nitro` alongside the Taser packages:
+
+    <Tabs items={["pnpm", "npm", "bun", "yarn"]}>
+      <Tab value="pnpm">
+        ```bash
+        pnpm add @taserjs/router zod
+        pnpm add -D @taserjs/router-plugin nitro vite
+        ```
+      </Tab>
+      <Tab value="npm">
+        ```bash
+        npm install @taserjs/router zod
+        npm install -D @taserjs/router-plugin nitro vite
+        ```
+      </Tab>
+      <Tab value="bun">
+        ```bash
+        bun add @taserjs/router zod
+        bun add -d @taserjs/router-plugin nitro vite
+        ```
+      </Tab>
+      <Tab value="yarn">
+        ```bash
+        yarn add @taserjs/router zod
+        yarn add -D @taserjs/router-plugin nitro vite
+        ```
+      </Tab>
+    </Tabs>
+
+  </Step>
+
+  <Step>
+    ### 2. Configure `vite.config.ts` and `nitro.config.ts`
+
+    Add both `taser()` and `nitro()` plugins to `vite.config.ts`:
+
+    ```ts title="vite.config.ts"
+    import { defineConfig } from "vite";
+    import { nitro } from "nitro/vite";
+    import { taser } from "@taserjs/router-plugin/vite";
+
+    export default defineConfig({
+      plugins: [taser(), nitro()],
+    });
+    ```
+
+    Create `nitro.config.ts` to select your deployment target preset:
+
+    ```ts title="nitro.config.ts"
+    import { defineConfig } from "nitro/config";
+
+    export default defineConfig({
+      preset: "node-server", // or "cloudflare-module", "vercel", "aws-lambda", "bun", etc.
+    });
+    ```
+
+  </Step>
+
+  <Step>
+    ### 3. Build & Run
+
+    ```bash
+    pnpm dev                  # Runs development server with HMR
+    pnpm build                # Compiles output to .output/
+    node .output/server/index.mjs # Starts production server (node-server preset)
+    ```
+
+  </Step>
+</Steps>
 
 ---
 
-## Related Guides
+## Setup 3: Next.js App Router Integration
+
+To embed Taser within an existing Next.js 15+ application:
+
+<Steps>
+  <Step>
+    ### 1. Install Dependencies
+
+    ```bash
+    pnpm add @taserjs/router zod
+    pnpm add -D @taserjs/router-plugin
+    ```
+
+  </Step>
+
+  <Step>
+    ### 2. Configure `package.json` & `tsconfig.json`
+
+    ```json title="package.json"
+    {
+      "imports": {
+        "#taserjs/router": "./src/taser.ts"
+      }
+    }
+    ```
+
+    ```json title="tsconfig.json"
+    {
+      "compilerOptions": {
+        "paths": {
+          "@/*": ["./src/*"],
+          "#taserjs/router": ["./src/taser.ts"]
+        }
+      },
+      "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".taser/types/**/*.d.ts"]
+    }
+    ```
+
+  </Step>
+
+  <Step>
+    ### 3. Configure `next.config.ts`
+
+    Wrap your Next.js configuration with `createTaser`:
+
+    ```ts title="next.config.ts"
+    import createTaser from "@taserjs/router-plugin/next";
+    import type { NextConfig } from "next";
+
+    const withTaser = createTaser({
+      basePath: "/api", // Route requests under /api to Taser
+    });
+
+    const nextConfig: NextConfig = {
+      // standard Next.js options
+    };
+
+    export default withTaser(nextConfig);
+    ```
+
+  </Step>
+
+  <Step>
+    ### 4. Create Catch-All Route Handler
+
+    Create `app/api/[[...slug]]/route.ts` (or `src/app/api/[[...slug]]/route.ts`):
+
+    ```ts title="app/api/[[...slug]]/route.ts"
+    import { taserApp } from "../../.taser/app";
+
+    const handle = (request: Request) => taserApp.fetch(request);
+
+    export const GET = handle;
+    export const POST = handle;
+    export const PUT = handle;
+    export const DELETE = handle;
+    export const PATCH = handle;
+    export const OPTIONS = handle;
+    export const HEAD = handle;
+    ```
+
+  </Step>
+
+  <Step>
+    ### 5. Add Routes
+
+    Create `src/routes/users.get.ts`:
+
+    ```ts title="src/routes/users.get.ts"
+    import { json } from "@taserjs/router/reply";
+    import { t } from "#taserjs/router";
+
+    const GET = t.get("/users");
+
+    export const Route = GET.handler(() => {
+      return json({ users: [{ id: "1", name: "Alex" }] });
+    });
+    ```
+
+    Next.js will now dispatch `/api/users` through Taser with complete compile-time type safety!
+
+  </Step>
+</Steps>
+
+---
+
+## Setup 4: Host Framework Pass-Through (Hono, Express, Fastify)
+
+If you have existing Express, Fastify, or Hono routes, you can layer Taser file routing cleanly on top of your host server without rewriting legacy handlers.
+
+<Tabs items={["Hono", "Express", "Fastify"]}>
+  <Tab value="Hono">
+    Create `src/server.ts` exporting your Hono application:
+
+    ```ts title="src/server.ts"
+    import { Hono } from "hono";
+
+    const app = new Hono();
+
+    // Legacy Hono routes:
+    app.get("/legacy", (c) => c.text("Hello from Hono legacy endpoint!"));
+
+    export default app;
+    ```
+
+    Taser dispatches matched file routes in `src/routes/` first. Any unmatched request seamlessly falls through to `app`.
+
+  </Tab>
+
+  <Tab value="Express">
+    Install `express` and `srvx`, then create `src/server.node.ts`:
+
+    ```ts title="src/server.node.ts"
+    import express from "express";
+
+    const app = express();
+
+    // Legacy Express routes:
+    app.get("/legacy", (_req, res) => {
+      res.json({ message: "Hello from Express legacy endpoint!" });
+    });
+
+    export default app;
+    ```
+
+  </Tab>
+
+  <Tab value="Fastify">
+    Install `fastify` and `srvx`, then create `src/server.node.ts`:
+
+    ```ts title="src/server.node.ts"
+    import Fastify from "fastify";
+
+    const app = Fastify();
+
+    // Legacy Fastify routes:
+    app.get("/legacy", async () => {
+      return { message: "Hello from Fastify legacy endpoint!" };
+    });
+
+    await app.ready();
+
+    export default app.routing;
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+## Next Steps
 
 <Cards>
   <Card
-    title="Core Concepts"
-    href="/docs/getting-started/core-concepts"
-    description="Understand the request lifecycle and context flow."
+    title="Vite Plugin Guide"
+    href="/docs/plugins/vite"
+    description="Learn how the Vite plugin manages virtual modules, HMR, and build outputs."
   />
   <Card
-    title="Adapters Guide"
-    href="/docs/adapters/express"
-    description="Deep dive into adapter options for Express, Fastify, and Node."
+    title="Next.js Integration"
+    href="/docs/plugins/next"
+    description="Deep dive into embedding Taser inside Next.js App Router."
   />
   <Card
-    title="Typed Client Setup"
-    href="/docs/client"
-    description="Connect frontend applications using the typed client SDK."
+    title="Deployment Presets"
+    href="/docs/deployments/presets"
+    description="Configure Nitro presets for Cloudflare, Vercel, Node, and AWS Lambda."
   />
 </Cards>

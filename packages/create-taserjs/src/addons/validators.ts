@@ -17,7 +17,7 @@ export const VALIDATION_BLOCK_TEMPLATE: Record<ValidatorId, string> = {
 };
 
 const ROUTE_TEMPLATE = (validator: ValidatorId) => `import { json } from '@taserjs/router/reply'
-import { t } from '#src/taser.js'
+import { t } from '#taserjs/router'
 ${IMPORT_LINES[validator]}
 
 const GET = t.get('/')${VALIDATION_BLOCK_TEMPLATE[validator]}

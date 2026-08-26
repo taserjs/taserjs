@@ -52,7 +52,7 @@ Attach your context in `src/taser.ts`:
 
 ```ts title="src/taser.ts"
 import { createTaserApp, type InferAppContext } from "@taserjs/router";
-import { context } from "#src/context.js";
+import { context } from "./context.js";
 
 export const t = createTaserApp().context(context);
 
@@ -78,7 +78,7 @@ Every route handler and middleware automatically receives the combined propertie
 
 ```ts title="src/routes/users/$id.get.ts"
 import { reply } from "@taserjs/router";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Route = t.get("/users/:id").handler(async (ctx) => {
   // Available from boot context:
@@ -103,14 +103,12 @@ export const Route = t.get("/users/:id").handler(async (ctx) => {
 When writing helper functions that take `ctx` as an argument, extract the context type from the route builder variable (`GET`, `POST`, etc.) before calling `.handler()`:
 
 ```ts title="src/routes/users/$id.get.ts"
-import { reply } from "@taserjs/router";
+import { json, notFound } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 // 1. Declare builder variable
-const GET = t.get("/users/:id", {
-  params: z.object({ id: z.string() }),
-});
+const GET = t.get("/users/:id").params(z.object({ id: z.string() }));
 
 // 2. Extract RouteContext from the builder
 export type RouteContext = typeof GET.$Infer.Context;
@@ -126,9 +124,9 @@ async function getUserProfile(ctx: RouteContext) {
 export const Route = GET.handler(async (ctx) => {
   const user = await getUserProfile(ctx);
   if (!user) {
-    return reply.notFound({ message: "User not found" });
+    return notFound({ message: "User not found" });
   }
-  return reply.json(user);
+  return json(user);
 });
 ```
 

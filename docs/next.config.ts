@@ -6,6 +6,7 @@ const withMDX = createMDX();
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@takumi-rs/core", "@takumi-rs/wasm"],
   reactStrictMode: true,
+  allowedDevOrigins: ['192.168.1.6'],
   images: {
     remotePatterns: [
       {

@@ -18,7 +18,7 @@ The `json()` function serializes data into a JSON string and automatically sets 
 
 ```ts title="src/routes/users.get.ts"
 import { json } from "@taserjs/router/reply";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Route = t.get("/users").handler((ctx) => {
   return json([
@@ -50,7 +50,7 @@ Use `text()` to return raw strings with `Content-Type: text/plain; charset=utf-8
 
 ```ts title="src/routes/robots.txt.get.ts"
 import { text } from "@taserjs/router/reply";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Route = t.get("/robots.txt").handler(() => {
   return text("User-agent: *\nDisallow: /admin/\n");
@@ -65,7 +65,7 @@ Use `html()` to return HTML documents or markup strings with `Content-Type: text
 
 ```ts title="src/routes/index.get.ts"
 import { html } from "@taserjs/router/reply";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Route = t.get("/").handler(() => {
   return html("<h1>Welcome to Taser!</h1>");
@@ -80,7 +80,7 @@ For successful operations that do not return a payload (such as `DELETE` endpoin
 
 ```ts title="src/routes/items/$id.delete.ts"
 import { noContent } from "@taserjs/router/reply";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Route = t.delete("/items/:id").handler(async (ctx) => {
   await ctx.db.deleteItem(ctx.params.id);
@@ -96,7 +96,7 @@ Use `redirect()` to send HTTP redirects (default: `302 Found`):
 
 ```ts title="src/routes/old-docs.get.ts"
 import { redirect } from "@taserjs/router/reply";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Route = t.get("/old-docs").handler(() => {
   // Permanent 301 redirect:
@@ -143,7 +143,7 @@ All reply helpers are exported from `@taserjs/router/reply`:
 
 ```ts title="src/routes/documents/$id.get.ts"
 import { forbidden, json, notFound, unauthorized } from "@taserjs/router/reply";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Route = t.get("/documents/:id").handler(async (ctx) => {
   const user = ctx.state.user;
@@ -172,7 +172,7 @@ You can set, read, or delete cookies directly through `ctx.cookie` or by passing
 
 ```ts title="src/routes/auth/login.post.ts"
 import { json } from "@taserjs/router/reply";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Route = t.post("/auth/login").handler(async (ctx) => {
   const sessionToken = await createSession();

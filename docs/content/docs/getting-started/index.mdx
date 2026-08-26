@@ -39,7 +39,7 @@ Before creating a project, make sure your development environment meets these re
       </Tab>
       <Tab value="pnpm">
         ```bash
-        pnpm create taserjs
+        pnpm create taserjs@latest
         ```
       </Tab>
       <Tab value="yarn">
@@ -49,7 +49,7 @@ Before creating a project, make sure your development environment meets these re
       </Tab>
       <Tab value="bun">
         ```bash
-        bun create taserjs
+        bun create taserjs@latest
         ```
       </Tab>
     </Tabs>
@@ -62,21 +62,30 @@ Before creating a project, make sure your development environment meets these re
     The interactive wizard will guide you through selecting your preferred tools:
 
     1. **Project Name**: Enter a directory name (for example, `my-taser-api`).
-    2. **Runtime / Framework**:
-       - **Express**: Battle-tested Node.js web framework.
-       - **Fastify**: High-throughput server with low overhead.
+    2. **Host Framework**:
+       - **None (Standalone)**: Pure Taser with high-performance virtual routing and zero host overhead.
        - **Hono**: Lightweight, ultra-fast web standard framework for Node and edge.
-       - **Node HTTP**: Plain Node.js native server without extra framework dependencies.
-       - **Bun / Deno**: Modern JavaScript runtimes.
-       - **Cloudflare Workers / AWS Lambda**: Serverless and edge platforms.
-    3. **Schema Validator**:
+       - **Express**: Battle-tested Node.js web framework with pass-through routing.
+       - **Fastify**: High-throughput Node.js framework with pass-through routing.
+    3. **Deployment Target / Preset**:
+       - **Node Server** (`node-server`, `node-cluster`): Standard Node.js environments.
+       - **Serverless & Edge**: `cloudflare-module`, `vercel`, `aws-lambda`, `netlify`.
+       - **Runtimes**: `bun`, `deno-server`, `deno-deploy`.
+    4. **Schema Validator**:
        - **Zod**: TypeScript-first schema declaration and validation.
        - **ArkType**: TypeScript-native syntax with runtime performance.
        - **Valibot**: Modular, lightweight, tree-shakeable schema library.
-    4. **Database / ORM** (Optional):
-       - **Prisma**, **Drizzle**, **Kysely**, or None.
-    5. **Logger** (Optional):
+    5. **Database / ORM** (Optional):
+       - **Drizzle**, **Prisma**, **Kysely**, or None (with SQLite, PostgreSQL, or MySQL drivers).
+    6. **Logger** (Optional):
        - **Pino**, **Winston**, or standard Console.
+
+    <Callout type="info" title="Non-Interactive Scaffolding">
+      You can also pass CLI flags directly for automated or CI environments:
+      ```bash
+      pnpm create taserjs@latest my-api --framework none --preset node-server --validator zod --db drizzle --driver sqlite --logger pino -y
+      ```
+    </Callout>
 
   </Step>
 
@@ -116,7 +125,7 @@ Before creating a project, make sure your development environment meets these re
       </Tab>
     </Tabs>
 
-    The development server starts with `@taserjs/router-cli` in watch mode. Any changes to files inside `src/routes/` automatically regenerate the route manifest.
+    The development server starts with Vite. Route changes inside `src/routes/` are updated virtually with instant HMR and ambient TypeScript definitions written to `.taser/types/`.
 
   </Step>
 </Steps>
@@ -125,29 +134,32 @@ Before creating a project, make sure your development environment meets these re
 
 ## Project Structure Overview
 
-A freshly scaffolded Taser project contains a clean, modular structure:
+A freshly scaffolded Taser project contains a clean, modern layout:
 
 ```
 my-taser-api/
 ├── package.json
 ├── tsconfig.json
-├── taser.config.json          # CLI and codegen configuration
+├── vite.config.ts             # Vite configuration with @taserjs/router-plugin
+├── nitro.config.ts            # Nitro deployment presets and server config
 ├── src/
-│   ├── index.ts               # Server entry point (mounts Taser app)
-│   ├── taser.ts               # App router instance and error handlers
-│   ├── context.ts             # App context (boot and request scoped state)
-│   ├── routeManifest.gen.ts   # Auto-generated route manifest (do not edit)
+│   ├── taser.ts               # App router instance and error boundaries
+│   ├── context.ts             # App context (boot singletons and request state)
+│   ├── server.ts              # Optional host framework entry (Hono/Express/Fastify)
 │   └── routes/                # File-based routes directory
-│       ├── $.ts               # Root layout middleware (global CORS/auth)
+│       ├── $.ts               # Root layout middleware (global CORS/security)
 │       └── index.get.ts       # GET / endpoint handler
+└── .taser/                    # Generated ambient types and build artifacts (gitignored)
 ```
 
 ### Key Files Explained
 
-- **`src/context.ts`**: Defines dependencies and request-scoped metadata injected into your routes.
-- **`src/taser.ts`**: Configures the `createTaserApp()` builder, binds global error handlers (`.onError()`), and attaches context.
-- **`src/routes/`**: Contains your API endpoints and layout middleware. File names determine HTTP methods and URL paths.
-- **`src/routeManifest.gen.ts`**: Generated by the CLI. Maps files to runtime routes with full type inference.
+- **`vite.config.ts`**: Connects the `taser()` plugin from `@taserjs/router-plugin/vite` and `nitro()` for zero-config builds.
+- **`nitro.config.ts`**: Configures your production deployment preset (e.g. `node-server`, `cloudflare-module`, `vercel`).
+- **`src/taser.ts`**: Configures the `createTaserApp()` instance, error boundaries (`.onError()`), and context binding.
+- **`src/context.ts`**: Defines dependency singletons (database, Redis, loggers) and request-scoped metadata.
+- **`src/routes/`**: Contains your API endpoints and layout middleware.
+- **`.taser/`**: Contains auto-generated ambient TypeScript types (`.taser/types/`) so your editor provides full route autocomplete.
 
 ---
 
@@ -158,16 +170,17 @@ To create a new endpoint, add a file in the `src/routes/` directory.
 Create `src/routes/hello.get.ts`:
 
 ```ts title="src/routes/hello.get.ts"
-import { reply } from "@taserjs/router";
+import { json } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 const GET = t
-  .get("/hello", {
-    query: z.object({
+  .get("/hello")
+  .query(
+    z.object({
       name: z.string().default("World"),
     }),
-  })
+  )
   .returns({
     200: z.object({
       message: z.string(),
@@ -177,14 +190,14 @@ const GET = t
 
 export type RouteContext = typeof GET.$Infer.Context;
 export const Route = GET.handler((ctx) => {
-  return reply.json({
+  return json({
     message: `Hello, ${ctx.query.name}!`,
     timestamp: new Date().toISOString(),
   });
 });
 ```
 
-Save the file. The CLI watch process immediately updates `routeManifest.gen.ts`.
+Save the file. Vite hot-reloads the new route immediately without restarting the dev server.
 
 Test your new endpoint in another terminal or browser:
 
@@ -197,13 +210,12 @@ Response:
 ```json
 {
   "message": "Hello, Taser!",
-  "timestamp": "2026-08-18T00:00:00.000Z"
+  "timestamp": "2026-08-25T00:00:00.000Z"
 }
 ```
 
-<Callout type="info" title="Route Scaffolding CLI">
-  You can also create new route files from the command line using `npx taser scaffold
-  users/$id.get.ts`.
+<Callout type="info" title="Automatic Boilerplate Generation">
+  When you create a new empty route file (e.g. `touch src/routes/users/$id.get.ts`), Vite or `npx taser generate` automatically fills it with type-safe starter boilerplate.
 </Callout>
 
 ---

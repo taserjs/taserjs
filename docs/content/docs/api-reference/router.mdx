@@ -170,40 +170,40 @@ function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit
       type: "(handler: (ctx: Context) => Response) => this",
     },
     get: {
-      description: "Creates a GET route builder accepting query and params schemas.",
-      type: "(path: string, options?: { query?: Schema; params?: Schema }) => RouteBuilder",
+      description: "Creates a GET route builder.",
+      type: "(path: string) => RouteBuilder",
     },
     post: {
-      description: "Creates a POST route builder accepting body, query, and params schemas.",
-      type: "(path: string, options?: { body?: Schema; query?: Schema; params?: Schema }) => RouteBuilder",
+      description: "Creates a POST route builder.",
+      type: "(path: string) => RouteBuilder",
     },
     put: {
-      description: "Creates a PUT route builder accepting body, query, and params schemas.",
-      type: "(path: string, options?: { body?: Schema; query?: Schema; params?: Schema }) => RouteBuilder",
+      description: "Creates a PUT route builder.",
+      type: "(path: string) => RouteBuilder",
     },
     patch: {
-      description: "Creates a PATCH route builder accepting body, query, and params schemas.",
-      type: "(path: string, options?: { body?: Schema; query?: Schema; params?: Schema }) => RouteBuilder",
+      description: "Creates a PATCH route builder.",
+      type: "(path: string) => RouteBuilder",
     },
     delete: {
-      description: "Creates a DELETE route builder accepting query and params schemas.",
-      type: "(path: string, options?: { query?: Schema; params?: Schema }) => RouteBuilder",
+      description: "Creates a DELETE route builder.",
+      type: "(path: string) => RouteBuilder",
     },
     options: {
       description: "Creates an OPTIONS route builder.",
-      type: "(path: string, options?: { query?: Schema; params?: Schema }) => RouteBuilder",
+      type: "(path: string) => RouteBuilder",
     },
     head: {
       description: "Creates a HEAD route builder.",
-      type: "(path: string, options?: { query?: Schema; params?: Schema }) => RouteBuilder",
+      type: "(path: string) => RouteBuilder",
     },
     any: {
       description: "Creates a route builder matching an explicit array of HTTP methods.",
-      type: "(path: string, methods: string[], options?) => RouteBuilder",
+      type: "(path: string, methods: string[]) => RouteBuilder",
     },
     all: {
       description: "Creates a catch-all route builder matching all HTTP verbs.",
-      type: "(path: string, options?) => RouteBuilder",
+      type: "(path: string) => RouteBuilder",
     },
     middleware: {
       description: "Creates a layout middleware builder for root or scoped route directories.",
@@ -228,10 +228,22 @@ function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit
 
 ---
 
-## `RouteBuilder` Methods
+## `RouteBuilder` Fluent Methods
 
 <TypeTable
   type={{
+    query: {
+      description: "Attaches a validation schema for query string parameters.",
+      type: "(schema: Schema) => RouteBuilder",
+    },
+    params: {
+      description: "Attaches a validation schema for path parameters.",
+      type: "(schema: Schema) => RouteBuilder",
+    },
+    body: {
+      description: "Attaches a validation schema for the request payload (JSON by default, or with explicit mode: 'json' | 'form' | 'text' | 'raw').",
+      type: "(schema: Schema) => RouteBuilder | (mode: BodyMode, schema: Schema) => RouteBuilder",
+    },
     returns: {
       description: "Attaches a status-code-indexed response contract map.",
       type: "(returnsMap: Record<number, Schema>) => RouteBuilder",
@@ -241,7 +253,7 @@ function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit
       type: "(middleware: MiddlewareUnit) => RouteBuilder",
     },
     handler: {
-      description: "Attaches the route execution logic receiving typed ctx.",
+      description: "Attaches the route execution logic receiving fully typed ctx.",
       type: "(fn: (ctx: Context) => Response | Promise<Response>) => RouteDefinition",
     },
   }}
@@ -249,57 +261,69 @@ function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit
 
 ---
 
-## `reply` Helpers Reference
+## Tree-Shakeable Reply Helpers (`@taserjs/router/reply`)
 
 <TypeTable
   type={{
-    "reply.json": {
+    json: {
       description: "Returns a JSON serialized response with application/json header.",
       type: "<T>(data: T, init?: ReplyInit) => ReplyOf<200, T>",
     },
-    "reply.text": {
+    text: {
       description: "Returns a plain text response with text/plain header.",
       type: "(text: string, init?: ReplyInit) => ReplyOf<200, string>",
     },
-    "reply.noContent": {
+    html: {
+      description: "Returns an HTML response with text/html header.",
+      type: "(html: string, init?: ReplyInit) => ReplyOf<200, string>",
+    },
+    noContent: {
       description: "Returns an empty 204 No Content response.",
       type: "(init?: ReplyInit) => ReplyOf<204, null>",
     },
-    "reply.redirect": {
+    redirect: {
       description: "Returns an HTTP redirect (default: 302 Found).",
       type: "(url: string, init?: RedirectInit) => ReplyOf<302, string>",
     },
-    "reply.ok": {
+    ok: {
       description: "Returns a generic 200 OK response.",
       type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<200, T>",
     },
-    "reply.badRequest": {
+    created: {
+      description: "Returns a 201 Created response.",
+      type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<201, T>",
+    },
+    accepted: {
+      description: "Returns a 202 Accepted response.",
+      type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<202, T>",
+    },
+    badRequest: {
       description: "Returns a 400 Bad Request error response.",
       type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<400, T>",
     },
-    "reply.unauthorized": {
+    unauthorized: {
       description: "Returns a 401 Unauthorized error response.",
       type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<401, T>",
     },
-    "reply.forbidden": {
+    forbidden: {
       description: "Returns a 403 Forbidden error response.",
       type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<403, T>",
     },
-    "reply.notFound": {
+    notFound: {
       description: "Returns a 404 Not Found error response.",
       type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<404, T>",
     },
-    "reply.unprocessableEntity": {
+    conflict: {
+      description: "Returns a 409 Conflict error response.",
+      type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<409, T>",
+    },
+    unprocessableEntity: {
       description: "Returns a 422 Unprocessable Entity validation failure response.",
       type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<422, T>",
     },
-    "reply.internalServerError": {
+    internalServerError: {
       description: "Returns a 500 Internal Server Error response.",
       type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<500, T>",
-    },
-    "reply.badGateway": {
-      description: "Returns a 502 Bad Gateway response.",
-      type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<502, T>",
     },
   }}
 />

@@ -11,7 +11,7 @@ export function packageJsonTemplate(
     private: true,
     type: "module",
     imports: {
-      "#src/*": "./src/*",
+      "#taserjs/router": "./src/taser.ts",
     },
     scripts: {
       dev: "vite",
@@ -31,7 +31,7 @@ export function tsconfigTemplate(): string {
         target: "ES2022",
         module: "NodeNext",
         paths: {
-          "#src/*": ["./src/*"],
+          "#taserjs/router": ["./src/taser.ts"],
         },
         strict: true,
         skipLibCheck: true,
@@ -87,7 +87,7 @@ ${bootBlock}
 export function rootLayoutTemplate(): string {
   return `import { cors } from '@taserjs/router/cors'
 
-import { t } from '#src/taser.js'
+import { t } from '#taserjs/router'
 
 export const Middleware = t.middleware('/$')
   .use(cors())
@@ -96,7 +96,7 @@ export const Middleware = t.middleware('/$')
 
 export function indexRouteTemplate(): string {
   return `import { json } from '@taserjs/router/reply'
-import { t } from '#src/taser.js'
+import { t } from '#taserjs/router'
 
 const GET = t.get('/')
 
@@ -122,7 +122,7 @@ export function healthRouteTemplate(ctx: ScaffoldContext): string {
   const ctxArg = lines.length > 0 ? "(ctx)" : "(_ctx)";
 
   return `import { json } from '@taserjs/router/reply'
-import { t } from '#src/taser.js'
+import { t } from '#taserjs/router'
 
 const GET = t.get('/health')
 

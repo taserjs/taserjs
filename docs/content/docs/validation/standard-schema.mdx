@@ -19,34 +19,35 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
 <Tabs items={["Zod", "ArkType", "Valibot"]}>
   <Tab value="Zod">
     ```ts title="src/routes/products.get.ts"
-    import { reply } from "@taserjs/router";
+    import { json } from "@taserjs/router/reply";
     import { z } from "zod";
-    import { t } from "#src/taser.js";
+    import { t } from "#taserjs/router";
 
     export const Route = t
-      .get("/products", {
-        query: z.object({
+      .get("/products")
+      .query(
+        z.object({
           search: z.string().optional(),
           category: z.enum(["electronics", "clothing", "books"]).optional(),
           page: z.coerce.number().int().min(1).default(1),
           limit: z.coerce.number().int().min(1).max(100).default(20),
           inStockOnly: z.coerce.boolean().default(false),
         }),
-      })
+      )
       .handler(async (ctx) => {
         // ctx.query.page is number
         // ctx.query.inStockOnly is boolean
         const results = await ctx.db.searchProducts(ctx.query);
-        return reply.json(results);
+        return json(results);
       });
     ```
 
   </Tab>
   <Tab value="ArkType">
     ```ts title="src/routes/products.get.ts"
-    import { reply } from "@taserjs/router";
+    import { json } from "@taserjs/router/reply";
     import { type } from "arktype";
-    import { t } from "#src/taser.js";
+    import { t } from "#taserjs/router";
 
     const QuerySchema = type({
       "search?": "string",
@@ -56,19 +57,20 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
     });
 
     export const Route = t
-      .get("/products", { query: QuerySchema })
+      .get("/products")
+      .query(QuerySchema)
       .handler(async (ctx) => {
         const results = await ctx.db.searchProducts(ctx.query);
-        return reply.json(results);
+        return json(results);
       });
     ```
 
   </Tab>
   <Tab value="Valibot">
     ```ts title="src/routes/products.get.ts"
-    import { reply } from "@taserjs/router";
+    import { json } from "@taserjs/router/reply";
     import * as v from "valibot";
-    import { t } from "#src/taser.js";
+    import { t } from "#taserjs/router";
 
     const QuerySchema = v.object({
       search: v.optional(v.string()),
@@ -77,10 +79,11 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
     });
 
     export const Route = t
-      .get("/products", { query: QuerySchema })
+      .get("/products")
+      .query(QuerySchema)
       .handler(async (ctx) => {
         const results = await ctx.db.searchProducts(ctx.query);
-        return reply.json(results);
+        return json(results);
       });
     ```
 
@@ -91,25 +94,26 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
 
 ## Validating Path Parameters
 
-Path parameters declared in file names (for example, `$id.get.ts` or `$orgId/$repoId.get.ts`) can be validated with a `params` schema:
+Path parameters declared in file names (for example, `$id.get.ts` or `$orgId/$repoId.get.ts`) can be validated with a `.params()` schema:
 
 ```ts title="src/routes/organizations/$orgId/members/$memberId.get.ts"
-import { reply } from "@taserjs/router";
+import { json } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Route = t
-  .get("/organizations/:orgId/members/:memberId", {
-    params: z.object({
+  .get("/organizations/:orgId/members/:memberId")
+  .params(
+    z.object({
       orgId: z.string().uuid(),
       memberId: z.string().min(1),
     }),
-  })
+  )
   .handler(async (ctx) => {
     // ctx.params.orgId is validated UUID string
     // ctx.params.memberId is string
     const member = await ctx.db.getMember(ctx.params.orgId, ctx.params.memberId);
-    return reply.json(member);
+    return json(member);
   });
 ```
 
@@ -117,12 +121,12 @@ export const Route = t
 
 ## Validating Request Bodies (JSON)
 
-For POST, PUT, and PATCH routes, pass a `body` schema to validate incoming JSON payloads:
+For POST, PUT, and PATCH routes, chain `.body()` to validate incoming payloads:
 
 ```ts title="src/routes/posts.post.ts"
-import { reply } from "@taserjs/router";
+import { json } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 const CreatePostSchema = z.object({
   title: z.string().min(5).max(200),
@@ -133,9 +137,8 @@ const CreatePostSchema = z.object({
 });
 
 export const Route = t
-  .post("/posts", {
-    body: CreatePostSchema,
-  })
+  .post("/posts")
+  .body(CreatePostSchema)
   .returns({
     201: z.object({ id: z.string(), slug: z.string() }),
     422: z.object({ message: z.string(), issues: z.array(z.unknown()) }),
@@ -146,7 +149,7 @@ export const Route = t
       data: ctx.body,
     });
 
-    return reply.json({ id: newPost.id, slug: newPost.slug }, { status: 201 });
+    return json({ id: newPost.id, slug: newPost.slug }, { status: 201 });
   });
 ```
 
@@ -163,7 +166,7 @@ You can validate file presence, file size, and permitted MIME types using your s
     ```ts title="src/routes/users/$id/avatar.post.ts"
     import { reply } from "@taserjs/router";
     import { z } from "zod";
-    import { t } from "#src/taser.js";
+    import { t } from "#taserjs/router";
 
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -180,10 +183,9 @@ You can validate file presence, file size, and permitted MIME types using your s
     });
 
     export const Route = t
-      .post("/users/:id/avatar", {
-        params: z.object({ id: z.string() }),
-        body: AvatarUploadSchema,
-      })
+      .post("/users/:id/avatar")
+      .params(z.object({ id: z.string() }))
+      .body(AvatarUploadSchema)
       .returns({
         200: z.object({ success: z.boolean(), fileName: z.string(), bytes: z.number() }),
       })
@@ -197,7 +199,7 @@ You can validate file presence, file size, and permitted MIME types using your s
 
         await ctx.db.saveUserAvatar(ctx.params.id, fileBuffer, fileName);
 
-        return reply.json({
+        return json({
           success: true,
           fileName,
           bytes: fileSize,
@@ -208,9 +210,9 @@ You can validate file presence, file size, and permitted MIME types using your s
   </Tab>
   <Tab value="ArkType">
     ```ts title="src/routes/users/$id/avatar.post.ts"
-    import { reply } from "@taserjs/router";
+    import { json } from "@taserjs/router/reply";
     import { type } from "arktype";
-    import { t } from "#src/taser.js";
+    import { t } from "#taserjs/router";
 
     const AvatarUploadSchema = type({
       "caption?": "string",
@@ -223,22 +225,21 @@ You can validate file presence, file size, and permitted MIME types using your s
     });
 
     export const Route = t
-      .post("/users/:id/avatar", {
-        body: AvatarUploadSchema,
-      })
+      .post("/users/:id/avatar")
+      .body(AvatarUploadSchema)
       .handler(async (ctx) => {
         const { avatar } = ctx.body;
         const fileBuffer = await avatar.arrayBuffer();
-        return reply.json({ success: true, fileName: avatar.name });
+        return json({ success: true, fileName: avatar.name });
       });
     ```
 
   </Tab>
   <Tab value="Valibot">
     ```ts title="src/routes/users/$id/avatar.post.ts"
-    import { reply } from "@taserjs/router";
+    import { json } from "@taserjs/router/reply";
     import * as v from "valibot";
-    import { t } from "#src/taser.js";
+    import { t } from "#taserjs/router";
 
     const AvatarUploadSchema = v.object({
       caption: v.optional(v.string()),
@@ -249,13 +250,12 @@ You can validate file presence, file size, and permitted MIME types using your s
     });
 
     export const Route = t
-      .post("/users/:id/avatar", {
-        body: AvatarUploadSchema,
-      })
+      .post("/users/:id/avatar")
+      .body(AvatarUploadSchema)
       .handler(async (ctx) => {
         const { avatar } = ctx.body;
         const buffer = await avatar.arrayBuffer();
-        return reply.json({ success: true, fileName: avatar.name });
+        return json({ success: true, fileName: avatar.name });
       });
     ```
 
@@ -269,9 +269,9 @@ You can validate file presence, file size, and permitted MIME types using your s
 When clients upload multiple files under the same form field name, validate them as an array of `File` objects:
 
 ```ts title="src/routes/documents/upload.post.ts"
-import { reply } from "@taserjs/router";
+import { json } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 const MultiDocSchema = z.object({
   folderId: z.string(),
@@ -282,9 +282,8 @@ const MultiDocSchema = z.object({
 });
 
 export const Route = t
-  .post("/documents/upload", {
-    body: MultiDocSchema,
-  })
+  .post("/documents/upload")
+  .body(MultiDocSchema)
   .handler(async (ctx) => {
     // ctx.body.files is typed as File[]:
     for (const file of ctx.body.files) {
@@ -292,7 +291,7 @@ export const Route = t
       console.log(`Uploaded file: ${file.name} (${file.size} bytes)`);
     }
 
-    return reply.json({ uploadedCount: ctx.body.files.length });
+    return json({ uploadedCount: ctx.body.files.length });
   });
 ```
 
@@ -324,24 +323,25 @@ const response = await api.users.$id({ id: "user_123" }).avatar.$post({
 Taser respects schema transformations. If your schema takes a string and transforms it into a `Date` or trimmed string, `ctx` receives the transformed output type:
 
 ```ts title="src/routes/events.post.ts"
-import { reply } from "@taserjs/router";
+import { ok } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Route = t
-  .post("/events", {
-    body: z.object({
+  .post("/events")
+  .body(
+    z.object({
       title: z.string().trim(),
       scheduledAt: z
         .string()
         .datetime()
         .transform((str) => new Date(str)),
     }),
-  })
+  )
   .handler(async (ctx) => {
     // ctx.body.scheduledAt is typed as Date, not string!
     console.log(ctx.body.scheduledAt.getTime());
-    return reply.ok();
+    return ok();
   });
 ```
 

@@ -25,12 +25,12 @@ export const context = createContext({
   }),
 })`,
   layout: `import { cors } from '@taserjs/router/cors'
-import { t } from '#src/taser.js'
+import { t } from '#taserjs/router'
 
 export const Middleware = t.middleware('/$')
   .use(cors({ origin: ['https://app.example.com'] }))`,
   auth: `import { jwt } from '@taserjs/router/jwt'
-import { t } from '#src/taser.js'
+import { t } from '#taserjs/router'
 
 type JwtClaims = {
   sub: string
@@ -44,21 +44,21 @@ export const Middleware = t.middleware('dashboard')
       alg: 'HS256',
     }),
   )`,
-  route: `import { reply } from '@taserjs/router'
+  route: `import { json } from '@taserjs/router/reply'
 import { z } from 'zod'
-import { t } from '#src/taser.js'
+import { t } from '#taserjs/router'
 
-const GET = t.get('/dashboard/users', {
-  query: z.object({
+const GET = t.get('/dashboard/users')
+  .query(z.object({
     page: z.coerce.number().default(1),
     limit: z.coerce.number().default(10),
-  }),
-})
+  }))
 
+export type RouteContext = typeof GET.$Infer.Context
 export const Route = GET.handler(async (ctx) => {
   const sub = ctx.state.jwtPayload.sub
   const { page, limit } = ctx.query
   const users = await ctx.db.getUsers(page, limit)
-  return reply.json({ sub, users })
+  return json({ sub, users })
 })`,
 };

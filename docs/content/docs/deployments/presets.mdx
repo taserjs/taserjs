@@ -1,0 +1,162 @@
+---
+title: Deployment Presets
+description: Deploy Taser APIs to Cloudflare Workers, Vercel, AWS Lambda, Node.js, Bun, Deno, and Netlify using Nitro presets.
+icon: Globe
+---
+
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+Taser leverages Nitro's battle-tested preset system to generate optimized production builds tailored for any cloud platform or runtime with zero code changes.
+
+---
+
+## Configuring Presets
+
+You can declare your target preset in `nitro.config.ts`:
+
+```ts title="nitro.config.ts"
+import { defineConfig } from "nitro/config";
+
+export default defineConfig({
+  preset: "node-server", // Change to your deployment target
+});
+```
+
+Or override dynamically at build time using the `NITRO_PRESET` environment variable:
+
+```bash
+NITRO_PRESET=cloudflare-module pnpm build
+```
+
+---
+
+## Supported Presets
+
+| Preset              | Target Platform / Runtime                                      | Output Directory                 | Command / Start                                |
+| :------------------ | :------------------------------------------------------------- | :------------------------------- | :--------------------------------------------- |
+| `node-server`       | Standard Node.js Server (Docker, Railway, Render, Fly.io, VPS) | `.output/server/index.mjs`       | `node .output/server/index.mjs`                |
+| `node-cluster`      | Multi-core Node.js Cluster with worker process management      | `.output/server/index.mjs`       | `node .output/server/index.mjs`                |
+| `bun`               | Bun high-performance JavaScript runtime                        | `.output/server/index.mjs`       | `bun .output/server/index.mjs`                 |
+| `deno-server`       | Standalone Deno server                                         | `.output/server/index.mjs`       | `deno run -A .output/server/index.mjs`         |
+| `deno-deploy`       | Deno Deploy global edge network                                | `.output/server/index.mjs`       | Native Deno Deploy GitHub Action               |
+| `cloudflare-module` | Cloudflare Workers & Pages Functions (V8 isolates)             | `.output/server/index.mjs`       | `wrangler deploy`                              |
+| `vercel`            | Vercel Serverless & Edge infrastructure                        | `.output/` (Build Output API v3) | `vercel deploy`                                |
+| `aws-lambda`        | AWS Lambda with API Gateway or Lambda Function URLs            | `.output/server/index.mjs`       | Zip & upload or AWS SAM / Serverless Framework |
+| `netlify`           | Netlify Serverless Functions & Edge                            | `.output/`                       | Netlify CLI / GitHub Deploy                    |
+
+---
+
+## Platform Guides
+
+### 1. Node Server (Docker / VPS / PaaS)
+
+For containerized deployments or long-running Node.js instances:
+
+```ts title="nitro.config.ts"
+import { defineConfig } from "nitro/config";
+
+export default defineConfig({
+  preset: "node-server",
+});
+```
+
+Example production `Dockerfile`:
+
+```dockerfile
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable && pnpm install --frozen-lockfile
+COPY . .
+RUN pnpm build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+COPY --from=builder /app/.output .output
+EXPOSE 3000
+CMD ["node", ".output/server/index.mjs"]
+```
+
+---
+
+### 2. Cloudflare Workers
+
+To deploy to Cloudflare's global edge network:
+
+```ts title="nitro.config.ts"
+import { defineConfig } from "nitro/config";
+
+export default defineConfig({
+  preset: "cloudflare-module",
+});
+```
+
+Create `wrangler.jsonc` or `wrangler.toml`:
+
+```json title="wrangler.jsonc"
+{
+  "name": "my-taser-api",
+  "main": "./.output/server/index.mjs",
+  "compatibility_date": "2026-08-01"
+}
+```
+
+Deploy using Wrangler:
+
+```bash
+pnpm build
+npx wrangler deploy
+```
+
+---
+
+### 3. Vercel
+
+To deploy on Vercel:
+
+```ts title="nitro.config.ts"
+import { defineConfig } from "nitro/config";
+
+export default defineConfig({
+  preset: "vercel",
+});
+```
+
+Push your repository to GitHub and import into the Vercel Dashboard. Vercel automatically detects the `.output` build directory.
+
+---
+
+### 4. AWS Lambda
+
+For AWS Lambda deployment:
+
+```ts title="nitro.config.ts"
+import { defineConfig } from "nitro/config";
+
+export default defineConfig({
+  preset: "aws-lambda",
+});
+```
+
+The compiled handler at `.output/server/index.mjs` exposes the standard AWS Lambda handler function `handler(event, context)`.
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Nitro Module"
+    href="/docs/plugins/nitro"
+    description="Learn how Taser integrates with Nitro's compiler and lifecycle hooks."
+  />
+  <Card
+    title="Vite Plugin"
+    href="/docs/plugins/vite"
+    description="Explore Vite dev server middleware and virtual module resolution."
+  />
+</Cards>

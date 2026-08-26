@@ -2,11 +2,15 @@ import type { ReactNode } from "react";
 import {
   Box,
   Braces,
+  Cloud,
+  Cpu,
   Globe,
   Hexagon,
+  Layers,
   MoreHorizontal,
   Server,
   ShieldCheck,
+  Terminal,
   Workflow,
   Zap,
 } from "lucide-react";
@@ -16,36 +20,75 @@ import type { IconTone } from "./feature-card";
 import { SectionAccent, SectionHeader } from "./section-header";
 import { SectionSeparator } from "./section-separator";
 
-const adapters: { name: string; description: string; icon: ReactNode; iconTone: IconTone }[] = [
+const integrations: {
+  name: string;
+  description: string;
+  icon: ReactNode;
+  iconTone: IconTone;
+  href: string;
+}[] = [
   {
-    name: "Express",
-    description: "Mount seamlessly with Express splat routing.",
-    icon: <Server />,
+    name: "Vite Plugin",
+    description: "Virtual route modules, ambient types, and instant HMR.",
+    icon: <Zap />,
+    iconTone: "amber",
+    href: "/docs/plugins/vite",
+  },
+  {
+    name: "Next.js",
+    description: "Embed inside App Router with @taserjs/router-plugin/next.",
+    icon: <Layers />,
+    iconTone: "violet",
+    href: "/docs/plugins/next",
+  },
+  {
+    name: "Nitro Module",
+    description: "Universal server engine for edge, serverless, and cloud.",
+    icon: <Workflow />,
+    iconTone: "indigo",
+    href: "/docs/plugins/nitro",
+  },
+  {
+    name: "Standalone API",
+    description: "High-throughput, zero-host API built on web standards.",
+    icon: <Box />,
     iconTone: "sky",
+    href: "/docs/frameworks/standalone",
   },
   {
     name: "Hono",
-    description: "High-performance and edge-ready.",
-    icon: <Zap />,
-    iconTone: "amber",
+    description: "Host pass-through and reusable Hono middleware.",
+    icon: <Globe />,
+    iconTone: "emerald",
+    href: "/docs/frameworks/hono",
+  },
+  {
+    name: "Express",
+    description: "Layer file routing onto existing Express servers.",
+    icon: <Server />,
+    iconTone: "sky",
+    href: "/docs/frameworks/express",
   },
   {
     name: "Fastify",
-    description: "High-throughput Node servers.",
-    icon: <Workflow />,
+    description: "Coexist with Fastify plugins and lifecycle hooks.",
+    icon: <Cpu />,
     iconTone: "cyan",
+    href: "/docs/frameworks/fastify",
   },
   {
-    name: "Node",
-    description: "Standard Node.js HTTP server handler.",
-    icon: <Box />,
-    iconTone: "violet",
+    name: "Cloudflare & Edge",
+    description: "V8 isolates with Cloudflare Workers, Vercel, and Deno.",
+    icon: <Cloud />,
+    iconTone: "orange",
+    href: "/docs/deployments/presets",
   },
   {
-    name: "Fetch",
-    description: "Web-standard Request / Response adapter.",
-    icon: <Globe />,
-    iconTone: "emerald",
+    name: "Node & Docker",
+    description: "Multi-core clusters, Docker containers, and VPS servers.",
+    icon: <Terminal />,
+    iconTone: "rose",
+    href: "/docs/deployments/presets",
   },
 ];
 
@@ -74,8 +117,8 @@ const schemaLibraries: {
     iconTone: "emerald",
   },
   {
-    name: "And more",
-    description: "Any library implementing the Standard Schema spec.",
+    name: "Standard Schema",
+    description: "Zero lock-in. Any library conforming to Standard Schema.",
     icon: <MoreHorizontal />,
     iconTone: "rose",
   },
@@ -89,24 +132,24 @@ export function AdaptersSection() {
         <SectionHeader
           align="center"
           className="mb-10"
-          eyebrow="Adapters"
+          eyebrow="Integrations"
           title={
             <>
               Framework Agnostic. <SectionAccent>Runtime Universal</SectionAccent>.
             </>
           }
-          description="Write your business logic once with Taser. Mount on Express, Hono, Fastify, or plain Node.js without rewriting a single handler."
+          description="Build standalone APIs with Vite and Nitro, embed inside Next.js, or layer onto Express, Hono, and Fastify without rewriting a single handler."
         />
 
-        <div className="landing-animate-in landing-delay-2 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-          {adapters.map((adapter) => (
+        <div className="landing-animate-in landing-delay-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {integrations.map((item) => (
             <FeatureCard
-              key={adapter.name}
-              icon={adapter.icon}
-              title={adapter.name}
-              description={adapter.description}
-              iconTone={adapter.iconTone}
-              href="/docs"
+              key={item.name}
+              icon={item.icon}
+              title={item.name}
+              description={item.description}
+              iconTone={item.iconTone}
+              href={item.href}
             />
           ))}
         </div>
@@ -131,7 +174,7 @@ export function AdaptersSection() {
               title={library.name}
               description={library.description}
               iconTone={library.iconTone}
-              href="/docs"
+              href="/docs/validation/standard-schema"
             />
           ))}
         </div>

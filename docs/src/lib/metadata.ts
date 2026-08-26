@@ -78,13 +78,27 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
   "getting-started":
     "Scaffold a production-ready typed API in seconds using create-taserjs with zero-config TypeScript, watch mode, and database presets.",
   "getting-started/manual-installation":
-    "Step-by-step guide to installing and configuring Taser packages in existing Express, Fastify, Hono, or Node.js applications.",
+    "Step-by-step guide to installing and configuring Taser with Vite, Next.js, Nitro, Express, Fastify, and Hono.",
   "getting-started/core-concepts":
     "Master Taser architecture: four pillars, request lifecycle sequence, context injection, and compiler-enforced return contracts.",
+  "plugins/vite":
+    "Integrate Taser into Vite with virtual route modules, ambient type generation, instant HMR, and standalone deployment.",
+  "plugins/next":
+    "Embed Taser type-safe file routing inside Next.js 15+ App Router using @taserjs/router-plugin/next.",
+  "plugins/nitro":
+    "Deploy Taser across edge, serverless, and multi-cloud runtimes using the @taserjs/router-plugin/nitro module.",
+  "frameworks/standalone":
+    "Build standalone, zero-host HTTP APIs with pure Taser, Vite, and Nitro. Maximum throughput with web standards.",
+  "frameworks/hono":
+    "Run Taser alongside Hono with host pass-through dispatching and reuse Hono middleware inside Taser layouts.",
+  "frameworks/express":
+    "Add Taser file-based routing to an Express application with seamless host pass-through dispatching.",
+  "frameworks/fastify":
+    "Pair Taser file routing with Fastify plugins and hooks using the host pass-through architecture.",
   "routing/file-conventions":
     "HTTP method suffixes, index routes, dynamic parameters ($id), splat catch-alls ($), and pathless layouts explained.",
   "routing/defining-routes":
-    "Create GET, POST, PUT, PATCH, DELETE routes with query, param, and body validation schemas, and route-level middlewares.",
+    "Create GET, POST, PUT, PATCH, DELETE routes with fluent chaining, query, param, and body validation schemas.",
   "routing/layouts-and-middleware":
     "Scale API composition without losing types. Define scoped directory middleware and cascade typed state down folder trees.",
   "routing/refactoring-handlers":
@@ -98,7 +112,7 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
   "validation/handling-errors":
     "Catch validation failures, extract detailed field issues, and format customized 422 Unprocessable Entity error payloads.",
   "responses/reply-helpers":
-    "Send clean, status-discriminated HTTP responses with reply.json(), reply.ok(), reply.notFound(), and reply.redirect().",
+    "Send clean, status-discriminated HTTP responses with tree-shakeable json(), ok(), notFound(), and redirect().",
   "responses/cookies":
     "Read, set, sign, and delete HTTP cookies using ctx.cookies. Configure global defaults, HMAC signing, and __Host- / __Secure- prefixes.",
   "responses/response-contracts":
@@ -113,23 +127,19 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
     "Verify JSON Web Tokens (JWT) and remote JWKS key sets (Clerk, Auth0, Supabase) with typed state injection.",
   "middleware/security-and-utilities":
     "Add security headers, CSRF protection, compression, and request body size limiters using built-in utilities.",
-  "adapters/express":
-    "Mount your type-safe Taser API seamlessly onto Express apps with the @taserjs/adapter-express adapter.",
-  "adapters/fastify":
-    "Run Taser on high-performance Fastify servers with the @taserjs/adapter-fastify adapter.",
-  "adapters/node-http":
-    "Deploy Taser with zero external web framework dependencies using the built-in Node.js HTTP server adapter.",
-  "adapters/hono-and-edge":
-    "Deploy Taser routes to Cloudflare Workers, Deno, Bun, Fastly, and AWS Lambda using standard Web Request/Response fetch.",
+  "deployments/presets":
+    "Deploy Taser APIs to Cloudflare Workers, Vercel, AWS Lambda, Node.js, Bun, Deno, and Netlify using Nitro presets.",
   client:
     "Auto-completing, end-to-end typed proxy client generated from your server router type with zero runtime drift.",
-  cli: "Automate route discovery, manifest compilation, and file scaffolding using @taserjs/router-cli and taser.config.json.",
+  cli: "Generate ambient TypeScript definitions and scaffold empty route files with @taserjs/router-cli.",
   "api-reference/router":
-    "Complete API reference for @taserjs/router: createTaserApp, createContext, TaserRouter, RouteBuilder, reply, and stream.",
+    "Complete API reference for @taserjs/router: createTaserApp, createContext, TaserRouter, RouteBuilder, and reply.",
+  "api-reference/router-plugin":
+    "Complete API reference for @taserjs/router-plugin: Vite, Next.js, and Nitro compiler plugin options.",
   "api-reference/router-client":
     "Complete API reference for @taserjs/router-client: createClient, formBody, ClientRequestOptions, and utility types.",
   "api-reference/router-cli":
-    "Complete CLI command options, flags, and taser.config.json schema reference for @taserjs/router-cli.",
+    "Complete command options and flag reference for @taserjs/router-cli.",
 };
 
 export const docsImageAlts: Record<string, string> = {
@@ -137,6 +147,13 @@ export const docsImageAlts: Record<string, string> = {
   "getting-started": "Taser Docs: Getting Started with Type-Safe API Routing",
   "getting-started/manual-installation": "Taser Docs: Manual Installation Guide",
   "getting-started/core-concepts": "Taser Docs: Core Concepts and Architecture",
+  "plugins/vite": "Taser Docs: Vite Plugin Integration",
+  "plugins/next": "Taser Docs: Next.js App Router Integration",
+  "plugins/nitro": "Taser Docs: Nitro Server Engine Module",
+  "frameworks/standalone": "Taser Docs: Standalone API Architecture",
+  "frameworks/hono": "Taser Docs: Hono Host Pass-Through",
+  "frameworks/express": "Taser Docs: Express Host Pass-Through",
+  "frameworks/fastify": "Taser Docs: Fastify Host Pass-Through",
   "routing/file-conventions": "Taser Docs: File Conventions and Routing Rules",
   "routing/defining-routes": "Taser Docs: Defining Routes and Schemas",
   "routing/layouts-and-middleware": "Taser Docs: Cascading Layouts and Middleware",
@@ -153,13 +170,11 @@ export const docsImageAlts: Record<string, string> = {
   "middleware/cors": "Taser Docs: CORS Middleware Configuration",
   "middleware/jwt-and-jwk": "Taser Docs: JWT and JWKS Authentication",
   "middleware/security-and-utilities": "Taser Docs: Security Headers and Utilities",
-  "adapters/express": "Taser Docs: Express Server Adapter",
-  "adapters/fastify": "Taser Docs: Fastify Server Adapter",
-  "adapters/node-http": "Taser Docs: Node HTTP Server Adapter",
-  "adapters/hono-and-edge": "Taser Docs: Hono and Edge Runtime Adapters",
+  "deployments/presets": "Taser Docs: Nitro Deployment Presets",
   client: "Taser Docs: Typed Client SDK",
   cli: "Taser Docs: CLI Tooling and Codegen",
   "api-reference/router": "Taser Docs: @taserjs/router API Reference",
+  "api-reference/router-plugin": "Taser Docs: @taserjs/router-plugin API Reference",
   "api-reference/router-client": "Taser Docs: @taserjs/router-client API Reference",
   "api-reference/router-cli": "Taser Docs: @taserjs/router-cli API Reference",
 };

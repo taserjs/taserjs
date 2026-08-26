@@ -1,0 +1,114 @@
+---
+title: Standalone API
+description: Build standalone, zero-host HTTP APIs with pure Taser, Vite, and Nitro. Maximum throughput, zero boilerplate, and web-standard Request/Response execution.
+icon: Box
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+The **Standalone** architecture is the default and recommended way to build backend services with Taser. In this mode, you do not need Express, Fastify, or any other host web framework.
+
+Taser handles request dispatching, middleware pipelines, input validation, and responses directly using high-performance web standards.
+
+---
+
+## Why Standalone?
+
+<Cards>
+  <Card
+    title="Zero Host Overhead"
+    description="Eliminates intermediate framework wrappers. Requests pass directly into Taser's compiled radix tree."
+  />
+  <Card
+    title="Web Standards First"
+    description="Handlers interact with native Request, Response, Headers, and Cookies objects."
+  />
+  <Card
+    title="Deploy Anywhere"
+    description="Change a single preset in nitro.config.ts to deploy to Cloudflare, Vercel, Node, Bun, Deno, or AWS Lambda."
+  />
+  <Card
+    title="Instant Dev HMR"
+    description="Vite loads routes virtually with instantaneous hot-module replacement on file creation or edits."
+  />
+</Cards>
+
+---
+
+## Quickstart
+
+<Steps>
+  <Step>
+    ### 1. Scaffold a Standalone Project
+
+    ```bash
+    pnpm create taserjs@latest my-api --framework none --preset node-server -y
+    ```
+
+  </Step>
+
+  <Step>
+    ### 2. Project Files
+
+    A standalone project contains no host server files:
+
+    ```
+    my-api/
+    ├── vite.config.ts         # Plugins: [taser(), nitro()]
+    ├── nitro.config.ts        # Deployment preset
+    ├── src/
+    │   ├── taser.ts           # Router builder
+    │   ├── context.ts         # Boot and request context
+    │   └── routes/            # File-based endpoints
+    └── package.json
+    ```
+
+  </Step>
+
+  <Step>
+    ### 3. Run Development Server
+
+    ```bash
+    pnpm dev
+    ```
+
+    Taser starts on `http://localhost:3000`.
+
+  </Step>
+
+  <Step>
+    ### 4. Build for Production
+
+    ```bash
+    pnpm build
+    ```
+
+    Depending on your deployment mode, Taser packages your output into `.output/` (with Nitro presets) or `dist/` (with standalone Vite).
+
+  </Step>
+</Steps>
+
+---
+
+## Related Guides
+
+<Cards>
+  <Card
+    title="Deployment Presets"
+    href="/docs/deployments/presets"
+    description="Learn how to target Cloudflare, Vercel, AWS Lambda, Node, Bun, and Deno."
+  />
+  <Card
+    title="Defining Routes"
+    href="/docs/routing/defining-routes"
+    description="Explore fluent builders and request validation."
+  />
+  <Card
+    title="Context and State"
+    href="/docs/routing/context-and-state"
+    description="Inject database singletons and request IDs into ctx."
+  />
+</Cards>

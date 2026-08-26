@@ -17,7 +17,7 @@ Layout middleware can validate incoming requests and inject typed state down the
 
 ```ts title="src/routes/orgs.ts"
 import { reply } from "@taserjs/router";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 type Organization = {
   id: string;
@@ -52,7 +52,7 @@ Middleware can declare `query`, `params`, or `body` schemas using Standard Schem
 ```ts title="src/routes/api/v2.ts"
 import { reply } from "@taserjs/router";
 import { z } from "zod";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Middleware = t.middleware("api_v2").use({
   query: z.object({
@@ -78,7 +78,7 @@ You can chain multiple `.use()` calls on a layout middleware. Each step enriches
 
 ```ts title="src/routes/billing.ts"
 import { reply } from "@taserjs/router";
-import { t } from "#src/taser.js";
+import { t } from "#taserjs/router";
 
 export const Middleware = t
   .middleware("billing")

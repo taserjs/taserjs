@@ -101,7 +101,7 @@ export default defineConfig({
 export function taserTsTemplate(): string {
   return `import { createTaserApp } from '@taserjs/router'
 
-import { context } from '#src/context.js'
+import { context } from './context.js'
 
 export const t = createTaserApp({
   response: { validate: true },

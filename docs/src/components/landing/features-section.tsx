@@ -37,9 +37,9 @@ const features: { icon: ReactNode; title: string; description: string; iconTone:
   },
   {
     icon: <Sparkles />,
-    title: "Watch-Mode Codegen",
+    title: "Vite HMR & Virtual Modules",
     description:
-      "The CLI watch mode regenerates route manifests and TypeScript definitions instantly on save.",
+      "Vite plugin compiles file routes virtually with instant HMR and automatic ambient TypeScript types.",
     iconTone: "rose",
   },
   {
