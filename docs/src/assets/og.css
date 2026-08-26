@@ -2,7 +2,7 @@
   display: flex;
   width: 100%;
   height: 100%;
-  background-color: #09090b;
+  background-color: #08080a;
   padding: 24px;
   box-sizing: border-box;
 }
@@ -13,8 +13,8 @@
   position: relative;
   overflow: hidden;
   border-radius: 20px;
-  border: 1px solid rgba(255, 127, 4, 0.18);
-  background-color: #0c0c0e;
+  border: 1px solid rgba(255, 127, 4, 0.24);
+  background-color: #0b0b0e;
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
@@ -32,50 +32,140 @@
   flex: 1;
   position: relative;
   z-index: 1;
-  padding: 56px 64px 48px;
+  padding: 44px 56px 40px;
   box-sizing: border-box;
+  justify-content: space-between;
+}
+
+.og-hud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 127, 4, 0.16);
+  padding-bottom: 16px;
+}
+
+.og-hud-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.og-hud-bolt {
+  font-size: 16px;
+  color: #ff7f04;
+}
+
+.og-hud-label {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #ff7f04;
+}
+
+.og-hud-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(255, 127, 4, 0.1);
+  border: 1px solid rgba(255, 127, 4, 0.3);
+  padding: 4px 12px;
+  border-radius: 9999px;
+}
+
+.og-hud-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background-color: #22c55e;
+}
+
+.og-hud-status {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #fafafa;
 }
 
 .og-content {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  justify-content: center;
-  max-width: 920px;
+  margin-top: 16px;
+  max-width: 1040px;
 }
 
 .og-title {
-  font-size: 58px;
-  font-weight: 600;
-  line-height: 1.08;
+  font-size: 50px;
+  font-weight: 700;
+  line-height: 1.1;
   letter-spacing: -0.025em;
   margin: 0;
-  color: #fafafa;
+  color: #ffffff;
 }
 
 .og-description {
-  font-size: 28px;
+  font-size: 23px;
   line-height: 1.45;
-  margin: 20px 0 0;
-  color: rgba(250, 250, 250, 0.9);
+  margin: 14px 0 0;
+  color: rgba(244, 244, 245, 0.85);
 }
 
-.og-separator {
-  width: 100%;
-  height: 1px;
-  margin-top: 32px;
-  background: linear-gradient(90deg, transparent, rgba(255, 127, 4, 0.4), transparent);
+.og-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.og-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(24, 24, 27, 0.85);
+  border: 1px solid rgba(255, 127, 4, 0.2);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 500;
+  color: #f4f4f5;
+}
+
+.og-chip-icon {
+  font-size: 15px;
 }
 
 .og-footer {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  margin-top: auto;
-  padding-top: 24px;
+  align-items: center;
+  border-top: 1px solid rgba(255, 127, 4, 0.16);
+  padding-top: 18px;
+  margin-top: 16px;
 }
 
 .og-logo {
-  height: 60px;
-  width: 150px;
+  height: 48px;
+  width: 125px;
+}
+
+.og-url-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.og-url {
+  font-size: 17px;
+  font-weight: 500;
+  color: rgba(244, 244, 245, 0.8);
+}
+
+.og-cursor {
+  font-size: 17px;
+  font-weight: 700;
+  color: #ff7f04;
 }

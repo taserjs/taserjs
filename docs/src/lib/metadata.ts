@@ -4,6 +4,8 @@ export const siteConfig = {
   name: "Taser",
   url: "https://taserjs.dev",
   locale: "en_US",
+  twitterSite: "@taserjs",
+  twitterCreator: "@KaziAhmedDev",
 } as const;
 
 const OG_IMAGE_WIDTH = 1200;
@@ -14,6 +16,7 @@ export const defaultOgImage = {
   alt: "Taser: Type-Safe File-Based Routing for REST APIs",
   width: OG_IMAGE_WIDTH,
   height: OG_IMAGE_HEIGHT,
+  type: "image/webp",
 } as const;
 
 export function createPageMetadata(opts: {
@@ -28,15 +31,17 @@ export function createPageMetadata(opts: {
   const canonical = new URL(opts.path, siteConfig.url).toString();
   const ogTitle = opts.openGraphTitle ?? opts.title;
   const ogDescription = opts.openGraphDescription ?? opts.description;
+  const fullImageUrl = opts.image.startsWith("http")
+    ? opts.image
+    : new URL(opts.image, siteConfig.url).toString();
 
-  const images = [
-    {
-      url: opts.image,
-      width: OG_IMAGE_WIDTH,
-      height: OG_IMAGE_HEIGHT,
-      alt: opts.imageAlt,
-    },
-  ];
+  const image = {
+    url: fullImageUrl,
+    width: OG_IMAGE_WIDTH,
+    height: OG_IMAGE_HEIGHT,
+    alt: opts.imageAlt,
+    type: "image/webp",
+  };
 
   return {
     title: opts.title,
@@ -51,13 +56,15 @@ export function createPageMetadata(opts: {
       type: "website",
       siteName: siteConfig.name,
       locale: siteConfig.locale,
-      images,
+      images: [image],
     },
     twitter: {
       card: "summary_large_image",
+      site: siteConfig.twitterSite,
+      creator: siteConfig.twitterCreator,
       title: ogTitle,
       description: ogDescription,
-      images: [opts.image],
+      images: [image],
     },
   };
 }
@@ -186,15 +193,18 @@ export function createDocsPageMetadata(opts: {
   image: string;
 }): Metadata {
   const pageTitle = `${opts.title} | Taser Docs`;
+  const path = opts.slugKey ? `/docs/${opts.slugKey}` : "/docs";
+  const ogDesc = docsOpenGraphDescriptions[opts.slugKey] || opts.description;
+  const imgAlt = docsImageAlts[opts.slugKey] || `Taser Docs: ${opts.title}`;
 
   return createPageMetadata({
     title: pageTitle,
     description: opts.description,
     openGraphTitle: pageTitle,
-    openGraphDescription: docsOpenGraphDescriptions[opts.slugKey] ?? opts.description,
-    path: opts.slugKey ? `/docs/${opts.slugKey}` : "/docs",
+    openGraphDescription: ogDesc,
+    path,
     image: opts.image,
-    imageAlt: docsImageAlts[opts.slugKey] ?? `Taser Docs | ${opts.title}`,
+    imageAlt: imgAlt,
   });
 }
 
@@ -204,11 +214,33 @@ export const rootMetadata: Metadata = {
   icons: {
     icon: [
       {
+        url: "/favicon.ico",
+        sizes: "32x32",
+      },
+      {
         url: "/favicon.svg",
         type: "image/svg+xml",
       },
+      {
+        url: "/favicon-16x16.png",
+        sizes: "16x16",
+        type: "image/png",
+      },
+      {
+        url: "/favicon-32x32.png",
+        sizes: "32x32",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
     ],
   },
+  manifest: "/site.webmanifest",
   robots: {
     index: true,
     follow: true,
@@ -221,5 +253,8 @@ export const rootMetadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
+    site: siteConfig.twitterSite,
+    creator: siteConfig.twitterCreator,
+    images: [defaultOgImage],
   },
 };

@@ -1,15 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
   <defs>
-    <radialGradient id="g1" cx="50%" cy="40%" r="50%">
-      <stop offset="0%" stop-color="#ff7f04" stop-opacity="0.45"/>
-      <stop offset="55%" stop-color="#feca57" stop-opacity="0.18"/>
+    <radialGradient id="g1" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#ff7f04" stop-opacity="0.32"/>
+      <stop offset="50%" stop-color="#feca57" stop-opacity="0.10"/>
       <stop offset="100%" stop-color="#ff7f04" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="g2" cx="70%" cy="65%" r="40%">
-      <stop offset="0%" stop-color="#feca57" stop-opacity="0.28"/>
-      <stop offset="100%" stop-color="#feca57" stop-opacity="0"/>
+    <radialGradient id="g2" cx="85%" cy="80%" r="45%">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
     </radialGradient>
+    <pattern id="techGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255, 127, 4, 0.08)" stroke-width="1"/>
+    </pattern>
   </defs>
-  <ellipse cx="400" cy="240" rx="320" ry="220" fill="url(#g1)"/>
-  <ellipse cx="520" cy="360" rx="220" ry="160" fill="url(#g2)"/>
+  <rect width="1200" height="630" fill="url(#techGrid)"/>
+  <ellipse cx="600" cy="240" rx="480" ry="260" fill="url(#g1)"/>
+  <ellipse cx="960" cy="460" rx="300" ry="200" fill="url(#g2)"/>
 </svg>
