@@ -42,6 +42,7 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
+    "@taserjs/router-utils": "workspace:*",
     "@typescript-eslint/types": "^8.56.1",
     "chokidar": "^5.0.0",
     "esrap": "^2.2.2",

@@ -1,6 +1,8 @@
 import type { HTTP_VERBS } from "./constants.js";
 import type { ExtensionOption, FormattingOptions, TaserConfig } from "./config.js";
+import type { HttpMethod } from "@taserjs/router-utils/http";
 
+export type { HttpMethod };
 export type HttpVerb = (typeof HTTP_VERBS)[number];
 export type RouteFileMethod = HttpVerb | "ANY" | "ALL";
 

@@ -1,4 +1,4 @@
-export const HTTP_VERBS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"] as const;
+export { HTTP_VERBS, HTTP_METHODS } from "@taserjs/router-utils/http";
 
 export const ROUTE_VERB_PATTERN = /\.(get|post|put|delete|patch|options|head|any|all)\.ts$/i;
 

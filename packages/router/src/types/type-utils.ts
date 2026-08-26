@@ -1,7 +1,8 @@
 import type { TaserCookieJar, TaserHeaders } from "@taserjs/router-core";
+import type { HttpMethod, HttpVerb } from "@taserjs/router-utils/http";
 
-export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";
-export type HttpMethod = Method;
+export type Method = HttpMethod;
+export type { HttpMethod, HttpVerb };
 
 export type MiddlewareFieldName = "query" | "params" | "body" | "state";
 

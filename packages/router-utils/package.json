@@ -48,6 +48,16 @@
         "default": "./dist/cjs/stream.cjs"
       }
     },
+    "./http": {
+      "import": {
+        "types": "./dist/esm/http.d.ts",
+        "default": "./dist/esm/http.js"
+      },
+      "require": {
+        "types": "./dist/cjs/http.d.cts",
+        "default": "./dist/cjs/http.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {

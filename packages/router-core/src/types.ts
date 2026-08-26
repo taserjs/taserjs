@@ -2,7 +2,9 @@ import type { ResponseValidationFailureHandler } from "@taserjs/router-utils";
 import type { CookieRuntimeConfig, TaserCookieJar } from "./cookies/taser-cookies.js";
 import type { TaserHeaders } from "./headers/taser-headers.js";
 
-export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";
+import type { HttpMethod, HttpVerb } from "@taserjs/router-utils/http";
+
+export type { HttpMethod, HttpVerb };
 
 export type Awaitable<T> = T | PromiseLike<T>;
 

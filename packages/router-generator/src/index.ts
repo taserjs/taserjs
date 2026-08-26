@@ -6,6 +6,7 @@ export {
   DEFAULT_IGNORE,
   DEFAULT_MANIFEST_HEADER,
   HTTP_VERBS,
+  HTTP_METHODS,
   ROUTE_VERB_PATTERN,
 } from "./constants.js";
 
@@ -29,6 +30,7 @@ export type {
   LayoutFile,
   ScanResult,
   HttpVerb,
+  HttpMethod,
   RouteFileMethod,
 } from "./types.js";
 
