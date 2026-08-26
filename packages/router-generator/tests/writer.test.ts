@@ -42,13 +42,19 @@ export const Route = t.get("/").handler(() => undefined);
     return { rootDir: testDir, routesDir, ...(state ? { state } : {}) };
   }
 
-  it("writes ambient routes.d.ts to .taser/types", async () => {
+  it("writes ambient routes.d.ts and virtual.d.ts to .taser/types", async () => {
     const written = await writeTaserTypes(await buildModel(), options());
     expect(written).toBe(true);
 
-    const generated = await fsp.readFile(join(testDir, ".taser", "types", "routes.d.ts"), "utf8");
-    expect(generated).toContain("declare module");
-    expect(generated).toContain("RouterRegister");
+    const routesDts = await fsp.readFile(join(testDir, ".taser", "types", "routes.d.ts"), "utf8");
+    expect(routesDts).toContain("declare module");
+    expect(routesDts).toContain("RouterRegister");
+    expect(routesDts).toContain("RouteManifest");
+
+    const virtualDts = await fsp.readFile(join(testDir, ".taser", "types", "virtual.d.ts"), "utf8");
+    expect(virtualDts).toContain('declare module "#taserjs/virtual/manifest"');
+    expect(virtualDts).toContain('declare module "#taserjs/virtual/entry"');
+    expect(virtualDts).toContain("app: TaserApp<RouteManifest>");
   });
 
   it("deduplicates writes within the state bag", async () => {

@@ -69,13 +69,17 @@ export const Route = t.get("/").handler(() => undefined);
     expect(absoluteImportSpecs(app)).toEqual([]);
   });
 
-  it("ambient d.ts rebases import specifiers onto typesDir-relative paths", async () => {
+  it("ambient d.ts rebases import specifiers onto typesDir-relative paths and emits virtual.d.ts", async () => {
     const ctx = createTaserVirtualContext({ rootDir: testDir });
     await ctx.writeTypes();
-    const dts = await fsp.readFile(join(testDir, ".taser/types/routes.d.ts"), "utf8");
+    const routesDts = await fsp.readFile(join(testDir, ".taser/types/routes.d.ts"), "utf8");
     // .taser/types → <root>/routes is ../../routes
-    expect(dts).toContain('from "../../routes/index.get');
-    expect(dts).not.toContain(testDir);
-    expect(dts).not.toContain("#taserjs/");
+    expect(routesDts).toContain('from "../../routes/index.get');
+    expect(routesDts).not.toContain("#taserjs/routes");
+    expect(routesDts).not.toContain(testDir);
+
+    const virtualDts = await fsp.readFile(join(testDir, ".taser/types/virtual.d.ts"), "utf8");
+    expect(virtualDts).toContain('declare module "#taserjs/virtual/manifest"');
+    expect(virtualDts).toContain('declare module "#taserjs/virtual/entry"');
   });
 });

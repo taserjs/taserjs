@@ -5,6 +5,18 @@ export {
   DEFAULT_SERVER_ENTRY,
   DEFAULT_IGNORE,
   DEFAULT_MANIFEST_HEADER,
+  DEFAULT_GENERATED_TYPES_DIR,
+  DEFAULT_ROUTES_TYPES_FILENAME,
+  DEFAULT_VIRTUAL_TYPES_FILENAME,
+  ROUTES_ALIAS_ID,
+  ENTRY_ALIAS_ID,
+  SERVER_ENTRY_ALIAS_ID,
+  VIRTUAL_MANIFEST_ID,
+  RESOLVED_VIRTUAL_MANIFEST_ID,
+  VIRTUAL_ENTRY_ID,
+  RESOLVED_VIRTUAL_ENTRY_ID,
+  VIRTUAL_APP_ID,
+  RESOLVED_VIRTUAL_APP_ID,
   HTTP_VERBS,
   HTTP_METHODS,
   ROUTE_VERB_PATTERN,
@@ -116,5 +128,10 @@ export {
 } from "./codegen/types.js";
 
 export { emitVirtualEntrySource, type EmitVirtualEntryOptions } from "./codegen/entry.js";
+
+export {
+  emitVirtualDeclarationsSource,
+  type EmitVirtualDeclarationsOptions,
+} from "./codegen/virtual.js";
 
 export { writeTaserTypes, type TypeWriterState, type WriteTypesOptions } from "./codegen/writer.js";

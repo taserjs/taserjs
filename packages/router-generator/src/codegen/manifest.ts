@@ -21,12 +21,12 @@ function asNode<T extends TSESTree.Node>(node: Omit<T, NodeFields>): T {
 
 export type EmitManifestOptions = {
   quotes?: "single" | "double" | undefined;
-  header?: string[] | undefined;
+  header?: readonly string[] | undefined;
   rewriteImportPath?: ((spec: string) => string) | undefined;
 };
 
 export function joinManifestSections(
-  header?: string[] | undefined,
+  header?: readonly string[] | undefined,
   body?: string | undefined,
 ): string {
   const sections = [...(header ?? []), body ?? ""].filter((section) => section.length > 0);
