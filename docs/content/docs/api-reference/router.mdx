@@ -241,7 +241,8 @@ function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit
       type: "(schema: Schema) => RouteBuilder",
     },
     body: {
-      description: "Attaches a validation schema for the request payload (JSON by default, or with explicit mode: 'json' | 'form' | 'text' | 'raw').",
+      description:
+        "Attaches a validation schema for the request payload (JSON by default, or with explicit mode: 'json' | 'form' | 'text' | 'raw').",
       type: "(schema: Schema) => RouteBuilder | (mode: BodyMode, schema: Schema) => RouteBuilder",
     },
     returns: {

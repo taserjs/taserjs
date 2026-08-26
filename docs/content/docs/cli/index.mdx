@@ -18,26 +18,10 @@ The `@taserjs/router-cli` package provides command-line utilities to generate am
 `@taserjs/router-cli` is typically installed as a development dependency:
 
 <Tabs items={["pnpm", "npm", "yarn", "bun"]}>
-  <Tab value="pnpm">
-    ```bash
-    pnpm add -D @taserjs/router-cli
-    ```
-  </Tab>
-  <Tab value="npm">
-    ```bash
-    npm install -D @taserjs/router-cli
-    ```
-  </Tab>
-  <Tab value="yarn">
-    ```bash
-    yarn add -D @taserjs/router-cli
-    ```
-  </Tab>
-  <Tab value="bun">
-    ```bash
-    bun add -D @taserjs/router-cli
-    ```
-  </Tab>
+  <Tab value="pnpm">```bash pnpm add -D @taserjs/router-cli ```</Tab>
+  <Tab value="npm">```bash npm install -D @taserjs/router-cli ```</Tab>
+  <Tab value="yarn">```bash yarn add -D @taserjs/router-cli ```</Tab>
+  <Tab value="bun">```bash bun add -D @taserjs/router-cli ```</Tab>
 </Tabs>
 
 ---
@@ -73,6 +57,7 @@ npx taser generate [options]
 
 1. **Config Resolution**: Automatically reads your `vite.config.ts` or `nitro.config.ts` using `jiti` to determine your routes directory, server directory, and alias paths.
 2. **Automatic Route Scaffolding**: If any new route or layout file is empty (such as after `touch src/routes/admin/users.get.ts`), the CLI automatically populates it with starter boilerplate:
+
    ```ts title="src/routes/admin/users.get.ts"
    import { json } from "@taserjs/router/reply";
    import { t } from "#taserjs/router";
@@ -84,6 +69,7 @@ npx taser generate [options]
      return json({ ok: true });
    });
    ```
+
 3. **Ambient Type Generation**: Emits `.taser/types/routes.d.ts` containing the global router type and route definitions, enabling full IDE autocomplete even when the Vite dev server is not active.
 
 ---
