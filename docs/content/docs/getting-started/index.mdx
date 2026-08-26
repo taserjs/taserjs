@@ -8,6 +8,7 @@ import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
+import { Files, Folder, File } from "@/components/files";
 
 The quickest way to get started with Taser is using the official `create-taserjs` scaffolding tool. It generates a pre-configured, production-ready project with TypeScript, hot-reloading, route watching, and your choice of tools.
 
@@ -31,25 +32,25 @@ Before creating a project, make sure your development environment meets these re
 
     Run the interactive initializer in your terminal:
 
-    <Tabs items={["npm", "pnpm", "yarn", "bun"]}>
-      <Tab value="npm">
-        ```bash
-        npm create taserjs@latest
-        ```
-      </Tab>
+    <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
       <Tab value="pnpm">
         ```bash
         pnpm create taserjs@latest
         ```
       </Tab>
-      <Tab value="yarn">
+      <Tab value="npm">
         ```bash
-        yarn create taserjs
+        npm create taserjs@latest
         ```
       </Tab>
       <Tab value="bun">
         ```bash
         bun create taserjs@latest
+        ```
+      </Tab>
+      <Tab value="yarn">
+        ```bash
+        yarn create taserjs
         ```
       </Tab>
     </Tabs>
@@ -64,7 +65,7 @@ Before creating a project, make sure your development environment meets these re
     1. **Project Name**: Enter a directory name (for example, `my-taser-api`).
     2. **Host Framework**:
        - **None (Standalone)**: Pure Taser with high-performance virtual routing and zero host overhead.
-       - **Hono**: Lightweight, ultra-fast web standard framework for Node and edge.
+       - **Hono / Fetch-Native**: Lightweight web standard framework for Node, Bun, Deno, and edge runtimes.
        - **Express**: Battle-tested Node.js web framework with pass-through routing.
        - **Fastify**: High-throughput Node.js framework with pass-through routing.
     3. **Deployment Target / Preset**:
@@ -94,14 +95,7 @@ Before creating a project, make sure your development environment meets these re
 
     Navigate to your new project directory, install dependencies, and start the development server:
 
-    <Tabs items={["npm", "pnpm", "yarn", "bun"]}>
-      <Tab value="npm">
-        ```bash
-        cd my-taser-api
-        npm install
-        npm run dev
-        ```
-      </Tab>
+    <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
       <Tab value="pnpm">
         ```bash
         cd my-taser-api
@@ -109,11 +103,11 @@ Before creating a project, make sure your development environment meets these re
         pnpm dev
         ```
       </Tab>
-      <Tab value="yarn">
+      <Tab value="npm">
         ```bash
         cd my-taser-api
-        yarn install
-        yarn dev
+        npm install
+        npm run dev
         ```
       </Tab>
       <Tab value="bun">
@@ -121,6 +115,13 @@ Before creating a project, make sure your development environment meets these re
         cd my-taser-api
         bun install
         bun dev
+        ```
+      </Tab>
+      <Tab value="yarn">
+        ```bash
+        cd my-taser-api
+        yarn install
+        yarn dev
         ```
       </Tab>
     </Tabs>
@@ -136,21 +137,26 @@ Before creating a project, make sure your development environment meets these re
 
 A freshly scaffolded Taser project contains a clean, modern layout:
 
-```
-my-taser-api/
-├── package.json
-├── tsconfig.json
-├── vite.config.ts             # Vite configuration with @taserjs/router-plugin
-├── nitro.config.ts            # Nitro deployment presets and server config
-├── src/
-│   ├── taser.ts               # App router instance and error boundaries
-│   ├── context.ts             # App context (boot singletons and request state)
-│   ├── server.ts              # Optional host framework entry (Hono/Express/Fastify)
-│   └── routes/                # File-based routes directory
-│       ├── $.ts               # Root layout middleware (global CORS/security)
-│       └── index.get.ts       # GET / endpoint handler
-└── .taser/                    # Generated ambient types and build artifacts (gitignored)
-```
+<Files>
+  <Folder name="my-taser-api" defaultOpen>
+    <File name="package.json" />
+    <File name="tsconfig.json" />
+    <File name="vite.config.ts" />
+    <File name="nitro.config.ts" />
+    <Folder name="src" defaultOpen>
+      <File name="taser.ts" />
+      <File name="context.ts" />
+      <File name="server.ts" />
+      <Folder name="routes" defaultOpen>
+        <File name="$.ts" />
+        <File name="index.get.ts" />
+      </Folder>
+    </Folder>
+    <Folder name=".taser">
+      <File name="types/routes.d.ts" />
+    </Folder>
+  </Folder>
+</Files>
 
 ### Key Files Explained
 

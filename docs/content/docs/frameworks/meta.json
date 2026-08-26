@@ -1,4 +1,5 @@
 {
-  "title": "Frameworks & Host Apps",
-  "pages": ["standalone", "hono", "express", "fastify"]
+  "title": "Framework Adapters",
+  "defaultOpen": true,
+  "pages": ["standalone", "fetch-native", "express", "fastify"]
 }

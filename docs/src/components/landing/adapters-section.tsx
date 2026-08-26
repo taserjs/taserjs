@@ -56,11 +56,11 @@ const integrations: {
     href: "/docs/frameworks/standalone",
   },
   {
-    name: "Hono",
-    description: "Host pass-through and reusable Hono middleware.",
+    name: "Web Standard Hosts",
+    description: "Pass-through for Hono, Elysia, HatTip, and Web Fetch.",
     icon: <Globe />,
     iconTone: "emerald",
-    href: "/docs/frameworks/hono",
+    href: "/docs/frameworks/fetch-native",
   },
   {
     name: "Express",
@@ -138,7 +138,7 @@ export function AdaptersSection() {
               Framework Agnostic. <SectionAccent>Runtime Universal</SectionAccent>.
             </>
           }
-          description="Build standalone APIs with Vite and Nitro, embed inside Next.js, or layer onto Express, Hono, and Fastify without rewriting a single handler."
+          description="Build standalone APIs with Vite and Nitro, embed inside Next.js, or layer onto Express, Fastify, and Web Standard hosts without rewriting a single handler."
         />
 
         <div className="landing-animate-in landing-delay-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

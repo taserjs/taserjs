@@ -48,13 +48,11 @@ app.post("/private", validateBody(schema), (req, res) => {
     solutionBadge: "100% Inferred Context",
     solutionFilename: "routes/admin.ts + routes/admin/reports.post.ts",
     solutionCode: `// Middleware validates and passes state to next()
-export const Middleware = t.middleware('admin').use({
-  query: z.object({ token: z.string() }),
-  handler: async (ctx, next) => {
-    const user = await getUser(ctx.query.token);
-    if (!user) throw reply.unauthorized();
-    return next({ user });
-  }
+export const Middleware = t.middleware("/admin/$").use(async (ctx, next) => {
+  const token = ctx.headers.get("authorization");
+  const user = await verifyUser(token);
+  if (!user) throw new Error("Unauthorized");
+  return next({ user }); // Merges into ctx.state
 });
 
 // Handler receives fully-inferred ctx automatically
@@ -63,7 +61,7 @@ const POST = t.post("/admin/reports").body(ReportInputSchema);
 export const Route = POST.handler(async (ctx) => {
   const user = ctx.state.user; // ✓ Inferred User from next({ user })
   const body = ctx.body;       // ✓ Inferred ReportInput
-  const token = ctx.query.token; // ✓ Inferred from middleware!
+  return json({ created: true, by: user.id });
 });`,
     takeaway:
       "In Taser, middleware return state flows directly into ctx.state with zero typecasting or Express global interface hacks.",
@@ -158,17 +156,18 @@ const data = await res.json();
     solutionBadge: "Auto-Completed SDK",
     solutionFilename: "frontend/client.ts",
     solutionCode: `import { createClient } from "@taserjs/router-client";
-import type { TaserAppRouter } from "../backend/server";
 
-const api = createClient<TaserAppRouter>({ baseUrl: "https://api.example.com" });
+// Types detected automatically from ambient routes
+const api = createClient({ baseUrl: "https://api.example.com" });
 
-// ✓ Full autocomplete for routes, query, body, and response:
+// ✓ Full autocomplete for routes, query, params, and response:
 const res = await api.admin.reports.$get({
-  query: { token: "xyz", limit: 10 },
+  query: { limit: 10 },
 });
+
 if (res.status === 200) {
   const data = await res.json();
-  // ✓ data.reports is 100% typed!
+  // ✓ data.reports is 100% typed with zero manual casting!
 }`,
     takeaway:
       "Export your router types and call your backend with an auto-generated client that guarantees 1:1 parity with your server.",

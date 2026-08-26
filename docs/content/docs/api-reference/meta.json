@@ -1,4 +1,5 @@
 {
   "title": "API Reference",
+  "defaultOpen": true,
   "pages": ["router", "router-plugin", "router-client", "router-cli"]
 }

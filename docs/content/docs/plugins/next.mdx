@@ -18,16 +18,30 @@ The `@taserjs/router-plugin/next` package integrates Taser into Next.js App Rout
 
 Install the required packages:
 
-<Tabs items={["pnpm", "npm", "bun", "yarn"]}>
+<Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
-    ```bash pnpm add @taserjs/router zod pnpm add -D @taserjs/router-plugin ```
+    ```bash
+    pnpm add @taserjs/router zod
+    pnpm add -D @taserjs/router-plugin
+    ```
   </Tab>
   <Tab value="npm">
-    ```bash npm install @taserjs/router zod npm install -D @taserjs/router-plugin ```
+    ```bash
+    npm install @taserjs/router zod
+    npm install -D @taserjs/router-plugin
+    ```
   </Tab>
-  <Tab value="bun">```bash bun add @taserjs/router zod bun add -d @taserjs/router-plugin ```</Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @taserjs/router zod
+    bun add -d @taserjs/router-plugin
+    ```
+  </Tab>
   <Tab value="yarn">
-    ```bash yarn add @taserjs/router zod yarn add -D @taserjs/router-plugin ```
+    ```bash
+    yarn add @taserjs/router zod
+    yarn add -D @taserjs/router-plugin
+    ```
   </Tab>
 </Tabs>
 
@@ -203,6 +217,55 @@ const withTaser = createTaser({
     },
   }}
 />
+
+---
+
+## Architecture: React Server Components (RSC) vs Taser API
+
+When pairing Taser with Next.js App Router, understanding the division of responsibilities ensures clean system design:
+
+| Responsibility | Next.js App Router (RSC & Pages) | Taser Subsystem (`src/routes/`) |
+| :--- | :--- | :--- |
+| **Primary Focus** | Server-rendered UI, HTML streaming, metadata, layout composition | Structured REST API, JSON endpoints, binary streams, webhooks |
+| **Execution Context** | React Server Components & Client Components (`app/**/*.tsx`) | Type-safe route handlers (`src/routes/**/*.ts`) |
+| **Consumers** | Web browser page visits | Mobile apps, SPA client hooks, webhooks, external developer APIs |
+| **State & Middleware** | Next.js Edge middleware (`middleware.ts`) | Directory layout middleware pipelines (`src/routes/$.ts`) |
+| **Validation** | Manual or form-action validation | Standard Schema validation (Zod, ArkType, Valibot) |
+| **Response Safety** | React component props | Compile-time `.returns()` contracts & status discriminated unions |
+
+### Calling Taser Endpoints from React Server Components
+
+You can consume your Taser endpoints inside Next.js Server Components with complete type safety using `@taserjs/router-client`:
+
+```tsx title="app/dashboard/page.tsx"
+import { api } from "@/lib/api";
+
+export default async function DashboardPage() {
+  // Direct type-safe server fetch to Taser API
+  const res = await api.users.$get({
+    query: { limit: 20 },
+  });
+
+  if (res.status !== 200) {
+    return <div>Failed to load users.</div>;
+  }
+
+  const { users } = await res.json();
+
+  return (
+    <main className="p-8">
+      <h1 className="text-2xl font-bold">User Directory</h1>
+      <ul className="mt-4 space-y-2">
+        {users.map((user) => (
+          <li key={user.id} className="rounded border p-3">
+            {user.name}
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
+}
+```
 
 ---
 

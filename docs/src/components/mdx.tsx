@@ -6,6 +6,7 @@ import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { TypeTable } from "./type-table";
 import { File, Files, Folder } from "./files";
+import { RequestFlowDiagram } from "./diagrams/request-flow";
 import type { MDXComponents } from "mdx/types";
 
 export function getMDXComponents(components?: MDXComponents) {
@@ -24,6 +25,7 @@ export function getMDXComponents(components?: MDXComponents) {
     File,
     Files,
     Folder,
+    RequestFlowDiagram,
     ...components,
   } satisfies MDXComponents;
 }

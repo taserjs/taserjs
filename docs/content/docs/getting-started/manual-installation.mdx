@@ -1,6 +1,6 @@
 ---
 title: Manual Installation
-description: Step-by-step guide to installing and configuring Taser manually for Standalone Vite, Vite + Nitro, Next.js, or Host Framework setups.
+description: Step-by-step guide to installing and configuring Taser manually with Vite, Nitro deployment presets, Next.js, and host pass-through dispatching.
 icon: Wrench
 ---
 
@@ -9,28 +9,23 @@ import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-If you have an existing project or prefer setting up dependencies manually without the `create-taserjs` wizard, this guide provides complete step-by-step instructions.
+If you have an existing project or prefer configuring dependencies manually without the `create-taserjs` wizard, this guide provides complete step-by-step instructions.
 
-You can configure Taser in four ways:
-
-1. **Vite Native Backend**: Standalone, lightweight server powered directly by Vite and `@taserjs/router-plugin/vite`.
-2. **Vite + Nitro**: Multi-cloud deployments targeting Cloudflare Workers, Vercel, AWS Lambda, and Node servers via Nitro presets.
-3. **Next.js App Router**: Embedded type-safe API router mounted inside Next.js.
-4. **Host Framework Pass-Through**: Layering Taser file routes on top of an existing Express, Fastify, or Hono server.
+Taser is **Vite-native** by design. You can run Taser as a standalone server, pair it with **Nitro** for multi-cloud deployment presets, embed it inside **Next.js**, or enable **Host Pass-Through** to dispatch alongside existing frameworks.
 
 ---
 
-## Setup 1: Vite Native Backend (Standalone)
+## 1. Core Installation (Vite-Native Backend)
 
-Standalone mode leverages Vite for local development with instant Hot Module Replacement (HMR) and compiles an optimized production server bundle to `dist/`.
+At its foundation, Taser operates as a Vite compiler plugin (`@taserjs/router-plugin/vite`). It turns your `src/routes/` directory into virtual modules with instant Hot Module Replacement (HMR) and ambient TypeScript generation.
 
 <Steps>
   <Step>
-    ### 1. Install Dependencies
+    ### Install Core Dependencies
 
-    Install `@taserjs/router`, `@taserjs/router-plugin`, `vite`, `srvx`, and your schema validator:
+    Install `@taserjs/router`, `@taserjs/router-plugin`, `vite`, `srvx`, and your preferred schema validator (such as `zod`):
 
-    <Tabs items={["pnpm", "npm", "bun", "yarn"]}>
+    <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
       <Tab value="pnpm">
         ```bash
         pnpm add @taserjs/router zod
@@ -60,9 +55,9 @@ Standalone mode leverages Vite for local development with instant Hot Module Rep
   </Step>
 
   <Step>
-    ### 2. Configure `package.json`
+    ### Configure `package.json`
 
-    Configure the `#taserjs/router` subpath import and Vite lifecycle scripts:
+    Configure the `#taserjs/router` subpath import and lifecycle scripts:
 
     ```json title="package.json"
     {
@@ -83,9 +78,9 @@ Standalone mode leverages Vite for local development with instant Hot Module Rep
   </Step>
 
   <Step>
-    ### 3. Configure TypeScript (`tsconfig.json`)
+    ### Configure TypeScript (`tsconfig.json`)
 
-    Include the `.taser/types/**/*.d.ts` directory to enable ambient route typing:
+    Include the `.taser/types/**/*.d.ts` directory so your editor receives ambient route autocomplete:
 
     ```json title="tsconfig.json"
     {
@@ -108,9 +103,9 @@ Standalone mode leverages Vite for local development with instant Hot Module Rep
   </Step>
 
   <Step>
-    ### 4. Create `vite.config.ts`
+    ### Configure `vite.config.ts`
 
-    Attach the `taser()` plugin to your Vite config:
+    Attach the `taser()` plugin to your Vite configuration:
 
     ```ts title="vite.config.ts"
     import { defineConfig } from "vite";
@@ -124,9 +119,9 @@ Standalone mode leverages Vite for local development with instant Hot Module Rep
   </Step>
 
   <Step>
-    ### 5. Create Router Instance and Context
+    ### Create Router Instance & Context
 
-    Create `src/context.ts`:
+    Create `src/context.ts` for boot singletons and request-scoped state:
 
     ```ts title="src/context.ts"
     import { createContext } from "@taserjs/router";
@@ -141,7 +136,7 @@ Standalone mode leverages Vite for local development with instant Hot Module Rep
     });
     ```
 
-    Create `src/taser.ts`:
+    Create `src/taser.ts` for your app router:
 
     ```ts title="src/taser.ts"
     import { createTaserApp } from "@taserjs/router";
@@ -155,7 +150,7 @@ Standalone mode leverages Vite for local development with instant Hot Module Rep
   </Step>
 
   <Step>
-    ### 6. Create Your First Route
+    ### Add Your First Route
 
     Create `src/routes/index.get.ts`:
 
@@ -171,17 +166,10 @@ Standalone mode leverages Vite for local development with instant Hot Module Rep
     });
     ```
 
-    Start the development server:
+    Start the Vite development server:
 
     ```bash
     pnpm dev
-    ```
-
-    To build and run in production:
-
-    ```bash
-    pnpm build
-    pnpm start
     ```
 
   </Step>
@@ -189,39 +177,33 @@ Standalone mode leverages Vite for local development with instant Hot Module Rep
 
 ---
 
-## Setup 2: Vite + Nitro (Multi-Cloud / Serverless Presets)
+## 2. Adding Nitro for Multi-Cloud Deployment Presets
 
-When you need to deploy your Taser API to Cloudflare Workers, Vercel, AWS Lambda, Netlify, or clustered Node environments, pair Vite with Nitro:
+**Nitro** acts as the production deployment platform for Taser. By adding `nitro()` to your `vite.config.ts`, you can compile your Vite-native Taser application to Cloudflare Workers, Vercel, AWS Lambda, Bun, Deno, Netlify, or containerized Node servers with zero code changes.
 
 <Steps>
   <Step>
-    ### 1. Install Dependencies
+    ### Install Nitro
 
-    Install `nitro` alongside the Taser packages:
-
-    <Tabs items={["pnpm", "npm", "bun", "yarn"]}>
+    <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
       <Tab value="pnpm">
         ```bash
-        pnpm add @taserjs/router zod
-        pnpm add -D @taserjs/router-plugin nitro vite
+        pnpm add -D nitro
         ```
       </Tab>
       <Tab value="npm">
         ```bash
-        npm install @taserjs/router zod
-        npm install -D @taserjs/router-plugin nitro vite
+        npm install -D nitro
         ```
       </Tab>
       <Tab value="bun">
         ```bash
-        bun add @taserjs/router zod
-        bun add -d @taserjs/router-plugin nitro vite
+        bun add -d nitro
         ```
       </Tab>
       <Tab value="yarn">
         ```bash
-        yarn add @taserjs/router zod
-        yarn add -D @taserjs/router-plugin nitro vite
+        yarn add -D nitro
         ```
       </Tab>
     </Tabs>
@@ -229,9 +211,9 @@ When you need to deploy your Taser API to Cloudflare Workers, Vercel, AWS Lambda
   </Step>
 
   <Step>
-    ### 2. Configure `vite.config.ts` and `nitro.config.ts`
+    ### Update `vite.config.ts` and Create `nitro.config.ts`
 
-    Add both `taser()` and `nitro()` plugins to `vite.config.ts`:
+    Chain `nitro()` alongside `taser()` in `vite.config.ts`:
 
     ```ts title="vite.config.ts"
     import { defineConfig } from "vite";
@@ -243,25 +225,25 @@ When you need to deploy your Taser API to Cloudflare Workers, Vercel, AWS Lambda
     });
     ```
 
-    Create `nitro.config.ts` to select your deployment target preset:
+    Create `nitro.config.ts` to declare your target platform preset:
 
     ```ts title="nitro.config.ts"
     import { defineConfig } from "nitro/config";
 
     export default defineConfig({
-      preset: "node-server", // or "cloudflare-module", "vercel", "aws-lambda", "bun", etc.
+      preset: "node-server", // or "cloudflare-module", "vercel", "aws-lambda", "bun", "deno-server"
     });
     ```
 
   </Step>
 
   <Step>
-    ### 3. Build & Run
+    ### Build and Run
 
     ```bash
-    pnpm dev                  # Runs development server with HMR
-    pnpm build                # Compiles output to .output/
-    node .output/server/index.mjs # Starts production server (node-server preset)
+    pnpm dev                      # Vite dev server with instant HMR
+    pnpm build                    # Compiles production bundle to .output/
+    node .output/server/index.mjs # Starts production server
     ```
 
   </Step>
@@ -269,48 +251,45 @@ When you need to deploy your Taser API to Cloudflare Workers, Vercel, AWS Lambda
 
 ---
 
-## Setup 3: Next.js App Router Integration
+## 3. Embedding Taser inside Next.js (App Router)
 
-To embed Taser within an existing Next.js 15+ application:
+To embed Taser's type-safe file routing inside an existing Next.js 15+ App Router project:
 
 <Steps>
   <Step>
-    ### 1. Install Dependencies
+    ### Install Dependencies
 
-    ```bash
-    pnpm add @taserjs/router zod
-    pnpm add -D @taserjs/router-plugin
-    ```
-
-  </Step>
-
-  <Step>
-    ### 2. Configure `package.json` & `tsconfig.json`
-
-    ```json title="package.json"
-    {
-      "imports": {
-        "#taserjs/router": "./src/taser.ts"
-      }
-    }
-    ```
-
-    ```json title="tsconfig.json"
-    {
-      "compilerOptions": {
-        "paths": {
-          "@/*": ["./src/*"],
-          "#taserjs/router": ["./src/taser.ts"]
-        }
-      },
-      "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".taser/types/**/*.d.ts"]
-    }
-    ```
+    <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
+      <Tab value="pnpm">
+        ```bash
+        pnpm add @taserjs/router zod
+        pnpm add -D @taserjs/router-plugin
+        ```
+      </Tab>
+      <Tab value="npm">
+        ```bash
+        npm install @taserjs/router zod
+        npm install -D @taserjs/router-plugin
+        ```
+      </Tab>
+      <Tab value="bun">
+        ```bash
+        bun add @taserjs/router zod
+        bun add -d @taserjs/router-plugin
+        ```
+      </Tab>
+      <Tab value="yarn">
+        ```bash
+        yarn add @taserjs/router zod
+        yarn add -D @taserjs/router-plugin
+        ```
+      </Tab>
+    </Tabs>
 
   </Step>
 
   <Step>
-    ### 3. Configure `next.config.ts`
+    ### Configure `next.config.ts`
 
     Wrap your Next.js configuration with `createTaser`:
 
@@ -319,11 +298,11 @@ To embed Taser within an existing Next.js 15+ application:
     import type { NextConfig } from "next";
 
     const withTaser = createTaser({
-      basePath: "/api", // Route requests under /api to Taser
+      basePath: "/api", // Mounts Taser routes under /api
     });
 
     const nextConfig: NextConfig = {
-      // standard Next.js options
+      reactStrictMode: true,
     };
 
     export default withTaser(nextConfig);
@@ -332,9 +311,9 @@ To embed Taser within an existing Next.js 15+ application:
   </Step>
 
   <Step>
-    ### 4. Create Catch-All Route Handler
+    ### Create Catch-All Route Handler
 
-    Create `app/api/[[...slug]]/route.ts` (or `src/app/api/[[...slug]]/route.ts`):
+    Create `app/api/[[...slug]]/route.ts` (or `src/app/api/[[...slug]]/route.ts`) to forward incoming API requests to Taser:
 
     ```ts title="app/api/[[...slug]]/route.ts"
     import { taserApp } from "../../.taser/app";
@@ -351,72 +330,57 @@ To embed Taser within an existing Next.js 15+ application:
     ```
 
   </Step>
-
-  <Step>
-    ### 5. Add Routes
-
-    Create `src/routes/users.get.ts`:
-
-    ```ts title="src/routes/users.get.ts"
-    import { json } from "@taserjs/router/reply";
-    import { t } from "#taserjs/router";
-
-    const GET = t.get("/users");
-
-    export const Route = GET.handler(() => {
-      return json({ users: [{ id: "1", name: "Alex" }] });
-    });
-    ```
-
-    Next.js will now dispatch `/api/users` through Taser with complete compile-time type safety!
-
-  </Step>
 </Steps>
 
 ---
 
-## Setup 4: Host Framework Pass-Through (Hono, Express, Fastify)
+## 4. Host Pass-Through (Coexisting with Existing Frameworks)
 
-If you have existing Express, Fastify, or Hono routes, you can layer Taser file routing cleanly on top of your host server without rewriting legacy handlers.
+<Callout type="info" title="Host Pass-Through is an Architectural Feature">
+  Host Pass-Through is not a separate setup mode. It is a dispatch mechanism that works seamlessly with **both Vite Standalone and Vite + Nitro**.
+</Callout>
 
-<Tabs items={["Hono", "Express", "Fastify"]}>
-  <Tab value="Hono">
-    Create `src/server.ts` exporting your Hono application:
+If you have existing controllers or routes in a Web Standard framework (Hono, Elysia, HatTip, or custom fetch handlers) or a Node.js framework (Express, Fastify), you can keep them running alongside Taser:
+
+1. **Taser First**: Inbound requests are checked against `src/routes/`.
+2. **Host Pass-Through**: If no Taser file route matches, the request falls through directly to your exported host application.
+3. **404 Handling**: If neither Taser nor the host handles the request, Taser returns a standard 404 response.
+
+<Tabs items={["Web Standard (Fetch-Native)", "Express (Node.js)", "Fastify (Node.js)"]}>
+  <Tab value="Web Standard (Fetch-Native)">
+    Create `src/server.ts` exporting your Fetch-native host app (e.g. Hono, Elysia, or custom fetch handler):
 
     ```ts title="src/server.ts"
     import { Hono } from "hono";
 
     const app = new Hono();
 
-    // Legacy Hono routes:
-    app.get("/legacy", (c) => c.text("Hello from Hono legacy endpoint!"));
+    // Legacy or host endpoints:
+    app.get("/host-status", (c) => c.json({ framework: "Hono", status: "online" }));
 
     export default app;
     ```
-
-    Taser dispatches matched file routes in `src/routes/` first. Any unmatched request seamlessly falls through to `app`.
-
   </Tab>
 
-  <Tab value="Express">
+  <Tab value="Express (Node.js)">
     Install `express` and `srvx`, then create `src/server.node.ts`:
 
     ```ts title="src/server.node.ts"
     import express from "express";
 
     const app = express();
+    app.use(express.json());
 
     // Legacy Express routes:
-    app.get("/legacy", (_req, res) => {
-      res.json({ message: "Hello from Express legacy endpoint!" });
+    app.get("/legacy-express", (_req, res) => {
+      res.json({ message: "Dispatched via Express host pass-through" });
     });
 
     export default app;
     ```
-
   </Tab>
 
-  <Tab value="Fastify">
+  <Tab value="Fastify (Node.js)">
     Install `fastify` and `srvx`, then create `src/server.node.ts`:
 
     ```ts title="src/server.node.ts"
@@ -425,15 +389,13 @@ If you have existing Express, Fastify, or Hono routes, you can layer Taser file 
     const app = Fastify();
 
     // Legacy Fastify routes:
-    app.get("/legacy", async () => {
-      return { message: "Hello from Fastify legacy endpoint!" };
+    app.get("/legacy-fastify", async () => {
+      return { message: "Dispatched via Fastify host pass-through" };
     });
 
     await app.ready();
-
     export default app.routing;
     ```
-
   </Tab>
 </Tabs>
 
@@ -448,13 +410,18 @@ If you have existing Express, Fastify, or Hono routes, you can layer Taser file 
     description="Learn how the Vite plugin manages virtual modules, HMR, and build outputs."
   />
   <Card
-    title="Next.js Integration"
-    href="/docs/plugins/next"
-    description="Deep dive into embedding Taser inside Next.js App Router."
-  />
-  <Card
     title="Deployment Presets"
     href="/docs/deployments/presets"
     description="Configure Nitro presets for Cloudflare, Vercel, Node, and AWS Lambda."
+  />
+  <Card
+    title="Framework Adapters"
+    href="/docs/frameworks/fetch-native"
+    description="Explore Web Standard, Express, and Fastify host pass-through dispatching."
+  />
+  <Card
+    title="Next.js Integration"
+    href="/docs/plugins/next"
+    description="Deep dive into embedding Taser inside Next.js App Router."
   />
 </Cards>

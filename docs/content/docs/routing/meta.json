@@ -1,5 +1,6 @@
 {
   "title": "Routing System",
+  "defaultOpen": true,
   "pages": [
     "file-conventions",
     "defining-routes",

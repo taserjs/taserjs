@@ -35,11 +35,11 @@ const ErrorSchema = z.object({
 
 export const Route = t
   .get("/profile")
-  .returns({
-    200: UserProfileSchema,
-    401: ErrorSchema,
-    404: ErrorSchema,
-  })
+  .returns({ // [!code highlight]
+    200: UserProfileSchema, // [!code highlight]
+    401: ErrorSchema, // [!code highlight]
+    404: ErrorSchema, // [!code highlight]
+  }) // [!code highlight]
   .handler(async (ctx) => {
     const user = await ctx.db.getCurrentUser(ctx.state.userId);
 
@@ -105,22 +105,108 @@ export const t = createTaserApp({
 
 ---
 
-## Automatic Client SDK Typing
+## Automatic Client SDK Typing & Discriminated Unions
 
-When you export your router type, the client SDK uses your `.returns()` map to provide status-discriminated unions:
+When you define `.returns()` on a route, `@taserjs/router-client` automatically compiles a **discriminated union type** keyed on `status`. This guarantees that your frontend code cannot access success fields on error responses or vice versa.
 
-```ts
-// In frontend client:
-const res = await api.profile.$get();
+### Status-Based Narrowing
 
-if (res.status === 200) {
-  const profile = await res.json();
-  // profile is typed as { id: string, username: string, email: string, avatarUrl: string | null }
-  console.log(profile.username);
-} else if (res.status === 404) {
-  const error = await res.json();
-  // error is typed as { message: string }
-  console.error(error.message);
+```ts title="src/components/user-profile.tsx"
+import { api } from "@/lib/api";
+
+export async function loadUserProfile(userId: string) {
+  const res = await api.users[":id"].$get({
+    params: { id: userId },
+  });
+
+  // TypeScript narrows res based on res.status:
+  if (res.status === 200) {
+    const profile = await res.json();
+    // ✅ Autocomplete available:
+    // profile: { id: string; username: string; email: string; avatarUrl: string | null }
+    console.log("Welcome back,", profile.username);
+    return profile;
+  }
+
+  if (res.status === 404) {
+    const error = await res.json();
+    // ✅ Autocomplete available:
+    // error: { message: string }
+    console.error("User missing:", error.message);
+    return null;
+  }
+
+  if (res.status === 401) {
+    // 🔒 Handled specifically for unauthenticated state
+    window.location.href = "/login";
+    return null;
+  }
+
+  // ❌ Compile-time error if attempting:
+  // profile.username without status check
+}
+```
+
+### Exhaustive Pattern Matching
+
+Using an exhaustive `switch` statement ensures every status code declared in `.returns()` is explicitly handled:
+
+```ts title="src/lib/fetcher.ts"
+import { api } from "@/lib/api";
+
+export async function fetchAccount() {
+  const res = await api.profile.$get();
+
+  switch (res.status) {
+    case 200: {
+      const data = await res.json();
+      return { success: true as const, data };
+    }
+    case 401: {
+      const err = await res.json();
+      return { success: false as const, error: "Unauthorized: " + err.message };
+    }
+    case 404: {
+      return { success: false as const, error: "Account not found" };
+    }
+    default: {
+      // TypeScript guarantees exhaustive coverage
+      const _exhaustiveCheck: never = res;
+      throw new Error(`Unhandled status code: ${_exhaustiveCheck}`);
+    }
+  }
+}
+```
+
+---
+
+## TanStack Query & React Integration
+
+Typed contracts pair seamlessly with data fetching libraries like `@tanstack/react-query`:
+
+```tsx title="src/hooks/use-profile.ts"
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+
+export function useProfile(userId: string) {
+  return useQuery({
+    queryKey: ["profile", userId],
+    queryFn: async () => {
+      const res = await api.users[":id"].$get({
+        params: { id: userId },
+      });
+
+      if (res.status === 200) {
+        return await res.json();
+      }
+
+      if (res.status === 404) {
+        throw new Error("Profile not found");
+      }
+
+      throw new Error(`Failed to fetch profile: status ${res.status}`);
+    },
+  });
 }
 ```
 

@@ -1,0 +1,168 @@
+---
+title: Native Fetch Frameworks
+description: Run Taser alongside any Web Standard or Fetch-native host framework (Hono, Elysia, HatTip, or native Web Fetch handlers) using host pass-through dispatching.
+icon: Zap
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+Taser is built entirely on Web Standard `Request` and `Response` interfaces. Using the **Host Pass-Through Architecture**, you can pair Taser's file-based routing and cascading type safety with **any Web Standard / Fetch-native framework** or existing fetch handler.
+
+---
+
+## Supported Fetch-Native Hosts
+
+Because Taser evaluates standard Web `Request` objects, any framework or library exposing a standard `.fetch(request)` interface or `{ fetch: (req: Request) => Response | Promise<Response> }` handler is supported out of the box:
+
+- **Hono**: Ultra-fast web standard framework for Node, Bun, Deno, and Cloudflare.
+- **Elysia**: Ergonomic, type-safe web framework for Bun.
+- **HatTip**: Minimalist set of modular web-standard packages.
+- **Itty Router**: Tiny router for JavaScript environments.
+- **Pure Web Standard Fetch**: Any plain function receiving `Request` and returning `Response`.
+
+---
+
+## How Host Pass-Through Works
+
+When an incoming HTTP request reaches your server:
+
+1. **Taser Route Check**: If the URL matches a file route in `src/routes/`, Taser dispatches the request with complete compile-time type safety.
+2. **Host App Pass-Through**: If no Taser route matches, the request falls through directly to your exported application in `src/server.ts`.
+3. **404 Not Found**: If neither Taser nor the host framework handles the request, Taser returns a standard 404 response.
+
+```
+[Incoming Request]
+       │
+       ▼
+[Taser File Routes] ── Match? ──► [Execute Taser Route Handler]
+       │ (No match)
+       ▼
+[Fetch Host App] ───── Match? ──► [Execute Host App (Hono / Elysia / Web Fetch)]
+       │ (No match)
+       ▼
+[404 Not Found]
+```
+
+---
+
+## Quickstart
+
+<Steps>
+  <Step>
+    ### 1. Configure `src/server.ts`
+
+    Create `src/server.ts` exporting your preferred Fetch-native application:
+
+    <Tabs items={["Hono", "Elysia", "Web Standard Fetch"]}>
+      <Tab value="Hono">
+        ```ts title="src/server.ts"
+        import { Hono } from "hono";
+
+        const app = new Hono();
+
+        // Existing or custom Hono endpoints:
+        app.get("/host-info", (c) => {
+          return c.json({ framework: "Hono", status: "online" });
+        });
+
+        export default app;
+        ```
+      </Tab>
+      <Tab value="Elysia">
+        ```ts title="src/server.ts"
+        import { Elysia } from "elysia";
+
+        const app = new Elysia();
+
+        // Existing or custom Elysia endpoints:
+        app.get("/host-info", () => ({ framework: "Elysia", status: "online" }));
+
+        export default app;
+        ```
+      </Tab>
+      <Tab value="Web Standard Fetch">
+        ```ts title="src/server.ts"
+        export default {
+          async fetch(request: Request): Promise<Response> {
+            const url = new URL(request.url);
+
+            if (url.pathname === "/host-info") {
+              return Response.json({ host: "Web Standard Fetch", status: "online" });
+            }
+
+            return new Response("Not Found", { status: 404 });
+          },
+        };
+        ```
+      </Tab>
+    </Tabs>
+
+  </Step>
+
+  <Step>
+    ### 2. Add Taser Routes
+
+    Create file-based routes inside `src/routes/`:
+
+    ```ts title="src/routes/users.get.ts"
+    import { json } from "@taserjs/router/reply";
+    import { t } from "#taserjs/router";
+
+    const GET = t.get("/users");
+
+    export const Route = GET.handler(() => {
+      return json({ users: ["Alice", "Bob"] });
+    });
+    ```
+
+  </Step>
+
+  <Step>
+    ### 3. Start Development Server
+
+    ```bash
+    pnpm dev
+    ```
+
+    - `GET http://localhost:3000/users` is dispatched through Taser file routing.
+    - `GET http://localhost:3000/host-info` is handled by your exported host application.
+
+  </Step>
+</Steps>
+
+---
+
+## Reusing Web Standard Middleware in Taser
+
+`defineMiddleware()` accepts native Web Standard and Fetch-native middleware functions directly:
+
+```ts title="src/routes/$.ts"
+import { defineMiddleware } from "@taserjs/router";
+import { secureHeaders } from "hono/secure-headers";
+import { t } from "#taserjs/router";
+
+// Wrap any Web Standard middleware seamlessly
+const securityHeadersMiddleware = defineMiddleware(secureHeaders());
+
+export const Middleware = t.middleware("/$").use(securityHeadersMiddleware);
+```
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Layouts & Middleware"
+    href="/docs/routing/layouts-and-middleware"
+    description="Learn how to chain middleware and cascade context across directory trees."
+  />
+  <Card
+    title="Deployment Presets"
+    href="/docs/deployments/presets"
+    description="Deploy your application to Cloudflare Workers, Vercel, Node, Bun, or AWS Lambda using Nitro presets."
+  />
+</Cards>

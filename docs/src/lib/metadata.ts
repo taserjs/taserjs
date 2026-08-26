@@ -78,7 +78,7 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
   "getting-started":
     "Scaffold a production-ready typed API in seconds using create-taserjs with zero-config TypeScript, watch mode, and database presets.",
   "getting-started/manual-installation":
-    "Step-by-step guide to installing and configuring Taser with Vite, Next.js, Nitro, Express, Fastify, and Hono.",
+    "Step-by-step guide to installing and configuring Taser with Vite, Next.js, Nitro, and host pass-through dispatching (Web Standard, Express, Fastify).",
   "getting-started/core-concepts":
     "Master Taser architecture: four pillars, request lifecycle sequence, context injection, and compiler-enforced return contracts.",
   "plugins/vite":
@@ -89,8 +89,8 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
     "Deploy Taser across edge, serverless, and multi-cloud runtimes using the @taserjs/router-plugin/nitro module.",
   "frameworks/standalone":
     "Build standalone, zero-host HTTP APIs with pure Taser, Vite, and Nitro. Maximum throughput with web standards.",
-  "frameworks/hono":
-    "Run Taser alongside Hono with host pass-through dispatching and reuse Hono middleware inside Taser layouts.",
+  "frameworks/fetch-native":
+    "Run Taser alongside any Web Standard or Fetch-native host framework (Hono, Elysia, HatTip, or Web Fetch) using host pass-through.",
   "frameworks/express":
     "Add Taser file-based routing to an Express application with seamless host pass-through dispatching.",
   "frameworks/fastify":
@@ -151,7 +151,7 @@ export const docsImageAlts: Record<string, string> = {
   "plugins/next": "Taser Docs: Next.js App Router Integration",
   "plugins/nitro": "Taser Docs: Nitro Server Engine Module",
   "frameworks/standalone": "Taser Docs: Standalone API Architecture",
-  "frameworks/hono": "Taser Docs: Hono Host Pass-Through",
+  "frameworks/fetch-native": "Taser Docs: Web Standard & Fetch Frameworks Host Pass-Through",
   "frameworks/express": "Taser Docs: Express Host Pass-Through",
   "frameworks/fastify": "Taser Docs: Fastify Host Pass-Through",
   "routing/file-conventions": "Taser Docs: File Conventions and Routing Rules",

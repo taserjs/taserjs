@@ -26,7 +26,7 @@ type PackageManager = "pnpm" | "npm" | "bun" | "yarn";
 
 const frameworks: { id: Framework; label: string }[] = [
   { id: "none", label: "None (Standalone)" },
-  { id: "hono", label: "Hono" },
+  { id: "hono", label: "Hono / Fetch-Native" },
   { id: "express", label: "Express" },
   { id: "fastify", label: "Fastify" },
 ];

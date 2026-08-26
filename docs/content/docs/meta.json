@@ -2,22 +2,19 @@
   "title": "Documentation",
   "pages": [
     "index",
-    "---Getting Started---",
     "getting-started",
-    "---Plugins & Compilers---",
-    "plugins",
-    "---Frameworks & Host Apps---",
-    "frameworks",
-    "---Core Features---",
+    "---Core Guides---",
     "routing",
     "validation",
     "responses",
     "middleware",
-    "---Ecosystem & Deploy---",
+    "---Architecture & Integration---",
+    "frameworks",
+    "plugins",
     "deployments",
+    "---Ecosystem & Reference---",
     "client",
     "cli",
-    "---Reference---",
     "api-reference"
   ]
 }

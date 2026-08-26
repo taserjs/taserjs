@@ -17,18 +17,30 @@ The `@taserjs/router-plugin/vite` package connects Taser's file routing engine t
 
 Install the router plugin, Vite, and the `srvx` server runtime:
 
-<Tabs items={["pnpm", "npm", "bun", "yarn"]}>
+<Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
-    ```bash pnpm add @taserjs/router pnpm add -D @taserjs/router-plugin vite srvx ```
+    ```bash
+    pnpm add @taserjs/router
+    pnpm add -D @taserjs/router-plugin vite srvx
+    ```
   </Tab>
   <Tab value="npm">
-    ```bash npm install @taserjs/router npm install -D @taserjs/router-plugin vite srvx ```
+    ```bash
+    npm install @taserjs/router
+    npm install -D @taserjs/router-plugin vite srvx
+    ```
   </Tab>
   <Tab value="bun">
-    ```bash bun add @taserjs/router bun add -d @taserjs/router-plugin vite srvx ```
+    ```bash
+    bun add @taserjs/router
+    bun add -d @taserjs/router-plugin vite srvx
+    ```
   </Tab>
   <Tab value="yarn">
-    ```bash yarn add @taserjs/router yarn add -D @taserjs/router-plugin vite srvx ```
+    ```bash
+    yarn add @taserjs/router
+    yarn add -D @taserjs/router-plugin vite srvx
+    ```
   </Tab>
 </Tabs>
 
@@ -127,7 +139,7 @@ export default defineConfig({
     },
     serverEntryPath: {
       description:
-        "Path to optional host server entry (e.g. 'src/server.ts' for Hono or 'src/server.node.ts' for Express/Fastify).",
+        "Path to optional host server entry (e.g. 'src/server.ts' for Web Standard / Fetch-native apps or 'src/server.node.ts' for Express/Fastify).",
       type: "string",
       default: "undefined",
     },

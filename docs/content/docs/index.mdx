@@ -62,8 +62,8 @@ export const Route = GET.handler(async (ctx) => {
     description="Validate query parameters, path params, headers, and request bodies using Zod, ArkType, Valibot, or any Standard Schema library."
   />
   <Card
-    title="Vite & Nitro Powered"
-    description="Build standalone APIs with Vite and deploy anywhere using Nitro presets, or embed inside Next.js, Hono, Express, and Fastify host apps."
+    title="Vite Native & Nitro Presets"
+    description="Vite-native development with virtual routing and instant HMR. Deploy anywhere using Nitro multi-cloud presets, or embed inside Next.js and host apps."
   />
   <Card
     title="Zero-Drift Typed Client"
@@ -75,32 +75,9 @@ export const Route = GET.handler(async (ctx) => {
 
 ## How Taser Works
 
-Taser operates around a simple, powerful lifecycle:
+Taser operates around a deterministic, fully type-safe request lifecycle:
 
-```
-[HTTP Request]
-       │
-       ▼
-[Runtime Platform] ── Vite / Nitro Standalone, Next.js, Hono, Express, Fastify
-       │
-       ▼
-[Dual Context] ────── Boot singletons + Request-scoped metadata
-       │
-       ▼
-[Layout Middleware] ── Root ($.ts) and nested folder middleware chains
-       │
-       ▼
-[Input Validation] ── Standard Schema parsing for params, query, body
-       │
-       ▼
-[Route Handler] ───── Fully typed ctx execution with fluent or options API
-       │
-       ▼
-[Response Contract] ── .returns() compiler check & payload validation
-       │
-       ▼
-[Typed Response] ──── Tree-shakeable reply helpers or binary streams
-```
+<RequestFlowDiagram />
 
 <Callout type="info" title="Vite-Powered Virtual Modules">
   Taser integrates with Vite via `@taserjs/router-plugin/vite`. Routes are loaded virtually during
@@ -123,7 +100,7 @@ Explore the documentation to start building or migrating your existing server:
   <Card
     title="Manual Installation"
     href="/docs/getting-started/manual-installation"
-    description="Add Taser to your existing Express, Fastify, Hono, or Node.js server."
+    description="Configure Taser with Vite, Nitro deployment presets, Next.js, or host frameworks."
   />
   <Card
     title="File-Based Routing"

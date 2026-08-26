@@ -6,6 +6,98 @@
   --landing-accent: #ff7f04;
   --landing-accent-22: color-mix(in oklab, var(--landing-accent) 22%, transparent);
   --landing-accent-40: color-mix(in oklab, var(--landing-accent) 40%, transparent);
+
+  /* Brand Primary Theme for Fumadocs UI */
+  --fd-primary: oklch(0.66 0.19 45); /* #f97316 / brand warm orange */
+  --fd-primary-foreground: oklch(0.99 0 0);
+  --fd-ring: oklch(0.66 0.19 45);
+}
+
+.dark {
+  --fd-primary: oklch(0.72 0.19 48); /* vibrant amber/orange in dark mode */
+  --fd-primary-foreground: oklch(0.12 0 0);
+  --fd-ring: oklch(0.72 0.19 48);
+}
+
+/* Docs Navigation & Sidebar Enhancements (Desktop & Mobile) */
+#nd-sidebar [data-active="true"],
+#nd-sidebar-mobile [data-active="true"],
+[data-sidebar] [data-active="true"],
+aside [data-active="true"] {
+  background: color-mix(in oklab, var(--landing-accent) 14%, transparent) !important;
+  color: var(--fd-primary) !important;
+  font-weight: 600;
+  border-radius: 0.5rem;
+}
+
+#nd-sidebar a:hover:not([data-active="true"]),
+#nd-sidebar-mobile a:hover:not([data-active="true"]),
+[data-sidebar] a:hover:not([data-active="true"]),
+aside a:hover:not([data-active="true"]) {
+  background: color-mix(in oklab, var(--landing-accent) 6%, transparent);
+}
+
+/* Mobile Navigation Header & Accents */
+#nd-nav,
+header.sticky {
+  border-bottom: 1px solid color-mix(in oklab, var(--landing-accent) 22%, var(--fd-border)) !important;
+}
+
+#nd-nav a:hover {
+  color: var(--fd-primary);
+}
+
+/* Right Table of Contents Active Indicator */
+#nd-toc [data-active="true"] {
+  color: var(--fd-primary) !important;
+  font-weight: 600;
+}
+
+/* Docs Cards Hover Effects matching Landing Page FeatureCards */
+.fd-card,
+[data-card] {
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: 0.75rem;
+}
+
+.fd-card:hover,
+[data-card]:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklab, var(--landing-accent) 35%, transparent);
+  box-shadow: 0 8px 24px -4px color-mix(in oklab, var(--landing-accent) 10%, transparent);
+}
+
+/* Active Tab Underline & Selection */
+[role="tab"][data-state="active"],
+[role="tab"][aria-selected="true"] {
+  color: var(--fd-primary);
+}
+
+/* Shiki Code Block Highlights */
+.shiki .highlighted {
+  background-color: color-mix(in oklab, var(--landing-accent) 15%, transparent) !important;
+  border-left: 2.5px solid var(--landing-accent) !important;
+}
+
+.shiki .diff.add {
+  background-color: rgba(34, 197, 94, 0.15) !important;
+  border-left: 2.5px solid rgb(34, 197, 94) !important;
+}
+
+.shiki .diff.remove {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  border-left: 2.5px solid rgb(239, 68, 68) !important;
+}
+
+/* Prose Links & Inline Elements */
+.prose a:not([class*="not-prose"]) {
+  text-decoration-color: color-mix(in oklab, var(--landing-accent) 40%, transparent);
+  transition: all 0.15s ease;
+}
+
+.prose a:not([class*="not-prose"]):hover {
+  color: var(--fd-primary);
+  text-decoration-color: var(--fd-primary);
 }
 
 html {

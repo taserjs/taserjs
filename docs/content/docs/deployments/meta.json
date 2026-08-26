@@ -1,4 +1,5 @@
 {
-  "title": "Deployments & Presets",
+  "title": "Deployments",
+  "defaultOpen": true,
   "pages": ["presets"]
 }

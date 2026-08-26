@@ -1,5 +1,6 @@
 {
   "title": "Responses & Errors",
+  "defaultOpen": true,
   "pages": [
     "reply-helpers",
     "cookies",

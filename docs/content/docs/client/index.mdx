@@ -16,9 +16,28 @@ The `@taserjs/router-client` package generates an auto-completing, type-safe API
 
 Install the client package in your project:
 
-```bash
-npm install @taserjs/router-client
-```
+<Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @taserjs/router-client
+    ```
+  </Tab>
+  <Tab value="npm">
+    ```bash
+    npm install @taserjs/router-client
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @taserjs/router-client
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @taserjs/router-client
+    ```
+  </Tab>
+</Tabs>
 
 Initialize the client with your backend `baseUrl`. In a Taser project, route types are **automatically detected from ambient declarations** with zero generic arguments:
 

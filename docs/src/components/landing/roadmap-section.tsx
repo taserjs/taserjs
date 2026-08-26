@@ -50,15 +50,15 @@ const roadmapItems: RoadmapItem[] = [
     highlights: [".ws.ts & .sse.ts file routes", "Typed event channels", "Streaming client SDK"],
   },
   {
-    id: "middleware",
-    title: "Standard Middleware Ecosystem",
+    id: "observability",
+    title: "Distributed Rate Limiting & Observability",
     badge: "Planned",
     status: "planned",
     icon: <Blocks className="size-5" />,
     iconTone: "violet",
     description:
-      "A curated suite of typed middleware for CORS, Rate Limiting, JWT Auth, Request ID, and OpenTelemetry that cascade state cleanly into ctx.state.",
-    highlights: ["CORS & Rate Limiting", "JWT & Session Auth", "OpenTelemetry logging"],
+      "Distributed Redis sliding-window rate limiting, OpenTelemetry distributed tracing spans, Prometheus metrics exporters, and automated ETag cache middleware.",
+    highlights: ["Distributed Rate Limiting", "OpenTelemetry Traces", "ETag & Cache Controls"],
   },
 ];
 

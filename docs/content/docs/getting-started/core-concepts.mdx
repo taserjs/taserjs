@@ -42,32 +42,11 @@ Taser is designed to eliminate the ambiguity and unsafe typecasting common in No
 
 Every HTTP request handled by Taser flows through a deterministic, type-safe pipeline:
 
-```
-Client Request ──► Runtime Platform (Vite / Nitro / Next / Host)
-                        │
-                        ▼
-               Context Initializer (createContext)
-                        │
-                        ▼
-               Layout Middlewares ($.ts, admin.ts)
-                        │
-                        ▼
-               Input Validation (query, params, body)
-                   │              │
-        (Valid)    │              │  (Invalid)
-                   ▼              ▼
-           Route Handler    422 ValidationError
-                   │
-                   ▼
-         Response Contract (.returns)
-                   │
-                   ▼
-         Typed Response ──► Client
-```
+<RequestFlowDiagram />
 
 ### 1. Platform Resolution
 
-When an incoming request reaches your application (Vite Standalone, Nitro, Next.js, or an Express/Fastify/Hono host), the runtime invokes `taserApp.fetch()` with a Web Standard `Request` object.
+When an incoming request reaches your application (Vite Standalone, Nitro presets, Next.js, or an Express, Fastify, or Fetch-native host), the runtime invokes `taserApp.fetch()` with a Web Standard `Request` object.
 
 ### 2. Context Initialization
 
@@ -186,10 +165,63 @@ export const Route = GET.handler(async (ctx) => {
 
 ## Context vs Middleware State
 
-It is important to know when to use Application Context versus Middleware State:
+Understanding when to place properties in **Application Context (`createContext`)** versus **Middleware State (`ctx.state`)** is essential for maintaining clean architecture:
 
-- Use **Application Context (`src/context.ts`)** for global infrastructure dependencies like database connection pools, Redis clients, background job queues, and per-request IDs that apply to all routes uniformly.
-- Use **Middleware State (`ctx.state`)** for business logic data produced conditionally during route traversal, such as authenticated session tokens, decoded JWT claims, rate limit remaining counters, or organization tenancy models.
+| Architectural Dimension | Application Context (`createContext`) | Middleware State (`ctx.state`) |
+| :--- | :--- | :--- |
+| **Location** | `src/context.ts` | Folder layouts (`$.ts`, `admin.ts`, `_auth.ts`) |
+| **Lifecycle** | Boot (singletons) & Per-Request hooks | Per-request during middleware pipeline traversal |
+| **Scope** | **Global**: Accessible across every route and middleware in the app | **Scoped**: Accessible only to child routes located under that directory |
+| **Access Syntax** | Direct root properties: `ctx.db`, `ctx.logger`, `ctx.requestId` | Namespaced state property: `ctx.state.user`, `ctx.state.org` |
+| **Declaration Type** | Universal type parameter in `createTaserApp().context(...)` | Inferred automatically from `return next({ ... })` in layouts |
+| **Primary Use Cases** | Database pools, Redis clients, queue producers, correlation IDs | Authenticated user sessions, RBAC permissions, tenant metadata |
+
+### Code Comparison
+
+#### 1. Global Infrastructure in `src/context.ts`
+
+Use `createContext` to inject server singletons and universal request properties:
+
+```ts title="src/context.ts"
+import { createContext } from "@taserjs/router";
+import { dbPool } from "./db.js";
+
+export const context = createContext({
+  // Initialized once at server boot
+  boot: () => ({
+    db: dbPool,
+    logger: console,
+  }),
+  // Evaluated once per incoming HTTP request
+  request: (req) => ({
+    requestId: req.headers.get("x-request-id") ?? crypto.randomUUID(),
+    startTime: Date.now(),
+  }),
+});
+```
+
+#### 2. Conditional Scoped State in `src/routes/admin/$.ts`
+
+Use `next({ ... })` in layout middleware to compute and pass typed state downstream:
+
+```ts title="src/routes/admin/$.ts"
+import { defineMiddleware } from "@taserjs/router";
+import { t } from "#taserjs/router";
+
+// State returned in next() cascades into all routes inside src/routes/admin/
+export const Middleware = t.middleware("/admin/$").use(async (ctx, next) => {
+  const token = ctx.headers.get("authorization");
+  if (!token) {
+    throw new Error("Unauthorized");
+  }
+
+  const user = await ctx.db.verifyToken(token);
+  return next({
+    user, // Typed User object available as ctx.state.user
+    role: "admin" as const,
+  });
+});
+```
 
 <Callout type="tip" title="No Global Interface Merging">
   Unlike traditional Express where you must declare global `Express.Request` namespace overrides,

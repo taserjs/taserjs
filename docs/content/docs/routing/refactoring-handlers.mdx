@@ -37,7 +37,7 @@ const GET = t
   .query(z.object({ includeOrders: z.coerce.boolean().default(false) }));
 
 // 2. Extract the exact compile-time context type
-export type RouteContext = typeof GET.$Infer.Context;
+export type RouteContext = typeof GET.$Infer.Context; // [!code highlight]
 
 // 3. Extract focused helper functions
 async function fetchUser(ctx: RouteContext) {
@@ -54,7 +54,7 @@ async function fetchUserOrders(ctx: RouteContext) {
 }
 
 // 4. Orchestrate inside the handler
-export const Route = GET.handler(async (ctx) => {
+export const Route = GET.handler(async (ctx) => { // [!code highlight]
   const user = await fetchUser(ctx);
   if (!user) {
     return notFound({ message: "User not found" });

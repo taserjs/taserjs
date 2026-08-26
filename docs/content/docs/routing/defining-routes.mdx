@@ -282,7 +282,7 @@ export const Route = GET.handler(async (ctx) => {
 ```ts
 // ✅ YES: Inferred from the builder variable before .handler()
 const GET = t.get("/users/:id");
-export type RouteContext = typeof GET.$Infer.Context;
+export type RouteContext = typeof GET.$Infer.Context; // [!code highlight]
 
 async function fetchUser(ctx: RouteContext) {
   return ctx.db.findUser(ctx.params.id);

@@ -6,6 +6,8 @@ icon: Layers
 
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Files, Folder, File } from "@/components/files";
 
 Layout files in Taser allow you to organize cross-cutting concerns (authentication, CORS, rate limiting, logging) and inject typed state into child routes without repeating code in every handler.
 
@@ -89,17 +91,21 @@ Nested directory index files (e.g. `src/routes/admin/index.ts`) similarly mount 
 
 Taser executes layouts in a predictable cascading sequence from outermost to innermost:
 
-```
-src/routes/
-├── $.ts                          -> [1] Root Layout (Global)
-├── api.ts                        -> [2] Scoped /api Layout
-└── api/
-    ├── _auth.ts                  -> [3] Pathless Auth Layout
-    └── _auth/
-        ├── admin.ts              -> [4] Admin Role Layout
-        └── admin/
-            └── users.get.ts      -> [5] Route Handler (GET /api/users)
-```
+<Files>
+  <Folder name="src/routes" defaultOpen>
+    <File name="$.ts" icon={<span className="text-amber-500 text-xs font-mono font-bold">1. ROOT</span>} />
+    <File name="api.ts" icon={<span className="text-purple-500 text-xs font-mono font-bold">2. SCOPED</span>} />
+    <Folder name="api" defaultOpen>
+      <File name="_auth.ts" icon={<span className="text-purple-500 text-xs font-mono font-bold">3. PATHLESS</span>} />
+      <Folder name="_auth" defaultOpen>
+        <File name="admin.ts" icon={<span className="text-purple-500 text-xs font-mono font-bold">4. ROLE</span>} />
+        <Folder name="admin" defaultOpen>
+          <File name="users.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">5. ROUTE</span>} />
+        </Folder>
+      </Folder>
+    </Folder>
+  </Folder>
+</Files>
 
 Execution sequence for `GET /api/users`:
 

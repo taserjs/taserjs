@@ -1,7 +1,6 @@
 import { AdaptersSection } from "@/components/landing/adapters-section";
 import { AuthorSection } from "@/components/landing/author-section";
 import { CtaSection } from "@/components/landing/cta-section";
-import { FeaturesSection } from "@/components/landing/features-section";
 import { HeroSection } from "@/components/landing/hero-section";
 import { MotivationSection } from "@/components/landing/motivation-section";
 import { ProblemSolutionTabs } from "@/components/landing/problem-solution-tabs";
@@ -19,7 +18,6 @@ export default function HomePage() {
       <ProblemSolutionTabs />
       <MotivationSection />
       <TryItSection />
-      <FeaturesSection />
       <AdaptersSection />
       <RoadmapSection />
       <SponsorsSection />
