@@ -1,7 +1,5 @@
-import { AST_NODE_TYPES, type TSESTree } from "@typescript-eslint/types";
-import { print } from "esrap";
-import ts from "esrap/languages/ts";
 import { CLIENT_METHOD_MAP } from "@taserjs/router-utils/http";
+import { AST_NODE_TYPES, type TSESTree } from "@typescript-eslint/types";
 
 import type { GeneratedModel, HttpVerb, LayoutFile } from "../types.js";
 import {
@@ -28,7 +26,6 @@ import {
   buildManifestLayoutsObject,
   buildManifestRoutesObject,
   buildRouteImports,
-  joinManifestSections,
   type EmitManifestOptions,
 } from "./manifest.js";
 import { asNode } from "./ast.js";
@@ -256,22 +253,4 @@ export function buildFullProgram(
     comments: undefined,
     tokens: undefined,
   });
-}
-
-export function emitTypeDeclarationsSource(
-  model: GeneratedModel,
-  options: Partial<EmitManifestOptions> = {},
-): string {
-  const program = buildFullProgram(model, options.rewriteImportPath);
-  const { code } = print(program, ts({ quotes: options.quotes ?? "double" }));
-  return joinManifestSections(options.header, code);
-}
-
-export function emitRouteManifestSource(
-  model: GeneratedModel,
-  options: EmitManifestOptions = {},
-): string {
-  const program = buildFullProgram(model, options.rewriteImportPath);
-  const { code } = print(program, ts({ quotes: options.quotes ?? "single" }));
-  return joinManifestSections(options.header, code);
 }

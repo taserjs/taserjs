@@ -15,34 +15,12 @@
  * export const POST = handle;
  * ```
  */
+import type { NextConfig } from "next";
 import { createTaserVirtualContext, watchAndSyncRoutes } from "./core/context.js";
 import { DISK_ARTIFACT_DIR, writeDiskArtifacts } from "./core/emitter.js";
 import type { TaserConfig, WatcherOptions } from "./core/types.js";
 
-export type TaserNextConfig = {
-  basePath?: string | undefined;
-  webpack?: ((config: any, context?: any) => any) | undefined;
-  turbopack?:
-    | {
-        resolveAlias?: Record<string, string> | undefined;
-        resolveExtensions?: string[] | undefined;
-        [key: string]: unknown;
-      }
-    | undefined;
-  experimental?:
-    | {
-        turbo?:
-          | {
-              resolveAlias?: Record<string, string> | undefined;
-              resolveExtensions?: string[] | undefined;
-              [key: string]: unknown;
-            }
-          | undefined;
-        [key: string]: unknown;
-      }
-    | undefined;
-  [key: string]: unknown;
-};
+export type TaserNextConfig = NextConfig;
 
 export type NextConfigFn = (
   phase: string,
@@ -91,8 +69,9 @@ function mergeResolveExtensions(
 
 function applyTurbopackConfig(config: TaserNextConfig): void {
   mergeResolveExtensions(config.turbopack, DEFAULT_TURBO_EXTENSIONS);
-  if (config.experimental && typeof config.experimental === "object") {
-    mergeResolveExtensions(config.experimental.turbo, DEFAULT_TURBO_EXTENSIONS);
+  const experimental = config.experimental as { turbo?: TurboResolveTarget } | undefined;
+  if (experimental && typeof experimental === "object") {
+    mergeResolveExtensions(experimental.turbo, DEFAULT_TURBO_EXTENSIONS);
   }
 }
 
@@ -150,31 +129,31 @@ function applyTaserNext(
 
   const existingWebpack = nextConfig.webpack;
 
-  const wrappedWebpack = async (config: unknown, context: unknown): Promise<unknown> => {
+  const wrappedWebpack: NonNullable<NextConfig["webpack"]> = async (config, context) => {
     await ready;
-    const next = (
-      typeof existingWebpack === "function" ? await existingWebpack(config, context) : config
-    ) as {
+    const next =
+      typeof existingWebpack === "function" ? await existingWebpack(config, context) : config;
+
+    const webpackConfig = (next ?? {}) as {
       resolve?: { extensionAlias?: Record<string, string[]> };
-      watchOptions?: { ignored?: string[] | string };
     };
 
-    next.resolve = next.resolve ?? {};
-    const userJsAlias = next.resolve.extensionAlias?.[".js"] ?? [];
-    next.resolve.extensionAlias = {
-      ...next.resolve.extensionAlias,
+    webpackConfig.resolve = webpackConfig.resolve ?? {};
+    const userJsAlias = webpackConfig.resolve.extensionAlias?.[".js"] ?? [];
+    webpackConfig.resolve.extensionAlias = {
+      ...webpackConfig.resolve.extensionAlias,
       ".js": [...new Set([".ts", ".tsx", ".js", ...userJsAlias])],
     };
 
-    return next;
+    return webpackConfig;
   };
 
-  const result: TaserNextConfig = {
+  const result = {
     ...nextConfig,
     ...(options.basePath !== undefined ? { basePath: options.basePath } : {}),
     webpack: wrappedWebpack,
     [TASER_KEY]: true,
-  };
+  } as MarkedConfig;
 
   return result;
 }

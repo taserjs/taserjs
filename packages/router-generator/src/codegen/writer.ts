@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
-import { emitTypeDeclarationsSource } from "./types.js";
+import { emitTypeDeclarationsSource } from "./emit.js";
 import { emitVirtualDeclarationsSource } from "./virtual.js";
 import {
   DEFAULT_GENERATED_TYPES_DIR,

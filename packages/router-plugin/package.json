@@ -131,6 +131,7 @@
   "devDependencies": {
     "@tanstack/vite-config": "^0.6.0",
     "@taserjs/router-client": "workspace:*",
+    "next": "^15.0.0",
     "nitro": "^3.0.260610-beta",
     "publint": "^0.3.22",
     "srvx": "^0.11.22",

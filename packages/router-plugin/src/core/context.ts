@@ -1,4 +1,5 @@
-import { resolve } from "pathe";
+import { existsSync } from "node:fs";
+import { isAbsolute, join, resolve } from "pathe";
 import {
   AnalysisCache,
   emitVirtualEntrySource,
@@ -17,12 +18,35 @@ import {
 import { ENTRY_ALIAS_ID, ROUTES_ALIAS_ID } from "./constants.js";
 import type { TaserPluginOptions, TaserVirtualContext, WatcherOptions } from "./types.js";
 
+function resolveTaserEntryPath(
+  rootDir: string,
+  serverDir: string,
+  entry: string,
+): string | undefined {
+  if (!entry.startsWith("#")) {
+    const candidate = isAbsolute(entry) ? entry : resolve(serverDir, entry);
+    return resolve(candidate);
+  }
+  if (entry === ENTRY_ALIAS_ID) {
+    const candidate = join(serverDir, "taser.ts");
+    if (existsSync(candidate)) {
+      return resolve(candidate);
+    }
+  }
+  return undefined;
+}
+
 export function createTaserVirtualContext(options: TaserPluginOptions = {}): TaserVirtualContext {
   const rootDir = resolve(options.rootDir || ".");
   const resolved = taserConfigSchema.parse(options);
   const serverDir = resolveServerDir(rootDir, resolved.serverDir);
   const routesDir = resolveRoutesDir(rootDir, serverDir, resolved.routesDir);
   const serverEntryPath = resolveServerEntry(rootDir, serverDir, resolved.serverEntry);
+  const taserEntryPath = resolveTaserEntryPath(
+    rootDir,
+    serverDir,
+    resolved.entry || ENTRY_ALIAS_ID,
+  );
 
   const cache = new AnalysisCache();
   const writerState: TypeWriterState = {};
@@ -91,6 +115,7 @@ export function createTaserVirtualContext(options: TaserPluginOptions = {}): Tas
     serverDir,
     routesDir,
     serverEntryPath,
+    taserEntryPath,
     basePath: resolved.basePath,
     ignore: resolved.ignore,
     entry: resolved.entry,

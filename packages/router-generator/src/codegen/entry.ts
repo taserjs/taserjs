@@ -7,7 +7,7 @@ export type EmitVirtualEntryOptions = {
 };
 
 export function emitVirtualEntrySource(options: EmitVirtualEntryOptions): string {
-  const createArgsItems = ['routeManifest']
+  const createArgsItems = ["routeManifest"];
   if (options.basePath && options.basePath !== "/" && options.basePath !== "") {
     createArgsItems.push(`{ basePath: "${options.basePath}" }`);
   }

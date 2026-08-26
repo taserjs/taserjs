@@ -1,6 +1,4 @@
 import { AST_NODE_TYPES, type TSESTree } from "@typescript-eslint/types";
-import { print } from "esrap";
-import ts from "esrap/languages/ts";
 
 import type { GeneratedModel, LayoutFile, RouteEntry } from "../types.js";
 import {
@@ -131,13 +129,4 @@ export function buildVirtualManifestProgram(
     comments: undefined,
     tokens: undefined,
   });
-}
-
-export function emitVirtualManifestSource(
-  model: GeneratedModel,
-  options: Partial<EmitManifestOptions> = {},
-): string {
-  const program = buildVirtualManifestProgram(model, options.rewriteImportPath);
-  const { code } = print(program, ts({ quotes: options.quotes ?? "double" }));
-  return joinManifestSections(options.header ?? [], code);
 }

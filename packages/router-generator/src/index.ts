@@ -121,11 +121,19 @@ export {
   type RouteChangeBatch,
 } from "./watcher/watcher.js";
 
-export { emitVirtualManifestSource, type EmitManifestOptions } from "./codegen/manifest.js";
-
 export {
+  emitManifestSource,
+  emitVirtualManifestSource,
   emitRouteManifestSource,
   emitTypeDeclarationsSource,
+  type EmitManifestOptions,
+  type EmitManifestSourceOptions,
+  type ManifestEmitKind,
+} from "./codegen/emit.js";
+
+export { joinManifestSections } from "./codegen/manifest.js";
+
+export {
   buildClientChainType,
   buildLayoutTreeType,
   buildRouteByPathMethodType,

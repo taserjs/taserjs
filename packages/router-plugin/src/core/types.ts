@@ -33,6 +33,7 @@ export type TaserVirtualContext = {
   serverDir: string;
   routesDir: string;
   serverEntryPath?: string | undefined;
+  taserEntryPath?: string | undefined;
   basePath?: string | undefined;
   ignore: readonly string[];
   entry: string;

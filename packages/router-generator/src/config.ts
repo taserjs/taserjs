@@ -2,12 +2,16 @@ import { z } from "zod";
 
 import { DEFAULT_ENTRY, DEFAULT_IGNORE, DEFAULT_MANIFEST_HEADER } from "./constants.js";
 
+export function normalizeExtension(value: string): string {
+  return value.startsWith(".") ? value : `.${value}`;
+}
+
 export const extensionSchema = z
   .union([z.boolean(), z.string()])
   .default(true)
   .transform((value) => {
     if (typeof value === "string") {
-      return value.startsWith(".") ? value : `.${value}`;
+      return normalizeExtension(value);
     }
     return value;
   });
@@ -44,7 +48,7 @@ export type ResolvedTaserConfig = z.infer<typeof taserConfigSchema>;
 
 export function resolveImportExtension(extension?: ExtensionOption): string | null {
   if (typeof extension === "string") {
-    return extension.startsWith(".") ? extension : `.${extension}`;
+    return normalizeExtension(extension);
   }
   return extension === false ? null : ".js";
 }

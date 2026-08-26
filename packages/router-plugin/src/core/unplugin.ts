@@ -16,6 +16,7 @@ import {
   RESOLVED_VIRTUAL_APP_ID,
 } from "./constants.js";
 import { createTaserVirtualContext, watchAndSyncRoutes } from "./context.js";
+import { shouldInvalidateOnWatchChange } from "./invalidation.js";
 import { getComposedAppCode, getServeShimCode } from "./compose.js";
 import { createViteDevMiddleware } from "./dev-server.js";
 import { setupTaserNitro } from "../nitro.js";
@@ -128,8 +129,8 @@ export const unpluginFactory = (options: TaserPluginOptions = {}) => {
       return null;
     },
 
-    watchChange(_id: string) {
-      if (ctx) {
+    watchChange(id: string) {
+      if (ctx && shouldInvalidateOnWatchChange(id, ctx)) {
         ctx.invalidate();
       }
     },

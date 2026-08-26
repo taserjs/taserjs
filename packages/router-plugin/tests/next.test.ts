@@ -2,9 +2,26 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { promises as fsp } from "node:fs";
 import { join } from "pathe";
 import { tmpdir } from "node:os";
+import type { NextConfig } from "next";
 import createTaser, { type NextConfigFn } from "../src/next.js";
 
 const ORIGINAL_PHASE = process.env.NEXT_PHASE;
+
+type WebpackConfigContext = Parameters<NonNullable<NextConfig["webpack"]>>[1];
+
+function mockWebpackContext(overrides: Partial<WebpackConfigContext> = {}): WebpackConfigContext {
+  return {
+    dir: process.cwd(),
+    dev: false,
+    isServer: false,
+    buildId: "test-build",
+    config: {} as WebpackConfigContext["config"],
+    defaultLoaders: { babel: {} },
+    totalPages: 0,
+    webpack: {},
+    ...overrides,
+  };
+}
 
 describe("Next.js adapter (createTaser / withTaser)", () => {
   let testDir: string;
@@ -109,7 +126,10 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
     });
     expect(config.webpack).not.toBe(webpack);
 
-    const result = (await config.webpack?.({ resolve: { alias: {} } }, {})) as {
+    const result = (await config.webpack?.(
+      { resolve: { alias: {} } },
+      mockWebpackContext({ dir: testDir }),
+    )) as {
       resolve: { extensionAlias?: Record<string, string[]>; alias?: Record<string, string> };
     };
 
@@ -128,7 +148,7 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
         }) as unknown,
     });
 
-    const result = (await config.webpack?.({}, {})) as {
+    const result = (await config.webpack?.({}, mockWebpackContext({ dir: testDir }))) as {
       resolve: { extensionAlias: Record<string, string[]> };
     };
     expect(result.resolve.extensionAlias[".js"]).toEqual([".ts", ".tsx", ".js", ".mjs"]);
@@ -140,7 +160,7 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
 
     const withTaserCustom = createTaser({ rootDir: "/nonexistent-taser-root-xyz" });
     const config = withTaserCustom({});
-    await config.webpack?.({}, {});
+    await config.webpack?.({}, mockWebpackContext());
 
     expect(error).toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();

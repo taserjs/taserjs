@@ -77,7 +77,11 @@ function taserDispatchBlock(scoped: boolean): string {
 }
 
 function buildDispatchLogic(scoped: boolean, hasHost: boolean): string {
-  const parts = [taserDispatchBlock(scoped), hostFallbackBlock(hasHost), `  return new Response("Not Found", { status: 404 });`];
+  const parts = [
+    taserDispatchBlock(scoped),
+    hostFallbackBlock(hasHost),
+    `  return new Response("Not Found", { status: 404 });`,
+  ];
   return parts.filter(Boolean).join("\n");
 }
 
