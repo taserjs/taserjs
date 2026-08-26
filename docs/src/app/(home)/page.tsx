@@ -8,12 +8,15 @@ import { RoadmapSection } from "@/components/landing/roadmap-section";
 import { SponsorsSection } from "@/components/landing/sponsors-section";
 import { TryItSection } from "@/components/landing/try-it-section";
 import { homeMetadata } from "@/lib/metadata";
+import { SoftwareApplicationJsonLd, WebSiteJsonLd } from "@/components/json-ld";
 
 export const metadata = homeMetadata;
 
 export default function HomePage() {
   return (
     <>
+      <SoftwareApplicationJsonLd />
+      <WebSiteJsonLd />
       <HeroSection />
       <ProblemSolutionTabs />
       <MotivationSection />

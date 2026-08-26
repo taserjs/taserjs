@@ -12,6 +12,7 @@ import { notFound } from "next/navigation";
 import { getMDXComponents } from "@/components/mdx";
 import { createRelativeLink } from "fumadocs-ui/mdx";
 import { gitConfig } from "@/lib/shared";
+import { TechArticleJsonLd } from "@/components/json-ld";
 
 export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
   const params = await props.params;
@@ -20,9 +21,35 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
 
   const MDX = page.data.body;
   const markdownUrl = getPageMarkdownUrl(page).url;
+  const slugPath = page.slugs.join("/");
+
+  const breadcrumbs = [
+    { name: "Docs", url: "/docs" },
+    ...page.slugs.map((slug, idx) => {
+      const isLeaf = idx === page.slugs.length - 1;
+      const slugSlice = page.slugs.slice(0, idx + 1);
+      const intermediatePage = isLeaf ? page : source.getPage(slugSlice);
+      const name =
+        intermediatePage?.data.title ??
+        slug
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (char) => char.toUpperCase());
+
+      return {
+        name,
+        url: `/docs/${slugSlice.join("/")}`,
+      };
+    }),
+  ];
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
+      <TechArticleJsonLd
+        title={page.data.title}
+        description={page.data.description ?? ""}
+        url={slugPath ? `/docs/${slugPath}` : "/docs"}
+        breadcrumbs={breadcrumbs}
+      />
       <DocsTitle className="text-3xl sm:text-4xl font-bold tracking-tight text-fd-foreground">
         {page.data.title}
       </DocsTitle>
