@@ -17,8 +17,12 @@ async function loadComposedApp(hostModuleSource: string | undefined) {
   await fsp.writeFile(
     join(dir, "entry.mjs"),
     `export default {
-  fetch: async (req) =>
-    new URL(req.url).pathname === "/taser" ? new Response("from-taser") : undefined,
+  fetch: async (req) => {
+    const pathname = new URL(req.url).pathname;
+    if (pathname === "/taser") return new Response("from-taser");
+    if (pathname === "/taser-custom-404") return new Response("taser-custom-404", { status: 404 });
+    return undefined;
+  },
 };
 `,
   );
@@ -60,6 +64,13 @@ describe("composed app × host contract (evaluated)", () => {
     app = await loadComposedApp(`export default { fetch: async () => new Response("from-host") };`);
     const res = await app.handler(get("/taser"));
     expect(await res?.text()).toBe("from-taser");
+  });
+
+  it("preserves explicit 404 responses returned by taser routes without falling through", async () => {
+    app = await loadComposedApp(`export default { fetch: async () => new Response("from-host") };`);
+    const res = await app.handler(get("/taser-custom-404"));
+    expect(res?.status).toBe(404);
+    expect(await res?.text()).toBe("taser-custom-404");
   });
 
   it("fetch-native hosts answer taser misses", async () => {

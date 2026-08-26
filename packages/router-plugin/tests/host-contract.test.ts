@@ -9,12 +9,15 @@ describe("getComposedAppCode host contract", () => {
     expect(code).not.toContain("srvx/node");
   });
 
-  it("loads the node bridge via dynamic import, never a static one", () => {
+  it("loads the node bridge via dynamic import inside getHostFetch, never at top-level", () => {
     const code = getComposedAppCode({ serverEntrySpecifier: "#taserjs/server-entry" });
-    // Fetch-native hosts (hono) must not require srvx at install time. The
-    // standalone FastResponse import from "srvx" is unrelated to hosts.
     expect(code).not.toMatch(/from\s+"srvx\/node"/);
     expect(code).toContain('import("srvx/node")');
+    // Ensure top-level module scope contains no top-level await
+    const outsideAsync = code
+      .replace(/async\s+function[^{]*\{[\s\S]*?\n\}/g, "")
+      .replace(/async\s*\(req\)\s*=>\s*\{[\s\S]*?\n\};/g, "");
+    expect(outsideAsync).not.toContain("await ");
   });
 
   it("resolves fetch-native hosts via their .fetch method", () => {
@@ -30,14 +33,14 @@ describe("getComposedAppCode host contract", () => {
 
   it("auto-wraps bare Node-style callables with toFetchHandler", () => {
     const code = getComposedAppCode({ serverEntrySpecifier: "#taserjs/server-entry" });
-    expect(code).toContain("await __toFetchHandler(__hostExport)");
+    expect(code).toContain("toFetchHandler(__hostExport)");
     expect(code).toContain("__hostExport.length >= 2");
   });
 
   it("bridges bare Node-style callables like Fastify's exported routing", () => {
     const code = getComposedAppCode({ serverEntrySpecifier: "#taserjs/server-entry" });
     expect(code).toContain("__hostExport.length >= 2");
-    expect(code).toContain("await __toFetchHandler(__hostExport)");
+    expect(code).toContain("toFetchHandler(__hostExport)");
   });
 
   it("does not special-case unrecognized host objects", () => {

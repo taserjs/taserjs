@@ -2,22 +2,41 @@ import { VIRTUAL_ENTRY_ID } from "./constants.js";
 
 const HOST_RESOLUTION_CODE = `
 const __hostExport = hostServer.default ?? hostServer;
-const __toFetchHandler = async (handler) => (await import("srvx/node")).toFetchHandler(handler);
-let hostFetch;
-if (__hostExport !== null && __hostExport !== undefined) {
-  if (typeof __hostExport.fetch === "function") {
-    hostFetch = __hostExport.fetch.bind(__hostExport);
-  } else if (typeof __hostExport.node === "function") {
-    const __raw = __hostExport.node;
-    hostFetch =
-      __raw.length >= 2
-        ? async (req) => (await __toFetchHandler(__raw))(req)
-        : __raw;
-  } else if (typeof __hostExport === "function" && __hostExport.length >= 2) {
-    hostFetch = await __toFetchHandler(__hostExport);
-  } else if (typeof __hostExport === "function") {
-    hostFetch = __hostExport;
+let __cachedHostFetch;
+
+async function getHostFetch() {
+  if (__cachedHostFetch !== undefined) {
+    return __cachedHostFetch;
   }
+  if (__hostExport === null || __hostExport === undefined) {
+    __cachedHostFetch = null;
+    return null;
+  }
+  if (typeof __hostExport.fetch === "function") {
+    __cachedHostFetch = __hostExport.fetch.bind(__hostExport);
+    return __cachedHostFetch;
+  }
+  if (typeof __hostExport.node === "function") {
+    const raw = __hostExport.node;
+    if (raw.length >= 2) {
+      const { toFetchHandler } = await import("srvx/node");
+      __cachedHostFetch = toFetchHandler(raw);
+    } else {
+      __cachedHostFetch = raw;
+    }
+    return __cachedHostFetch;
+  }
+  if (typeof __hostExport === "function" && __hostExport.length >= 2) {
+    const { toFetchHandler } = await import("srvx/node");
+    __cachedHostFetch = toFetchHandler(__hostExport);
+    return __cachedHostFetch;
+  }
+  if (typeof __hostExport === "function") {
+    __cachedHostFetch = __hostExport;
+    return __cachedHostFetch;
+  }
+  __cachedHostFetch = null;
+  return null;
 }
 `;
 
@@ -41,6 +60,60 @@ export function getComposedAppCode(options: ComposedAppOptions = {}): string {
         : `/${rawScope.replace(/\/+$/, "")}`
       : undefined;
 
+  const imports = [
+    `import taserRoutesApp from "${entrySpecifier}";`,
+    hostSpecifier ? `import * as hostServer from "${hostSpecifier}";` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const hostHelper = hostSpecifier ? HOST_RESOLUTION_CODE.trim() : "";
+
+  const scopeDefinition = normalizedScope
+    ? `const __scope = "${normalizedScope}";
+const __matchesScope = (pathname) => pathname === __scope || pathname.startsWith(__scope + "/");`
+    : "";
+
+  let dispatchLogic = "";
+  if (normalizedScope) {
+    dispatchLogic = `  const url = new URL(req.url);
+  if (__matchesScope(url.pathname)) {
+    const response = await taserRoutesApp.fetch(req);
+    if (response !== undefined && response !== null) {
+      return response;
+    }
+  }
+${
+  hostSpecifier
+    ? `  const hostFetch = await getHostFetch();
+  if (hostFetch) {
+    const hostResponse = await hostFetch(req);
+    if (hostResponse !== undefined && hostResponse !== null) {
+      return hostResponse;
+    }
+  }`
+    : ""
+}
+  return new Response("Not Found", { status: 404 });`;
+  } else {
+    dispatchLogic = `  const response = await taserRoutesApp.fetch(req);
+  if (response !== undefined && response !== null) {
+    return response;
+  }
+${
+  hostSpecifier
+    ? `  const hostFetch = await getHostFetch();
+  if (hostFetch) {
+    const hostResponse = await hostFetch(req);
+    if (hostResponse !== undefined && hostResponse !== null) {
+      return hostResponse;
+    }
+  }`
+    : ""
+}
+  return new Response("Not Found", { status: 404 });`;
+  }
+
   const nitroInterop = isHosted
     ? ""
     : `
@@ -57,81 +130,18 @@ export function initNitroPlugins(app) {
 }
 `;
 
-  if (!hostSpecifier) {
-    if (!normalizedScope) {
-      return `import taserRoutesApp from "${entrySpecifier}";
-
-export const handler = async (req) => {
-  const response = await taserRoutesApp.fetch(req);
-  return response ?? new Response("Not Found", { status: 404 });
-};
-${nitroInterop}
-export const taserApp = { fetch: handler };
+  const sections = [
+    imports,
+    hostHelper,
+    scopeDefinition,
+    `export const handler = async (req) => {\n${dispatchLogic}\n};`,
+    nitroInterop.trim(),
+    `export const taserApp = { fetch: handler };
 export const app = taserApp;
-export default taserApp;
-`;
-    }
+export default taserApp;`,
+  ].filter(Boolean);
 
-    return `import taserRoutesApp from "${entrySpecifier}";
-
-const __scope = "${normalizedScope}";
-const __matchesScope = (pathname) => pathname === __scope || pathname.startsWith(__scope + "/");
-
-export const handler = async (req) => {
-  const url = new URL(req.url);
-  if (!__matchesScope(url.pathname)) {
-    return new Response("Not Found", { status: 404 });
-  }
-  const response = await taserRoutesApp.fetch(req);
-  return response ?? new Response("Not Found", { status: 404 });
-};
-${nitroInterop}
-export const taserApp = { fetch: handler };
-export const app = taserApp;
-export default taserApp;
-`;
-  }
-
-  const scopeGuard = normalizedScope
-    ? `const __scope = "${normalizedScope}";
-const __matchesScope = (pathname) => pathname === __scope || pathname.startsWith(__scope + "/");`
-    : "";
-
-  const dispatchLogic = normalizedScope
-    ? `const url = new URL(req.url);
-  if (__matchesScope(url.pathname)) {
-    const response = await taserRoutesApp.fetch(req);
-    if (response && response.status !== 404) {
-      return response;
-    }
-  }
-  if (hostFetch) {
-    return await hostFetch(req);
-  }
-  return new Response("Not Found", { status: 404 });`
-    : `const response = await taserRoutesApp.fetch(req);
-  if (response && response.status !== 404) {
-    return response;
-  }
-  if (hostFetch) {
-    return await hostFetch(req);
-  }
-  return response ?? new Response("Not Found", { status: 404 });`;
-
-  return `import taserRoutesApp from "${entrySpecifier}";
-import * as hostServer from "${hostSpecifier}";
-
-${HOST_RESOLUTION_CODE}
-${scopeGuard}
-
-export const handler = async (req) => {
-  ${dispatchLogic}
-};
-${nitroInterop}
-export const taserApp = { fetch: handler };
-export const app = taserApp;
-export default taserApp;
-`;
+  return `${sections.join("\n\n")}\n`;
 }
 
 export function getServeShimCode(): string {
