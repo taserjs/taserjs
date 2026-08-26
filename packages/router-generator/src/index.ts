@@ -50,11 +50,16 @@ export { ScanError, ScanErrorCollection, formatScanErrors } from "./support/erro
 
 export {
   toPosixPath,
+  ensureRelativePrefix,
+  createAliasImportRewriter,
   resolveServerDir,
   resolveRoutesDir,
   resolveServerEntry,
   routesImportPrefix,
+  type AliasImportRewriterOptions,
 } from "./support/paths.js";
+
+export { flattenPlugins } from "./support/plugins.js";
 
 export {
   shouldIgnoreRoutePath,

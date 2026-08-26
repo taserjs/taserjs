@@ -73,7 +73,6 @@ export const Route = t.get("/").handler(() => undefined);
     const ctx = createTaserVirtualContext({ rootDir: testDir });
     await ctx.writeTypes();
     const routesDts = await fsp.readFile(join(testDir, ".taser/types/routes.d.ts"), "utf8");
-    // .taser/types → <root>/routes is ../../routes
     expect(routesDts).toContain('from "../../routes/index.get');
     expect(routesDts).not.toContain("#taserjs/routes");
     expect(routesDts).not.toContain(testDir);

@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "pathe";
 import { createUnplugin, type UnpluginInstance } from "unplugin";
 import type { ViteDevServer } from "vite";
+import { flattenPlugins } from "@taserjs/router-generator";
 
 import {
   ROUTES_ALIAS_ID,
@@ -21,18 +22,6 @@ import { setupTaserNitro } from "../nitro.js";
 import type { TaserPluginOptions, TaserVirtualContext } from "./types.js";
 
 const SERVE_SHIM_PATH = ".taser/serve.mjs";
-
-function flattenPlugins(plugins: readonly unknown[]): unknown[] {
-  const flat: unknown[] = [];
-  for (const plugin of plugins) {
-    if (Array.isArray(plugin)) {
-      flat.push(...flattenPlugins(plugin));
-    } else if (plugin) {
-      flat.push(plugin);
-    }
-  }
-  return flat;
-}
 
 function detectNitro(config: unknown): boolean {
   const cfg = config as {

@@ -70,13 +70,11 @@ async function applyTaserNitro(nitro: Nitro, options: TaserNitroOptions): Promis
     ...(ctx.serverEntryPath ? { [SERVER_ENTRY_ALIAS_ID]: ctx.serverEntryPath } : {}),
   };
 
-  // 1. Disable Nitro built-in route scanner — file routing belongs to Taser
   nitro.options.routesDir = "";
   nitro.options.apiDir = "";
   nitro.options.scanDirs = [];
   nitro.options.serverDir = false;
 
-  // 2. Register virtual modules in Nitro options
   nitro.options.virtual = nitro.options.virtual || {};
   nitro.options.virtual[VIRTUAL_MANIFEST_ID] = () => ctx.getManifestCode();
   nitro.options.virtual[VIRTUAL_ENTRY_ID] = () => ctx.getEntryCode();
@@ -84,7 +82,6 @@ async function applyTaserNitro(nitro: Nitro, options: TaserNitroOptions): Promis
   const isStandalone = options.standalone !== false;
 
   if (isStandalone) {
-    // Standalone mode: override Nitro virtual app (0 h3, 0 rou3)
     nitro.options.virtual["#nitro/virtual/app"] = () =>
       getComposedAppCode({
         ...(ctx.serverEntryPath ? { serverEntrySpecifier: SERVER_ENTRY_ALIAS_ID } : {}),
@@ -93,7 +90,6 @@ async function applyTaserNitro(nitro: Nitro, options: TaserNitroOptions): Promis
     nitro.options.virtual["#nitro/virtual/routing"] = () =>
       "export const findRouteRules = () => ({}); export const findRoute = () => undefined; export const globalMiddleware = []; export const findRoutedMiddleware = () => [];";
   } else {
-    // Fullstack / Module mode: unshift into Nitro's standard handlers pipeline
     const routePattern =
       effectiveScope && effectiveScope !== "/" ? `${effectiveScope.replace(/\/+$/, "")}/**` : "/**";
 
@@ -110,20 +106,17 @@ export default (event) => app.fetch(event instanceof Request ? event : event.req
     });
   }
 
-  // 4. Generate ambient route types initially & on types:extend
   await ctx.writeTypes();
   nitro.hooks.hook("types:extend", async () => {
     await ctx.writeTypes();
   });
 
-  // 5. Invalidate the analysis/model caches on dev reloads
   nitro.hooks.hook("dev:reload", () => {
     ctx.invalidate();
   });
 
   let closeWatcher: (() => Promise<void>) | undefined;
 
-  // 6. Dev watcher for Nitro
   if (nitro.options.dev && existsSync(ctx.routesDir)) {
     const watcher = watchAndSyncRoutes(ctx, async () => {
       await nitro.hooks.callHook("rollup:reload");

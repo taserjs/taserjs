@@ -37,12 +37,6 @@ describe("getComposedAppCode host contract", () => {
     expect(code).toContain("__hostExport.length >= 2");
   });
 
-  it("bridges bare Node-style callables like Fastify's exported routing", () => {
-    const code = getComposedAppCode({ serverEntrySpecifier: "#taserjs/server-entry" });
-    expect(code).toContain("__hostExport.length >= 2");
-    expect(code).toContain("toFetchHandler(__hostExport)");
-  });
-
   it("does not special-case unrecognized host objects", () => {
     const code = getComposedAppCode({ serverEntrySpecifier: "#taserjs/server-entry" });
     expect(code).not.toContain(".routing");

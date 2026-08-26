@@ -12,12 +12,7 @@ import {
   objectProperty,
   str,
 } from "./builders.js";
-
-type NodeFields = "parent" | "loc" | "range";
-
-function asNode<T extends TSESTree.Node>(node: Omit<T, NodeFields>): T {
-  return node as T;
-}
+import { asNode } from "./ast.js";
 
 export type EmitManifestOptions = {
   quotes?: "single" | "double" | undefined;

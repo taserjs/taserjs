@@ -1,8 +1,38 @@
 import { existsSync } from "node:fs";
-import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 export function toPosixPath(filePath: string): string {
   return filePath.split(sep).join("/");
+}
+
+export function ensureRelativePrefix(path: string): string {
+  return path.startsWith(".") ? path : `./${path}`;
+}
+
+export type AliasImportRewriterOptions = {
+  outputDir: string;
+  routesDir: string;
+  aliasBase: string;
+  stripImportExtension?: boolean | undefined;
+};
+
+export function createAliasImportRewriter(
+  options: AliasImportRewriterOptions,
+): (spec: string) => string {
+  const resolvedOutputDir = resolve(options.outputDir);
+  const resolvedRoutesDir = resolve(options.routesDir);
+  const aliasPrefix = `${options.aliasBase}/`;
+
+  return (spec) => {
+    const targetAbs = spec.startsWith(aliasPrefix)
+      ? join(resolvedRoutesDir, spec.slice(aliasPrefix.length))
+      : resolve(spec);
+    let rel = toPosixPath(relative(resolvedOutputDir, targetAbs));
+    if (options.stripImportExtension) {
+      rel = rel.replace(/\.(js|mjs|cjs)$/, "");
+    }
+    return ensureRelativePrefix(rel);
+  };
 }
 
 export function routesImportPrefix(routesDir: string, outputFile: string): string {
@@ -11,7 +41,7 @@ export function routesImportPrefix(routesDir: string, outputFile: string): strin
   if (relativeRoutes === "") {
     return ".";
   }
-  return relativeRoutes.startsWith(".") ? relativeRoutes : `./${relativeRoutes}`;
+  return ensureRelativePrefix(relativeRoutes);
 }
 
 const COMMON_JS_EXTS = [".ts", ".js", ".tsx", ".jsx", ".mts", ".mjs"];

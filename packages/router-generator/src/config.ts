@@ -16,7 +16,6 @@ export type ExtensionOption = z.infer<typeof extensionSchema>;
 
 export const formattingSchema = z.object({
   quotes: z.enum(["single", "double"]).default("double"),
-  semi: z.boolean().default(false),
   header: z.array(z.string()).default([...DEFAULT_MANIFEST_HEADER]),
   extension: extensionSchema,
 });
@@ -26,7 +25,6 @@ export type ResolvedFormattingOptions = z.infer<typeof formattingSchema>;
 
 export const DEFAULT_FORMATTING: ResolvedFormattingOptions = {
   quotes: "double",
-  semi: false,
   header: [...DEFAULT_MANIFEST_HEADER],
   extension: true,
 };

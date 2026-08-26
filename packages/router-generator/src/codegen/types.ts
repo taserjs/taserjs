@@ -1,6 +1,7 @@
 import { AST_NODE_TYPES, type TSESTree } from "@typescript-eslint/types";
 import { print } from "esrap";
 import ts from "esrap/languages/ts";
+import { CLIENT_METHOD_MAP } from "@taserjs/router-utils/http";
 
 import type { GeneratedModel, HttpVerb, LayoutFile } from "../types.js";
 import {
@@ -30,22 +31,7 @@ import {
   joinManifestSections,
   type EmitManifestOptions,
 } from "./manifest.js";
-
-type NodeFields = "parent" | "loc" | "range";
-
-function asNode<T extends TSESTree.Node>(node: Omit<T, NodeFields>): T {
-  return node as T;
-}
-
-const HTTP_METHOD_TO_CLIENT_KEY: Record<HttpVerb, string> = {
-  GET: "$get",
-  POST: "$post",
-  PUT: "$put",
-  PATCH: "$patch",
-  DELETE: "$delete",
-  OPTIONS: "$options",
-  HEAD: "$head",
-};
+import { asNode } from "./ast.js";
 
 interface ChainNode {
   methods: Map<string, { urlPath: string; method: HttpVerb }>;
@@ -119,7 +105,7 @@ export function buildClientChainType(
     }
 
     for (const entry of entries) {
-      const clientKey = HTTP_METHOD_TO_CLIENT_KEY[entry.method];
+      const clientKey = CLIENT_METHOD_MAP[entry.method];
       if (clientKey) {
         current.methods.set(clientKey, { urlPath, method: entry.method });
       }

@@ -14,13 +14,11 @@ export function createViteDevMiddleware(
   _rootDir: string,
 ): (req: IncomingMessage, res: ServerResponse, next: ConnectNext) => Promise<void> {
   return async (req: IncomingMessage, res: ServerResponse, next: ConnectNext): Promise<void> => {
-    // Let Vite handle internal assets/HMR requests first
     if (req.url && (req.url.startsWith("/@") || req.url.startsWith("/__vite"))) {
       return next();
     }
 
     try {
-      // Load the composed virtual app module using Vite SSR loader
       const mod = await server.ssrLoadModule(VIRTUAL_APP_ID);
       const app = mod.taserApp ?? mod.default ?? mod;
 
@@ -28,7 +26,6 @@ export function createViteDevMiddleware(
         return next();
       }
 
-      // Convert the Web Fetch handler to a Node-compatible handler
       const nodeHandler = toNodeHandler(app) as (
         req: IncomingMessage,
         res: ServerResponse,

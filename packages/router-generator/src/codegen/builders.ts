@@ -1,10 +1,6 @@
 import { AST_NODE_TYPES, type TSESTree } from "@typescript-eslint/types";
 
-type NodeFields = "parent" | "loc" | "range";
-
-function asNode<T extends TSESTree.Node>(node: Omit<T, NodeFields>): T {
-  return node as T;
-}
+import { asNode } from "./ast.js";
 
 export function id(name: string): TSESTree.Identifier {
   return asNode<TSESTree.Identifier>({

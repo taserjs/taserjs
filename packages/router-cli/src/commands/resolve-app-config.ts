@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   DEFAULT_IGNORE,
+  flattenPlugins,
   taserConfigSchema,
   type ResolvedTaserConfig,
 } from "@taserjs/router-generator";
@@ -48,7 +49,7 @@ export async function resolveAppConfig(rootDir: string): Promise<ResolvedGenerat
       const mod = (await jiti.import(configPath)) as {
         default?: { plugins?: unknown; nitro?: unknown };
       };
-      const plugins = flatten(
+      const plugins = flattenPlugins(
         ((mod.default?.plugins as readonly unknown[] | undefined) ?? []).flat(),
       );
       const taserPlugin = plugins.find(
@@ -56,7 +57,7 @@ export async function resolveAppConfig(rootDir: string): Promise<ResolvedGenerat
       ) as MaybeTaserPlugin | undefined;
 
       if (taserPlugin) {
-        return finalize(taserPlugin.__taserOptions || {}, "vite", rootDir);
+        return finalize(taserPlugin.__taserOptions || {}, "vite");
       }
     } catch {
       // Unreadable config — fall through.
@@ -73,7 +74,7 @@ export async function resolveAppConfig(rootDir: string): Promise<ResolvedGenerat
       const mod = (await jiti.import(configPath)) as {
         default?: { modules?: unknown[]; ignore?: string[] };
       };
-      const modules = flatten(
+      const modules = flattenPlugins(
         ((mod.default?.modules as readonly unknown[] | undefined) ?? []).flat(),
       );
       const taserMod = modules.find((m) => (m as MaybeTaserPlugin)?.name === "taser") as
@@ -84,7 +85,6 @@ export async function resolveAppConfig(rootDir: string): Promise<ResolvedGenerat
         return finalize(
           taserMod.__taserOptions || {},
           "nitro",
-          rootDir,
           mod.default as Record<string, unknown>,
         );
       }
@@ -93,13 +93,12 @@ export async function resolveAppConfig(rootDir: string): Promise<ResolvedGenerat
     }
   }
 
-  return finalize({}, "defaults", rootDir);
+  return finalize({}, "defaults");
 }
 
 function finalize(
   raw: Record<string, unknown>,
   source: ResolvedGenerateConfig["source"],
-  rootDir: string,
   nitroOptions?: Record<string, unknown>,
 ): ResolvedGenerateConfig {
   const taser = taserConfigSchema.parse(raw);
@@ -112,7 +111,6 @@ function finalize(
       ...DEFAULT_IGNORE,
     ]),
   );
-  void rootDir;
   return {
     taser,
     routesDir: (raw.routesDir as string | undefined) ?? taser.routesDir,
@@ -120,16 +118,4 @@ function finalize(
     ignore,
     source,
   };
-}
-
-function flatten(plugins: readonly unknown[]): unknown[] {
-  const flat: unknown[] = [];
-  for (const plugin of plugins) {
-    if (Array.isArray(plugin)) {
-      flat.push(...flatten(plugin));
-    } else if (plugin) {
-      flat.push(plugin);
-    }
-  }
-  return flat;
 }

@@ -47,6 +47,40 @@ export type ComposedAppOptions = {
   composeStyle?: "standalone" | "hosted" | undefined;
 };
 
+function hostFallbackBlock(hasHost: boolean): string {
+  if (!hasHost) {
+    return "";
+  }
+  return `  const hostFetch = await getHostFetch();
+  if (hostFetch) {
+    const hostResponse = await hostFetch(req);
+    if (hostResponse !== undefined && hostResponse !== null) {
+      return hostResponse;
+    }
+  }`;
+}
+
+function taserDispatchBlock(scoped: boolean): string {
+  if (scoped) {
+    return `  const url = new URL(req.url);
+  if (__matchesScope(url.pathname)) {
+    const response = await taserRoutesApp.fetch(req);
+    if (response !== undefined && response !== null) {
+      return response;
+    }
+  }`;
+  }
+  return `  const response = await taserRoutesApp.fetch(req);
+  if (response !== undefined && response !== null) {
+    return response;
+  }`;
+}
+
+function buildDispatchLogic(scoped: boolean, hasHost: boolean): string {
+  const parts = [taserDispatchBlock(scoped), hostFallbackBlock(hasHost), `  return new Response("Not Found", { status: 404 });`];
+  return parts.filter(Boolean).join("\n");
+}
+
 export function getComposedAppCode(options: ComposedAppOptions = {}): string {
   const entrySpecifier = options.entrySpecifier || VIRTUAL_ENTRY_ID;
   const hostSpecifier = options.serverEntrySpecifier;
@@ -74,45 +108,7 @@ export function getComposedAppCode(options: ComposedAppOptions = {}): string {
 const __matchesScope = (pathname) => pathname === __scope || pathname.startsWith(__scope + "/");`
     : "";
 
-  let dispatchLogic = "";
-  if (normalizedScope) {
-    dispatchLogic = `  const url = new URL(req.url);
-  if (__matchesScope(url.pathname)) {
-    const response = await taserRoutesApp.fetch(req);
-    if (response !== undefined && response !== null) {
-      return response;
-    }
-  }
-${
-  hostSpecifier
-    ? `  const hostFetch = await getHostFetch();
-  if (hostFetch) {
-    const hostResponse = await hostFetch(req);
-    if (hostResponse !== undefined && hostResponse !== null) {
-      return hostResponse;
-    }
-  }`
-    : ""
-}
-  return new Response("Not Found", { status: 404 });`;
-  } else {
-    dispatchLogic = `  const response = await taserRoutesApp.fetch(req);
-  if (response !== undefined && response !== null) {
-    return response;
-  }
-${
-  hostSpecifier
-    ? `  const hostFetch = await getHostFetch();
-  if (hostFetch) {
-    const hostResponse = await hostFetch(req);
-    if (hostResponse !== undefined && hostResponse !== null) {
-      return hostResponse;
-    }
-  }`
-    : ""
-}
-  return new Response("Not Found", { status: 404 });`;
-  }
+  const dispatchLogic = buildDispatchLogic(Boolean(normalizedScope), Boolean(hostSpecifier));
 
   const nitroInterop = isHosted
     ? ""

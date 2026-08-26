@@ -15,7 +15,6 @@ describe("vite-plugin-taser", () => {
     const routesDir = join(testDir, "routes");
     await fsp.mkdir(routesDir, { recursive: true });
 
-    // Create taser.ts
     await fsp.writeFile(
       join(testDir, "taser.ts"),
       `import { createTaserApp } from "@taserjs/router";
@@ -23,7 +22,6 @@ export const t = createTaserApp();
 `,
     );
 
-    // Create routes/$.ts (layout)
     await fsp.writeFile(
       join(routesDir, "$.ts"),
       `import { t } from "../taser.js";
@@ -31,7 +29,6 @@ export const Middleware = t.middleware("$").use((ctx, next) => next());
 `,
     );
 
-    // Create routes/index.get.ts
     await fsp.writeFile(
       join(routesDir, "index.get.ts"),
       `import { t } from "../taser.js";

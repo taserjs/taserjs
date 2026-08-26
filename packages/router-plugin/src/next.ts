@@ -74,22 +74,25 @@ function logError(message: string, error: unknown): void {
 
 const DEFAULT_TURBO_EXTENSIONS = [".tsx", ".ts", ".jsx", ".js", ".mjs", ".json"];
 
-function applyTurbopackConfig(config: TaserNextConfig): void {
-  if (config.turbopack && typeof config.turbopack === "object") {
-    const existing = config.turbopack.resolveExtensions ?? [];
-    config.turbopack.resolveExtensions = [...new Set([...DEFAULT_TURBO_EXTENSIONS, ...existing])];
-  }
+type TurboResolveTarget = {
+  resolveExtensions?: string[] | undefined;
+};
 
-  if (
-    config.experimental &&
-    typeof config.experimental === "object" &&
-    config.experimental.turbo &&
-    typeof config.experimental.turbo === "object"
-  ) {
-    const existing = config.experimental.turbo.resolveExtensions ?? [];
-    config.experimental.turbo.resolveExtensions = [
-      ...new Set([...DEFAULT_TURBO_EXTENSIONS, ...existing]),
-    ];
+function mergeResolveExtensions(
+  target: TurboResolveTarget | undefined,
+  defaults: readonly string[],
+): void {
+  if (!target || typeof target !== "object") {
+    return;
+  }
+  const existing = target.resolveExtensions ?? [];
+  target.resolveExtensions = [...new Set([...defaults, ...existing])];
+}
+
+function applyTurbopackConfig(config: TaserNextConfig): void {
+  mergeResolveExtensions(config.turbopack, DEFAULT_TURBO_EXTENSIONS);
+  if (config.experimental && typeof config.experimental === "object") {
+    mergeResolveExtensions(config.experimental.turbo, DEFAULT_TURBO_EXTENSIONS);
   }
 }
 
@@ -143,10 +146,8 @@ function applyTaserNext(
     process.once("exit", shutdown);
   }
 
-  // 1. Turbopack integration (Next 14/15/16)
   applyTurbopackConfig(nextConfig);
 
-  // 2. Webpack integration (safe extension alias merging)
   const existingWebpack = nextConfig.webpack;
 
   const wrappedWebpack = async (config: unknown, context: unknown): Promise<unknown> => {

@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { join, relative, resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 import { emitTypeDeclarationsSource } from "./types.js";
 import { emitVirtualDeclarationsSource } from "./virtual.js";
@@ -10,7 +10,7 @@ import {
   DEFAULT_VIRTUAL_TYPES_FILENAME,
   ROUTES_ALIAS_ID,
 } from "../constants.js";
-import { toPosixPath } from "../support/paths.js";
+import { createAliasImportRewriter } from "../support/paths.js";
 import type { GeneratedModel } from "../types.js";
 
 export type TypeWriterState = {
@@ -38,18 +38,13 @@ export async function writeTaserTypes(
   const header = options.header ?? [...DEFAULT_MANIFEST_HEADER];
   const aliasBase = options.routesImportBase ?? ROUTES_ALIAS_ID;
 
-  let rewriteImportPath: ((spec: string) => string) | undefined;
-  if (options.routesDir) {
-    const routesDir = resolve(options.routesDir);
-    const aliasPrefix = `${aliasBase}/`;
-    rewriteImportPath = (spec) => {
-      const targetAbs = spec.startsWith(aliasPrefix)
-        ? join(routesDir, spec.slice(aliasPrefix.length))
-        : resolve(spec);
-      const rel = toPosixPath(relative(typesDir, targetAbs));
-      return rel.startsWith("./") || rel.startsWith("../") ? rel : `./${rel}`;
-    };
-  }
+  const rewriteImportPath = options.routesDir
+    ? createAliasImportRewriter({
+        outputDir: typesDir,
+        routesDir: resolve(options.routesDir),
+        aliasBase,
+      })
+    : undefined;
 
   const routesCode = emitTypeDeclarationsSource(model, {
     header,

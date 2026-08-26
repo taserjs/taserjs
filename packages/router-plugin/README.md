@@ -115,7 +115,6 @@ separately. Unspecified options fall back to their defaults.
 | `basePath`    | `string`               | —                 | URL scope Taser dispatches under.                               |
 | `ignore`      | `string[]`             | `["**/-*"]`       | Glob patterns for route files to skip.                          |
 | `quotes`      | `"single" \| "double"` | `"single"`        | Quote style of generated code.                                  |
-| `semi`        | `boolean`              | `false`           | Semicolons in generated code.                                   |
 | `format`      | `boolean`              | `true`            | Format generated code.                                          |
 | `validate`    | `boolean`              | `true`            | Validate route module exports during scanning.                  |
 

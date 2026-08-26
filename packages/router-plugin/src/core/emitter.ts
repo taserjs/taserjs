@@ -1,7 +1,13 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "pathe";
-import { emitVirtualEntrySource, emitVirtualManifestSource } from "@taserjs/router-generator";
+import {
+  createAliasImportRewriter,
+  emitVirtualEntrySource,
+  emitVirtualManifestSource,
+  ensureRelativePrefix,
+  ROUTES_ALIAS_ID,
+} from "@taserjs/router-generator";
 import { getComposedAppCode } from "./compose.js";
 import type { TaserVirtualContext } from "./types.js";
 
@@ -50,31 +56,30 @@ export async function writeDiskArtifacts(
 
   const model = await ctx.getModel();
 
-  const relToRoutes = relative(outDir, ctx.routesDir);
-  const normalizedRel = relToRoutes.startsWith(".") ? relToRoutes : `./${relToRoutes}`;
+  const rewriteImportPath = createAliasImportRewriter({
+    outputDir: outDir,
+    routesDir: ctx.routesDir,
+    aliasBase: ROUTES_ALIAS_ID,
+    stripImportExtension: true,
+  });
 
-  // 1. Manifest
-  const manifestRaw = emitVirtualManifestSource(model, {
+  const manifestCode = emitVirtualManifestSource(model, {
     header: ctx.formatting.header,
     quotes: ctx.formatting.quotes,
+    rewriteImportPath,
   });
-  const manifestCode = manifestRaw
-    .replaceAll("#taserjs/routes", normalizedRel)
-    .replaceAll(/\.(js|mjs|cjs)(["'])/g, "$2");
 
-  // 2. Entry
-  const entryRaw = emitVirtualEntrySource({
+  const entryCode = emitVirtualEntrySource({
     taserAppImportPath: ctx.entry,
     basePath: ctx.basePath,
+    manifestImportPath: "./manifest",
   });
-  const entryCode = entryRaw.replace("#taserjs/virtual/manifest", "./manifest");
 
-  // 3. Composed app
   let hostSpecifier: string | undefined;
   if (ctx.serverEntryPath) {
     const relToHost = relative(outDir, ctx.serverEntryPath);
     const hostWithoutExt = relToHost.replace(/\.[cm]?[jt]sx?$/, "");
-    hostSpecifier = hostWithoutExt.startsWith(".") ? hostWithoutExt : `./${hostWithoutExt}`;
+    hostSpecifier = ensureRelativePrefix(hostWithoutExt);
   }
 
   const appCode = getComposedAppCode({
