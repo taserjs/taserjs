@@ -27,4 +27,15 @@ describe("runGenerate", () => {
     const typesPath = join(dir, ".taser", "types", "routes.d.ts");
     expect(existsSync(typesPath)).toBe(true);
   });
+
+  it("maintains zero dependency on bundler plugin suite (@taserjs/router-plugin)", async () => {
+    const pkgJson = JSON.parse(
+      await import("node:fs/promises").then((f) =>
+        f.readFile(new URL("../package.json", import.meta.url), "utf8"),
+      ),
+    );
+    const deps = { ...pkgJson.dependencies, ...pkgJson.devDependencies };
+    expect(deps).not.toHaveProperty("@taserjs/router-plugin");
+    expect(deps).not.toHaveProperty("@taserjs/router-core");
+  });
 });

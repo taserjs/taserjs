@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { layoutScaffoldSource, routeScaffoldSource } from "../../src/scaffold/route-template.js";
+import { layoutScaffoldSource, routeScaffoldSource } from "../../src/index.js";
 
 describe("route scaffold templates", () => {
   it("emits split GET route stub", () => {
-    const source = routeScaffoldSource("/posts", "GET", "#src/taser.js");
+    const source = routeScaffoldSource("/posts", "GET");
 
     expect(source).toContain("import { json } from '@taserjs/router/reply'");
-    expect(source).toContain("import { t } from '#src/taser.js'");
+    expect(source).toContain("import { t } from '#taserjs/router'");
     expect(source).toContain("const GET = t.get('/posts')");
     expect(source).toContain("export type RouteContext = typeof GET.$Infer.Context");
     expect(source).toContain("export const Route = GET.handler(");
@@ -16,7 +16,7 @@ describe("route scaffold templates", () => {
   });
 
   it("emits split POST route stub", () => {
-    const source = routeScaffoldSource("/todo", "POST", "#src/taser.js");
+    const source = routeScaffoldSource("/todo", "POST");
 
     expect(source).toContain("const POST = t.post('/todo')");
     expect(source).toContain("export type RouteContext = typeof POST.$Infer.Context");
@@ -24,9 +24,9 @@ describe("route scaffold templates", () => {
   });
 
   it("emits t.middleware layout stub", () => {
-    const source = layoutScaffoldSource("settings", "#src/taser.js");
+    const source = layoutScaffoldSource("settings");
 
-    expect(source).toContain("import { t } from '#src/taser.js'");
+    expect(source).toContain("import { t } from '#taserjs/router'");
     expect(source).toContain("t.middleware");
     expect(source).toContain("export const Middleware =");
     expect(source).toContain("handler:");

@@ -4,9 +4,7 @@ import { tmpdir } from "node:os";
 
 import { describe, expect, it } from "vitest";
 
-import { walkRouteFiles } from "../../src/fs/walk.js";
-import { scanRouteFiles } from "../../src/scan/scan-routes.js";
-import { ScanErrorCollection } from "../../src/support/errors.js";
+import { walkRouteFiles, scanRouteFiles, ScanErrorCollection } from "../../src/index.js";
 import { testGeneratorConfig } from "../helpers/test-config.js";
 
 describe("scanRouteFiles errors", () => {
@@ -22,9 +20,15 @@ describe("scanRouteFiles errors", () => {
 
   it("reports duplicate route path and method", async () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-dup-route-"));
-    writeFileSync(join(routesDir, "posts.get.ts"), "export const Route = null;\n");
+    writeFileSync(
+      join(routesDir, "posts.get.ts"),
+      `import { t } from '#taserjs/router';\nexport const Route = t.get('/posts').handler(() => {});\n`,
+    );
     mkdirSync(join(routesDir, "posts"));
-    writeFileSync(join(routesDir, "posts", "index.get.ts"), "export const Route = null;\n");
+    writeFileSync(
+      join(routesDir, "posts", "index.get.ts"),
+      `import { t } from '#taserjs/router';\nexport const Route = t.get('/posts').handler(() => {});\n`,
+    );
 
     const files = await walkRouteFiles(routesDir, testGeneratorConfig.ignore);
 
@@ -35,7 +39,10 @@ describe("scanRouteFiles errors", () => {
 
   it("reports invalid route param names", async () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-invalid-param-"));
-    writeFileSync(join(routesDir, "items.$bad-name.get.ts"), "export const Route = null;\n");
+    writeFileSync(
+      join(routesDir, "items.$bad-name.get.ts"),
+      `import { t } from '#taserjs/router';\nexport const Route = t.get('/items/:bad-name').handler(() => {});\n`,
+    );
 
     const files = await walkRouteFiles(routesDir, testGeneratorConfig.ignore);
 
@@ -44,17 +51,14 @@ describe("scanRouteFiles errors", () => {
     );
   });
 
-  it("validates route exports when enabled", async () => {
+  it("validates route exports strictly", async () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-export-validation-"));
     writeFileSync(join(routesDir, "posts.get.ts"), "export const Route = null;\n");
 
     const files = await walkRouteFiles(routesDir, testGeneratorConfig.ignore);
 
-    await expect(
-      scanRouteFiles(routesDir, "./routes", files, {
-        ...testGeneratorConfig,
-        validate: true,
-      }),
-    ).rejects.toThrow(ScanErrorCollection);
+    await expect(scanRouteFiles(routesDir, "./routes", files, testGeneratorConfig)).rejects.toThrow(
+      ScanErrorCollection,
+    );
   });
 });

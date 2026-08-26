@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizeRouteRel } from "../src/scan/normalize.js";
+import { normalizeRouteRel } from "../src/index.js";
 
 describe("normalizeRouteRel", () => {
   it("expands flat dot routes to directory paths", () => {

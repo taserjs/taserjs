@@ -1,122 +1,131 @@
 import { resolve } from "pathe";
 import {
   AnalysisCache,
-  scanAndBuildModel,
-  emitVirtualManifestSource,
   emitVirtualEntrySource,
-  taserOptionsSchema,
-  DEFAULT_IGNORE,
-  resolveServerDir,
-  resolveTaserEntry,
+  emitVirtualManifestSource,
   resolveRoutesDir,
+  resolveServerDir,
   resolveServerEntry,
+  scanAndBuildModel,
+  taserConfigSchema,
+  watchRoutes,
+  writeTaserTypes,
+  type TypeWriterState,
   type GeneratedModel,
 } from "@taserjs/router-generator";
-import type { TaserUserConfig, TaserVirtualContext } from "../types.js";
-import { writeTaserTypes, type TypeWriterState } from "../writer.js";
-import { ROUTES_ALIAS_ID, ENTRY_ALIAS_ID } from "../aliases.js";
 
-export const VIRTUAL_MANIFEST_ID = "#taserjs/virtual/manifest";
-export const RESOLVED_VIRTUAL_MANIFEST_ID = "\0" + VIRTUAL_MANIFEST_ID;
+import { ENTRY_ALIAS_ID, ROUTES_ALIAS_ID } from "./constants.js";
+import type { TaserPluginOptions, TaserVirtualContext, WatcherOptions } from "./types.js";
 
-export const VIRTUAL_ENTRY_ID = "#taserjs/virtual/entry";
-export const RESOLVED_VIRTUAL_ENTRY_ID = "\0" + VIRTUAL_ENTRY_ID;
+export function createTaserVirtualContext(options: TaserPluginOptions = {}): TaserVirtualContext {
+  const rootDir = resolve(options.rootDir || ".");
+  const resolved = taserConfigSchema.parse(options);
+  const serverDir = resolveServerDir(rootDir, resolved.serverDir);
+  const routesDir = resolveRoutesDir(rootDir, serverDir, resolved.routesDir);
+  const serverEntryPath = resolveServerEntry(rootDir, serverDir, resolved.serverEntry);
 
-export const VIRTUAL_APP_ID = "#taserjs/virtual/app";
-export const RESOLVED_VIRTUAL_APP_ID = "\0" + VIRTUAL_APP_ID;
+  const cache = new AnalysisCache();
+  const writerState: TypeWriterState = {};
 
-/**
- * Creates the shared VirtualContext that manages model scanning,
- * AnalysisCache, virtual manifest/entry generation, and type generation.
- */
-export function createTaserVirtualContext(options: TaserUserConfig = {}): TaserVirtualContext {
-  const rootDir = resolve(options.rootDir || process.cwd());
-  const parsedOptions = taserOptionsSchema.parse(options);
-  const serverDir = resolveServerDir(rootDir, options.serverDir);
-  const entryPath = resolveTaserEntry(rootDir, serverDir, options.entry);
-  const serverEntryPath = resolveServerEntry(rootDir, serverDir, options.serverEntry);
-  const routesDir = resolveRoutesDir(rootDir, serverDir, options.routesDir);
-  const ignore = options.ignore && options.ignore.length > 0 ? options.ignore : [...DEFAULT_IGNORE];
-  const basePath = options.basePath;
+  let modelPromise: Promise<GeneratedModel> | null = null;
+  let manifestCodePromise: Promise<string> | null = null;
+  let entryCodePromise: Promise<string> | null = null;
 
-  let cachedModel: GeneratedModel | undefined;
-  let cachedManifestCode: string | undefined;
-  let cachedEntryCode: string | undefined;
-  const analysisCache = new AnalysisCache();
-  const typeWriterState: TypeWriterState = {};
+  const invalidate = () => {
+    modelPromise = null;
+    manifestCodePromise = null;
+    entryCodePromise = null;
+  };
 
-  async function getModel(): Promise<GeneratedModel> {
-    if (cachedModel) {
-      return cachedModel;
+  const getModel = (): Promise<GeneratedModel> => {
+    if (!modelPromise) {
+      modelPromise = scanAndBuildModel({
+        routesDir,
+        routesImportBase: ROUTES_ALIAS_ID,
+        extension: resolved.formatting.extension,
+        cache,
+        ignore: resolved.ignore,
+      });
     }
-    cachedModel = await scanAndBuildModel({
-      routesDir,
-      // Bundler-facing alias; resolved to the real routes dir by the Nitro
-      // module or the Vite plugin. Never leaks absolute paths into artifacts.
-      routesImportBase: ROUTES_ALIAS_ID,
-      extension: parsedOptions.extension,
-      validate: parsedOptions.validate,
-      cache: analysisCache,
-      ignore,
-    });
-    return cachedModel;
-  }
+    return modelPromise;
+  };
 
-  function invalidate() {
-    cachedModel = undefined;
-    cachedManifestCode = undefined;
-    cachedEntryCode = undefined;
-  }
-
-  async function getManifestCode(): Promise<string> {
-    if (cachedManifestCode) {
-      return cachedManifestCode;
+  const getManifestCode = async (): Promise<string> => {
+    if (!manifestCodePromise) {
+      manifestCodePromise = (async () => {
+        const model = await getModel();
+        return emitVirtualManifestSource(model, {
+          header: resolved.formatting.header,
+          quotes: resolved.formatting.quotes,
+        });
+      })();
     }
-    const model = await getModel();
-    cachedManifestCode = emitVirtualManifestSource(model, {
-      header: parsedOptions.header,
-      footer: [],
-      quotes: parsedOptions.quotes,
-    });
-    return cachedManifestCode;
-  }
+    return manifestCodePromise;
+  };
 
-  async function getEntryCode(): Promise<string> {
-    if (cachedEntryCode) {
-      return cachedEntryCode;
+  const getEntryCode = async (): Promise<string> => {
+    if (!entryCodePromise) {
+      entryCodePromise = (async () => {
+        return emitVirtualEntrySource({
+          taserAppImportPath: resolved.entry || ENTRY_ALIAS_ID,
+          basePath: resolved.basePath,
+        });
+      })();
     }
-    // Alias, not an absolute path: the host integration resolves it to entryPath.
-    cachedEntryCode = emitVirtualEntrySource({
-      taserAppImportPath: ENTRY_ALIAS_ID,
-      ...(basePath !== undefined ? { basePath } : {}),
-    });
-    return cachedEntryCode;
-  }
+    return entryCodePromise;
+  };
 
-  async function writeTypes(): Promise<boolean> {
+  const writeTypes = async (): Promise<boolean> => {
     const model = await getModel();
     return writeTaserTypes(model, {
       rootDir,
-      quotes: parsedOptions.quotes,
-      header: parsedOptions.header,
+      quotes: resolved.formatting.quotes,
+      header: resolved.formatting.header,
       routesDir,
-      state: typeWriterState,
+      state: writerState,
     });
-  }
+  };
 
   return {
     rootDir,
     serverDir,
     routesDir,
-    entryPath,
     serverEntryPath,
-    basePath,
-    ignore,
-    options: parsedOptions,
-    analysisCache,
+    basePath: resolved.basePath,
+    ignore: resolved.ignore,
+    entry: resolved.entry,
+    formatting: resolved.formatting,
+    options: resolved,
+    analysisCache: cache,
+    writeTypes,
     getManifestCode,
     getEntryCode,
+    getModel,
     invalidate,
-    writeTypes,
   };
+}
+
+export function watchAndSyncRoutes(
+  ctx: TaserVirtualContext,
+  onUpdate?: () => Promise<void> | void,
+  watcherOptions?: WatcherOptions,
+): { close: () => Promise<void> } {
+  return watchRoutes(
+    {
+      routesDir: ctx.routesDir,
+      entry: ctx.entry,
+      ignore: ctx.ignore,
+      debounceMs: watcherOptions?.debounceMs,
+      autoScaffold: watcherOptions?.autoScaffold,
+    },
+    async () => {
+      ctx.invalidate();
+      try {
+        await ctx.writeTypes();
+      } catch (error) {
+        console.warn("[taser] failed to sync ambient types:", error);
+      }
+      await onUpdate?.();
+    },
+  );
 }

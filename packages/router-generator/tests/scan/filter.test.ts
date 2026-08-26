@@ -1,4 +1,6 @@
-import { shouldIgnoreRoutePath } from "../../src/scan/filter.js";
+import { describe, expect, it } from "vitest";
+
+import { shouldIgnoreRoutePath } from "../../src/index.js";
 
 describe("shouldIgnoreRoutePath", () => {
   it("ignores files starting with '-' by default", () => {

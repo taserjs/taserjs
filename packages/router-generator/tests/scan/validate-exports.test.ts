@@ -1,16 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  analyzeLayoutFileSource,
-  analyzeRouteFileSource,
-} from "../../src/scan/parse-route-source.js";
+import { analyzeLayoutFileSource, analyzeRouteFileSource } from "../../src/index.js";
 
 describe("parse-route-source", () => {
   it("accepts valid route and layout exports", () => {
-    const routeSource = `import { t } from '#src/taser.js'
+    const routeSource = `import { t } from '#taserjs/router'
 export const Route = t.get('/hello').handler(() => {})
 `;
-    const layoutSource = `import { t } from '#src/taser.js'
+    const layoutSource = `import { t } from '#taserjs/router'
 export const Middleware = t.middleware('account').handler(() => {})
 `;
 
@@ -26,16 +23,16 @@ export const Middleware = t.middleware('account').handler(() => {})
   });
 
   it("parses t.any methods from AST", () => {
-    const source = `import { t } from '#src/taser.js'
+    const source = `import { t } from '#taserjs/router'
 export const Route = t.any('/order', ['GET', 'OPTIONS']).handler(() => {})
 `;
     const result = analyzeRouteFileSource(source, "order.any.ts", "ANY");
     expect(result.errors).toEqual([]);
-    expect(result.anyMethods).toEqual(["GET", "OPTIONS"]);
+    expect(result.methods).toEqual(["GET", "OPTIONS"]);
   });
 
   it("accepts split route configuration", () => {
-    const source = `import { t } from '#src/taser.js'
+    const source = `import { t } from '#taserjs/router'
 import { json } from '@taserjs/router/reply'
 import { z } from 'zod'
 
@@ -62,7 +59,7 @@ export const Route = route.handler(async (ctx) => {
   });
 
   it("accepts split layout configuration", () => {
-    const source = `import { t } from '#src/taser.js'
+    const source = `import { t } from '#taserjs/router'
 
 const middleware = t.middleware('todo')
 

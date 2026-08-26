@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { layoutIdFromPath, layoutImportName } from "../src/support/naming.js";
+import { layoutIdFromPath, layoutImportName } from "../src/index.js";
 
 describe("layoutIdFromPath", () => {
   it("maps root directory layout splat to /$", () => {

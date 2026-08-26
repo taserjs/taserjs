@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { promises as fsp } from "node:fs";
 import { join } from "pathe";
 import { tmpdir } from "node:os";
-import { createTaserVirtualContext } from "../src/core/context.js";
+import { createTaserVirtualContext } from "../src/index.js";
 import { scaffoldRouteFile } from "@taserjs/router-generator";
 import { setupTaserNitro } from "../src/nitro.js";
 import type { Nitro } from "nitro/types";
@@ -77,7 +77,8 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
     const entryCode = await ctx.getEntryCode();
     expect(entryCode).toContain("import { t } from");
     expect(entryCode).toContain('import { routeManifest } from "#taserjs/virtual/manifest";');
-    expect(entryCode).toContain("createNitroRouteHandler(app)");
+    expect(entryCode).toContain("export const app = t.create(routeManifest);");
+    expect(entryCode).toContain("export default app;");
   });
 
   it("writes ambient types to .taser/types/routes.d.ts", async () => {
@@ -168,7 +169,7 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
     expect(mockNitro.options.handlers[0]).toEqual({
       route: "/api/**",
       lazy: false,
-      handler: "#taserjs/virtual/entry",
+      handler: "#taserjs/virtual/nitro-handler",
     });
   });
 

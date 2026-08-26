@@ -3,8 +3,12 @@ import { promises as fsp } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-import { AnalysisCache } from "../../src/scan/analysis-cache.js";
-import { scanAndBuildModel } from "../../src/generator/scan-and-build.js";
+import {
+  AnalysisCache,
+  scanAndBuildModel,
+  scanRouteFiles,
+  walkRouteFiles,
+} from "../../src/index.js";
 
 describe("AnalysisCache", () => {
   let testDir: string;
@@ -33,8 +37,15 @@ describe("AnalysisCache", () => {
       routesDir,
       routesImportBase: routesDir,
       extension: false,
-      validate: true,
       ignore: [],
+    });
+  }
+
+  async function scanRouteFilesWithCache(cache: AnalysisCache) {
+    const files = await walkRouteFiles(routesDir);
+    return scanRouteFiles(routesDir, routesDir, files, {
+      extension: false,
+      cache,
     });
   }
 
@@ -49,17 +60,6 @@ describe("AnalysisCache", () => {
     expect(cache.getStats().hits).toBe(2);
     expect(cache.getStats().misses).toBe(2);
   });
-
-  async function scanRouteFilesWithCache(cache: AnalysisCache) {
-    const { FileIndex } = await import("../../src/fs/file-index.js");
-    const index = await FileIndex.fromDirectory(routesDir);
-    const { scanRouteFiles } = await import("../../src/scan/scan-routes.js");
-    return scanRouteFiles(routesDir, routesDir, index.getAbsolutePaths(), {
-      extension: false,
-      validate: true,
-      cache,
-    });
-  }
 
   it("re-parses only files whose mtime moved", async () => {
     const cache = new AnalysisCache();
@@ -96,7 +96,6 @@ describe("AnalysisCache", () => {
       routesDir,
       routesImportBase: routesDir,
       extension: false,
-      validate: true,
       ignore: [],
       cache,
     });

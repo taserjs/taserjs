@@ -34,6 +34,5 @@ export { TaserApp } from "./builder/app.js";
 export { createContext } from "./context/create-context.js";
 export { defineHandler } from "./define/handler.js";
 export { defineMiddleware } from "./define/middleware.js";
-export { createNitroRouteHandler, type FetchableApp, type NitroFetchEvent } from "./entry/nitro.js";
 
 export type { TaserCookieJar, TaserHeaders } from "@taserjs/router-core";

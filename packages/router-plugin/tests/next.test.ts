@@ -1,24 +1,34 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { promises as fsp } from "node:fs";
+import { join } from "pathe";
+import { tmpdir } from "node:os";
 import createTaser, { type NextConfigFn } from "../src/next.js";
 
 const ORIGINAL_PHASE = process.env.NEXT_PHASE;
 
 describe("Next.js adapter (createTaser / withTaser)", () => {
-  beforeEach(() => {
+  let testDir: string;
+
+  beforeEach(async () => {
     delete process.env.NEXT_PHASE;
+    testDir = await fsp.mkdtemp(join(tmpdir(), "taser-next-test-"));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (ORIGINAL_PHASE === undefined) {
       delete process.env.NEXT_PHASE;
     } else {
       process.env.NEXT_PHASE = ORIGINAL_PHASE;
     }
     vi.restoreAllMocks();
+    if (testDir) {
+      await new Promise((r) => setTimeout(r, 50));
+      await fsp.rm(testDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 });
+    }
   });
 
   it("works with curried factory pattern (like @next/mdx)", () => {
-    const withTaserCustom = createTaser({ basePath: "/app" });
+    const withTaserCustom = createTaser({ rootDir: testDir, basePath: "/app" });
     const config = withTaserCustom({ reactStrictMode: true });
     expect(config.basePath).toBe("/app");
     expect(config.reactStrictMode).toBe(true);
@@ -26,14 +36,14 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
   });
 
   it("is idempotent — double wrapping returns the same config", () => {
-    const withTaserCustom = createTaser();
+    const withTaserCustom = createTaser({ rootDir: testDir });
     const wrapped = withTaserCustom({});
     const again = withTaserCustom(wrapped);
     expect(again).toBe(wrapped);
   });
 
   it("handles sync function-based next.config", async () => {
-    const withTaserCustom = createTaser({ basePath: "/api" });
+    const withTaserCustom = createTaser({ rootDir: testDir, basePath: "/api" });
     const rawFn: NextConfigFn = (_phase, { defaultConfig }) => ({
       ...defaultConfig,
       reactStrictMode: true,
@@ -51,7 +61,7 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
   });
 
   it("handles async function-based next.config", async () => {
-    const withTaserCustom = createTaser();
+    const withTaserCustom = createTaser({ rootDir: testDir });
     const rawFn: NextConfigFn = async () => {
       await Promise.resolve();
       return { poweredByHeader: false };
@@ -67,7 +77,7 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
 
   it("supports plugin chaining with other wrappers", () => {
     const withDummy = <T extends object>(cfg: T) => ({ ...cfg, dummy: true });
-    const withTaserCustom = createTaser({ basePath: "/chained" });
+    const withTaserCustom = createTaser({ rootDir: testDir, basePath: "/chained" });
 
     const finalConfig = withDummy(withTaserCustom({ reactStrictMode: true }));
     expect(finalConfig.basePath).toBe("/chained");
@@ -76,7 +86,7 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
   });
 
   it("configures Turbopack resolveExtensions for Next 16 turbopack and Next 14/15 experimental.turbo", () => {
-    const withTaserCustom = createTaser();
+    const withTaserCustom = createTaser({ rootDir: testDir });
     const config = withTaserCustom({
       turbopack: { resolveExtensions: [".custom"] },
       experimental: { turbo: { resolveExtensions: [".custom2"] } },
@@ -93,7 +103,7 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
 
   it("wraps an existing webpack callback and safely merges extension aliasing", async () => {
     const webpack = vi.fn((config: unknown) => config);
-    const withTaserCustom = createTaser();
+    const withTaserCustom = createTaser({ rootDir: testDir });
     const config = withTaserCustom({
       webpack,
     });
@@ -109,7 +119,7 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
   });
 
   it("does not clobber user extensionAlias entries during webpack merge", async () => {
-    const withTaserCustom = createTaser();
+    const withTaserCustom = createTaser({ rootDir: testDir });
     const config = withTaserCustom({
       webpack: (config: unknown) =>
         ({

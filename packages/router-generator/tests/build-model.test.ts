@@ -11,9 +11,18 @@ describe("scan to generated model", () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-routes-"));
     const outputFile = join(routesDir, "..", "routeManifest.gen.ts");
 
-    writeFileSync(join(routesDir, "posts.$id.get.ts"), "export const Route = null;\n");
-    writeFileSync(join(routesDir, "settings.ts"), "export const Middleware = null;\n");
-    writeFileSync(join(routesDir, "settings.profile.get.ts"), "export const Route = null;\n");
+    writeFileSync(
+      join(routesDir, "posts.$id.get.ts"),
+      `import { t } from '#taserjs/router';\nexport const Route = t.get('/posts/:id').handler(() => {});\n`,
+    );
+    writeFileSync(
+      join(routesDir, "settings.ts"),
+      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('settings').use({});\n`,
+    );
+    writeFileSync(
+      join(routesDir, "settings.profile.get.ts"),
+      `import { t } from '#taserjs/router';\nexport const Route = t.get('/settings/profile').handler(() => {});\n`,
+    );
 
     const model = await buildTestModel(routesDir, outputFile);
 
@@ -26,11 +35,23 @@ describe("scan to generated model", () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-routes-"));
     const outputFile = join(routesDir, "..", "routeManifest.gen.ts");
 
-    writeFileSync(join(routesDir, "$.ts"), "export const Middleware = null;\n");
-    writeFileSync(join(routesDir, "account.ts"), "export const Middleware = null;\n");
+    writeFileSync(
+      join(routesDir, "$.ts"),
+      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('/$').use({});\n`,
+    );
+    writeFileSync(
+      join(routesDir, "account.ts"),
+      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('account').use({});\n`,
+    );
     mkdirSync(join(routesDir, "account"));
-    writeFileSync(join(routesDir, "account", "$.ts"), "export const Middleware = null;\n");
-    writeFileSync(join(routesDir, "account", "overview.get.ts"), "export const Route = null;\n");
+    writeFileSync(
+      join(routesDir, "account", "$.ts"),
+      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('account/$').use({});\n`,
+    );
+    writeFileSync(
+      join(routesDir, "account", "overview.get.ts"),
+      `import { t } from '#taserjs/router';\nexport const Route = t.get('/account/overview').handler(() => {});\n`,
+    );
 
     const model = await buildTestModel(routesDir, outputFile);
 

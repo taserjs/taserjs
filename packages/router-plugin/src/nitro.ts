@@ -3,15 +3,19 @@ import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 import { DEFAULT_IGNORE } from "@taserjs/router-generator";
 import { composeBasePath } from "@taserjs/router-utils";
-import type { TaserNitroOptions } from "./types.js";
-import { ROUTES_ALIAS_ID, ENTRY_ALIAS_ID, SERVER_ENTRY_ALIAS_ID } from "./aliases.js";
+import type { TaserPluginOptions } from "./core/types.js";
 import {
-  createTaserVirtualContext,
+  ROUTES_ALIAS_ID,
+  SERVER_ENTRY_ALIAS_ID,
   VIRTUAL_MANIFEST_ID,
   VIRTUAL_ENTRY_ID,
-} from "./core/context.js";
+} from "./core/constants.js";
+import { createTaserVirtualContext, watchAndSyncRoutes } from "./core/context.js";
 import { getComposedAppCode } from "./core/compose.js";
-import { watchAndSyncRoutes } from "./core/watcher.js";
+
+export type TaserNitroOptions = TaserPluginOptions & {
+  standalone?: boolean | undefined;
+};
 
 /**
  * Standalone Nitro Module for Taser.
@@ -60,12 +64,9 @@ async function applyTaserNitro(nitro: Nitro, options: TaserNitroOptions): Promis
     basePath: effectiveScope,
   });
 
-  // Resolve Taser's virtual aliases to real files so emitted code never
-  // carries absolute machine paths.
   nitro.options.alias = {
     ...nitro.options.alias,
     [ROUTES_ALIAS_ID]: ctx.routesDir,
-    [ENTRY_ALIAS_ID]: ctx.entryPath,
     ...(ctx.serverEntryPath ? { [SERVER_ENTRY_ALIAS_ID]: ctx.serverEntryPath } : {}),
   };
 
@@ -96,10 +97,16 @@ async function applyTaserNitro(nitro: Nitro, options: TaserNitroOptions): Promis
     const routePattern =
       effectiveScope && effectiveScope !== "/" ? `${effectiveScope.replace(/\/+$/, "")}/**` : "/**";
 
+    const VIRTUAL_NITRO_HANDLER_ID = "#taserjs/virtual/nitro-handler";
+    nitro.options.virtual[VIRTUAL_NITRO_HANDLER_ID] = () =>
+      `import app from "${VIRTUAL_ENTRY_ID}";
+export default (event) => app.fetch(event instanceof Request ? event : event.req);
+`;
+
     nitro.options.handlers.unshift({
       route: routePattern,
       lazy: false,
-      handler: VIRTUAL_ENTRY_ID,
+      handler: VIRTUAL_NITRO_HANDLER_ID,
     });
   }
 

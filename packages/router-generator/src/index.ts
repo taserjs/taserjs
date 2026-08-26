@@ -4,46 +4,115 @@ export {
   DEFAULT_ENTRY,
   DEFAULT_SERVER_ENTRY,
   DEFAULT_IGNORE,
+  DEFAULT_MANIFEST_HEADER,
   HTTP_VERBS,
   ROUTE_VERB_PATTERN,
 } from "./constants.js";
-export { shouldIgnoreRoutePath, assertPhysicalRouteFile } from "./scan/filter.js";
+
+export {
+  taserConfigSchema,
+  formattingSchema,
+  extensionSchema,
+  resolveImportExtension,
+  DEFAULT_FORMATTING,
+  type TaserConfig,
+  type ResolvedTaserConfig,
+  type FormattingOptions,
+  type ResolvedFormattingOptions,
+  type ExtensionOption,
+} from "./config.js";
+
+export type {
+  GeneratedModel,
+  RouteEntry,
+  RouteMethodEntry,
+  LayoutFile,
+  ScanResult,
+  HttpVerb,
+  RouteFileMethod,
+} from "./types.js";
+
+export { ScanError, ScanErrorCollection, formatScanErrors } from "./support/errors.js";
+
 export {
   toPosixPath,
   resolveServerDir,
   resolveRoutesDir,
-  resolveTaserEntry,
   resolveServerEntry,
+  routesImportPrefix,
 } from "./support/paths.js";
+
 export {
-  taserOptionsSchema,
-  taserConfigSchema,
-  resolveImportExtension,
-  type TaserOptions,
-  type TaserUserOptions,
-  type TaserConfig,
-  type TaserUserConfig,
-  type ExtensionOption,
-} from "./config/schema.js";
-export type { GeneratedModel } from "./types/index.js";
+  shouldIgnoreRoutePath,
+  assertPhysicalRouteFile,
+  isRouteFile,
+  getMethodFromRouteFile,
+  isHttpVerb,
+  classifyRouteFile,
+  normalizeRouteRel,
+  buildUrlPath,
+  layoutIdFromPath,
+  layoutImportName,
+  routeImportName,
+  importPathFromRouteRel,
+  layoutImportPathFromRouteRel,
+  layoutAppliesToRoute,
+  routeLayoutChain,
+  layoutParentId,
+} from "./scan/paths.js";
+
 export {
-  emitRouteManifestSource,
-  emitVirtualManifestSource,
-  emitTypeDeclarationsSource,
-} from "./codegen/emit-route-manifest.js";
+  AnalysisCache,
+  type AnalysisCacheStats,
+  type RouteAnalysis,
+  type LayoutAnalysis,
+} from "./scan/cache.js";
+
 export {
-  emitVirtualEntrySource,
-  type EmitVirtualEntryOptions,
-} from "./codegen/emit-virtual-entry.js";
-export { scanAndBuildModel, type ScanAndBuildOptions } from "./generator/scan-and-build.js";
-export { buildGeneratedModelFromScan } from "./model/build-model.js";
-export { AnalysisCache, type AnalysisCacheStats } from "./scan/analysis-cache.js";
-export { FileIndex, type FileEntry } from "./fs/file-index.js";
-export { scanRouteFiles, scanSingleRouteFile } from "./scan/scan-routes.js";
+  walkRouteFiles,
+  scanRouteFiles,
+  scanSingleRouteFile,
+  scanAndBuildModel,
+  buildGeneratedModelFromScan,
+  analyzeRouteFileSource,
+  analyzeRouteFileSourceAsync,
+  analyzeLayoutFileSource,
+  analyzeLayoutFileSourceAsync,
+  createRouteFactoryName,
+  collectInvalidRouteParams,
+  formatInvalidParamMessage,
+  type ScanOptions,
+  type ScanAndBuildOptions,
+} from "./scan/scan.js";
+
 export {
   scaffoldRouteFile,
   scaffoldRouteFileAtPath,
+  routeScaffoldSource,
+  layoutScaffoldSource,
+  fileNeedsScaffold,
   type ScaffoldOptions,
   type ScaffoldResult,
-} from "./scaffold/scaffold-file.js";
-export { routeScaffoldSource, layoutScaffoldSource } from "./scaffold/route-template.js";
+} from "./scaffold/scaffold.js";
+
+export {
+  watchRoutes,
+  type WatchRoutesOptions,
+  type RouteChangeEvent,
+  type RouteChangeBatch,
+} from "./watcher/watcher.js";
+
+export { emitVirtualManifestSource, type EmitManifestOptions } from "./codegen/manifest.js";
+
+export {
+  emitRouteManifestSource,
+  emitTypeDeclarationsSource,
+  buildClientChainType,
+  buildLayoutTreeType,
+  buildRouteByPathMethodType,
+  buildRouterRegisterAugmentation,
+} from "./codegen/types.js";
+
+export { emitVirtualEntrySource, type EmitVirtualEntryOptions } from "./codegen/entry.js";
+
+export { writeTaserTypes, type TypeWriterState, type WriteTypesOptions } from "./codegen/writer.js";

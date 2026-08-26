@@ -4,10 +4,13 @@ import { tmpdir } from "node:os";
 
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_ENTRY } from "../../src/constants.js";
-import { scanAndBuildModel } from "../../src/generator/scan-and-build.js";
-import { emitVirtualManifestSource } from "../../src/codegen/emit-route-manifest.js";
-import { scaffoldRouteFile, scaffoldRouteFileAtPath } from "../../src/scaffold/scaffold-file.js";
+import {
+  DEFAULT_ENTRY,
+  scanAndBuildModel,
+  emitVirtualManifestSource,
+  scaffoldRouteFile,
+  scaffoldRouteFileAtPath,
+} from "../../src/index.js";
 
 const scaffoldOptions = { entry: DEFAULT_ENTRY };
 
@@ -106,8 +109,7 @@ describe("scaffold integration", () => {
     const routePath = join(routesDir, "hello.get.ts");
     writeFileSync(routePath, "");
 
-    // Scaffolding is an explicit write step, decoupled from the scan read path.
-    await scaffoldRouteFile(routesDir, routePath, { entry: "#src/taser.js" });
+    await scaffoldRouteFile(routesDir, routePath);
 
     const model = await scanAndBuildModel({ routesDir });
 

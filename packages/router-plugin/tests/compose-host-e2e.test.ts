@@ -4,7 +4,7 @@ import { join } from "pathe";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 
-import { getComposedAppCode } from "../src/core/compose.js";
+import { getComposedAppCode } from "../src/index.js";
 
 /**
  * Loads the REAL generated compose output with its virtual specifiers rewired
@@ -16,8 +16,10 @@ async function loadComposedApp(hostModuleSource: string | undefined) {
 
   await fsp.writeFile(
     join(dir, "entry.mjs"),
-    `export default async (req) =>
-      new URL(req.url).pathname === "/taser" ? new Response("from-taser") : undefined;
+    `export default {
+  fetch: async (req) =>
+    new URL(req.url).pathname === "/taser" ? new Response("from-taser") : undefined,
+};
 `,
   );
 

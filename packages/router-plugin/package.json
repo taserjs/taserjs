@@ -38,6 +38,56 @@
         "default": "./dist/cjs/vite.cjs"
       }
     },
+    "./webpack": {
+      "import": {
+        "types": "./dist/esm/webpack.d.ts",
+        "default": "./dist/esm/webpack.js"
+      },
+      "require": {
+        "types": "./dist/cjs/webpack.d.cts",
+        "default": "./dist/cjs/webpack.cjs"
+      }
+    },
+    "./rspack": {
+      "import": {
+        "types": "./dist/esm/rspack.d.ts",
+        "default": "./dist/esm/rspack.js"
+      },
+      "require": {
+        "types": "./dist/cjs/rspack.d.cts",
+        "default": "./dist/cjs/rspack.cjs"
+      }
+    },
+    "./rollup": {
+      "import": {
+        "types": "./dist/esm/rollup.d.ts",
+        "default": "./dist/esm/rollup.js"
+      },
+      "require": {
+        "types": "./dist/cjs/rollup.d.cts",
+        "default": "./dist/cjs/rollup.cjs"
+      }
+    },
+    "./rolldown": {
+      "import": {
+        "types": "./dist/esm/rolldown.d.ts",
+        "default": "./dist/esm/rolldown.js"
+      },
+      "require": {
+        "types": "./dist/cjs/rolldown.d.cts",
+        "default": "./dist/cjs/rolldown.cjs"
+      }
+    },
+    "./esbuild": {
+      "import": {
+        "types": "./dist/esm/esbuild.d.ts",
+        "default": "./dist/esm/esbuild.js"
+      },
+      "require": {
+        "types": "./dist/cjs/esbuild.d.cts",
+        "default": "./dist/cjs/esbuild.cjs"
+      }
+    },
     "./next": {
       "import": {
         "types": "./dist/esm/next.d.ts",
@@ -58,26 +108,6 @@
         "default": "./dist/cjs/nitro.cjs"
       }
     },
-    "./writer": {
-      "import": {
-        "types": "./dist/esm/writer.d.ts",
-        "default": "./dist/esm/writer.js"
-      },
-      "require": {
-        "types": "./dist/cjs/writer.d.cts",
-        "default": "./dist/cjs/writer.cjs"
-      }
-    },
-    "./aliases": {
-      "import": {
-        "types": "./dist/esm/aliases.d.ts",
-        "default": "./dist/esm/aliases.js"
-      },
-      "require": {
-        "types": "./dist/cjs/aliases.d.cts",
-        "default": "./dist/cjs/aliases.cjs"
-      }
-    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -95,8 +125,8 @@
     "@taserjs/router-generator": "workspace:*",
     "@taserjs/router-utils": "workspace:*",
     "chokidar": "^5.0.0",
-    "jsonc-parser": "^3.3.1",
-    "pathe": "^2.0.3"
+    "pathe": "^2.0.3",
+    "unplugin": "^3.3.0"
   },
   "devDependencies": {
     "@tanstack/vite-config": "^0.6.0",

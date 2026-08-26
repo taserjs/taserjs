@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getComposedAppCode } from "../src/core/compose.js";
+import { getComposedAppCode } from "../src/index.js";
 
 describe("getComposedAppCode host contract", () => {
   it("emits no host code or srvx imports without a server entry", () => {
@@ -48,7 +48,7 @@ describe("getComposedAppCode host contract", () => {
 
   it("dispatches taser before the host and 404s on double miss", () => {
     const code = getComposedAppCode({ serverEntrySpecifier: "#taserjs/server-entry" });
-    const taserIdx = code.indexOf("await taserEntry(req)");
+    const taserIdx = code.indexOf("await taserRoutesApp.fetch(req)");
     const hostIdx = code.indexOf("await hostFetch(req)");
     const notFoundIdx = code.indexOf('"Not Found"');
     expect(taserIdx).toBeGreaterThan(-1);

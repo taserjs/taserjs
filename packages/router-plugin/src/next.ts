@@ -3,7 +3,7 @@
  *
  * Next cannot serve virtual modules, so this adapter materializes the same
  * generated sources the Vite plugin serves virtually into `.taser/` on disk
- * (see `core/emitter.ts`). The host app then mounts Taser through a catch-all
+ * (see `emitter.ts`). The host app then mounts Taser through a catch-all
  * route handler:
  *
  * ```ts
@@ -14,31 +14,11 @@
  * export const GET = handle;
  * export const POST = handle;
  * ```
- *
- * Usage in `next.config.ts` (curried factory style, like `@next/mdx`):
- *
- * ```ts
- * import createTaser from "@taserjs/router-plugin/next";
- *
- * const withTaser = createTaser({
- *   basePath: "/app", // optional; becomes the Taser dispatch scope
- * });
- *
- * export default withTaser({
- *   // next.js config
- * });
- * ```
  */
-import { watchAndSyncRoutes, type WatcherOptions } from "./core/watcher.js";
+import { createTaserVirtualContext, watchAndSyncRoutes } from "./core/context.js";
 import { DISK_ARTIFACT_DIR, writeDiskArtifacts } from "./core/emitter.js";
-import { createTaserVirtualContext } from "./core/context.js";
-import type { TaserUserConfig } from "./types.js";
+import type { TaserConfig, WatcherOptions } from "./core/types.js";
 
-/**
- * Minimal structural view of the pieces of a Next config we interact with.
- * Intentionally not importing `next` types: `next` is an optional peer and may
- * be absent when only the shared core is consumed.
- */
 export type TaserNextConfig = {
   basePath?: string | undefined;
   webpack?: ((config: any, context?: any) => any) | undefined;
@@ -76,24 +56,14 @@ export type NextConfigReturn<T extends NextConfigInput | undefined = undefined> 
     ? NextConfigFn
     : TaserNextConfig & (T extends object ? T : Record<string, unknown>);
 
-/**
- * Options accepted by {@link createTaser} / {@link withTaser}.
- */
-export type TaserNextOptions = TaserUserConfig & {
-  /** Output directory for generated artifacts; defaults to `.taser`. */
+export type TaserNextOptions = TaserConfig & {
+  rootDir?: string | undefined;
   outDir?: string | undefined;
-  /**
-   * URL scope Taser dispatches under. Defaults to the Next config's
-   * `basePath`, falling back to `/`.
-   */
   basePath?: string | undefined;
-  /** Route watcher tuning passed through to `watchAndSyncRoutes`. */
   watcher?: WatcherOptions | undefined;
 };
 
 const DEVELOPMENT_PHASE = "PHASE_DEVELOPMENT_SERVER";
-
-/** Marker so wrapping twice does not double-register watchers/hooks. */
 const TASER_KEY = "__taserRouterPlugin";
 
 type MarkedConfig = TaserNextConfig & { [TASER_KEY]?: boolean };
@@ -137,9 +107,6 @@ function applyTaserNext(
   const outDir = options.outDir ?? DISK_ARTIFACT_DIR;
   const scope = options.basePath ?? nextConfig.basePath;
 
-  // A project without a Taser entry (e.g. a shared config applied to a
-  // non-Taser app) must not hard-crash the whole Next config load — degrade to
-  // a pass-through wrapper and surface the reason.
   let ctx: ReturnType<typeof createTaserVirtualContext> | undefined;
   try {
     ctx = createTaserVirtualContext({ ...options, rootDir });
@@ -159,8 +126,6 @@ function applyTaserNext(
     }
   };
 
-  // Config wrappers are synchronous; kick generation off immediately and let
-  // the webpack hook (which may be async) await readiness.
   const ready = generate();
 
   let closeWatcher: (() => Promise<void>) | undefined;
@@ -213,16 +178,6 @@ function applyTaserNext(
   return result;
 }
 
-/**
- * Curried factory function (like `@next/mdx`) to integrate Taser routing into Next.js.
- *
- * ```ts
- * import createTaser from "@taserjs/router-plugin/next";
- *
- * const withTaser = createTaser({ basePath: "/api" });
- * export default withTaser(nextConfig);
- * ```
- */
 export function createTaser(
   options: TaserNextOptions = {},
 ): <T extends NextConfigInput | undefined = TaserNextConfig>(

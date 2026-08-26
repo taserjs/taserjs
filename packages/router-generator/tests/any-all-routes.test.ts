@@ -4,12 +4,14 @@ import { tmpdir } from "node:os";
 
 import { describe, expect, it } from "vitest";
 
-import { emitRouteManifestSource } from "../src/codegen/emit-route-manifest.js";
-import { buildGeneratedModelFromScan } from "../src/model/build-model.js";
-import { scanRouteFiles } from "../src/scan/scan-routes.js";
-import { walkRouteFiles } from "../src/fs/walk.js";
-import { scaffoldRouteFile } from "../src/scaffold/scaffold-file.js";
-import { DEFAULT_ENTRY } from "../src/constants.js";
+import {
+  emitRouteManifestSource,
+  buildGeneratedModelFromScan,
+  scanRouteFiles,
+  walkRouteFiles,
+  scaffoldRouteFile,
+  DEFAULT_ENTRY,
+} from "../src/index.js";
 import { testEmitOptions, testGeneratorConfig } from "./helpers/test-config.js";
 
 const scaffoldOptions = { entry: DEFAULT_ENTRY };
@@ -20,30 +22,27 @@ describe("any/all route expansion", () => {
     writeFileSync(
       join(routesDir, "order.get.ts"),
       `import { json } from '@taserjs/router/reply'
-import { t } from '#src/taser.js'
+import { t } from '#taserjs/router'
 export const Route = t.get('/order').handler(() => json({ ok: true }))
 `,
     );
     writeFileSync(
       join(routesDir, "order.any.ts"),
       `import { json } from '@taserjs/router/reply'
-import { t } from '#src/taser.js'
+import { t } from '#taserjs/router'
 export const Route = t.any('/order', ['GET', 'OPTIONS']).handler(() => json({ ok: true }))
 `,
     );
     writeFileSync(
       join(routesDir, "order.all.ts"),
       `import { json } from '@taserjs/router/reply'
-import { t } from '#src/taser.js'
+import { t } from '#taserjs/router'
 export const Route = t.all('/order').handler(() => json({ ok: true }))
 `,
     );
 
     const files = await walkRouteFiles(routesDir, testGeneratorConfig.ignore);
-    const scan = await scanRouteFiles(routesDir, "./routes", files, {
-      ...testGeneratorConfig,
-      validate: true,
-    });
+    const scan = await scanRouteFiles(routesDir, "./routes", files, testGeneratorConfig);
     const model = buildGeneratedModelFromScan(scan);
     const entries = model.routesByPath.get("/order") ?? [];
     const byMethod = Object.fromEntries(entries.map((entry) => [entry.method, entry.importName]));
@@ -70,17 +69,14 @@ export const Route = t.all('/order').handler(() => json({ ok: true }))
     writeFileSync(
       join(routesDir, "order.any.ts"),
       `import { json } from '@taserjs/router/reply'
-import { t } from '#src/taser.js'
+import { t } from '#taserjs/router'
 export const Route = t.any('/order', []).handler(() => json({ ok: true }))
 `,
     );
 
     const files = await walkRouteFiles(routesDir, testGeneratorConfig.ignore);
     await expect(
-      scanRouteFiles(routesDir, "./routes", files, {
-        ...testGeneratorConfig,
-        validate: true,
-      }),
+      scanRouteFiles(routesDir, "./routes", files, testGeneratorConfig),
     ).rejects.toThrow();
   });
 
@@ -96,10 +92,7 @@ export const Route = createAnyRoute('/order', ['GET']).handler(() => json({ ok: 
 
     const files = await walkRouteFiles(routesDir, testGeneratorConfig.ignore);
     await expect(
-      scanRouteFiles(routesDir, "./routes", files, {
-        ...testGeneratorConfig,
-        validate: true,
-      }),
+      scanRouteFiles(routesDir, "./routes", files, testGeneratorConfig),
     ).rejects.toThrow();
   });
 });

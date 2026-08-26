@@ -2,17 +2,15 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   DEFAULT_IGNORE,
-  taserOptionsSchema,
-  type TaserUserConfig,
+  taserConfigSchema,
+  type ResolvedTaserConfig,
 } from "@taserjs/router-generator";
 
 export type ResolvedGenerateConfig = {
-  /** Codegen options (entry, extension, quotes, semi, header, format, validate). */
-  taser: TaserUserConfig;
+  taser: ResolvedTaserConfig;
   routesDir?: string | undefined;
   basePath?: string | undefined;
   ignore: string[];
-  /** Which config surface the options were read from. */
   source: "vite" | "nitro" | "defaults";
 };
 
@@ -36,25 +34,16 @@ type MaybeTaserPlugin = {
   setup?: unknown;
 };
 
-/**
- * Reads Taser configuration across supported setups:
- *
- * 1. Vite Only / Vite + Nitro — `taser(options)` in vite.config
- * 2. Nitro Only               — `modules: [taser(options)]` in nitro.config
- *
- * Falls back to generator defaults when nothing is configured.
- */
 export async function resolveAppConfig(rootDir: string): Promise<ResolvedGenerateConfig> {
-  // 1. vite.config — find the taser plugin's options.
+  const { createJiti } = await import("jiti");
+  const jiti = createJiti(process.cwd());
+
   for (const file of VITE_CONFIG_FILES) {
     const configPath = resolve(rootDir, file);
     if (!existsSync(configPath)) {
       continue;
     }
     try {
-      // oxlint-disable-next-line no-await-in-loop
-      const { createJiti } = await import("jiti");
-      const jiti = createJiti(process.cwd());
       // oxlint-disable-next-line no-await-in-loop
       const mod = (await jiti.import(configPath)) as {
         default?: { plugins?: unknown; nitro?: unknown };
@@ -74,16 +63,12 @@ export async function resolveAppConfig(rootDir: string): Promise<ResolvedGenerat
     }
   }
 
-  // 2. nitro.config.ts — check for taser module in modules list.
   for (const file of NITRO_CONFIG_FILES) {
     const configPath = resolve(rootDir, file);
     if (!existsSync(configPath)) {
       continue;
     }
     try {
-      // oxlint-disable-next-line no-await-in-loop
-      const { createJiti } = await import("jiti");
-      const jiti = createJiti(process.cwd());
       // oxlint-disable-next-line no-await-in-loop
       const mod = (await jiti.import(configPath)) as {
         default?: { modules?: unknown[]; ignore?: string[] };
@@ -108,7 +93,6 @@ export async function resolveAppConfig(rootDir: string): Promise<ResolvedGenerat
     }
   }
 
-  // 3. Defaults.
   return finalize({}, "defaults", rootDir);
 }
 
@@ -118,10 +102,13 @@ function finalize(
   rootDir: string,
   nitroOptions?: Record<string, unknown>,
 ): ResolvedGenerateConfig {
-  const taser = taserOptionsSchema.parse(raw);
+  const taser = taserConfigSchema.parse(raw);
   const ignore = Array.from(
     new Set([
-      ...(((nitroOptions?.ignore as string[]) ?? (raw.ignore as string[]) ?? []) as string[]),
+      ...(((nitroOptions?.ignore as string[]) ??
+        (raw.ignore as string[]) ??
+        taser.ignore ??
+        []) as string[]),
       ...DEFAULT_IGNORE,
     ]),
   );
@@ -129,7 +116,7 @@ function finalize(
   return {
     taser,
     routesDir: (raw.routesDir as string | undefined) ?? taser.routesDir,
-    basePath: raw.basePath as string | undefined,
+    basePath: (raw.basePath as string | undefined) ?? taser.basePath,
     ignore,
     source,
   };

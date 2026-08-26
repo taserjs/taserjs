@@ -34,6 +34,17 @@ describe("nitro-integration (Nitro Only Mode)", () => {
     await fsp.mkdir(routesDir, { recursive: true });
 
     await fsp.writeFile(
+      join(testDir, "package.json"),
+      JSON.stringify({
+        name: "test-app",
+        type: "module",
+        imports: {
+          "#taserjs/router": "./src/taser.ts",
+        },
+      }),
+    );
+
+    await fsp.writeFile(
       join(srcDir, "taser.ts"),
       `import { createTaserApp } from "@taserjs/router";
 export const t = createTaserApp();
@@ -86,6 +97,17 @@ export const Route = t.get("/hello").handler(() => json({ message: "hello from n
     const srcDir = join(testDir, "src");
     const routesDir = join(srcDir, "routes");
     await fsp.mkdir(routesDir, { recursive: true });
+
+    await fsp.writeFile(
+      join(testDir, "package.json"),
+      JSON.stringify({
+        name: "test-app",
+        type: "module",
+        imports: {
+          "#taserjs/router": "./src/taser.ts",
+        },
+      }),
+    );
 
     await fsp.writeFile(
       join(srcDir, "taser.ts"),

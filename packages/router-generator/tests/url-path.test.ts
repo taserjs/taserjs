@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildUrlPath } from "../src/scan/url-path.js";
+import { buildUrlPath } from "../src/index.js";
 
 describe("buildUrlPath", () => {
   it("builds index routes", () => {

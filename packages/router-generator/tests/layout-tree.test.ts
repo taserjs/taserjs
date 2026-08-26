@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { LayoutFile } from "../src/types/index.js";
-import {
-  layoutAppliesToRoute,
-  layoutParentId,
-  routeLayoutChain,
-} from "../src/model/layout-tree.js";
+import type { LayoutFile } from "../src/types.js";
+import { layoutAppliesToRoute, layoutParentId, routeLayoutChain } from "../src/index.js";
 
 const layouts: LayoutFile[] = [
   { id: "_public", importName: "PublicLayoutImport", importPath: "./_public" },

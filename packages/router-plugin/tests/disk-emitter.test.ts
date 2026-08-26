@@ -3,8 +3,7 @@ import { promises as fsp } from "node:fs";
 import { join } from "pathe";
 import { tmpdir } from "node:os";
 
-import { createTaserVirtualContext } from "../src/core/context.js";
-import { writeDiskArtifacts, DISK_ARTIFACT_DIR } from "../src/core/emitter.js";
+import { createTaserVirtualContext, writeDiskArtifacts, DISK_ARTIFACT_DIR } from "../src/index.js";
 
 async function setupFixture(): Promise<string> {
   const testDir = await fsp.mkdtemp(join(tmpdir(), "taser-disk-emitter-"));
@@ -68,14 +67,13 @@ describe("writeDiskArtifacts", () => {
     expect(manifest).not.toMatch(/#taserjs\/[a-z/-]+/);
   });
 
-  it("rewrites the entry artifact to import taser.ts and ./manifest relatively", async () => {
+  it("writes the entry artifact importing #taserjs/router and ./manifest", async () => {
     const ctx = createTaserVirtualContext({ rootDir: testDir });
     await writeDiskArtifacts(ctx);
 
     const entry = await fsp.readFile(join(testDir, ".taser", "entry.ts"), "utf8");
-    expect(entry).toContain('from "../taser"');
+    expect(entry).toContain('from "#taserjs/router"');
     expect(entry).toContain('from "./manifest"');
-    expect(entry).not.toContain("#taserjs");
   });
 
   it("emits a hosted-style app without global Response override or Nitro interop", async () => {

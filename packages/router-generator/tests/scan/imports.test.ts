@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { importPathFromRouteRel, layoutImportPathFromRouteRel } from "../../src/scan/imports.js";
+import { importPathFromRouteRel, layoutImportPathFromRouteRel } from "../../src/index.js";
 
 const prefix = "./routes";
 

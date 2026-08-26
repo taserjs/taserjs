@@ -16,10 +16,6 @@ export function routesImportPrefix(routesDir: string, outputFile: string): strin
 
 const COMMON_JS_EXTS = [".ts", ".js", ".tsx", ".jsx", ".mts", ".mjs"];
 
-/**
- * Resolves the server directory (<rootDir>/<serverDir>).
- * Defaults to "src" if present, otherwise falls back to rootDir.
- */
 export function resolveServerDir(rootDir: string, serverDir?: string): string {
   const resolvedRoot = resolve(rootDir || process.cwd());
   if (serverDir) {
@@ -39,53 +35,6 @@ export function resolveServerDir(rootDir: string, serverDir?: string): string {
   return resolvedRoot;
 }
 
-/**
- * Resolves the taser app entry file (e.g. taser.ts), relative to serverDir.
- * Throws a descriptive error if not found.
- */
-export function resolveTaserEntry(rootDir: string, serverDir: string, entry?: string): string {
-  const resolvedRoot = resolve(rootDir || process.cwd());
-  const rawEntry = (entry || "taser.ts").replace(/^#src\//, "").replace(/^#/, "");
-
-  // 1. Direct path check (relative to serverDir, or absolute)
-  const candidate = isAbsolute(rawEntry) ? rawEntry : resolve(serverDir, rawEntry);
-  if (existsSync(candidate)) {
-    return candidate;
-  }
-
-  // 2. Probe extensions
-  const withoutExt = candidate.replace(/\.[cm]?[jt]sx?$/, "");
-  for (const ext of COMMON_JS_EXTS) {
-    const withExt = `${withoutExt}${ext}`;
-    if (existsSync(withExt)) {
-      return withExt;
-    }
-  }
-
-  // 3. Fallback check at rootDir if serverDir differed
-  if (serverDir !== resolvedRoot) {
-    const rootCandidate = resolve(resolvedRoot, rawEntry);
-    if (existsSync(rootCandidate)) {
-      return rootCandidate;
-    }
-    const rootWithoutExt = rootCandidate.replace(/\.[cm]?[jt]sx?$/, "");
-    for (const ext of COMMON_JS_EXTS) {
-      const withExt = `${rootWithoutExt}${ext}`;
-      if (existsSync(withExt)) {
-        return withExt;
-      }
-    }
-  }
-
-  throw new Error(
-    `[taser] Taser entry file not found. Looked at "${candidate}".\nExpected a taser app entry file (e.g. 'export const t = createTaserApp()').`,
-  );
-}
-
-/**
- * Resolves optional host server entry (e.g. server.ts), relative to serverDir.
- * If explicitly provided and missing, throws an error. If omitted, returns undefined if absent.
- */
 export function resolveServerEntry(
   rootDir: string,
   serverDir: string,
@@ -108,7 +57,6 @@ export function resolveServerEntry(
     throw new Error(`[taser] Configured serverEntry does not exist: "${candidate}".`);
   }
 
-  // Probe default candidates in serverDir and rootDir
   const defaultNames = ["server.node.ts", "server.node.js", "server.ts", "server.js", "server.mjs"];
   for (const name of defaultNames) {
     const candidate = resolve(serverDir, name);
@@ -127,9 +75,6 @@ export function resolveServerEntry(
   return undefined;
 }
 
-/**
- * Resolves routes directory relative to serverDir.
- */
 export function resolveRoutesDir(rootDir: string, serverDir: string, routesDir?: string): string {
   const resolvedRoot = resolve(rootDir || process.cwd());
 
@@ -138,16 +83,13 @@ export function resolveRoutesDir(rootDir: string, serverDir: string, routesDir?:
     if (existsSync(candidate)) {
       return candidate;
     }
-    // Also check relative to rootDir
     const rootCandidate = resolve(resolvedRoot, routesDir);
     if (existsSync(rootCandidate)) {
       return rootCandidate;
     }
-    // If explicit routesDir is given, return the resolved path under serverDir
     return candidate;
   }
 
-  // Default "routes"
   const serverRoutes = resolve(serverDir, "routes");
   if (existsSync(serverRoutes)) {
     return serverRoutes;

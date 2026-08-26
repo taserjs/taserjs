@@ -2,9 +2,11 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { promises as fsp } from "node:fs";
 import { join } from "pathe";
 import { tmpdir } from "node:os";
-import { createTaserVirtualContext } from "../src/core/context.js";
-import { getComposedAppCode } from "../src/core/compose.js";
-import { SERVER_ENTRY_ALIAS_ID } from "../src/aliases.js";
+import {
+  createTaserVirtualContext,
+  getComposedAppCode,
+  SERVER_ENTRY_ALIAS_ID,
+} from "../src/index.js";
 
 /**
  * Hygiene invariant (issue 06 / H3): emitted artifacts must never embed
@@ -56,7 +58,7 @@ export const Route = t.get("/").handler(() => undefined);
   it("virtual entry imports taser via alias, never an absolute path", async () => {
     const ctx = createTaserVirtualContext({ rootDir: testDir });
     const entry = await ctx.getEntryCode();
-    expect(entry).toContain(`from "#taserjs/entry"`);
+    expect(entry).toContain(`from "#taserjs/router"`);
     expect(absoluteImportSpecs(entry)).toEqual([]);
   });
 
