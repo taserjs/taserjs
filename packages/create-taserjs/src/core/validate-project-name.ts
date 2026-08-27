@@ -36,10 +36,6 @@ export function validateProjectName(name: string, cwd = process.cwd()): string |
     return 'Project name cannot contain ".."';
   }
 
-  if (trimmed.includes("/") || trimmed.includes("\\")) {
-    return "Project name cannot contain path separators";
-  }
-
   if (trimmed.startsWith(".") || trimmed.endsWith(".")) {
     return "Project name cannot start or end with a dot";
   }

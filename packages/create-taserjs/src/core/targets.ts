@@ -29,6 +29,14 @@ export type DeployEntry = {
 const NODE_START = "node .output/server/index.mjs";
 
 export const DEPLOY_ENTRIES: Record<DeployTarget, DeployEntry> = {
+  none: {
+    id: "none",
+    impliedRuntime: "node",
+    selfHosted: true,
+    startScript: "node dist/serve.mjs",
+    devDeps: [],
+    files: [],
+  },
   "node-server": {
     id: "node-server",
     impliedRuntime: "node",
@@ -120,6 +128,7 @@ export const DEPLOY_ENTRIES: Record<DeployTarget, DeployEntry> = {
 
 /** Runtimes a `--runtime` override may select per self-hosted deploy target. */
 const RUNTIME_OVERRIDES: Partial<Record<DeployTarget, readonly Runtime[]>> = {
+  none: ["node", "bun"],
   "node-server": ["node", "bun"],
   "node-cluster": ["node", "bun"],
 };

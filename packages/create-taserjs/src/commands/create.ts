@@ -75,7 +75,7 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
     (await p.select({
       message: "Host framework",
       options: [
-        { value: "none", label: "Pure Taser", hint: "default" },
+        { value: "none", label: "None", hint: "Taser Fetch (default)" },
         { value: "hono", label: "Hono" },
         { value: "express", label: "Express" },
         { value: "fastify", label: "Fastify" },
@@ -89,6 +89,7 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
   }
 
   const DEPLOY_LABELS: Record<DeployTarget, string> = {
+    none: "None (Standalone Vite)",
     "node-server": "Node.js server",
     "node-cluster": "Node.js cluster",
     bun: "Bun",
@@ -100,11 +101,20 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
     netlify: "Netlify",
   };
 
+  const DEPLOY_HINTS: Partial<Record<DeployTarget, string>> = {
+    none: "standalone Vite, no Nitro",
+  };
+
   const preset =
     args.preset ??
     (await p.select({
       message: "Deployment target",
-      options: DEPLOY_TARGETS.map((id) => ({ value: id, label: DEPLOY_LABELS[id] })),
+      // oxlint-disable-next-line oxc/no-map-spread
+      options: DEPLOY_TARGETS.map((id) => ({
+        value: id,
+        label: DEPLOY_LABELS[id],
+        ...(DEPLOY_HINTS[id] ? { hint: DEPLOY_HINTS[id] } : {}),
+      })),
       initialValue: "node-server",
     }));
 

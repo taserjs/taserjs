@@ -14,6 +14,7 @@ export const RUNTIMES: readonly Runtime[] = ["node", "bun", "deno"];
  * PresetNameInput) so `--preset` passes straight through to Nitro.
  */
 export type DeployTarget =
+  | "none"
   | "node-server"
   | "node-cluster"
   | "bun"
@@ -25,6 +26,7 @@ export type DeployTarget =
   | "netlify";
 
 export const DEPLOY_TARGETS: readonly DeployTarget[] = [
+  "none",
   "node-server",
   "node-cluster",
   "bun",
