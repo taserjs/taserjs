@@ -1,6 +1,6 @@
 {
   "name": "@taserjs/router-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Taser Hono-backed Request/Response runtime pipeline",
   "license": "ISC",
   "repository": {

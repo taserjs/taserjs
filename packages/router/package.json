@@ -1,6 +1,6 @@
 {
   "name": "@taserjs/router",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Type-safe Node.js router with runtime validation and middleware",
   "license": "ISC",
   "repository": {
