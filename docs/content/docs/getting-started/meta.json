@@ -1,5 +1,4 @@
 {
   "title": "Getting Started",
-  "defaultOpen": true,
   "pages": ["index", "manual-installation", "core-concepts"]
 }

@@ -31,9 +31,7 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
       const intermediatePage = isLeaf ? page : source.getPage(slugSlice);
       const name =
         intermediatePage?.data.title ??
-        slug
-          .replace(/-/g, " ")
-          .replace(/\b\w/g, (char) => char.toUpperCase());
+        slug.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 
       return {
         name,

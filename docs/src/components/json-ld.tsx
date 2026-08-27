@@ -18,10 +18,7 @@ const authorPerson = {
   "@type": "Person" as const,
   name: "Kazi Ahmed",
   url: "https://github.com/tzsk",
-  sameAs: [
-    "https://github.com/tzsk",
-    "https://x.com/KaziAhmedDev",
-  ],
+  sameAs: ["https://github.com/tzsk", "https://x.com/KaziAhmedDev"],
 };
 
 const publisherOrg = {

@@ -91,9 +91,13 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
   "plugins/vite":
     "Integrate Taser into Vite with virtual route modules, ambient type generation, instant HMR, and standalone deployment.",
   "plugins/next":
-    "Embed Taser type-safe file routing inside Next.js 15+ App Router using @taserjs/router-plugin/next.",
+    "Configure the @taserjs/router-plugin/next bundler plugin for Next.js App Router compilation, options, and disk artifacts.",
   "plugins/nitro":
     "Deploy Taser across edge, serverless, and multi-cloud runtimes using the @taserjs/router-plugin/nitro module.",
+  "fullstack/tanstack-start":
+    "Build fullstack React applications with TanStack Start and Taser. Type-safe data fetching in TanStack Router loaders and React Query.",
+  "fullstack/nextjs":
+    "Build fullstack Next.js 15+ App Router applications with a dedicated Taser REST API subsystem. Type-safe data fetching in RSC, Server Actions, and client hooks.",
   "frameworks/standalone":
     "Build standalone, zero-host HTTP APIs with pure Taser, Vite, and Nitro. Maximum throughput with web standards.",
   "frameworks/fetch-native":
@@ -134,7 +138,7 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
     "Verify JSON Web Tokens (JWT) and remote JWKS key sets (Clerk, Auth0, Supabase) with typed state injection.",
   "middleware/security-and-utilities":
     "Add security headers, CSRF protection, compression, and request body size limiters using built-in utilities.",
-  "deployments/presets":
+  deployments:
     "Deploy Taser APIs to Cloudflare Workers, Vercel, AWS Lambda, Node.js, Bun, Deno, and Netlify using Nitro presets.",
   client:
     "Auto-completing, end-to-end typed proxy client generated from your server router type with zero runtime drift.",
@@ -155,8 +159,10 @@ export const docsImageAlts: Record<string, string> = {
   "getting-started/manual-installation": "Taser Docs: Manual Installation Guide",
   "getting-started/core-concepts": "Taser Docs: Core Concepts and Architecture",
   "plugins/vite": "Taser Docs: Vite Plugin Integration",
-  "plugins/next": "Taser Docs: Next.js App Router Integration",
+  "plugins/next": "Taser Docs: Next.js Plugin Configuration",
   "plugins/nitro": "Taser Docs: Nitro Server Engine Module",
+  "fullstack/tanstack-start": "Taser Docs: TanStack Start Fullstack Integration",
+  "fullstack/nextjs": "Taser Docs: Next.js App Router Fullstack Integration",
   "frameworks/standalone": "Taser Docs: Standalone API Architecture",
   "frameworks/fetch-native": "Taser Docs: Web Standard & Fetch Frameworks Host Pass-Through",
   "frameworks/express": "Taser Docs: Express Host Pass-Through",
@@ -177,7 +183,7 @@ export const docsImageAlts: Record<string, string> = {
   "middleware/cors": "Taser Docs: CORS Middleware Configuration",
   "middleware/jwt-and-jwk": "Taser Docs: JWT and JWKS Authentication",
   "middleware/security-and-utilities": "Taser Docs: Security Headers and Utilities",
-  "deployments/presets": "Taser Docs: Nitro Deployment Presets",
+  deployments: "Taser Docs: Nitro Deployment Presets",
   client: "Taser Docs: Typed Client SDK",
   cli: "Taser Docs: CLI Tooling and Codegen",
   "api-reference/router": "Taser Docs: @taserjs/router API Reference",

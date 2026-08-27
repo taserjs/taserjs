@@ -1,5 +1,4 @@
 {
   "title": "Validation",
-  "defaultOpen": true,
   "pages": ["standard-schema", "middleware-validation", "handling-errors"]
 }

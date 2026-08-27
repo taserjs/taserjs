@@ -35,7 +35,8 @@ const ErrorSchema = z.object({
 
 export const Route = t
   .get("/profile")
-  .returns({ // [!code highlight]
+  .returns({
+    // [!code highlight]
     200: UserProfileSchema, // [!code highlight]
     401: ErrorSchema, // [!code highlight]
     404: ErrorSchema, // [!code highlight]

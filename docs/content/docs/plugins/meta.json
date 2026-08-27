@@ -1,5 +1,4 @@
 {
   "title": "Plugins & Compilers",
-  "defaultOpen": true,
   "pages": ["vite", "next", "nitro"]
 }

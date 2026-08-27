@@ -167,14 +167,14 @@ export const Route = GET.handler(async (ctx) => {
 
 Understanding when to place properties in **Application Context (`createContext`)** versus **Middleware State (`ctx.state`)** is essential for maintaining clean architecture:
 
-| Architectural Dimension | Application Context (`createContext`) | Middleware State (`ctx.state`) |
-| :--- | :--- | :--- |
-| **Location** | `src/context.ts` | Folder layouts (`$.ts`, `admin.ts`, `_auth.ts`) |
-| **Lifecycle** | Boot (singletons) & Per-Request hooks | Per-request during middleware pipeline traversal |
-| **Scope** | **Global**: Accessible across every route and middleware in the app | **Scoped**: Accessible only to child routes located under that directory |
-| **Access Syntax** | Direct root properties: `ctx.db`, `ctx.logger`, `ctx.requestId` | Namespaced state property: `ctx.state.user`, `ctx.state.org` |
-| **Declaration Type** | Universal type parameter in `createTaserApp().context(...)` | Inferred automatically from `return next({ ... })` in layouts |
-| **Primary Use Cases** | Database pools, Redis clients, queue producers, correlation IDs | Authenticated user sessions, RBAC permissions, tenant metadata |
+| Architectural Dimension | Application Context (`createContext`)                               | Middleware State (`ctx.state`)                                           |
+| :---------------------- | :------------------------------------------------------------------ | :----------------------------------------------------------------------- |
+| **Location**            | `src/context.ts`                                                    | Folder layouts (`$.ts`, `admin.ts`, `_auth.ts`)                          |
+| **Lifecycle**           | Boot (singletons) & Per-Request hooks                               | Per-request during middleware pipeline traversal                         |
+| **Scope**               | **Global**: Accessible across every route and middleware in the app | **Scoped**: Accessible only to child routes located under that directory |
+| **Access Syntax**       | Direct root properties: `ctx.db`, `ctx.logger`, `ctx.requestId`     | Namespaced state property: `ctx.state.user`, `ctx.state.org`             |
+| **Declaration Type**    | Universal type parameter in `createTaserApp().context(...)`         | Inferred automatically from `return next({ ... })` in layouts            |
+| **Primary Use Cases**   | Database pools, Redis clients, queue producers, correlation IDs     | Authenticated user sessions, RBAC permissions, tenant metadata           |
 
 ### Code Comparison
 

@@ -1,0 +1,394 @@
+---
+title: TanStack Start
+description: "Build fullstack React applications with TanStack Start and Taser. Type-safe data fetching in TanStack Router loaders, React Query, and multi-runtime Nitro deployment."
+icon: Layers
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+**TanStack Start** is a fullstack React framework powered by TanStack Router and Vite. By integrating `@taserjs/router-plugin/vite`, you can run a dedicated, high-performance file-based REST API subsystem alongside your TanStack Router UI pages under a custom path prefix (such as `/api`).
+
+---
+
+## Why Pair Taser with TanStack Start?
+
+<Cards>
+  <Card
+    title="Clean Architectural Boundaries"
+    description="Keep user-facing UI route files in `src/routes/` and structured REST API endpoints in `src/server/routes/`."
+  />
+  <Card
+    title="Compile-Time Return Contracts"
+    description="Enforce strict status-discriminated returns with `.returns()`. Zero runtime response drift across client and server."
+  />
+  <Card
+    title="Native Vite & Nitro Synergy"
+    description="Leverage instant Vite HMR in development and deploy the combined fullstack bundle anywhere with Nitro presets."
+  />
+  <Card
+    title="Universal Client SDK"
+    description="Call endpoints in TanStack Router loaders and TanStack Query hooks with complete type inference and zero type assertions."
+  />
+</Cards>
+
+---
+
+## Installation
+
+Install the necessary dependencies in your TanStack Start project:
+
+<Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
+  <Tab value="pnpm">
+```bash 
+pnpm add @taserjs/router @taserjs/router-client zod
+
+pnpm add -D @taserjs/router-plugin
+
+````
+  </Tab>
+  <Tab value="npm">
+```bash
+npm install @taserjs/router @taserjs/router-client zod
+
+npm install -D @taserjs/router-plugin
+```
+  </Tab>
+  <Tab value="bun">
+```bash
+bun add @taserjs/router @taserjs/router-client zod
+
+bun add -D @taserjs/router-plugin
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add @taserjs/router @taserjs/router-client zod
+
+yarn add -D @taserjs/router-plugin
+```
+  </Tab>
+</Tabs>
+
+---
+
+## Integration Steps
+
+<Steps>
+  <Step>
+    ### 1. Configure Vite Plugin
+
+    In `vite.config.ts`, add `taser()` before `tanstackStart()`. Set `server: false` to allow TanStack Start to manage the outer HTTP host lifecycle:
+
+    ```ts title="vite.config.ts"
+    import { defineConfig } from "vite";
+    import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+    import viteReact from "@vitejs/plugin-react";
+    import { taser } from "@taserjs/router-plugin/vite";
+
+    export default defineConfig({
+      plugins: [
+        taser({
+          serverDir: "src/server", // Directory hosting Taser context and routes
+          basePath: "/api",        // URL prefix dispatched to Taser
+          server: false,           // Host pass-through mode
+        }),
+        tanstackStart(),
+        viteReact(),
+      ],
+    });
+    ```
+
+  </Step>
+
+  <Step>
+    ### 2. Configure Subpath Imports & TypeScript
+
+    Update `package.json` and `tsconfig.json` so both your server routes and frontend code can import `#taserjs/router` and resolve generated ambient types in `.taser/types/`:
+
+    ```json title="package.json"
+    {
+      "imports": {
+        "#taserjs/router": "./src/server/taser.ts"
+      }
+    }
+    ```
+
+    ```json title="tsconfig.json"
+    {
+      "compilerOptions": {
+        "paths": {
+          "#taserjs/router": ["./src/server/taser.ts"]
+        }
+      },
+      "include": ["src", ".taser/types/**/*.d.ts", "vite.config.ts"]
+    }
+    ```
+
+  </Step>
+
+  <Step>
+    ### 3. Create Taser Router Instance
+
+    Create `src/server/taser.ts` to initialize your Taser app builder:
+
+    ```ts title="src/server/taser.ts"
+    import { createTaserApp } from "@taserjs/router";
+
+    export const t = createTaserApp({
+      response: { validate: true },
+    }).notFound(() => new Response("Not Found", { status: 404 }));
+    ```
+
+  </Step>
+
+  <Step>
+    ### 4. Create TanStack Start Catch-All Server Route
+
+    Create `src/routes/api/$.tsx`. This uses TanStack Router's server handlers to dispatch all `/api/*` requests directly to Taser's compiled virtual entry:
+
+    ```tsx title="src/routes/api/$.tsx"
+    import { createFileRoute } from "@tanstack/react-router";
+    import { app } from "#taserjs/virtual/entry";
+
+    const handle = async ({ request }: { request: Request }) => app.fetch(request);
+
+    export const Route = createFileRoute("/api/$")({
+      server: {
+        handlers: {
+          GET: handle,
+          POST: handle,
+          PUT: handle,
+          DELETE: handle,
+          PATCH: handle,
+          OPTIONS: handle,
+          HEAD: handle,
+        },
+      },
+    });
+    ```
+
+  </Step>
+
+  <Step>
+    ### 5. Define File-Based REST Routes
+
+    Create your REST endpoints in `src/server/routes/`:
+
+    ```ts title="src/server/routes/users.get.ts"
+    import { json } from "@taserjs/router/reply";
+    import { z } from "zod";
+    import { t } from "#taserjs/router";
+
+    const GET = t
+      .get("/users")
+      .query(
+        z.object({
+          limit: z.coerce.number().default(10),
+        }),
+      )
+      .returns({
+        200: z.object({
+          users: z.array(
+            z.object({
+              id: z.string(),
+              name: z.string(),
+              email: z.string(),
+            }),
+          ),
+          total: z.number(),
+        }),
+      });
+
+    export type RouteContext = typeof GET.$Infer.Context;
+    export const Route = GET.handler(async (ctx) => {
+      return json({
+        users: [
+          { id: "usr_1", name: "Alice", email: "alice@example.com" },
+          { id: "usr_2", name: "Bob", email: "bob@example.com" },
+        ],
+        total: 2,
+      });
+    });
+    ```
+
+  </Step>
+</Steps>
+
+---
+
+## Project Structure Overview
+
+Here is the recommended layout for a TanStack Start project with Taser:
+
+````
+
+my-tanstack-app/
+├── vite.config.ts # Vite config with taser() & tanstackStart()
+├── nitro.config.ts # Optional Nitro deployment preset config
+├── src/
+│ ├── routes/ # TanStack Router UI Routes & Pages
+│ │ ├── \_\_root.tsx # Root layout and HTML shell
+│ │ ├── index.tsx # Homepage UI route
+│ │ ├── users.tsx # Users page (consumes Taser API in loader)
+│ │ └── api/
+│ │ └── $.tsx # TanStack Start catch-all server handler
+│ └── server/ # Taser REST API Subsystem
+│ ├── taser.ts # createTaserApp instance definition
+│ ├── context.ts # Boot and request context
+│ └── routes/ # File-based REST endpoints
+│ ├── $.ts # Root layout middleware
+│ └── users.get.ts # GET /api/users endpoint
+├── .taser/types/ # Generated ambient types & virtual modules
+├── package.json # Package metadata and subpath imports
+└── tsconfig.json # Path aliases & include configuration
+
+````
+
+---
+
+## Adding Nitro for Multi-Platform Deployment
+
+TanStack Start utilizes Nitro under the hood for server builds and deployment packaging. You can explicitly include `nitro()` in `vite.config.ts` or add a `nitro.config.ts` file to target edge and serverless environments:
+
+```ts title="vite.config.ts (with Nitro)"
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact from "@vitejs/plugin-react";
+import { taser } from "@taserjs/router-plugin/vite";
+
+export default defineConfig({
+  plugins: [
+    taser({
+      serverDir: "src/server",
+      basePath: "/api",
+      server: false,
+    }),
+    tanstackStart(),
+    viteReact(),
+    nitro(),
+  ],
+});
+````
+
+Configure your deployment target in `nitro.config.ts`:
+
+```ts title="nitro.config.ts"
+import { defineConfig } from "nitro/config";
+
+export default defineConfig({
+  preset: "cloudflare-module", // Target Cloudflare Workers, Vercel, Node, etc.
+});
+```
+
+---
+
+## Data Fetching Patterns
+
+### In TanStack Router Loaders
+
+Fetch typed data on the server during route transitions with `@taserjs/router-client`:
+
+```tsx title="src/routes/users.tsx"
+import { createFileRoute } from "@tanstack/react-router";
+import { createClient } from "@taserjs/router-client";
+
+// Initialize client with your app's base URL
+const api = createClient({ baseUrl: "http://localhost:3000/api" });
+
+export const Route = createFileRoute("/users")({
+  loader: async () => {
+    const res = await api.users.$get({ query: { limit: 20 } });
+
+    if (res.status !== 200) {
+      throw new Error("Failed to load user directory");
+    }
+
+    // res.json() is strictly typed from your .returns() contract
+    const data = await res.json();
+    return { users: data.users };
+  },
+  component: UsersPage,
+});
+
+function UsersPage() {
+  const { users } = Route.useLoaderData();
+
+  return (
+    <div className="p-8">
+      <h1 className="text-2xl font-bold">User Directory</h1>
+      <ul className="mt-4 space-y-2">
+        {users.map((user) => (
+          <li key={user.id} className="p-3 border rounded">
+            <span className="font-medium">{user.name}</span> — {user.email}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### With TanStack Query (`@tanstack/react-query`)
+
+Use Taser client calls directly inside `queryOptions` or `useQuery` hooks:
+
+```tsx title="src/hooks/use-users.ts"
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@taserjs/router-client";
+
+const api = createClient({ baseUrl: "/api" });
+
+export function useUsers(limit = 10) {
+  return useQuery({
+    queryKey: ["users", limit],
+    queryFn: async () => {
+      const res = await api.users.$get({ query: { limit } });
+      if (res.status === 200) {
+        return await res.json();
+      }
+      throw new Error(`API returned error status ${res.status}`);
+    },
+  });
+}
+```
+
+---
+
+## Architecture: TanStack `createServerFn` vs Taser REST
+
+TanStack Start provides `createServerFn` for server RPC, while Taser provides full file-based REST API routing. Here is how to choose between them:
+
+| Requirement                 | TanStack Start `createServerFn`                       | Taser REST Subsystem (`src/server/`)                              |
+| :-------------------------- | :---------------------------------------------------- | :---------------------------------------------------------------- |
+| **Primary Use Case**        | Colocated RPC tightly coupled to React UI components  | Structured, public, or versioned HTTP REST APIs                   |
+| **Routing Model**           | Hash/function-based RPC endpoint                      | TanStack Router-style file routing (`$id`, `$.ts`, `.get.ts`)     |
+| **Directory Middleware**    | Middleware composed inline per function               | Scoped directory layouts with cascading typed state               |
+| **Clients & Consumers**     | TanStack Router loaders, forms, and client components | Web browsers, mobile apps (iOS/Android), webhooks, 3rd-party devs |
+| **OpenAPI / Documentation** | Internal to application                               | Easily documented with standard HTTP methods and JSON payloads    |
+| **Response Guarantees**     | TypeScript return types of function                   | Compile-time `.returns()` contracts & status-discriminated unions |
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Defining Routes"
+    href="/docs/routing/defining-routes"
+    description="Learn fluent builder syntax, query/param validation, and return schemas."
+  />
+  <Card
+    title="Next.js App Router"
+    href="/docs/fullstack/nextjs"
+    description="Learn how to pair Taser with Next.js 15+ App Router applications."
+  />
+  <Card
+    title="Typed Client SDK"
+    href="/docs/client"
+    description="Explore @taserjs/router-client features, error narrowing, and file uploads."
+  />
+</Cards>

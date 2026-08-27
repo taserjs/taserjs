@@ -1,0 +1,353 @@
+---
+title: Next.js App Router
+description: "Build fullstack Next.js 15+ App Router applications with a dedicated Taser REST API subsystem. Type-safe data fetching in React Server Components, Server Actions, and Client Components."
+icon: Layers
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+**Next.js App Router** provides a React framework for UI rendering, server components, and streaming HTML. By integrating Taser, you can embed a structured, file-based REST API subsystem with cascading directory middleware, Standard Schema validation, and compile-time return contracts under `/api`.
+
+---
+
+## Why Pair Taser with Next.js?
+
+<Cards>
+  <Card
+    title="Clean Architectural Boundaries"
+    description="Keep React UI components in `app/` and structured, type-safe REST API routes in `src/routes/`."
+  />
+  <Card
+    title="Cascading Directory Middleware"
+    description="Apply scoped auth, logging, and rate limiting with folder-level middleware (`$.ts`) instead of monolithic edge middleware."
+  />
+  <Card
+    title="Compile-Time Return Contracts"
+    description="Enforce status-discriminated return shapes with `.returns()`. Eliminate response drift across server and client."
+  />
+  <Card
+    title="Universal Client SDK"
+    description="Call endpoints in React Server Components, Server Actions, and client hooks with 100% type inference."
+  />
+</Cards>
+
+---
+
+## Installation
+
+Install the necessary dependencies in your Next.js project:
+
+<Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
+  <Tab value="pnpm">
+```bash
+pnpm add @taserjs/router @taserjs/router-client zod
+
+pnpm add -D @taserjs/router-plugin
+
+````
+
+  </Tab>
+  <Tab value="npm">
+```bash
+npm install @taserjs/router @taserjs/router-client zod
+
+npm install -D @taserjs/router-plugin
+
+````
+
+  </Tab>
+  <Tab value="bun">
+```bash 
+bun add @taserjs/router @taserjs/router-client zod
+
+bun add -D @taserjs/router-plugin
+
+````
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add @taserjs/router @taserjs/router-client zod
+
+yarn add -D @taserjs/router-plugin
+````
+
+  </Tab>
+</Tabs>
+
+---
+
+## Integration Steps
+
+<Steps>
+  <Step>
+    ### 1. Wrap `next.config.ts`
+
+    Use `@taserjs/router-plugin/next` to wrap your Next.js configuration:
+
+    ```ts title="next.config.ts"
+    import createTaser from "@taserjs/router-plugin/next";
+    import type { NextConfig } from "next";
+
+    const withTaser = createTaser({
+      basePath: "/api", // URL prefix for Taser REST endpoints
+    });
+
+    const nextConfig: NextConfig = {
+      reactStrictMode: true,
+    };
+
+    export default withTaser(nextConfig);
+    ```
+
+  </Step>
+
+  <Step>
+    ### 2. Configure Subpath Imports & TypeScript
+
+    Update `package.json` and `tsconfig.json` so your routes can import `#taserjs/router` and compile against `.taser/types/`:
+
+    ```json title="package.json"
+    {
+      "imports": {
+        "#taserjs/router": "./src/taser.ts"
+      }
+    }
+    ```
+
+    ```json title="tsconfig.json"
+    {
+      "compilerOptions": {
+        "paths": {
+          "@/*": ["./src/*"],
+          "#taserjs/router": ["./src/taser.ts"]
+        }
+      },
+      "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".taser/types/**/*.d.ts"]
+    }
+    ```
+
+  </Step>
+
+  <Step>
+    ### 3. Create Router Instance
+
+    Create `src/taser.ts` (or `taser.ts` if not using `src/`):
+
+    ```ts title="src/taser.ts"
+    import { createTaserApp } from "@taserjs/router";
+
+    export const t = createTaserApp({
+      response: { validate: true },
+    });
+    ```
+
+  </Step>
+
+  <Step>
+    ### 4. Create Catch-All Route Handler
+
+    Create `app/api/[[...slug]]/route.ts` (or `src/app/api/[[...slug]]/route.ts`). This forwards incoming Next.js API requests directly to Taser:
+
+    ```ts title="app/api/[[...slug]]/route.ts"
+    import { taserApp } from "../../.taser/app";
+
+    const handle = (request: Request) => taserApp.fetch(request);
+
+    export const GET = handle;
+    export const POST = handle;
+    export const PUT = handle;
+    export const DELETE = handle;
+    export const PATCH = handle;
+    export const OPTIONS = handle;
+    export const HEAD = handle;
+    ```
+
+  </Step>
+
+  <Step>
+    ### 5. Define File-Based REST Routes
+
+    Create your endpoints in `src/routes/`:
+
+    ```ts title="src/routes/users.get.ts"
+    import { json } from "@taserjs/router/reply";
+    import { z } from "zod";
+    import { t } from "#taserjs/router";
+
+    const GET = t
+      .get("/users")
+      .query(
+        z.object({
+          limit: z.coerce.number().default(10),
+        }),
+      )
+      .returns({
+        200: z.object({
+          users: z.array(
+            z.object({
+              id: z.string(),
+              name: z.string(),
+              email: z.string(),
+            }),
+          ),
+          total: z.number(),
+        }),
+      });
+
+    export type RouteContext = typeof GET.$Infer.Context;
+    export const Route = GET.handler((ctx) => {
+      return json({
+        users: [
+          { id: "usr_1", name: "Alice", email: "alice@example.com" },
+          { id: "usr_2", name: "Bob", email: "bob@example.com" },
+        ],
+        total: 2,
+      });
+    });
+    ```
+
+  </Step>
+</Steps>
+
+---
+
+## Data Fetching & Mutation Patterns
+
+### 1. React Server Components (RSC)
+
+Consume your Taser endpoints directly on the server in React Server Components using `@taserjs/router-client`:
+
+```tsx title="app/dashboard/page.tsx"
+import { createClient } from "@taserjs/router-client";
+
+const api = createClient({ baseUrl: "http://localhost:3000/api" });
+
+export default async function DashboardPage() {
+  const res = await api.users.$get({
+    query: { limit: 20 },
+  });
+
+  if (res.status !== 200) {
+    return <div>Failed to load users.</div>;
+  }
+
+  const { users } = await res.json();
+
+  return (
+    <main className="p-8">
+      <h1 className="text-2xl font-bold">User Directory</h1>
+      <ul className="mt-4 space-y-2">
+        {users.map((user) => (
+          <li key={user.id} className="p-3 border rounded">
+            <span className="font-semibold">{user.name}</span> ({user.email})
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
+}
+```
+
+### 2. Next.js Server Actions
+
+Trigger mutations inside Server Actions and revalidate page paths with full type contracts:
+
+```ts title="app/actions/create-user.ts"
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createClient } from "@taserjs/router-client";
+
+const api = createClient({ baseUrl: "http://localhost:3000/api" });
+
+export async function createUserAction(formData: FormData) {
+  const name = formData.get("name") as string;
+  const email = formData.get("email") as string;
+
+  const res = await api.users.$post({
+    body: { name, email },
+  });
+
+  if (res.status === 201) {
+    revalidatePath("/dashboard");
+    return { success: true };
+  }
+
+  return { success: false, error: "Failed to create user" };
+}
+```
+
+### 3. Client Components & React Hooks
+
+Use Taser client calls with TanStack Query or SWR inside Client Components:
+
+```tsx title="app/components/user-list.tsx"
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@taserjs/router-client";
+
+const api = createClient({ baseUrl: "/api" });
+
+export function UserList() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["users"],
+    queryFn: async () => {
+      const res = await api.users.$get({ query: { limit: 10 } });
+      if (res.status === 200) {
+        return await res.json();
+      }
+      throw new Error("Failed to fetch users");
+    },
+  });
+
+  if (isLoading) return <div>Loading users...</div>;
+  return (
+    <div>
+      {data?.users.map((u) => (
+        <div key={u.id}>{u.name}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
+## Architecture: React Server Components (RSC) vs Taser API
+
+When pairing Taser with Next.js App Router, understanding the division of responsibilities ensures clean system design:
+
+| Responsibility         | Next.js App Router (RSC & Pages)                                 | Taser Subsystem (`src/routes/`)                                   |
+| :--------------------- | :--------------------------------------------------------------- | :---------------------------------------------------------------- |
+| **Primary Focus**      | Server-rendered UI, HTML streaming, metadata, layout composition | Structured REST API, JSON endpoints, binary streams, webhooks     |
+| **Execution Context**  | React Server Components & Client Components (`app/**/*.tsx`)     | Type-safe route handlers (`src/routes/**/*.ts`)                   |
+| **Consumers**          | Web browser page visits                                          | Mobile apps, SPA client hooks, webhooks, external developer APIs  |
+| **State & Middleware** | Next.js Edge middleware (`middleware.ts`)                        | Directory layout middleware pipelines (`src/routes/$.ts`)         |
+| **Validation**         | Manual or form-action validation                                 | Standard Schema validation (Zod, ArkType, Valibot)                |
+| **Response Safety**    | React component props                                            | Compile-time `.returns()` contracts & status discriminated unions |
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Next.js Plugin Reference"
+    href="/docs/plugins/next"
+    description="Learn about compiler options, Turbopack integration, and disk artifacts."
+  />
+  <Card
+    title="TanStack Start"
+    href="/docs/fullstack/tanstack-start"
+    description="Explore pairing Taser with TanStack Start fullstack applications."
+  />
+  <Card
+    title="Typed Client SDK"
+    href="/docs/client"
+    description="Call your Next.js Taser endpoints from React Server Components or client hooks."
+  />
+</Cards>

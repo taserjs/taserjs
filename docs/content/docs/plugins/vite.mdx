@@ -19,28 +19,16 @@ Install the router plugin, Vite, and the `srvx` server runtime:
 
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
-    ```bash
-    pnpm add @taserjs/router
-    pnpm add -D @taserjs/router-plugin vite srvx
-    ```
+    ```bash pnpm add @taserjs/router pnpm add -D @taserjs/router-plugin vite srvx ```
   </Tab>
   <Tab value="npm">
-    ```bash
-    npm install @taserjs/router
-    npm install -D @taserjs/router-plugin vite srvx
-    ```
+    ```bash npm install @taserjs/router npm install -D @taserjs/router-plugin vite srvx ```
   </Tab>
   <Tab value="bun">
-    ```bash
-    bun add @taserjs/router
-    bun add -d @taserjs/router-plugin vite srvx
-    ```
+    ```bash bun add @taserjs/router bun add -d @taserjs/router-plugin vite srvx ```
   </Tab>
   <Tab value="yarn">
-    ```bash
-    yarn add @taserjs/router
-    yarn add -D @taserjs/router-plugin vite srvx
-    ```
+    ```bash yarn add @taserjs/router yarn add -D @taserjs/router-plugin vite srvx ```
   </Tab>
 </Tabs>
 
@@ -199,6 +187,11 @@ To ensure your editor recognizes all route types, verify your `tsconfig.json` in
 
 <Cards>
   <Card
+    title="TanStack Start"
+    href="/docs/fullstack/tanstack-start"
+    description="Integrate Taser with TanStack Start fullstack applications and React Query."
+  />
+  <Card
     title="Next.js Plugin"
     href="/docs/plugins/next"
     description="Embed Taser directly inside Next.js App Router applications."
@@ -210,7 +203,7 @@ To ensure your editor recognizes all route types, verify your `tsconfig.json` in
   />
   <Card
     title="Deployment Presets"
-    href="/docs/deployments/presets"
+    href="/docs/deployments"
     description="Deploy your Vite backend to Cloudflare, Vercel, Node, and AWS Lambda."
   />
 </Cards>

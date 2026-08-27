@@ -93,14 +93,29 @@ Taser executes layouts in a predictable cascading sequence from outermost to inn
 
 <Files>
   <Folder name="src/routes" defaultOpen>
-    <File name="$.ts" icon={<span className="text-amber-500 text-xs font-mono font-bold">1. ROOT</span>} />
-    <File name="api.ts" icon={<span className="text-purple-500 text-xs font-mono font-bold">2. SCOPED</span>} />
+    <File
+      name="$.ts"
+      icon={<span className="text-amber-500 text-xs font-mono font-bold">1. ROOT</span>}
+    />
+    <File
+      name="api.ts"
+      icon={<span className="text-purple-500 text-xs font-mono font-bold">2. SCOPED</span>}
+    />
     <Folder name="api" defaultOpen>
-      <File name="_auth.ts" icon={<span className="text-purple-500 text-xs font-mono font-bold">3. PATHLESS</span>} />
+      <File
+        name="_auth.ts"
+        icon={<span className="text-purple-500 text-xs font-mono font-bold">3. PATHLESS</span>}
+      />
       <Folder name="_auth" defaultOpen>
-        <File name="admin.ts" icon={<span className="text-purple-500 text-xs font-mono font-bold">4. ROLE</span>} />
+        <File
+          name="admin.ts"
+          icon={<span className="text-purple-500 text-xs font-mono font-bold">4. ROLE</span>}
+        />
         <Folder name="admin" defaultOpen>
-          <File name="users.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">5. ROUTE</span>} />
+          <File
+            name="users.get.ts"
+            icon={<span className="text-emerald-500 text-xs font-mono font-bold">5. ROUTE</span>}
+          />
         </Folder>
       </Folder>
     </Folder>

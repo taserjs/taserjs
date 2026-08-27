@@ -1,5 +1,4 @@
 {
   "title": "Built-in Middlewares",
-  "defaultOpen": true,
   "pages": ["cors", "jwt-and-jwk", "security-and-utilities"]
 }

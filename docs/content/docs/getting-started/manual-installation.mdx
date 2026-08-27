@@ -337,7 +337,8 @@ To embed Taser's type-safe file routing inside an existing Next.js 15+ App Route
 ## 4. Host Pass-Through (Coexisting with Existing Frameworks)
 
 <Callout type="info" title="Host Pass-Through is an Architectural Feature">
-  Host Pass-Through is not a separate setup mode. It is a dispatch mechanism that works seamlessly with **both Vite Standalone and Vite + Nitro**.
+  Host Pass-Through is not a separate setup mode. It is a dispatch mechanism that works seamlessly
+  with **both Vite Standalone and Vite + Nitro**.
 </Callout>
 
 If you have existing controllers or routes in a Web Standard framework (Hono, Elysia, HatTip, or custom fetch handlers) or a Node.js framework (Express, Fastify), you can keep them running alongside Taser:
@@ -360,6 +361,7 @@ If you have existing controllers or routes in a Web Standard framework (Hono, El
 
     export default app;
     ```
+
   </Tab>
 
   <Tab value="Express (Node.js)">
@@ -378,6 +380,7 @@ If you have existing controllers or routes in a Web Standard framework (Hono, El
 
     export default app;
     ```
+
   </Tab>
 
   <Tab value="Fastify (Node.js)">
@@ -396,6 +399,7 @@ If you have existing controllers or routes in a Web Standard framework (Hono, El
     await app.ready();
     export default app.routing;
     ```
+
   </Tab>
 </Tabs>
 
@@ -410,18 +414,18 @@ If you have existing controllers or routes in a Web Standard framework (Hono, El
     description="Learn how the Vite plugin manages virtual modules, HMR, and build outputs."
   />
   <Card
-    title="Deployment Presets"
-    href="/docs/deployments/presets"
-    description="Configure Nitro presets for Cloudflare, Vercel, Node, and AWS Lambda."
+    title="TanStack Start"
+    href="/docs/fullstack/tanstack-start"
+    description="Embed Taser REST endpoints inside TanStack Start fullstack apps."
   />
   <Card
-    title="Framework Adapters"
-    href="/docs/frameworks/fetch-native"
-    description="Explore Web Standard, Express, and Fastify host pass-through dispatching."
-  />
-  <Card
-    title="Next.js Integration"
-    href="/docs/plugins/next"
+    title="Next.js App Router"
+    href="/docs/fullstack/nextjs"
     description="Deep dive into embedding Taser inside Next.js App Router."
+  />
+  <Card
+    title="Deployment Presets"
+    href="/docs/deployments"
+    description="Configure Nitro presets for Cloudflare, Vercel, Node, and AWS Lambda."
   />
 </Cards>

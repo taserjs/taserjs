@@ -35,11 +35,18 @@ const integrations: {
     href: "/docs/plugins/vite",
   },
   {
+    name: "TanStack Start",
+    description: "Fullstack React apps with TanStack Router loaders & Query.",
+    icon: <Layers />,
+    iconTone: "orange",
+    href: "/docs/fullstack/tanstack-start",
+  },
+  {
     name: "Next.js",
     description: "Embed inside App Router with @taserjs/router-plugin/next.",
     icon: <Layers />,
     iconTone: "violet",
-    href: "/docs/plugins/next",
+    href: "/docs/fullstack/nextjs",
   },
   {
     name: "Nitro Module",
@@ -81,14 +88,14 @@ const integrations: {
     description: "V8 isolates with Cloudflare Workers, Vercel, and Deno.",
     icon: <Cloud />,
     iconTone: "orange",
-    href: "/docs/deployments/presets",
+    href: "/docs/deployments",
   },
   {
     name: "Node & Docker",
     description: "Multi-core clusters, Docker containers, and VPS servers.",
     icon: <Terminal />,
     iconTone: "rose",
-    href: "/docs/deployments/presets",
+    href: "/docs/deployments",
   },
 ];
 
@@ -138,7 +145,7 @@ export function AdaptersSection() {
               Framework Agnostic. <SectionAccent>Runtime Universal</SectionAccent>.
             </>
           }
-          description="Build standalone APIs with Vite and Nitro, embed inside Next.js, or layer onto Express, Fastify, and Web Standard hosts without rewriting a single handler."
+          description="Build standalone APIs with Vite and Nitro, embed inside Next.js or TanStack Start, or layer onto Express, Fastify, and Web Standard hosts without rewriting a single handler."
         />
 
         <div className="landing-animate-in landing-delay-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

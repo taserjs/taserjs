@@ -7,6 +7,7 @@ icon: WandSparkles
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { TypeTable } from "@/components/type-table";
 
 The `@taserjs/router-client` package generates an auto-completing, type-safe API client directly from your server's router type definition.
 
@@ -17,26 +18,10 @@ The `@taserjs/router-client` package generates an auto-completing, type-safe API
 Install the client package in your project:
 
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
-  <Tab value="pnpm">
-    ```bash
-    pnpm add @taserjs/router-client
-    ```
-  </Tab>
-  <Tab value="npm">
-    ```bash
-    npm install @taserjs/router-client
-    ```
-  </Tab>
-  <Tab value="bun">
-    ```bash
-    bun add @taserjs/router-client
-    ```
-  </Tab>
-  <Tab value="yarn">
-    ```bash
-    yarn add @taserjs/router-client
-    ```
-  </Tab>
+  <Tab value="pnpm">```bash pnpm add @taserjs/router-client ```</Tab>
+  <Tab value="npm">```bash npm install @taserjs/router-client ```</Tab>
+  <Tab value="bun">```bash bun add @taserjs/router-client ```</Tab>
+  <Tab value="yarn">```bash yarn add @taserjs/router-client ```</Tab>
 </Tabs>
 
 Initialize the client with your backend `baseUrl`. In a Taser project, route types are **automatically detected from ambient declarations** with zero generic arguments:

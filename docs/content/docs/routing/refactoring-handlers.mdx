@@ -54,7 +54,8 @@ async function fetchUserOrders(ctx: RouteContext) {
 }
 
 // 4. Orchestrate inside the handler
-export const Route = GET.handler(async (ctx) => { // [!code highlight]
+export const Route = GET.handler(async (ctx) => {
+  // [!code highlight]
   const user = await fetchUser(ctx);
   if (!user) {
     return notFound({ message: "User not found" });

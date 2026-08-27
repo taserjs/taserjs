@@ -42,14 +42,28 @@ Taser determines the HTTP verb from the final extension segment before `.ts`:
 
 Taser supports **flat dot notation**, **nested directory structures**, and **mixed folder + dot notation**. You can use whichever structure keeps your codebase cleanest:
 
-<Tabs items={["Flat Dot Notation", "Directory Folders", "Mixed Folder + Dot Notation", "Resolved URL"]}>
+<Tabs
+  items={["Flat Dot Notation", "Directory Folders", "Mixed Folder + Dot Notation", "Resolved URL"]}
+>
   <Tab value="Flat Dot Notation">
     <Files>
       <Folder name="src/routes" defaultOpen>
-        <File name="posts.index.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
-        <File name="posts.$id.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
-        <File name="posts.$id.edit.put.ts" icon={<span className="text-blue-500 text-xs font-mono font-bold">PUT</span>} />
-        <File name="tasks.$id.complete.patch.ts" icon={<span className="text-amber-500 text-xs font-mono font-bold">PATCH</span>} />
+        <File
+          name="posts.index.get.ts"
+          icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+        />
+        <File
+          name="posts.$id.get.ts"
+          icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+        />
+        <File
+          name="posts.$id.edit.put.ts"
+          icon={<span className="text-blue-500 text-xs font-mono font-bold">PUT</span>}
+        />
+        <File
+          name="tasks.$id.complete.patch.ts"
+          icon={<span className="text-amber-500 text-xs font-mono font-bold">PATCH</span>}
+        />
       </Folder>
     </Files>
   </Tab>
@@ -57,15 +71,27 @@ Taser supports **flat dot notation**, **nested directory structures**, and **mix
     <Files>
       <Folder name="src/routes" defaultOpen>
         <Folder name="posts" defaultOpen>
-          <File name="index.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
-          <File name="$id.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
+          <File
+            name="index.get.ts"
+            icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+          />
+          <File
+            name="$id.get.ts"
+            icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+          />
           <Folder name="$id" defaultOpen>
-            <File name="edit.put.ts" icon={<span className="text-blue-500 text-xs font-mono font-bold">PUT</span>} />
+            <File
+              name="edit.put.ts"
+              icon={<span className="text-blue-500 text-xs font-mono font-bold">PUT</span>}
+            />
           </Folder>
         </Folder>
         <Folder name="tasks" defaultOpen>
           <Folder name="$id" defaultOpen>
-            <File name="complete.patch.ts" icon={<span className="text-amber-500 text-xs font-mono font-bold">PATCH</span>} />
+            <File
+              name="complete.patch.ts"
+              icon={<span className="text-amber-500 text-xs font-mono font-bold">PATCH</span>}
+            />
           </Folder>
         </Folder>
       </Folder>
@@ -75,22 +101,26 @@ Taser supports **flat dot notation**, **nested directory structures**, and **mix
     <Files>
       <Folder name="src/routes" defaultOpen>
         <Folder name="posts" defaultOpen>
-          <File name="index.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
-          <File name="$id.edit.put.ts" icon={<span className="text-blue-500 text-xs font-mono font-bold">PUT</span>} />
+          <File
+            name="index.get.ts"
+            icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+          />
+          <File
+            name="$id.edit.put.ts"
+            icon={<span className="text-blue-500 text-xs font-mono font-bold">PUT</span>}
+          />
         </Folder>
         <Folder name="tasks" defaultOpen>
-          <File name="$id.complete.patch.ts" icon={<span className="text-amber-500 text-xs font-mono font-bold">PATCH</span>} />
+          <File
+            name="$id.complete.patch.ts"
+            icon={<span className="text-amber-500 text-xs font-mono font-bold">PATCH</span>}
+          />
         </Folder>
       </Folder>
     </Files>
   </Tab>
   <Tab value="Resolved URL">
-    ```
-    GET   /posts
-    GET   /posts/:id
-    PUT   /posts/:id/edit
-    PATCH /tasks/:id/complete
-    ```
+    ``` GET /posts GET /posts/:id PUT /posts/:id/edit PATCH /tasks/:id/complete ```
   </Tab>
 </Tabs>
 
@@ -108,13 +138,28 @@ An `index` segment targets the root of its parent route without appending `/inde
 
 <Files>
   <Folder name="src/routes" defaultOpen>
-    <File name="index.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
-    <File name="api.index.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
+    <File
+      name="index.get.ts"
+      icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+    />
+    <File
+      name="api.index.get.ts"
+      icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+    />
     <Folder name="products" defaultOpen>
-      <File name="index.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
-      <File name="index.post.ts" icon={<span className="text-blue-500 text-xs font-mono font-bold">POST</span>} />
+      <File
+        name="index.get.ts"
+        icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      />
+      <File
+        name="index.post.ts"
+        icon={<span className="text-blue-500 text-xs font-mono font-bold">POST</span>}
+      />
     </Folder>
-    <File name="posts.$id.index.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
+    <File
+      name="posts.$id.index.get.ts"
+      icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+    />
   </Folder>
 </Files>
 
@@ -126,11 +171,20 @@ Prefixing a segment with `$` denotes a named URL path parameter:
 
 <Files>
   <Folder name="src/routes" defaultOpen>
-    <File name="users.$id.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
+    <File
+      name="users.$id.get.ts"
+      icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+    />
     <Folder name="tasks" defaultOpen>
-      <File name="$id.complete.patch.ts" icon={<span className="text-amber-500 text-xs font-mono font-bold">PATCH</span>} />
+      <File
+        name="$id.complete.patch.ts"
+        icon={<span className="text-amber-500 text-xs font-mono font-bold">PATCH</span>}
+      />
     </Folder>
-    <File name="orgs.$orgId.repos.$repoId.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
+    <File
+      name="orgs.$orgId.repos.$repoId.get.ts"
+      icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+    />
   </Folder>
 </Files>
 
@@ -159,10 +213,19 @@ A standalone `$` segment captures wildcard rest segments (splats):
 
 <Files>
   <Folder name="src/routes" defaultOpen>
-    <File name="$.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
-    <File name="files.$.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
+    <File
+      name="$.get.ts"
+      icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+    />
+    <File
+      name="files.$.get.ts"
+      icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+    />
     <Folder name="files" defaultOpen>
-      <File name="$.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
+      <File
+        name="$.get.ts"
+        icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      />
     </Folder>
   </Folder>
 </Files>
@@ -194,12 +257,24 @@ A segment starting with an underscore `_` (like `_auth.ts`, `_auth/`, or `_auth.
 
 <Files>
   <Folder name="src/routes" defaultOpen>
-    <File name="_auth.ts" icon={<span className="text-purple-500 text-xs font-mono font-bold">LAYOUT</span>} />
+    <File
+      name="_auth.ts"
+      icon={<span className="text-purple-500 text-xs font-mono font-bold">LAYOUT</span>}
+    />
     <Folder name="_auth" defaultOpen>
-      <File name="dashboard.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
-      <File name="profile.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
+      <File
+        name="dashboard.get.ts"
+        icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      />
+      <File
+        name="profile.get.ts"
+        icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      />
     </Folder>
-    <File name="login.post.ts" icon={<span className="text-blue-500 text-xs font-mono font-bold">POST</span>} />
+    <File
+      name="login.post.ts"
+      icon={<span className="text-blue-500 text-xs font-mono font-bold">POST</span>}
+    />
   </Folder>
 </Files>
 
@@ -207,9 +282,18 @@ In flat dot notation:
 
 <Files>
   <Folder name="src/routes" defaultOpen>
-    <File name="_auth.dashboard.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
-    <File name="_auth.profile.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
-    <File name="_app._dashboard.metrics.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
+    <File
+      name="_auth.dashboard.get.ts"
+      icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+    />
+    <File
+      name="_auth.profile.get.ts"
+      icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+    />
+    <File
+      name="_app._dashboard.metrics.get.ts"
+      icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+    />
   </Folder>
 </Files>
 
@@ -231,29 +315,52 @@ By adding a trailing underscore to `posts_` or `$id_`, the route keeps the URL s
   <Tab value="File Structure">
     <Files>
       <Folder name="src/routes" defaultOpen>
-        <File name="$.ts" icon={<span className="text-amber-500 text-xs font-mono font-bold">ROOT</span>} />
-        <File name="posts.ts" icon={<span className="text-purple-500 text-xs font-mono font-bold">LAYOUT</span>} />
+        <File
+          name="$.ts"
+          icon={<span className="text-amber-500 text-xs font-mono font-bold">ROOT</span>}
+        />
+        <File
+          name="posts.ts"
+          icon={<span className="text-purple-500 text-xs font-mono font-bold">LAYOUT</span>}
+        />
         <Folder name="posts" defaultOpen>
-          <File name="index.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
-          <File name="$id.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
+          <File
+            name="index.get.ts"
+            icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+          />
+          <File
+            name="$id.get.ts"
+            icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+          />
         </Folder>
-        <File name="posts_.$id.preview.get.ts" icon={<span className="text-rose-500 text-xs font-mono font-bold">BREAKOUT</span>} />
+        <File
+          name="posts_.$id.preview.get.ts"
+          icon={<span className="text-rose-500 text-xs font-mono font-bold">BREAKOUT</span>}
+        />
         <Folder name="tasks" defaultOpen>
-          <File name="$id.ts" icon={<span className="text-purple-500 text-xs font-mono font-bold">LAYOUT</span>} />
-          <File name="$id.status.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
-          <File name="$id_.complete.patch.ts" icon={<span className="text-rose-500 text-xs font-mono font-bold">BREAKOUT</span>} />
+          <File
+            name="$id.ts"
+            icon={<span className="text-purple-500 text-xs font-mono font-bold">LAYOUT</span>}
+          />
+          <File
+            name="$id.status.get.ts"
+            icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+          />
+          <File
+            name="$id_.complete.patch.ts"
+            icon={<span className="text-rose-500 text-xs font-mono font-bold">BREAKOUT</span>}
+          />
         </Folder>
       </Folder>
     </Files>
   </Tab>
   <Tab value="URL Resolution & Middleware Inheritance">
-    | File | URL Path | Layout Middleware Chain |
-    | :--- | :--- | :--- |
-    | `posts/index.get.ts` | `GET /posts` | `$.ts` → `posts.ts` |
-    | `posts/$id.get.ts` | `GET /posts/:id` | `$.ts` → `posts.ts` |
-    | `posts_.$id.preview.get.ts` | `GET /posts/:id/preview` | `$.ts` *(Breaks out of posts.ts)* |
-    | `tasks/$id.status.get.ts` | `GET /tasks/:id/status` | `$.ts` → `tasks/$id.ts` |
-    | `tasks/$id_.complete.patch.ts` | `PATCH /tasks/:id/complete` | `$.ts` *(Breaks out of tasks/$id.ts)* |
+    | File | URL Path | Layout Middleware Chain | | :--- | :--- | :--- | | `posts/index.get.ts` |
+    `GET /posts` | `$.ts` → `posts.ts` | | `posts/$id.get.ts` | `GET /posts/:id` | `$.ts` →
+    `posts.ts` | | `posts_.$id.preview.get.ts` | `GET /posts/:id/preview` | `$.ts` *(Breaks out of
+    posts.ts)* | | `tasks/$id.status.get.ts` | `GET /tasks/:id/status` | `$.ts` → `tasks/$id.ts` | |
+    `tasks/$id_.complete.patch.ts` | `PATCH /tasks/:id/complete` | `$.ts` *(Breaks out of
+    tasks/$id.ts)* |
   </Tab>
 </Tabs>
 
@@ -286,13 +393,28 @@ To co-locate utility files, helper functions, schemas, or test fixtures directly
 <Files>
   <Folder name="src/routes" defaultOpen>
     <Folder name="users" defaultOpen>
-      <File name="-types.ts" icon={<span className="text-fd-muted-foreground text-xs font-mono font-bold">IGNORED</span>} />
-      <File name="-schema.ts" icon={<span className="text-fd-muted-foreground text-xs font-mono font-bold">IGNORED</span>} />
-      <File name="index.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
-      <File name="$id.get.ts" icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>} />
+      <File
+        name="-types.ts"
+        icon={<span className="text-fd-muted-foreground text-xs font-mono font-bold">IGNORED</span>}
+      />
+      <File
+        name="-schema.ts"
+        icon={<span className="text-fd-muted-foreground text-xs font-mono font-bold">IGNORED</span>}
+      />
+      <File
+        name="index.get.ts"
+        icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      />
+      <File
+        name="$id.get.ts"
+        icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      />
     </Folder>
     <Folder name="-shared">
-      <File name="utils.ts" icon={<span className="text-fd-muted-foreground text-xs font-mono font-bold">IGNORED</span>} />
+      <File
+        name="utils.ts"
+        icon={<span className="text-fd-muted-foreground text-xs font-mono font-bold">IGNORED</span>}
+      />
     </Folder>
   </Folder>
 </Files>

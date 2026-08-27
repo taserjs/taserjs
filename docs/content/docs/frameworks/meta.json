@@ -1,5 +1,4 @@
 {
   "title": "Framework Adapters",
-  "defaultOpen": true,
   "pages": ["standalone", "fetch-native", "express", "fastify"]
 }

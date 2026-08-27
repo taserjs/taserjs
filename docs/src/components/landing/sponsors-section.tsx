@@ -48,7 +48,8 @@ export function SponsorsSection() {
               <h3 className="text-xl font-semibold tracking-tight">Sponsor Taser Development</h3>
               <p className="mt-2 text-sm text-fd-muted-foreground">
                 Support sustainable open source tooling. Contributions directly support new runtime
-                adapters, compiler features, instant watch-mode codegen, and Standard Schema integrations.
+                adapters, compiler features, instant watch-mode codegen, and Standard Schema
+                integrations.
               </p>
             </div>
             <div className="flex shrink-0 items-center">

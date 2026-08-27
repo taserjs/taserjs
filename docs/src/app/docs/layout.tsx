@@ -21,13 +21,7 @@ export default function Layout({ children }: LayoutProps<"/docs">) {
         />
       </div>
 
-      <DocsLayout
-        tree={source.getPageTree()}
-        sidebar={{
-          defaultOpenLevel: 2,
-        }}
-        {...baseOptions()}
-      >
+      <DocsLayout tree={source.getPageTree()} {...baseOptions()}>
         {children}
       </DocsLayout>
     </div>

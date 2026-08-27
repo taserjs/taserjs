@@ -10,10 +10,11 @@
     "middleware",
     "---Architecture & Integration---",
     "frameworks",
+    "fullstack",
     "plugins",
     "deployments",
-    "---Ecosystem & Reference---",
     "client",
+    "---Ecosystem & Reference---",
     "cli",
     "api-reference"
   ]

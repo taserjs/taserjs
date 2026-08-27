@@ -47,8 +47,14 @@ const FLOW_STEPS: FlowStep[] = [
       "The incoming HTTP request is received by the platform runtime and dispatched into Taser's radix tree via a Web Standard Request object.",
     details: [
       { label: "Dispatch Mechanism", value: "Web Standard Request / Response interface" },
-      { label: "Supported Runtimes", value: "Vite Dev / Prod, Nitro Presets, Next.js App Router, Express, Fastify, Fetch hosts" },
-      { label: "Virtual Routing", value: "Compiled static manifest with zero filesystem lookups at runtime" },
+      {
+        label: "Supported Runtimes",
+        value: "Vite Dev / Prod, Nitro Presets, Next.js App Router, Express, Fastify, Fetch hosts",
+      },
+      {
+        label: "Virtual Routing",
+        value: "Compiled static manifest with zero filesystem lookups at runtime",
+      },
     ],
     codeSnippet: {
       filename: "server.ts",
@@ -84,7 +90,10 @@ const FLOW_STEPS: FlowStep[] = [
     description:
       "Middleware executes down the directory hierarchy. State returned by middleware pipelines merges seamlessly into ctx.state for child handlers.",
     details: [
-      { label: "Execution Flow", value: "Outermost (Root $.ts) → Nested Folder → Pathless Layouts" },
+      {
+        label: "Execution Flow",
+        value: "Outermost (Root $.ts) → Nested Folder → Pathless Layouts",
+      },
       { label: "State Injection", value: "Type-safe next({ user, session }) enrichment" },
       { label: "Early Exits", value: "Guards and auth filters can short-circuit before handler" },
     ],
@@ -180,13 +189,15 @@ const toneStyles = {
   },
   indigo: {
     badge: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
-    activeCard: "border-indigo-500/60 bg-indigo-500/[0.04] dark:bg-indigo-950/20 shadow-indigo-500/5",
+    activeCard:
+      "border-indigo-500/60 bg-indigo-500/[0.04] dark:bg-indigo-950/20 shadow-indigo-500/5",
     iconBg: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
     dot: "bg-indigo-500",
   },
   violet: {
     badge: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
-    activeCard: "border-violet-500/60 bg-violet-500/[0.04] dark:bg-violet-950/20 shadow-violet-500/5",
+    activeCard:
+      "border-violet-500/60 bg-violet-500/[0.04] dark:bg-violet-950/20 shadow-violet-500/5",
     iconBg: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
     dot: "bg-violet-500",
   },
@@ -204,7 +215,8 @@ const toneStyles = {
   },
   emerald: {
     badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-    activeCard: "border-emerald-500/60 bg-emerald-500/[0.04] dark:bg-emerald-950/20 shadow-emerald-500/5",
+    activeCard:
+      "border-emerald-500/60 bg-emerald-500/[0.04] dark:bg-emerald-950/20 shadow-emerald-500/5",
     iconBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     dot: "bg-emerald-500",
   },
@@ -266,24 +278,30 @@ export function RequestFlowDiagram() {
                     "group relative flex w-full items-start gap-3 rounded-lg border p-2.5 text-left transition-all",
                     isSelected
                       ? cn("border-l-4 shadow-sm", style.activeCard)
-                      : "border-transparent bg-transparent hover:bg-fd-muted/50 hover:border-fd-border/50"
+                      : "border-transparent bg-transparent hover:bg-fd-muted/50 hover:border-fd-border/50",
                   )}
                 >
                   <div
                     className={cn(
                       "flex size-8 shrink-0 items-center justify-center rounded-md transition-colors",
-                      isSelected ? style.iconBg : "bg-fd-muted text-fd-muted-foreground group-hover:text-fd-foreground"
+                      isSelected
+                        ? style.iconBg
+                        : "bg-fd-muted text-fd-muted-foreground group-hover:text-fd-foreground",
                     )}
                   >
                     <Icon className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-fd-muted-foreground">0{step.number}</span>
+                      <span className="text-xs font-mono text-fd-muted-foreground">
+                        0{step.number}
+                      </span>
                       <span
                         className={cn(
                           "text-xs font-semibold truncate",
-                          isSelected ? "text-fd-foreground" : "text-fd-muted-foreground group-hover:text-fd-foreground"
+                          isSelected
+                            ? "text-fd-foreground"
+                            : "text-fd-muted-foreground group-hover:text-fd-foreground",
                         )}
                       >
                         {step.title}
@@ -294,7 +312,9 @@ export function RequestFlowDiagram() {
                   <ChevronRight
                     className={cn(
                       "size-4 shrink-0 transition-transform",
-                      isSelected ? "rotate-90 text-fd-foreground" : "opacity-0 group-hover:opacity-60"
+                      isSelected
+                        ? "rotate-90 text-fd-foreground"
+                        : "opacity-0 group-hover:opacity-60",
                     )}
                   />
                 </button>
@@ -326,7 +346,7 @@ export function RequestFlowDiagram() {
                   <span
                     className={cn(
                       "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-                      currentTone.badge
+                      currentTone.badge,
                     )}
                   >
                     Stage 0{currentStep.number}
@@ -351,7 +371,9 @@ export function RequestFlowDiagram() {
                 <div className="space-y-1.5 text-xs">
                   {currentStep.details.map((item) => (
                     <div key={item.label} className="flex items-start gap-2">
-                      <div className={cn("size-1.5 mt-1.5 shrink-0 rounded-full", currentTone.dot)} />
+                      <div
+                        className={cn("size-1.5 mt-1.5 shrink-0 rounded-full", currentTone.dot)}
+                      />
                       <div>
                         <span className="font-medium text-fd-foreground">{item.label}: </span>
                         <span className="text-fd-muted-foreground">{item.value}</span>

@@ -1,188 +1,95 @@
 ---
 title: Next.js Plugin
-description: "Embed type-safe file-based REST routing into Next.js 15+ App Router with @taserjs/router-plugin/next. Share types across RSC and client hooks."
+description: "Configure the @taserjs/router-plugin/next bundler plugin for Next.js 15+ App Router. Options, disk artifact generation, and Turbopack/Webpack compilation."
 icon: LayoutGrid
 ---
 
-import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-plugin/next` package integrates Taser into Next.js App Router applications. It enables file-based API endpoints with cascading context, Standard Schema validation, and compile-time return contracts under a custom path prefix (such as `/api`).
+The `@taserjs/router-plugin/next` package integrates Taser into Next.js 15+ App Router compilation. It handles disk artifact generation, TypeScript ambient type generation, and Turbopack/Webpack extension aliases for subpath imports.
+
+<Callout type="info" title="Looking for the Fullstack Next.js Guide?">
+  For the complete architectural guide, React Server Components (RSC) patterns, and Server Actions
+  data fetching recipes, see the [Next.js App Router Fullstack Guide](/docs/fullstack/nextjs).
+</Callout>
 
 ---
 
 ## Installation
 
-Install the required packages:
+Install `@taserjs/router-plugin` as a dev dependency:
 
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
-    ```bash
-    pnpm add @taserjs/router zod
-    pnpm add -D @taserjs/router-plugin
-    ```
-  </Tab>
+```bash 
+pnpm add -D @taserjs/router-plugin
+
+````
+</Tab>
   <Tab value="npm">
-    ```bash
-    npm install @taserjs/router zod
-    npm install -D @taserjs/router-plugin
-    ```
-  </Tab>
+```bash
+npm install -D @taserjs/router-plugin
+
+````
+
+</Tab>
   <Tab value="bun">
-    ```bash
-    bun add @taserjs/router zod
-    bun add -d @taserjs/router-plugin
-    ```
+```bash 
+bun add -d @taserjs/router-plugin
+
+````
   </Tab>
   <Tab value="yarn">
-    ```bash
-    yarn add @taserjs/router zod
-    yarn add -D @taserjs/router-plugin
-    ```
+```bash
+yarn add -D @taserjs/router-plugin
+
+````
+
   </Tab>
 </Tabs>
 
 ---
 
-## Integration Steps
+## Basic Configuration
 
-<Steps>
-  <Step>
-    ### 1. Wrap `next.config.ts`
+Wrap your `next.config.ts` using the `createTaser` (or `withTaser`) wrapper:
 
-    Use the `createTaser` curried factory to wrap your Next.js configuration:
+```ts title="next.config.ts"
+import createTaser from "@taserjs/router-plugin/next";
+import type { NextConfig } from "next";
 
-    ```ts title="next.config.ts"
-    import createTaser from "@taserjs/router-plugin/next";
-    import type { NextConfig } from "next";
+const withTaser = createTaser({
+  basePath: "/api", // URL prefix where Taser routes dispatch
+});
 
-    const withTaser = createTaser({
-      basePath: "/api", // URL prefix for Taser routes
-    });
+const nextConfig: NextConfig = {
+  reactStrictMode: true,
+};
 
-    const nextConfig: NextConfig = {
-      reactStrictMode: true,
-    };
+export default withTaser(nextConfig);
+```
 
-    export default withTaser(nextConfig);
-    ```
+You can also pass a function-based Next.js configuration:
 
-  </Step>
+```ts title="next.config.ts"
+import { withTaser } from "@taserjs/router-plugin/next";
 
-  <Step>
-    ### 2. Configure Subpath Imports & Paths
-
-    Update `package.json` and `tsconfig.json` so your routes can import `#taserjs/router`:
-
-    ```json title="package.json"
-    {
-      "imports": {
-        "#taserjs/router": "./src/taser.ts"
-      }
-    }
-    ```
-
-    ```json title="tsconfig.json"
-    {
-      "compilerOptions": {
-        "paths": {
-          "@/*": ["./src/*"],
-          "#taserjs/router": ["./src/taser.ts"]
-        }
-      },
-      "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".taser/types/**/*.d.ts"]
-    }
-    ```
-
-  </Step>
-
-  <Step>
-    ### 3. Create Router Instance
-
-    Create `src/taser.ts` (or `taser.ts` if not using `src/`):
-
-    ```ts title="src/taser.ts"
-    import { createTaserApp } from "@taserjs/router";
-
-    export const t = createTaserApp({
-      response: { validate: true },
-    });
-    ```
-
-  </Step>
-
-  <Step>
-    ### 4. Create Catch-All Route Handler
-
-    Create `app/api/[[...slug]]/route.ts` (or `src/app/api/[[...slug]]/route.ts`). This forwards incoming Next.js API requests to Taser:
-
-    ```ts title="app/api/[[...slug]]/route.ts"
-    import { taserApp } from "../../.taser/app";
-
-    const handle = (request: Request) => taserApp.fetch(request);
-
-    export const GET = handle;
-    export const POST = handle;
-    export const PUT = handle;
-    export const DELETE = handle;
-    export const PATCH = handle;
-    export const OPTIONS = handle;
-    export const HEAD = handle;
-    ```
-
-  </Step>
-
-  <Step>
-    ### 5. Define Your Routes
-
-    Create your endpoints inside `src/routes/` (or `routes/`):
-
-    ```ts title="src/routes/users.get.ts"
-    import { json } from "@taserjs/router/reply";
-    import { z } from "zod";
-    import { t } from "#taserjs/router";
-
-    const GET = t
-      .get("/users")
-      .query(
-        z.object({
-          limit: z.coerce.number().default(10),
-        }),
-      );
-
-    export type RouteContext = typeof GET.$Infer.Context;
-    export const Route = GET.handler((ctx) => {
-      return json({
-        users: [
-          { id: "1", name: "Alice" },
-          { id: "2", name: "Bob" },
-        ],
-        limit: ctx.query.limit,
-      });
-    });
-    ```
-
-  </Step>
-</Steps>
-
----
-
-## How It Works in Next.js
-
-Next.js does not support serving virtual modules dynamically in runtime handlers. To provide zero-overhead integration, `@taserjs/router-plugin/next`:
-
-1. **Monitors `src/routes/`** in development mode using a file watcher.
-2. **Generates disk artifacts** into `.taser/` (`.taser/manifest.js`, `.taser/entry.js`, and `.taser/app.js`).
-3. **Configures Turbopack and Webpack** extension aliases so Node.js ESM subpath imports (`#taserjs/router`) resolve seamlessly.
+export default withTaser({ basePath: "/api" })((phase, { defaultConfig }) => {
+  return {
+    ...defaultConfig,
+    reactStrictMode: true,
+  };
+});
+```
 
 ---
 
 ## Plugin Options
 
-`createTaser` accepts configuration options:
+`createTaser` accepts the following configuration options:
 
 ```ts title="next.config.ts"
 const withTaser = createTaser({
@@ -215,57 +122,28 @@ const withTaser = createTaser({
       type: "string",
       default: "'.taser'",
     },
+    watcher: {
+      description: "File watcher configuration options for development mode.",
+      type: "WatcherOptions",
+      default: "undefined",
+    },
   }}
 />
 
 ---
 
-## Architecture: React Server Components (RSC) vs Taser API
+## How It Works Under the Hood
 
-When pairing Taser with Next.js App Router, understanding the division of responsibilities ensures clean system design:
+Next.js does not support serving virtual modules dynamically in runtime handlers. To provide zero-overhead integration, `@taserjs/router-plugin/next`:
 
-| Responsibility | Next.js App Router (RSC & Pages) | Taser Subsystem (`src/routes/`) |
-| :--- | :--- | :--- |
-| **Primary Focus** | Server-rendered UI, HTML streaming, metadata, layout composition | Structured REST API, JSON endpoints, binary streams, webhooks |
-| **Execution Context** | React Server Components & Client Components (`app/**/*.tsx`) | Type-safe route handlers (`src/routes/**/*.ts`) |
-| **Consumers** | Web browser page visits | Mobile apps, SPA client hooks, webhooks, external developer APIs |
-| **State & Middleware** | Next.js Edge middleware (`middleware.ts`) | Directory layout middleware pipelines (`src/routes/$.ts`) |
-| **Validation** | Manual or form-action validation | Standard Schema validation (Zod, ArkType, Valibot) |
-| **Response Safety** | React component props | Compile-time `.returns()` contracts & status discriminated unions |
-
-### Calling Taser Endpoints from React Server Components
-
-You can consume your Taser endpoints inside Next.js Server Components with complete type safety using `@taserjs/router-client`:
-
-```tsx title="app/dashboard/page.tsx"
-import { api } from "@/lib/api";
-
-export default async function DashboardPage() {
-  // Direct type-safe server fetch to Taser API
-  const res = await api.users.$get({
-    query: { limit: 20 },
-  });
-
-  if (res.status !== 200) {
-    return <div>Failed to load users.</div>;
-  }
-
-  const { users } = await res.json();
-
-  return (
-    <main className="p-8">
-      <h1 className="text-2xl font-bold">User Directory</h1>
-      <ul className="mt-4 space-y-2">
-        {users.map((user) => (
-          <li key={user.id} className="rounded border p-3">
-            {user.name}
-          </li>
-        ))}
-      </ul>
-    </main>
-  );
-}
-```
+1. **Monitors `src/routes/`**: In development (`next dev`), the plugin runs a lightweight background file watcher that synchronizes route changes instantly.
+2. **Generates Disk Artifacts in `.taser/`**:
+   - `.taser/manifest.js`: Static route radix manifest.
+   - `.taser/entry.js`: Router entry initialization.
+   - `.taser/app.js`: Compiled Taser app instance imported by your catch-all handler (`app/api/[[...slug]]/route.ts`).
+   - `.taser/types/`: Ambient TypeScript definitions for end-to-end type safety.
+3. **Configures Turbopack and Webpack**:
+   - Configures extension aliases so Node.js ESM subpath imports (such as `#taserjs/router`) resolve across `.ts`, `.tsx`, and `.js` seamlessly.
 
 ---
 
@@ -273,13 +151,18 @@ export default async function DashboardPage() {
 
 <Cards>
   <Card
-    title="Defining Routes"
-    href="/docs/routing/defining-routes"
-    description="Learn fluent builder and options APIs for defining type-safe endpoints."
+    title="Next.js App Router Guide"
+    href="/docs/fullstack/nextjs"
+    description="Learn how to build fullstack applications with Next.js, RSC, and Taser."
   />
   <Card
-    title="Typed Client SDK"
-    href="/docs/client"
-    description="Call your Next.js Taser endpoints from React Server Components or client hooks."
+    title="Vite Plugin"
+    href="/docs/plugins/vite"
+    description="Explore Taser's Vite plugin for standalone and fullstack applications."
+  />
+  <Card
+    title="Nitro Module"
+    href="/docs/plugins/nitro"
+    description="Deploy Taser across edge, serverless, and multi-cloud runtimes."
   />
 </Cards>
