@@ -1,5 +1,11 @@
 # create-taserjs
 
+## 0.1.0
+
+### Minor Changes
+
+- b5eab15: Fluent API, Nitro Deployments, Vite Base. All New TaserJS
+
 ## 0.0.6
 
 ### Patch Changes
