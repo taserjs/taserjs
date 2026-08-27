@@ -12,6 +12,7 @@
     "./packages/router-generator",
     "./packages/router-cli",
     "./packages/router-client",
+    "./packages/router-plugin",
     "./packages/create-taserjs"
   ]
 }

@@ -10,8 +10,17 @@ File-system routing and framework adapters for Taser apps.
 
 ## Installation
 
+**npm:**
+
 ```sh
 pnpm add -D @taserjs/router-plugin
+```
+
+**JSR:**
+
+```sh
+deno add jsr:@taserjs/router-plugin
+npx jsr add @taserjs/router-plugin
 ```
 
 Peer dependencies per entry:

@@ -1,0 +1,15 @@
+{
+  "name": "@taserjs/router-plugin",
+  "version": "0.0.5",
+  "exports": {
+    ".": "./src/index.ts",
+    "./vite": "./src/vite.ts",
+    "./webpack": "./src/webpack.ts",
+    "./rspack": "./src/rspack.ts",
+    "./rollup": "./src/rollup.ts",
+    "./rolldown": "./src/rolldown.ts",
+    "./esbuild": "./src/esbuild.ts",
+    "./next": "./src/next.ts",
+    "./nitro": "./src/nitro.ts"
+  }
+}
