@@ -16,7 +16,6 @@ import {
   RESOLVED_VIRTUAL_APP_ID,
 } from "./constants.js";
 import { createTaserVirtualContext, watchAndSyncRoutes } from "./context.js";
-import { shouldInvalidateOnWatchChange } from "./invalidation.js";
 import { getComposedAppCode, getServeShimCode } from "./compose.js";
 import { createViteDevMiddleware } from "./dev-server.js";
 import { setupTaserNitro } from "../nitro.js";
@@ -39,7 +38,20 @@ function detectNitro(config: unknown): boolean {
 }
 
 function invalidateModules(server: ViteDevServer) {
-  const ids = [RESOLVED_VIRTUAL_MANIFEST_ID, RESOLVED_VIRTUAL_ENTRY_ID, RESOLVED_VIRTUAL_APP_ID];
+  const ids = [
+    RESOLVED_VIRTUAL_MANIFEST_ID,
+    VIRTUAL_MANIFEST_ID,
+    RESOLVED_VIRTUAL_ENTRY_ID,
+    VIRTUAL_ENTRY_ID,
+    RESOLVED_VIRTUAL_APP_ID,
+    VIRTUAL_APP_ID,
+    "\0#nitro/virtual/app",
+    "#nitro/virtual/app",
+    "\0#nitro/virtual/server-handlers",
+    "#nitro/virtual/server-handlers",
+    "\0#nitro/virtual/plugins",
+    "#nitro/virtual/plugins",
+  ];
   for (const id of ids) {
     const legacyMod = server.moduleGraph.getModuleById(id);
     if (legacyMod) {
@@ -73,21 +85,15 @@ export const unpluginFactory = (options: TaserPluginOptions = {}) => {
     enforce: "pre" as const,
 
     async buildStart() {
-      if (mode === "nitro") {
-        return;
-      }
       const activeCtx = getContext();
       await activeCtx.writeTypes();
-      if (serveEnabled) {
+      if (mode !== "nitro" && serveEnabled) {
         await mkdir(resolve(serveShimPath, ".."), { recursive: true });
         await writeFile(serveShimPath, getServeShimCode(), "utf8");
       }
     },
 
     resolveId(id: string) {
-      if (mode === "nitro") {
-        return null;
-      }
       if (id === VIRTUAL_MANIFEST_ID) return RESOLVED_VIRTUAL_MANIFEST_ID;
       if (id === VIRTUAL_ENTRY_ID) return RESOLVED_VIRTUAL_ENTRY_ID;
       if (id === VIRTUAL_APP_ID) return RESOLVED_VIRTUAL_APP_ID;
@@ -108,9 +114,6 @@ export const unpluginFactory = (options: TaserPluginOptions = {}) => {
     },
 
     async load(id: string) {
-      if (mode === "nitro") {
-        return null;
-      }
       if (id === RESOLVED_VIRTUAL_MANIFEST_ID || id === VIRTUAL_MANIFEST_ID) {
         const activeCtx = getContext();
         return await activeCtx.getManifestCode();
@@ -129,8 +132,8 @@ export const unpluginFactory = (options: TaserPluginOptions = {}) => {
       return null;
     },
 
-    watchChange(id: string) {
-      if (ctx && shouldInvalidateOnWatchChange(id, ctx)) {
+    watchChange(_id: string) {
+      if (ctx) {
         ctx.invalidate();
       }
     },
@@ -141,7 +144,12 @@ export const unpluginFactory = (options: TaserPluginOptions = {}) => {
         name: "taser",
         setup: (nitro: Parameters<typeof setupTaserNitro>[0]) => setupTaserNitro(nitro, options),
       },
-      config(config: unknown, env: { command?: string }) {
+      config(config: { root?: string }, env: { command?: string }) {
+        if (config?.root) {
+          rootDir = resolve(options.rootDir || config.root);
+          serveShimPath = resolve(rootDir, SERVE_SHIM_PATH);
+          ctx = undefined;
+        }
         mode = detectNitro(config) ? "nitro" : "standalone";
         if (mode === "nitro" || !serveEnabled || env.command !== "build") {
           return;
@@ -162,27 +170,18 @@ export const unpluginFactory = (options: TaserPluginOptions = {}) => {
         rootDir = resolve(options.rootDir || resolvedConfig.root || process.cwd());
         serveShimPath = resolve(rootDir, SERVE_SHIM_PATH);
 
-        if (mode === "nitro") {
-          ctx = undefined;
-          return;
-        }
-
         ctx = createTaserVirtualContext({
           ...options,
           rootDir,
         });
       },
       configureServer(server: ViteDevServer) {
-        if (mode === "nitro") {
-          return;
-        }
-
         if (serveEnabled) {
           server.middlewares.use(createViteDevMiddleware(server, rootDir));
         }
 
-        if (ctx) {
-          const activeCtx = ctx;
+        const activeCtx = getContext();
+        if (activeCtx) {
           const watcherHandle = watchAndSyncRoutes(activeCtx, () => {
             invalidateModules(server);
             server.ws.send({ type: "full-reload", path: "*" });

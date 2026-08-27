@@ -22,11 +22,20 @@ export function createViteDevMiddleware(
       const mod = await server.ssrLoadModule(VIRTUAL_APP_ID);
       const app = mod.taserApp ?? mod.default ?? mod;
 
-      if (!app || typeof app.fetch !== "function") {
+      const fetchHandler =
+        typeof mod.handler === "function"
+          ? mod.handler
+          : typeof app?.fetch === "function"
+            ? app.fetch.bind(app)
+            : typeof app === "function"
+              ? app
+              : undefined;
+
+      if (!fetchHandler) {
         return next();
       }
 
-      const nodeHandler = toNodeHandler(app) as (
+      const nodeHandler = toNodeHandler(fetchHandler) as (
         req: IncomingMessage,
         res: ServerResponse,
       ) => Promise<void>;
