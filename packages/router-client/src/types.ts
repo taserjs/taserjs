@@ -47,10 +47,6 @@ export type InferAppManifest<TApp> = TApp extends { __manifest?: infer TManifest
       ? TApp
       : never;
 
-declare module "@taserjs/router" {
-  interface RouterRegister {}
-}
-
 export type OpenQuery = Record<string, string | number | boolean | string[]>;
 
 /** Schema-defined query fields plus any additional open query keys. */
