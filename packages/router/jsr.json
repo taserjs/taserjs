@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "exports": {
     ".": "./src/index.ts",
+    "./reply": "./src/reply.ts",
+    "./stream": "./src/stream.ts",
     "./body-limit": "./src/middleware/body-limit.ts",
     "./compress": "./src/middleware/compress.ts",
     "./cors": "./src/middleware/cors.ts",
