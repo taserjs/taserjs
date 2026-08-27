@@ -54,7 +54,7 @@ export const Route = t.get("/").handler(() => undefined);
     const virtualDts = await fsp.readFile(join(testDir, ".taser", "types", "virtual.d.ts"), "utf8");
     expect(virtualDts).toContain('declare module "#taserjs/virtual/manifest"');
     expect(virtualDts).toContain('declare module "#taserjs/virtual/entry"');
-    expect(virtualDts).toContain("app: TaserApp<RouteManifest>");
+    expect(virtualDts).toContain('app: TaserApp<import("./routes.js").RouteManifest>');
   });
 
   it("deduplicates writes within the state bag", async () => {

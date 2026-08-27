@@ -8,17 +8,15 @@ export type EmitVirtualDeclarationsOptions = {
 export function emitVirtualDeclarationsSource(
   options: EmitVirtualDeclarationsOptions = {},
 ): string {
-  const code = `import type { RouteManifest } from "./routes.js";
-
-declare module "${VIRTUAL_MANIFEST_ID}" {
-  export const routeManifest: RouteManifest;
+  const code = `declare module "${VIRTUAL_MANIFEST_ID}" {
+  export const routeManifest: import("./routes.js").RouteManifest;
   export default routeManifest;
-  export type { RouteManifest };
+  export type RouteManifest = import("./routes.js").RouteManifest;
 }
 
 declare module "${VIRTUAL_ENTRY_ID}" {
   import type { TaserApp } from "@taserjs/router";
-  export const app: TaserApp<RouteManifest>;
+  export const app: TaserApp<import("./routes.js").RouteManifest>;
   export default app;
 }
 `;
