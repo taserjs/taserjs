@@ -1,5 +1,14 @@
 # @taserjs/router
 
+## 0.1.1
+
+### Patch Changes
+
+- e5609c2: Minor fixes and Feature Additions
+- Updated dependencies [e5609c2]
+  - @taserjs/router-core@0.1.1
+  - @taserjs/router-utils@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes
