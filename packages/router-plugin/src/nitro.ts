@@ -3,7 +3,7 @@ import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 import { DEFAULT_IGNORE } from "@taserjs/router-generator";
 import { composeBasePath } from "@taserjs/router-utils";
-import type { TaserPluginOptions } from "./core/types.js";
+import type { TaserPluginOptions, TaserVirtualContext } from "./core/types.js";
 import {
   ROUTES_ALIAS_ID,
   SERVER_ENTRY_ALIAS_ID,
@@ -15,6 +15,7 @@ import { getComposedAppCode } from "./core/compose.js";
 
 export type TaserNitroOptions = TaserPluginOptions & {
   standalone?: boolean | undefined;
+  context?: TaserVirtualContext | undefined;
 };
 
 /**
@@ -57,12 +58,14 @@ async function applyTaserNitro(nitro: Nitro, options: TaserNitroOptions): Promis
   const normalizedNitroBase = nitroBase ? `/${nitroBase}` : "";
   const effectiveScope = composeBasePath(normalizedNitroBase, options.basePath) || "/";
 
-  const ctx = createTaserVirtualContext({
-    ...options,
-    rootDir,
-    ignore,
-    basePath: effectiveScope,
-  });
+  const ctx =
+    options.context ??
+    createTaserVirtualContext({
+      ...options,
+      rootDir,
+      ignore,
+      basePath: effectiveScope,
+    });
 
   nitro.options.alias = {
     ...nitro.options.alias,
