@@ -1,6 +1,13 @@
 import type { AddonDefinition } from "../types.js";
 import type { DbDriver } from "../../core/types.js";
 
+/** Latest Prisma ORM v7 release line — keep all @prisma/* packages on this range. */
+const PRISMA_VERSION = "^7.10.0";
+
+function prismaPackage(name: string): string {
+  return `${name}@${PRISMA_VERSION}`;
+}
+
 function prismaProvider(driver: DbDriver): string {
   switch (driver) {
     case "postgres":
@@ -28,12 +35,12 @@ function envExample(driver: DbDriver): string {
 function driverPackages(driver: DbDriver): string[] {
   switch (driver) {
     case "postgres":
-      return ["@prisma/adapter-pg", "pg"];
+      return [prismaPackage("@prisma/adapter-pg"), "pg"];
     case "mysql":
-      return ["@prisma/adapter-mariadb", "mariadb"];
+      return [prismaPackage("@prisma/adapter-mariadb"), "mariadb"];
     case "sqlite":
     default:
-      return ["@prisma/adapter-better-sqlite3", "better-sqlite3"];
+      return [prismaPackage("@prisma/adapter-better-sqlite3"), "better-sqlite3"];
   }
 }
 
@@ -125,11 +132,11 @@ export const prismaAddon: AddonDefinition = {
   category: "database",
   dependencies(ctx) {
     const driver = ctx.driver ?? "sqlite";
-    return ["@prisma/client", ...driverPackages(driver)];
+    return [prismaPackage("@prisma/client"), ...driverPackages(driver)];
   },
   devDependencies(ctx) {
     const driver = ctx.driver ?? "sqlite";
-    return ["prisma", ...driverDevPackages(driver)];
+    return [prismaPackage("prisma"), ...driverDevPackages(driver)];
   },
   scripts() {
     return {

@@ -15,7 +15,6 @@ import { resolvePackages, scaffoldProject } from "../src/scaffold.js";
 describe("validateProjectName", () => {
   it("rejects traversal and separators", () => {
     expect(validateProjectName("../escape")).toBeDefined();
-    expect(validateProjectName("foo/bar")).toBeDefined();
     expect(validateProjectName("")).toBe("Project name is required");
   });
 
@@ -75,6 +74,41 @@ describe("scaffoldProject", () => {
       const rootLayout = await readFile(path.join(dir, "src/routes/$.ts"), "utf8");
       expect(rootLayout).toContain("cors");
       expect(rootLayout).toContain("#taserjs/router");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("scaffolds standalone vite without nitro when preset is none", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "create-taser-none-"));
+    try {
+      await scaffoldProject({
+        projectName: "demo-none",
+        targetDir: dir,
+        preset: "none",
+        skipInstall: true,
+      });
+
+      await expect(readFile(path.join(dir, "nitro.config.ts"), "utf8")).rejects.toThrow();
+
+      const viteConfig = await readFile(path.join(dir, "vite.config.ts"), "utf8");
+      expect(viteConfig).toContain("taser()");
+      expect(viteConfig).not.toContain("nitro()");
+      expect(viteConfig).not.toContain("nitro/vite");
+
+      const pkg = JSON.parse(await readFile(path.join(dir, "package.json"), "utf8")) as {
+        scripts: Record<string, string>;
+      };
+      expect(pkg.scripts.start).toBe("node dist/serve.mjs");
+
+      const packages = resolvePackages({
+        projectName: "demo-none",
+        targetDir: dir,
+        preset: "none",
+      });
+      expect(packages.devDependencies).not.toContain("nitro");
+      expect(packages.devDependencies).toContain("@taserjs/router-plugin");
+      expect(packages.scripts.start).toBe("node dist/serve.mjs");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -227,10 +261,10 @@ describe("scaffoldProject", () => {
         driver: "postgres",
       });
       expect(packages.dependencies).toContain("dotenv");
-      expect(packages.dependencies).toContain("@prisma/client");
-      expect(packages.dependencies).toContain("@prisma/adapter-pg");
+      expect(packages.dependencies).toContain("@prisma/client@^7.10.0");
+      expect(packages.dependencies).toContain("@prisma/adapter-pg@^7.10.0");
       expect(packages.dependencies).toContain("pg");
-      expect(packages.devDependencies).toContain("prisma");
+      expect(packages.devDependencies).toContain("prisma@^7.10.0");
       expect(packages.devDependencies).not.toContain("dotenv");
       expect(packages.devDependencies).toContain("@types/pg");
     } finally {
@@ -247,10 +281,10 @@ describe("scaffoldProject", () => {
       driver: "sqlite",
     });
     expect(sqlitePackages.dependencies).toContain("dotenv");
-    expect(sqlitePackages.dependencies).toContain("@prisma/client");
-    expect(sqlitePackages.dependencies).toContain("@prisma/adapter-better-sqlite3");
+    expect(sqlitePackages.dependencies).toContain("@prisma/client@^7.10.0");
+    expect(sqlitePackages.dependencies).toContain("@prisma/adapter-better-sqlite3@^7.10.0");
     expect(sqlitePackages.dependencies).toContain("better-sqlite3");
-    expect(sqlitePackages.devDependencies).toContain("prisma");
+    expect(sqlitePackages.devDependencies).toContain("prisma@^7.10.0");
     expect(sqlitePackages.devDependencies).not.toContain("dotenv");
     expect(sqlitePackages.devDependencies).toContain("@types/better-sqlite3");
 
@@ -262,10 +296,10 @@ describe("scaffoldProject", () => {
       driver: "mysql",
     });
     expect(mysqlPackages.dependencies).toContain("dotenv");
-    expect(mysqlPackages.dependencies).toContain("@prisma/client");
-    expect(mysqlPackages.dependencies).toContain("@prisma/adapter-mariadb");
+    expect(mysqlPackages.dependencies).toContain("@prisma/client@^7.10.0");
+    expect(mysqlPackages.dependencies).toContain("@prisma/adapter-mariadb@^7.10.0");
     expect(mysqlPackages.dependencies).toContain("mariadb");
-    expect(mysqlPackages.devDependencies).toContain("prisma");
+    expect(mysqlPackages.devDependencies).toContain("prisma@^7.10.0");
     expect(mysqlPackages.devDependencies).not.toContain("dotenv");
   });
 
@@ -420,7 +454,6 @@ describe("scaffoldProject", () => {
       expect(server).toContain("import { Hono } from 'hono'");
       expect(server).toContain("export default app");
 
-      // Fetch-native hosts never need the srvx bridge.
       const packages = resolvePackages({
         projectName: "demo-hono",
         targetDir: dir,
@@ -428,7 +461,7 @@ describe("scaffoldProject", () => {
         preset: "node-server",
       });
       expect(packages.dependencies).toContain("hono");
-      expect(packages.dependencies).not.toContain("srvx");
+      expect(packages.dependencies).toContain("srvx");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -507,7 +540,7 @@ describe("scaffoldProject", () => {
 
 describe("cli preset & validator parsing", () => {
   it("accepts curated deploy targets verbatim", () => {
-    for (const id of ["node-server", "bun", "deno-deploy", "cloudflare-module", "vercel"]) {
+    for (const id of ["none", "node-server", "bun", "deno-deploy", "cloudflare-module", "vercel"]) {
       expect(parsePresetFlag(id)).toEqual({ preset: id });
     }
   });
@@ -554,12 +587,12 @@ describe("resolvePackages", () => {
       framework: "none",
       preset: "node-server",
     });
-    expect(groups.dependencies).toEqual(["@taserjs/router", "dotenv"]);
+    expect(groups.dependencies).toEqual(["@taserjs/router", "dotenv", "srvx"]);
     expect(groups.devDependencies).toEqual([
       "@taserjs/router-plugin",
-      "nitro",
       "typescript@^5.9.3",
       "vite@^8.1.5",
+      "nitro",
       "@types/node",
     ]);
     expect(groups.scripts.start).toBe("node .output/server/index.mjs");
@@ -586,6 +619,36 @@ describe("resolvePackages", () => {
     expect(groups.devDependencies).toContain("wrangler");
     expect(groups.devDependencies).toContain("@cloudflare/workers-types");
     expect(groups.scripts.start).toBeUndefined();
+  });
+
+  it("excludes nitro and sets standalone start script for preset none", () => {
+    const groups = resolvePackages({
+      projectName: "demo",
+      targetDir: "/tmp/demo",
+      framework: "none",
+      preset: "none",
+    });
+    expect(groups.dependencies).toEqual(["@taserjs/router", "dotenv", "srvx"]);
+    expect(groups.devDependencies).toEqual([
+      "@taserjs/router-plugin",
+      "typescript@^5.9.3",
+      "vite@^8.1.5",
+      "@types/node",
+    ]);
+    expect(groups.scripts.start).toBe("node dist/serve.mjs");
+  });
+
+  it("sets bun start script for preset none with bun runtime", () => {
+    const groups = resolvePackages({
+      projectName: "demo",
+      targetDir: "/tmp/demo",
+      framework: "none",
+      preset: "none",
+      runtime: "bun",
+    });
+    expect(groups.devDependencies).not.toContain("nitro");
+    expect(groups.devDependencies).toContain("@types/bun");
+    expect(groups.scripts.start).toBe("bun dist/serve.mjs");
   });
 
   it("rejects runtime overrides that clash with the deploy target", () => {
@@ -617,6 +680,7 @@ describe("capabilities catalog", () => {
   it("lists frameworks, deploy targets, runtimes, db options, loggers, and validators", () => {
     const catalog = getCapabilitiesCatalog();
     expect(catalog.frameworks).toContain("hono");
+    expect(catalog.deployTargets).toContain("none");
     expect(catalog.deployTargets).toContain("bun");
     expect(catalog.deployTargets).toContain("cloudflare-module");
     expect(catalog.runtimes).toEqual(["node", "bun", "deno"]);

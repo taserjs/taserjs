@@ -59,7 +59,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
     packageJsonTemplate(options.projectName, packages.scripts),
   );
   await write(path.join(root, "tsconfig.json"), tsconfigTemplate());
-  await write(path.join(root, "vite.config.ts"), viteConfigTemplate());
+  await write(path.join(root, "vite.config.ts"), viteConfigTemplate(ctx.preset));
   await write(path.join(root, ".gitignore"), gitignoreTemplate());
   await write(path.join(root, "src/context.ts"), contextTemplate(bootBindings));
   await write(path.join(root, "src/taser.ts"), taserTsTemplate());
@@ -68,8 +68,8 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
   await write(path.join(root, "src/routes/health.get.ts"), healthRouteTemplate(ctx));
 
   // Nitro's default preset is node-server — only emit an explicit config when
-  // the deployment target differs.
-  if (ctx.preset !== "node-server") {
+  // the deployment target differs. Do not emit for preset "none".
+  if (ctx.preset !== "node-server" && ctx.preset !== "none") {
     await write(path.join(root, "nitro.config.ts"), nitroConfigTemplate(deployEntry.id));
   }
 

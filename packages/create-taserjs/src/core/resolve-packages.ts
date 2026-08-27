@@ -3,15 +3,10 @@ import { FRAMEWORK_ENTRIES } from "../frameworks/index.js";
 import type { PackageGroups, ScaffoldContext } from "../core/types.js";
 import { resolveDeployEntry } from "./targets.js";
 
-const BASE_DEPENDENCIES = ["@taserjs/router", "dotenv"];
+const BASE_DEPENDENCIES = ["@taserjs/router", "dotenv", "srvx"];
 
 /** Runtime-agnostic build/dev tooling every scaffolded project needs. */
-const BASE_DEV_DEPENDENCIES = [
-  "@taserjs/router-plugin",
-  "nitro",
-  "typescript@^5.9.3",
-  "vite@^8.1.5",
-];
+const BASE_DEV_DEPENDENCIES = ["@taserjs/router-plugin", "typescript@^5.9.3", "vite@^8.1.5"];
 
 function runtimeDevDeps(ctx: ScaffoldContext): string[] {
   const { entry } = resolveDeployEntry(ctx.preset ?? "node-server");
@@ -34,8 +29,10 @@ export function resolvePackages(ctx: ScaffoldContext): PackageGroups {
   const { entry: deployEntry } = resolveDeployEntry(ctx.preset ?? "node-server");
 
   const dependencies = [...BASE_DEPENDENCIES, ...frameworkEntry.deps];
+  const nitroDevDeps = ctx.preset === "none" ? [] : ["nitro"];
   const devDependencies = [
     ...BASE_DEV_DEPENDENCIES,
+    ...nitroDevDeps,
     ...runtimeDevDeps(ctx),
     ...deployEntry.devDeps,
     ...frameworkEntry.devDeps,
@@ -43,7 +40,11 @@ export function resolvePackages(ctx: ScaffoldContext): PackageGroups {
 
   const scripts: Record<string, string> = {};
   if (deployEntry.startScript) {
-    scripts.start = deployEntry.startScript;
+    if (ctx.preset === "none" && ctx.runtime === "bun") {
+      scripts.start = "bun dist/serve.mjs";
+    } else {
+      scripts.start = deployEntry.startScript;
+    }
   }
 
   const addons = resolveAddons(ctx);

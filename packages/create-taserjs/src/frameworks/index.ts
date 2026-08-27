@@ -1,4 +1,4 @@
-import type { Framework } from "../core/types.js";
+import type { DeployTarget, Framework } from "../core/types.js";
 
 export function serverEntryTemplate(
   framework: Framework,
@@ -66,14 +66,14 @@ export const FRAMEWORK_ENTRIES: Record<Framework, FrameworkEntry> = {
   express: {
     id: "express",
     serverEntry: serverEntryTemplate("express"),
-    deps: ["express", "srvx"],
+    deps: ["express"],
     devDeps: ["@types/express"],
   },
   fastify: {
     id: "fastify",
     // srvx bridges the Fastify Node handler to fetch (see compose codegen).
     serverEntry: serverEntryTemplate("fastify"),
-    deps: ["fastify", "srvx"],
+    deps: ["fastify"],
     devDeps: [],
   },
 };
@@ -87,7 +87,17 @@ export default defineConfig({
 `;
 }
 
-export function viteConfigTemplate(): string {
+export function viteConfigTemplate(preset?: DeployTarget): string {
+  if (preset === "none") {
+    return `import { defineConfig } from 'vite'
+import { taser } from '@taserjs/router-plugin/vite'
+
+export default defineConfig({
+  plugins: [taser()],
+})
+`;
+  }
+
   return `import { defineConfig } from 'vite'
 import { nitro } from 'nitro/vite'
 import { taser } from '@taserjs/router-plugin/vite'
