@@ -131,6 +131,7 @@ export function initNitroPlugins(app) {
 `;
 
   const sections = [
+    "// @ts-nocheck",
     imports,
     hostHelper,
     scopeDefinition,

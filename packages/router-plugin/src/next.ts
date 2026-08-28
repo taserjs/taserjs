@@ -20,19 +20,34 @@ import { createTaserVirtualContext, watchAndSyncRoutes } from "./core/context.js
 import { DISK_ARTIFACT_DIR, writeDiskArtifacts } from "./core/emitter.js";
 import type { TaserConfig, WatcherOptions } from "./core/types.js";
 
-export type TaserNextConfig = NextConfig;
+export type TaserNextConfig = NextConfig & {
+  __taserRouterPlugin?: boolean;
+  turbopack?: {
+    resolveExtensions?: string[];
+    [key: string]: unknown;
+  };
+  webpack?: (config: any, context: any) => any;
+  [key: string]: any;
+};
 
-export type NextConfigFn = (
+export type NextConfigFn<T = any> = (
   phase: string,
-  context: { defaultConfig: TaserNextConfig; [key: string]: unknown },
-) => TaserNextConfig | Promise<TaserNextConfig>;
+  context: { defaultConfig?: any; [key: string]: unknown },
+) => T | Promise<T>;
 
-export type NextConfigInput = TaserNextConfig | NextConfigFn;
+export type NextConfigInput<T = any> = T | NextConfigFn<T>;
 
-export type NextConfigReturn<T extends NextConfigInput | undefined = undefined> =
-  T extends NextConfigFn
-    ? NextConfigFn
-    : TaserNextConfig & (T extends object ? T : Record<string, unknown>);
+export type NextConfigReturn<T = NextConfig> = T extends (...args: any[]) => any
+  ? (
+      phase: string,
+      context: { defaultConfig?: any; [key: string]: unknown },
+    ) => Promise<
+      TaserNextConfig &
+        (ReturnType<T> extends Promise<infer R>
+          ? Omit<R, "webpack">
+          : Omit<ReturnType<T>, "webpack">)
+    >
+  : (T extends object ? Omit<T, "webpack"> : {}) & TaserNextConfig;
 
 export type TaserNextOptions = TaserConfig & {
   rootDir?: string | undefined;
@@ -46,6 +61,8 @@ const TASER_KEY = "__taserRouterPlugin";
 
 type MarkedConfig = TaserNextConfig & { [TASER_KEY]?: boolean };
 
+const appliedConfigs = new WeakSet<object>();
+
 function logError(message: string, error: unknown): void {
   console.error(`[taser] ${message}:`, error);
 }
@@ -53,24 +70,28 @@ function logError(message: string, error: unknown): void {
 const DEFAULT_TURBO_EXTENSIONS = [".tsx", ".ts", ".jsx", ".js", ".mjs", ".json"];
 
 type TurboResolveTarget = {
-  resolveExtensions?: string[] | undefined;
+  resolveExtensions?: string[];
 };
 
-function mergeResolveExtensions(
-  target: TurboResolveTarget | undefined,
-  defaults: readonly string[],
-): void {
-  if (!target || typeof target !== "object") {
-    return;
-  }
+function mergeResolveExtensions(target: TurboResolveTarget, defaults: readonly string[]): void {
   const existing = target.resolveExtensions ?? [];
   target.resolveExtensions = [...new Set([...defaults, ...existing])];
 }
 
 function applyTurbopackConfig(config: TaserNextConfig): void {
-  mergeResolveExtensions(config.turbopack, DEFAULT_TURBO_EXTENSIONS);
+  const turbopack = (
+    typeof config.turbopack === "object" && config.turbopack !== null ? config.turbopack : {}
+  ) as TurboResolveTarget & NonNullable<TaserNextConfig["turbopack"]>;
+  mergeResolveExtensions(turbopack, DEFAULT_TURBO_EXTENSIONS);
+  config.turbopack = turbopack;
+
   const experimental = config.experimental as { turbo?: TurboResolveTarget } | undefined;
-  if (experimental && typeof experimental === "object") {
+  if (
+    experimental &&
+    typeof experimental === "object" &&
+    experimental.turbo &&
+    typeof experimental.turbo === "object"
+  ) {
     mergeResolveExtensions(experimental.turbo, DEFAULT_TURBO_EXTENSIONS);
   }
 }
@@ -81,13 +102,16 @@ function applyTaserNext(
   phase?: string | undefined,
 ): TaserNextConfig {
   const marked = nextConfig as MarkedConfig;
-  if (marked[TASER_KEY]) {
+  if (
+    marked[TASER_KEY] ||
+    (typeof nextConfig === "object" && nextConfig !== null && appliedConfigs.has(nextConfig))
+  ) {
     return marked;
   }
 
   const rootDir = options.rootDir ?? process.cwd();
   const outDir = options.outDir ?? DISK_ARTIFACT_DIR;
-  const scope = options.basePath ?? nextConfig.basePath;
+  const scope = options.basePath;
 
   let ctx: ReturnType<typeof createTaserVirtualContext> | undefined;
   try {
@@ -102,7 +126,10 @@ function applyTaserNext(
     }
     try {
       await ctx.writeTypes();
-      await writeDiskArtifacts(ctx, { outDir, ...(scope !== undefined ? { scope } : {}) });
+      await writeDiskArtifacts(ctx, {
+        outDir,
+        ...(scope !== undefined ? { scope } : {}),
+      });
     } catch (error) {
       logError("failed to generate disk artifacts", error);
     }
@@ -150,32 +177,44 @@ function applyTaserNext(
 
   const result = {
     ...nextConfig,
-    ...(options.basePath !== undefined ? { basePath: options.basePath } : {}),
     webpack: wrappedWebpack,
-    [TASER_KEY]: true,
   } as MarkedConfig;
+
+  Object.defineProperty(result, TASER_KEY, {
+    get: () => true,
+    enumerable: false,
+    configurable: true,
+  });
+
+  if (typeof nextConfig === "object" && nextConfig !== null) {
+    appliedConfigs.add(nextConfig);
+  }
+  appliedConfigs.add(result);
 
   return result;
 }
 
 export function createTaser(
   options: TaserNextOptions = {},
-): <T extends NextConfigInput | undefined = TaserNextConfig>(
+): <T extends NextConfigInput<any> | undefined = NextConfig>(
   nextConfig?: T,
 ) => NextConfigReturn<T> {
-  return function withTaserCurried<T extends NextConfigInput | undefined = TaserNextConfig>(
+  return function withTaserCurried<T extends NextConfigInput<any> | undefined = NextConfig>(
     nextConfig?: T,
   ): NextConfigReturn<T> {
     if (typeof nextConfig === "function") {
-      const configFn: NextConfigFn = async (phase, context) => {
-        const resolved = await nextConfig(phase, context);
+      const configFn = async (
+        phase: string,
+        context: { defaultConfig?: any; [key: string]: unknown },
+      ) => {
+        const resolved = await (nextConfig as Function)(phase, context);
         return applyTaserNext(resolved, options, phase);
       };
       return configFn as unknown as NextConfigReturn<T>;
     }
 
     return applyTaserNext(
-      nextConfig as TaserNextConfig | undefined,
+      (nextConfig ?? {}) as TaserNextConfig,
       options,
     ) as unknown as NextConfigReturn<T>;
   };

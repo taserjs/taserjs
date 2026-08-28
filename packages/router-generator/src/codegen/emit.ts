@@ -18,6 +18,20 @@ export type EmitManifestSourceOptions = EmitManifestOptions & {
   kind?: ManifestEmitKind | undefined;
 };
 
+function unwrapDefault<T>(mod: T): T {
+  let curr: any = mod;
+  while (
+    curr &&
+    typeof curr !== "function" &&
+    typeof curr === "object" &&
+    "default" in curr &&
+    curr.default
+  ) {
+    curr = curr.default;
+  }
+  return curr;
+}
+
 /**
  * Emits route manifest source for a given program shape.
  *
@@ -38,7 +52,9 @@ export function emitManifestSource(
       ? buildVirtualManifestProgram(model, options.rewriteImportPath)
       : buildFullProgram(model, options.rewriteImportPath);
 
-  const { code } = print(program, ts({ quotes }));
+  const printFn = unwrapDefault(print);
+  const tsLang = unwrapDefault(ts);
+  const { code } = printFn(program, tsLang({ quotes }));
   const header = kind === "virtual" ? (options.header ?? []) : options.header;
   return joinManifestSections(header, code);
 }

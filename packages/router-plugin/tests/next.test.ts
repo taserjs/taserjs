@@ -47,9 +47,21 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
   it("works with curried factory pattern (like @next/mdx)", () => {
     const withTaserCustom = createTaser({ rootDir: testDir, basePath: "/app" });
     const config = withTaserCustom({ reactStrictMode: true });
-    expect(config.basePath).toBe("/app");
+    expect(config.basePath).toBeUndefined();
     expect(config.reactStrictMode).toBe(true);
     expect(config.__taserRouterPlugin).toBe(true);
+    expect(Object.keys(config)).not.toContain("__taserRouterPlugin");
+    expect(config.turbopack?.resolveExtensions).toContain(".ts");
+    expect(config.turbopack?.resolveExtensions).toContain(".tsx");
+  });
+
+  it("does not mutate next.js basePath with taser basePath but preserves explicit next.js basePath", () => {
+    const withTaserCustom = createTaser({ rootDir: testDir, basePath: "/api" });
+    const configWithCustomNextBase = withTaserCustom({ basePath: "/site", reactStrictMode: true });
+    expect(configWithCustomNextBase.basePath).toBe("/site");
+
+    const configWithoutNextBase = withTaserCustom({ reactStrictMode: true });
+    expect(configWithoutNextBase.basePath).toBeUndefined();
   });
 
   it("is idempotent — double wrapping returns the same config", () => {
@@ -70,11 +82,13 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
     expect(typeof wrappedFn).toBe("function");
 
     const result = await (wrappedFn as NextConfigFn)("PHASE_PRODUCTION_BUILD", {
-      defaultConfig: { basePath: "/" },
+      defaultConfig: { basePath: "/custom" },
     });
-    expect(result.basePath).toBe("/api");
+    expect(result.basePath).toBe("/custom");
     expect(result.reactStrictMode).toBe(true);
     expect(result.__taserRouterPlugin).toBe(true);
+    expect(Object.keys(result)).not.toContain("__taserRouterPlugin");
+    expect(result.turbopack?.resolveExtensions).toContain(".ts");
   });
 
   it("handles async function-based next.config", async () => {
@@ -90,6 +104,20 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
     });
     expect(result.poweredByHeader).toBe(false);
     expect(result.__taserRouterPlugin).toBe(true);
+    expect(Object.keys(result)).not.toContain("__taserRouterPlugin");
+    expect(result.turbopack?.resolveExtensions).toContain(".ts");
+  });
+
+  it("preserves custom typed NextConfig options without type casting", () => {
+    const withTaserCustom = createTaser({ rootDir: testDir });
+    const customConfig = {
+      reactCompiler: true,
+      headers: () => [{ source: "/api/:path*", headers: [{ key: "x-custom", value: "1" }] }],
+    };
+    const config = withTaserCustom(customConfig);
+    expect(config.reactCompiler).toBe(true);
+    expect(typeof config.headers).toBe("function");
+    expect(config.turbopack?.resolveExtensions).toContain(".ts");
   });
 
   it("supports plugin chaining with other wrappers", () => {
@@ -97,7 +125,7 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
     const withTaserCustom = createTaser({ rootDir: testDir, basePath: "/chained" });
 
     const finalConfig = withDummy(withTaserCustom({ reactStrictMode: true }));
-    expect(finalConfig.basePath).toBe("/chained");
+    expect(finalConfig.basePath).toBeUndefined();
     expect(finalConfig.reactStrictMode).toBe(true);
     expect(finalConfig.dummy).toBe(true);
   });
@@ -152,6 +180,50 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
       resolve: { extensionAlias: Record<string, string[]> };
     };
     expect(result.resolve.extensionAlias[".js"]).toEqual([".ts", ".tsx", ".js", ".mjs"]);
+  });
+
+  it("uses taser basePath for entry artifacts without combining next.js basePath", async () => {
+    const routesDir = join(testDir, "src", "server", "routes");
+    await fsp.mkdir(routesDir, { recursive: true });
+    await fsp.writeFile(
+      join(routesDir, "index.get.ts"),
+      'export const Route = t.get("/").handler(() => new Response("ok"));',
+      "utf8",
+    );
+
+    const withTaserCustom = createTaser({
+      rootDir: testDir,
+      serverDir: "src/server",
+      basePath: "/api",
+    });
+    const config = withTaserCustom({ basePath: "/site" });
+    expect(config.basePath).toBe("/site");
+
+    const entryFile = join(testDir, ".taser", "entry.ts");
+    const appFile = join(testDir, ".taser", "app.ts");
+
+    const waitForFiles = async (
+      attempts = 0,
+    ): Promise<{ entryContent: string; appContent: string }> => {
+      try {
+        const [entryContent, appContent] = await Promise.all([
+          fsp.readFile(entryFile, "utf8"),
+          fsp.readFile(appFile, "utf8"),
+        ]);
+        return { entryContent, appContent };
+      } catch (err) {
+        if (attempts >= 20) {
+          throw err;
+        }
+        await new Promise((r) => setTimeout(r, 50));
+        return waitForFiles(attempts + 1);
+      }
+    };
+
+    const { entryContent, appContent } = await waitForFiles();
+    expect(entryContent).toContain('basePath: "/api"');
+    expect(entryContent).not.toContain('basePath: "/site/api"');
+    expect(appContent).toContain('const __scope = "/api";');
   });
 
   it("runs generation outside the dev phase without registering a watcher", async () => {
