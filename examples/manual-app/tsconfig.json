@@ -9,13 +9,9 @@
     "isolatedModules": true,
     "noEmit": true,
     "paths": {
-      "#taserjs/router": [
-        "./src/taser.ts"
-      ]
+      "#taserjs/router": ["./src/taser.ts"]
     },
-    "types": [
-      "node"
-    ]
+    "types": ["node"]
   },
   "include": [
     "src",

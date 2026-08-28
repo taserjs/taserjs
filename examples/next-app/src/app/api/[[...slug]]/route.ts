@@ -1,7 +1,7 @@
 import { app } from "@/.taser/entry";
 
 const handle = (request: Request) => {
-  console.log(request.url)
+  console.log(request.url);
   return app.fetch(request);
 };
 

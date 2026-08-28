@@ -6,5 +6,5 @@ export const context = createContext({
   }),
   request: () => ({
     requestId: crypto.randomUUID(),
-  })
-})
+  }),
+});

@@ -3,18 +3,14 @@
     "target": "ES2022",
     "module": "NodeNext",
     "paths": {
-      "#taserjs/router": [
-        "./src/taser.ts"
-      ]
+      "#taserjs/router": ["./src/taser.ts"]
     },
     "strict": true,
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noEmit": true,
-    "types": [
-      "bun"
-    ]
+    "types": ["bun"]
   },
   "include": [
     "src",

@@ -9,20 +9,10 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noEmit": true,
-    "lib": [
-      "DOM",
-      "DOM.Iterable",
-      "ES2022"
-    ],
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "paths": {
-      "#taserjs/router": [
-        "./src/server/taser.ts"
-      ]
+      "#taserjs/router": ["./src/server/taser.ts"]
     }
   },
-  "include": [
-    "src",
-    ".taser/types/**/*.d.ts",
-    "vite.config.ts",
-  ]
+  "include": ["src", ".taser/types/**/*.d.ts", "vite.config.ts"]
 }

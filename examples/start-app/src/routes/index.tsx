@@ -5,9 +5,9 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/")({ component: Home });
 
 function Home() {
-  const {data} = useQuery({
+  const { data } = useQuery({
     queryKey: ["greeting"],
-    queryFn: () => api.greeting.$get().then(res => res.json()),
+    queryFn: () => api.greeting.$get().then((res) => res.json()),
   });
 
   return (

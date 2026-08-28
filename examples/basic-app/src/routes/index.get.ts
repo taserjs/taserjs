@@ -7,4 +7,3 @@ export type RouteContext = typeof GET.$Infer.Context;
 export const Route = GET.handler((_ctx) => {
   return json({ message: "Hello, world!" });
 });
-
