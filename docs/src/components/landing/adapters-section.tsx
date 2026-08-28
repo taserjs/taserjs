@@ -10,7 +10,6 @@ import {
   MoreHorizontal,
   Server,
   ShieldCheck,
-  Terminal,
   Workflow,
   Zap,
 } from "lucide-react";
@@ -84,16 +83,9 @@ const integrations: {
     href: "/docs/frameworks/fastify",
   },
   {
-    name: "Cloudflare & Edge",
-    description: "V8 isolates with Cloudflare Workers, Vercel, and Deno.",
+    name: "Deployment Presets",
+    description: "Cloudflare Workers, Vercel, Node, Docker, Bun, and AWS Lambda.",
     icon: <Cloud />,
-    iconTone: "orange",
-    href: "/docs/deployments",
-  },
-  {
-    name: "Node & Docker",
-    description: "Multi-core clusters, Docker containers, and VPS servers.",
-    icon: <Terminal />,
     iconTone: "rose",
     href: "/docs/deployments",
   },
