@@ -38,13 +38,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build packages
+        run: pnpm build-packages
+
+      - name: Typecheck
+        run: pnpm typecheck
+
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-
-      - name: Build packages
-        run: pnpm build-packages
 
       - name: Test JSR publish (dry run)
         run: deno publish --dry-run --no-check --allow-slow-types
