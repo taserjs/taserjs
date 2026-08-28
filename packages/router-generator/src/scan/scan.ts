@@ -691,21 +691,25 @@ function expandRoutesByPath(routes: RouteEntry[]): Map<string, RouteMethodEntry[
 
   for (const [urlPath, pathRoutes] of byPath) {
     const filled = new Map<HttpVerb, RouteMethodEntry>();
+    let anyRoute: RouteEntry | undefined;
+    let allRoute: RouteEntry | undefined;
 
-    const specifics = pathRoutes.filter((route): route is RouteEntry & { method: HttpVerb } =>
-      isHttpVerb(route.method),
-    );
-    for (const route of specifics) {
-      filled.set(route.method, {
-        method: route.method,
-        parentLayout: route.parentLayout,
-        importName: route.importName,
-        routeRel: route.routeRel,
-        layoutChain: route.layoutChain,
-      });
+    for (const route of pathRoutes) {
+      if (isHttpVerb(route.method)) {
+        filled.set(route.method, {
+          method: route.method,
+          parentLayout: route.parentLayout,
+          importName: route.importName,
+          routeRel: route.routeRel,
+          layoutChain: route.layoutChain,
+        });
+      } else if (route.method === "ANY") {
+        anyRoute = route;
+      } else if (route.method === "ALL") {
+        allRoute = route;
+      }
     }
 
-    const anyRoute = pathRoutes.find((route) => route.method === "ANY");
     if (anyRoute) {
       for (const method of anyRoute.methods ?? []) {
         if (filled.has(method)) continue;
@@ -719,7 +723,6 @@ function expandRoutesByPath(routes: RouteEntry[]): Map<string, RouteMethodEntry[
       }
     }
 
-    const allRoute = pathRoutes.find((route) => route.method === "ALL");
     if (allRoute) {
       for (const method of HTTP_VERBS) {
         if (filled.has(method)) continue;
