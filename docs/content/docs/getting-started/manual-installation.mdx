@@ -262,25 +262,25 @@ To embed Taser's type-safe file routing inside an existing Next.js 15+ App Route
     <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
       <Tab value="pnpm">
         ```bash
-        pnpm add @taserjs/router zod
+        pnpm add @taserjs/router @taserjs/router-client zod
         pnpm add -D @taserjs/router-plugin
         ```
       </Tab>
       <Tab value="npm">
         ```bash
-        npm install @taserjs/router zod
+        npm install @taserjs/router @taserjs/router-client zod
         npm install -D @taserjs/router-plugin
         ```
       </Tab>
       <Tab value="bun">
         ```bash
-        bun add @taserjs/router zod
+        bun add @taserjs/router @taserjs/router-client zod
         bun add -d @taserjs/router-plugin
         ```
       </Tab>
       <Tab value="yarn">
         ```bash
-        yarn add @taserjs/router zod
+        yarn add @taserjs/router @taserjs/router-client zod
         yarn add -D @taserjs/router-plugin
         ```
       </Tab>
@@ -289,23 +289,61 @@ To embed Taser's type-safe file routing inside an existing Next.js 15+ App Route
   </Step>
 
   <Step>
-    ### Configure `next.config.ts`
+    ### Configure `next.config.ts` & `tsconfig.json`
 
     Wrap your Next.js configuration with `createTaser`:
 
     ```ts title="next.config.ts"
-    import createTaser from "@taserjs/router-plugin/next";
     import type { NextConfig } from "next";
-
-    const withTaser = createTaser({
-      basePath: "/api", // Mounts Taser routes under /api
-    });
+    import { createTaser } from "@taserjs/router-plugin/next";
 
     const nextConfig: NextConfig = {
       reactStrictMode: true,
     };
 
+    const withTaser = createTaser({
+      serverDir: "src/server", // Directory hosting Taser server code & routes
+      entry: "@/server/taser",  // Path alias or path to your router instance
+      basePath: "/api",        // URL prefix where Taser routes dispatch
+    });
+
     export default withTaser(nextConfig);
+    ```
+
+    Ensure `tsconfig.json` includes `@/*` and `@/.taser/*` path aliases:
+
+    ```json title="tsconfig.json"
+    {
+      "compilerOptions": {
+        "paths": {
+          "@/*": ["./src/*"],
+          "@/.taser/*": ["./.taser/*"]
+        }
+      },
+      "include": [
+        "next-env.d.ts",
+        "**/*.ts",
+        "**/*.tsx",
+        ".taser/**/*.ts",
+        ".taser/**/*.d.ts"
+      ]
+    }
+    ```
+
+  </Step>
+
+  <Step>
+    ### Create Taser Router Instance
+
+    Create `src/server/taser.ts` to initialize your router instance:
+
+    ```ts title="src/server/taser.ts"
+    import { createTaserApp } from "@taserjs/router";
+    import { notFound } from "@taserjs/router/reply";
+
+    export const t = createTaserApp({
+      response: { validate: true },
+    }).notFound(() => notFound({ message: "Not Found" }));
     ```
 
   </Step>
@@ -313,12 +351,12 @@ To embed Taser's type-safe file routing inside an existing Next.js 15+ App Route
   <Step>
     ### Create Catch-All Route Handler
 
-    Create `app/api/[[...slug]]/route.ts` (or `src/app/api/[[...slug]]/route.ts`) to forward incoming API requests to Taser:
+    Create `src/app/api/[[...slug]]/route.ts` to forward incoming Next.js API requests to Taser:
 
-    ```ts title="app/api/[[...slug]]/route.ts"
-    import { taserApp } from "../../.taser/app";
+    ```ts title="src/app/api/[[...slug]]/route.ts"
+    import { app } from "@/.taser/entry";
 
-    const handle = (request: Request) => taserApp.fetch(request);
+    const handle = (request: Request) => app.fetch(request);
 
     export const GET = handle;
     export const POST = handle;

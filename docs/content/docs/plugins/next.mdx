@@ -9,7 +9,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-plugin/next` package integrates Taser into Next.js 15+ App Router compilation. It handles disk artifact generation, TypeScript ambient type generation, and Turbopack/Webpack extension aliases for subpath imports.
+The `@taserjs/router-plugin/next` package integrates Taser into Next.js 15+ App Router compilation. It handles disk artifact generation in `.taser/`, TypeScript ambient type generation, and Turbopack/Webpack extension aliases.
 
 <Callout type="info" title="Looking for the Fullstack Next.js Guide?">
   For the complete architectural guide, React Server Components (RSC) patterns, and Server Actions
@@ -24,29 +24,31 @@ Install `@taserjs/router-plugin` as a dev dependency:
 
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
-```bash 
-pnpm add -D @taserjs/router-plugin
+    ```bash
+    pnpm add -D @taserjs/router-plugin
 
-````
-</Tab>
+    ```
+
+  </Tab>
   <Tab value="npm">
-```bash
-npm install -D @taserjs/router-plugin
+    ```bash
+    npm install -D @taserjs/router-plugin
 
-````
+    ```
 
-</Tab>
+  </Tab>
   <Tab value="bun">
-```bash 
-bun add -d @taserjs/router-plugin
+    ```bash
+    bun add -d @taserjs/router-plugin
 
-````
+    ```
+
   </Tab>
   <Tab value="yarn">
-```bash
-yarn add -D @taserjs/router-plugin
+    ```bash
+    yarn add -D @taserjs/router-plugin
 
-````
+    ```
 
   </Tab>
 </Tabs>
@@ -58,16 +60,18 @@ yarn add -D @taserjs/router-plugin
 Wrap your `next.config.ts` using the `createTaser` (or `withTaser`) wrapper:
 
 ```ts title="next.config.ts"
-import createTaser from "@taserjs/router-plugin/next";
 import type { NextConfig } from "next";
-
-const withTaser = createTaser({
-  basePath: "/api", // URL prefix where Taser routes dispatch
-});
+import { createTaser } from "@taserjs/router-plugin/next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 };
+
+const withTaser = createTaser({
+  serverDir: "src/server", // Directory hosting Taser server code & routes
+  entry: "@/server/taser", // Path alias or path to your router instance
+  basePath: "/api", // URL prefix where Taser routes dispatch
+});
 
 export default withTaser(nextConfig);
 ```
@@ -77,7 +81,11 @@ You can also pass a function-based Next.js configuration:
 ```ts title="next.config.ts"
 import { withTaser } from "@taserjs/router-plugin/next";
 
-export default withTaser({ basePath: "/api" })((phase, { defaultConfig }) => {
+export default withTaser({
+  serverDir: "src/server",
+  entry: "@/server/taser",
+  basePath: "/api",
+})((phase, { defaultConfig }) => {
   return {
     ...defaultConfig,
     reactStrictMode: true,
@@ -89,36 +97,41 @@ export default withTaser({ basePath: "/api" })((phase, { defaultConfig }) => {
 
 ## Plugin Options
 
-`createTaser` accepts the following configuration options:
+`createTaser` accepts configuration options conforming to `TaserNextOptions`:
 
 ```ts title="next.config.ts"
 const withTaser = createTaser({
+  serverDir: "src/server",
+  entry: "@/server/taser",
   basePath: "/api",
-  routesDir: "src/routes",
-  entryPath: "src/taser.ts",
   outDir: ".taser",
 });
 ```
 
 <TypeTable
   type={{
+    serverDir: {
+      description: "Root server directory containing your taser instance and routes folder.",
+      type: "string",
+      default: "'src/server'",
+    },
+    entry: {
+      description: "Path or path alias to the taser router instance definition file.",
+      type: "string",
+      default: "'src/taser.ts'",
+    },
     basePath: {
-      description: "URL prefix Taser dispatches under. Defaults to Next.js config basePath or '/'.",
+      description: "URL prefix Taser dispatches under. Defaults to '/'.",
       type: "string",
       default: "'/'",
     },
     routesDir: {
-      description: "Path to your file-based routes directory.",
+      description: "Path to your file-based routes directory (defaults to `${serverDir}/routes`).",
       type: "string",
-      default: "'src/routes'",
-    },
-    entryPath: {
-      description: "Path to the taser router instance definition file.",
-      type: "string",
-      default: "'src/taser.ts'",
+      default: "'src/server/routes'",
     },
     outDir: {
-      description: "Output directory where generated artifacts and types are written.",
+      description: "Output directory where generated disk artifacts and types are written.",
       type: "string",
       default: "'.taser'",
     },
@@ -136,14 +149,14 @@ const withTaser = createTaser({
 
 Next.js does not support serving virtual modules dynamically in runtime handlers. To provide zero-overhead integration, `@taserjs/router-plugin/next`:
 
-1. **Monitors `src/routes/`**: In development (`next dev`), the plugin runs a lightweight background file watcher that synchronizes route changes instantly.
+1. **Monitors `src/server/routes/`**: In development (`next dev`), the plugin runs a lightweight background file watcher that synchronizes route changes instantly.
 2. **Generates Disk Artifacts in `.taser/`**:
-   - `.taser/manifest.js`: Static route radix manifest.
-   - `.taser/entry.js`: Router entry initialization.
-   - `.taser/app.js`: Compiled Taser app instance imported by your catch-all handler (`app/api/[[...slug]]/route.ts`).
-   - `.taser/types/`: Ambient TypeScript definitions for end-to-end type safety.
+   - `.taser/manifest.ts`: Static route radix manifest tree.
+   - `.taser/entry.ts`: Compiled router entry module exporting `app`, imported by your catch-all handler (`src/app/api/[[...slug]]/route.ts`).
+   - `.taser/app.ts`: Composed router app module.
+   - `.taser/types/`: Ambient TypeScript definitions (`routes.d.ts`, `virtual.d.ts`) for end-to-end type safety.
 3. **Configures Turbopack and Webpack**:
-   - Configures extension aliases so Node.js ESM subpath imports (such as `#taserjs/router`) resolve across `.ts`, `.tsx`, and `.js` seamlessly.
+   - Injects extension aliases so TypeScript module resolution and path aliases resolve across `.ts`, `.tsx`, and `.js` seamlessly.
 
 ---
 

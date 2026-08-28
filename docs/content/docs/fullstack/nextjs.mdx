@@ -9,7 +9,7 @@ import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-**Next.js App Router** provides a React framework for UI rendering, server components, and streaming HTML. By integrating Taser, you can embed a structured, file-based REST API subsystem with cascading directory middleware, Standard Schema validation, and compile-time return contracts under `/api`.
+**Next.js App Router** provides a React framework for UI rendering, server components, and streaming HTML. By integrating `@taserjs/router-plugin/next`, you can embed a structured, file-based REST API subsystem with cascading directory middleware, Standard Schema validation, and compile-time return contracts under `/api`.
 
 ---
 
@@ -18,7 +18,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 <Cards>
   <Card
     title="Clean Architectural Boundaries"
-    description="Keep React UI components in `app/` and structured, type-safe REST API routes in `src/routes/`."
+    description="Keep React UI components in `src/app/` and structured, type-safe REST API endpoints in `src/server/`."
   />
   <Card
     title="Cascading Directory Middleware"
@@ -42,37 +42,35 @@ Install the necessary dependencies in your Next.js project:
 
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
-```bash
-pnpm add @taserjs/router @taserjs/router-client zod
+    ```bash
+    pnpm add @taserjs/router @taserjs/router-client zod
+    pnpm add -D @taserjs/router-plugin
 
-pnpm add -D @taserjs/router-plugin
-
-````
+    ```
 
   </Tab>
   <Tab value="npm">
-```bash
-npm install @taserjs/router @taserjs/router-client zod
+    ```bash
+    npm install @taserjs/router @taserjs/router-client zod
+    npm install -D @taserjs/router-plugin
 
-npm install -D @taserjs/router-plugin
-
-````
+    ```
 
   </Tab>
   <Tab value="bun">
-```bash 
-bun add @taserjs/router @taserjs/router-client zod
+    ```bash
+    bun add @taserjs/router @taserjs/router-client zod
+    bun add -d @taserjs/router-plugin
 
-bun add -D @taserjs/router-plugin
+    ```
 
-````
   </Tab>
   <Tab value="yarn">
-```bash
-yarn add @taserjs/router @taserjs/router-client zod
+    ```bash
+    yarn add @taserjs/router @taserjs/router-client zod
+    yarn add -D @taserjs/router-plugin
 
-yarn add -D @taserjs/router-plugin
-````
+    ```
 
   </Tab>
 </Tabs>
@@ -85,19 +83,21 @@ yarn add -D @taserjs/router-plugin
   <Step>
     ### 1. Wrap `next.config.ts`
 
-    Use `@taserjs/router-plugin/next` to wrap your Next.js configuration:
+    Use `createTaser` (or `withTaser`) from `@taserjs/router-plugin/next` to wrap your Next.js configuration:
 
     ```ts title="next.config.ts"
-    import createTaser from "@taserjs/router-plugin/next";
     import type { NextConfig } from "next";
-
-    const withTaser = createTaser({
-      basePath: "/api", // URL prefix for Taser REST endpoints
-    });
+    import { createTaser } from "@taserjs/router-plugin/next";
 
     const nextConfig: NextConfig = {
       reactStrictMode: true,
     };
+
+    const withTaser = createTaser({
+      serverDir: "src/server", // Directory hosting Taser server code & routes
+      entry: "@/server/taser",  // Path alias to your router instance
+      basePath: "/api",        // URL prefix where Taser REST endpoints dispatch
+    });
 
     export default withTaser(nextConfig);
     ```
@@ -105,43 +105,60 @@ yarn add -D @taserjs/router-plugin
   </Step>
 
   <Step>
-    ### 2. Configure Subpath Imports & TypeScript
+    ### 2. Configure TypeScript Paths (`tsconfig.json`)
 
-    Update `package.json` and `tsconfig.json` so your routes can import `#taserjs/router` and compile against `.taser/types/`:
-
-    ```json title="package.json"
-    {
-      "imports": {
-        "#taserjs/router": "./src/taser.ts"
-      }
-    }
-    ```
+    Configure path aliases for `@/*` and `@/.taser/*` so Next.js and your IDE resolve route files, client singletons, and generated disk artifacts:
 
     ```json title="tsconfig.json"
     {
       "compilerOptions": {
         "paths": {
           "@/*": ["./src/*"],
-          "#taserjs/router": ["./src/taser.ts"]
+          "@/.taser/*": ["./.taser/*"]
         }
       },
-      "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".taser/types/**/*.d.ts"]
+      "include": [
+        "next-env.d.ts",
+        "**/*.ts",
+        "**/*.tsx",
+        ".taser/**/*.ts",
+        ".taser/**/*.d.ts"
+      ]
     }
     ```
 
   </Step>
 
   <Step>
-    ### 3. Create Router Instance
+    ### 3. Create Router Instance & Context
 
-    Create `src/taser.ts` (or `taser.ts` if not using `src/`):
+    Create `src/server/context.ts` to manage application boot and request-scoped state:
 
-    ```ts title="src/taser.ts"
+    ```ts title="src/server/context.ts"
+    import { createContext } from "@taserjs/router";
+
+    export const context = createContext({
+      boot: () => ({
+        logger: console,
+      }),
+      request: () => ({
+        requestId: crypto.randomUUID(),
+      }),
+    });
+    ```
+
+    Create `src/server/taser.ts` to initialize your `createTaserApp` builder:
+
+    ```ts title="src/server/taser.ts"
     import { createTaserApp } from "@taserjs/router";
+    import { notFound } from "@taserjs/router/reply";
+    import { context } from "./context";
 
     export const t = createTaserApp({
       response: { validate: true },
-    });
+    })
+      .context(context)
+      .notFound(() => notFound({ message: "Not Found" }));
     ```
 
   </Step>
@@ -149,12 +166,12 @@ yarn add -D @taserjs/router-plugin
   <Step>
     ### 4. Create Catch-All Route Handler
 
-    Create `app/api/[[...slug]]/route.ts` (or `src/app/api/[[...slug]]/route.ts`). This forwards incoming Next.js API requests directly to Taser:
+    Create `src/app/api/[[...slug]]/route.ts` (or `app/api/[[...slug]]/route.ts`). This forwards incoming Next.js API requests directly to Taser's compiled entry module:
 
-    ```ts title="app/api/[[...slug]]/route.ts"
-    import { taserApp } from "../../.taser/app";
+    ```ts title="src/app/api/[[...slug]]/route.ts"
+    import { app } from "@/.taser/entry";
 
-    const handle = (request: Request) => taserApp.fetch(request);
+    const handle = (request: Request) => app.fetch(request);
 
     export const GET = handle;
     export const POST = handle;
@@ -170,12 +187,12 @@ yarn add -D @taserjs/router-plugin
   <Step>
     ### 5. Define File-Based REST Routes
 
-    Create your endpoints in `src/routes/`:
+    Create your endpoints in `src/server/routes/`:
 
-    ```ts title="src/routes/users.get.ts"
+    ```ts title="src/server/routes/users.get.ts"
     import { json } from "@taserjs/router/reply";
     import { z } from "zod";
-    import { t } from "#taserjs/router";
+    import { t } from "@/server/taser";
 
     const GET = t
       .get("/users")
@@ -210,7 +227,54 @@ yarn add -D @taserjs/router-plugin
     ```
 
   </Step>
+
+  <Step>
+    ### 6. Create Typed Client Singleton
+
+    Create `src/client.ts` to export a pre-configured `@taserjs/router-client` instance:
+
+    ```ts title="src/client.ts"
+    import { createClient } from "@taserjs/router-client";
+
+    export const api = createClient({
+      baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api",
+    });
+    ```
+
+  </Step>
 </Steps>
+
+---
+
+## Project Structure Overview
+
+Here is the recommended file layout for a fullstack Next.js App Router project with Taser:
+
+```
+my-next-app/
+├── next.config.ts                  # withTaser(nextConfig) with serverDir, entry, basePath
+├── tsconfig.json                   # paths: @/*, @/.taser/* and .taser include
+├── package.json
+├── .taser/                         # Auto-generated disk artifacts & ambient types
+│   ├── entry.ts                    # Exports compiled `app` with routes
+│   ├── manifest.ts                 # Static route manifest tree
+│   ├── app.ts                      # Composed router module
+│   └── types/                      # Generated TypeScript ambient route declarations
+└── src/
+    ├── app/                        # Next.js App Router (React UI & Pages)
+    │   ├── layout.tsx              # Root HTML shell
+    │   ├── page.tsx                # RSC page fetching from Taser API
+    │   └── api/
+    │       └── [[...slug]]/
+    │           └── route.ts        # Catch-all route handler forwarding to app.fetch()
+    ├── server/                     # Taser REST API Subsystem
+    │   ├── taser.ts                # createTaserApp instance definition
+    │   ├── context.ts              # Boot and request context
+    │   └── routes/                 # File-based REST endpoints
+    │       ├── $.ts                # Root layout middleware (optional)
+    │       └── users.get.ts        # GET /api/users endpoint
+    └── client.ts                   # createClient({ baseUrl: ... }) singleton
+```
 
 ---
 
@@ -218,14 +282,14 @@ yarn add -D @taserjs/router-plugin
 
 ### 1. React Server Components (RSC)
 
-Consume your Taser endpoints directly on the server in React Server Components using `@taserjs/router-client`:
+Consume your Taser endpoints directly on the server inside React Server Components using your typed client:
 
-```tsx title="app/dashboard/page.tsx"
-import { createClient } from "@taserjs/router-client";
+```tsx title="src/app/page.tsx"
+import { api } from "@/client";
 
-const api = createClient({ baseUrl: "http://localhost:3000/api" });
+export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function HomePage() {
   const res = await api.users.$get({
     query: { limit: 20 },
   });
@@ -253,15 +317,13 @@ export default async function DashboardPage() {
 
 ### 2. Next.js Server Actions
 
-Trigger mutations inside Server Actions and revalidate page paths with full type contracts:
+Trigger mutations inside Server Actions and revalidate page paths with complete return shape safety:
 
-```ts title="app/actions/create-user.ts"
+```ts title="src/app/actions/create-user.ts"
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@taserjs/router-client";
-
-const api = createClient({ baseUrl: "http://localhost:3000/api" });
+import { api } from "@/client";
 
 export async function createUserAction(formData: FormData) {
   const name = formData.get("name") as string;
@@ -272,7 +334,7 @@ export async function createUserAction(formData: FormData) {
   });
 
   if (res.status === 201) {
-    revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true };
   }
 
@@ -284,13 +346,11 @@ export async function createUserAction(formData: FormData) {
 
 Use Taser client calls with TanStack Query or SWR inside Client Components:
 
-```tsx title="app/components/user-list.tsx"
+```tsx title="src/app/components/user-list.tsx"
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { createClient } from "@taserjs/router-client";
-
-const api = createClient({ baseUrl: "/api" });
+import { api } from "@/client";
 
 export function UserList() {
   const { data, isLoading } = useQuery({
@@ -321,12 +381,12 @@ export function UserList() {
 
 When pairing Taser with Next.js App Router, understanding the division of responsibilities ensures clean system design:
 
-| Responsibility         | Next.js App Router (RSC & Pages)                                 | Taser Subsystem (`src/routes/`)                                   |
+| Responsibility         | Next.js App Router (RSC & Pages)                                 | Taser Subsystem (`src/server/`)                                   |
 | :--------------------- | :--------------------------------------------------------------- | :---------------------------------------------------------------- |
 | **Primary Focus**      | Server-rendered UI, HTML streaming, metadata, layout composition | Structured REST API, JSON endpoints, binary streams, webhooks     |
-| **Execution Context**  | React Server Components & Client Components (`app/**/*.tsx`)     | Type-safe route handlers (`src/routes/**/*.ts`)                   |
+| **Execution Context**  | React Server Components & Client Components (`src/app/**/*.tsx`) | Type-safe route handlers (`src/server/routes/**/*.ts`)            |
 | **Consumers**          | Web browser page visits                                          | Mobile apps, SPA client hooks, webhooks, external developer APIs  |
-| **State & Middleware** | Next.js Edge middleware (`middleware.ts`)                        | Directory layout middleware pipelines (`src/routes/$.ts`)         |
+| **State & Middleware** | Next.js Edge middleware (`middleware.ts`)                        | Directory layout middleware pipelines (`src/server/routes/$.ts`)  |
 | **Validation**         | Manual or form-action validation                                 | Standard Schema validation (Zod, ArkType, Valibot)                |
 | **Response Safety**    | React component props                                            | Compile-time `.returns()` contracts & status discriminated unions |
 

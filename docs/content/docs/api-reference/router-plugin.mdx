@@ -91,25 +91,35 @@ export default withTaser(nextConfig);
 
 <TypeTable
   type={{
+    serverDir: {
+      description: "Root server directory containing your taser instance and routes folder.",
+      type: "string",
+      default: "'src/server'",
+    },
+    entry: {
+      description: "Path or path alias to the taser router instance definition file.",
+      type: "string",
+      default: "'src/taser.ts'",
+    },
     basePath: {
       description: "URL prefix Taser dispatches under.",
       type: "string",
       default: "'/'",
     },
     routesDir: {
-      description: "Path to your file-based routes directory.",
+      description: "Path to your file-based routes directory (defaults to `${serverDir}/routes`).",
       type: "string",
-      default: "'src/routes'",
-    },
-    entryPath: {
-      description: "Path to the taser router instance definition file.",
-      type: "string",
-      default: "'src/taser.ts'",
+      default: "'src/server/routes'",
     },
     outDir: {
-      description: "Output directory where generated artifacts and types are written.",
+      description: "Output directory where generated disk artifacts and types are written.",
       type: "string",
       default: "'.taser'",
+    },
+    watcher: {
+      description: "File watcher configuration options for development mode.",
+      type: "WatcherOptions",
+      default: "undefined",
     },
   }}
 />
