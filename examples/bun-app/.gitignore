@@ -1,9 +1,10 @@
 node_modules
 dist
+.output
+.taser
+.nitro
 .turbo
 *.local
 *.log
 .DS_Store
-coverage
-plans
-.wrangler
+.env*

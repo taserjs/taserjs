@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "paths": {
+      "#taserjs/router": [
+        "./src/taser.ts"
+      ]
+    },
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "src",
+    ".taser/types/**/*.d.ts",
+    "vite.config.ts",
+    ".taser/types/routes.d.ts",
+    "./.taser/types/routes.d.ts"
+  ]
+}

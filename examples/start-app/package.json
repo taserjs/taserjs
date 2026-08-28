@@ -1,0 +1,37 @@
+{
+  "name": "start-app",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#taserjs/router": "./src/server/taser.ts"
+  },
+  "scripts": {
+    "clean": "rimraf dist .output .taser .nitro",
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node .output/server/index.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.67.0",
+    "@tanstack/react-router": "1.170.32",
+    "@tanstack/react-start": "^1.167.13",
+    "@taserjs/router": "workspace:*",
+    "@taserjs/router-client": "workspace:*",
+    "nitro": "^3.0.260610-beta",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "srvx": "^0.11.22"
+  },
+  "devDependencies": {
+    "@taserjs/router-plugin": "workspace:*",
+    "@types/node": "^22.13.10",
+    "@types/react": "^19.2.4",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^5.1.4",
+    "typescript": "^5.9.3",
+    "vite": "^8.1.5"
+  }
+}

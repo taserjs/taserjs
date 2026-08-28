@@ -1,0 +1,12 @@
+node_modules
+dist
+.output
+.taser
+.nitro
+.turbo
+.tanstack
+src/routeTree.gen.ts
+*.local
+*.log
+.DS_Store
+.env*

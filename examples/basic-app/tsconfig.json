@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "paths": {
+      "#taserjs/router": [
+        "./src/taser.ts"
+      ]
+    },
+    "strict": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "src",
+    ".taser/types/**/*.d.ts",
+    ".taser/types/routes.d.ts",
+    "./.taser/types/routes.d.ts"
+  ]
+}

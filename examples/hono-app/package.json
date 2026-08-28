@@ -1,0 +1,30 @@
+{
+  "name": "hono-app",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#taserjs/router": "./src/taser.ts"
+  },
+  "scripts": {
+    "clean": "rimraf dist .output .taser .nitro",
+    "dev": "vite",
+    "build": "vite build",
+    "start": "node .output/server/index.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@taserjs/router": "workspace:*",
+    "dotenv": "^16.4.7",
+    "hono": "^4.12.33",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@taserjs/router-cli": "workspace:*",
+    "@taserjs/router-plugin": "workspace:*",
+    "@types/node": "^22.13.10",
+    "nitro": "^3.0.260610-beta",
+    "typescript": "^5.9.3",
+    "vite": "^8.1.5"
+  }
+}

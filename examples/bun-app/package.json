@@ -1,0 +1,29 @@
+{
+  "name": "bun-app",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#taserjs/router": "./src/taser.ts"
+  },
+  "scripts": {
+    "clean": "rimraf dist .output .taser .nitro",
+    "dev": "vite",
+    "build": "vite build",
+    "start": "bun .output/server/index.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@taserjs/router": "workspace:*",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@taserjs/router-cli": "workspace:*",
+    "@taserjs/router-plugin": "workspace:*",
+    "@types/bun": "^1.2.0",
+    "nitro": "^3.0.260610-beta",
+    "typescript": "^5.9.3",
+    "vite": "^8.1.5"
+  }
+}
