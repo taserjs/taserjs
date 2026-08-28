@@ -1,5 +1,11 @@
 # @taserjs/router-utils
 
+## 0.1.2
+
+### Patch Changes
+
+- bcea945: fix: Next.js Plugin
+
 ## 0.1.1
 
 ### Patch Changes
