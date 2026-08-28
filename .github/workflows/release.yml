@@ -57,6 +57,7 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
+          create-github-releases: true
           version: pnpm version-packages
           publish: pnpm release
         env:
