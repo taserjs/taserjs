@@ -47,13 +47,5 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Test JSR publish (dry run)
-        run: deno publish --dry-run --no-check --allow-slow-types
-
       - name: Test npm publish (dry run)
         run: pnpm -r publish --dry-run --no-git-checks

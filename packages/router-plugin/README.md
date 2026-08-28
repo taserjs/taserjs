@@ -16,13 +16,6 @@ File-system routing and framework adapters for Taser apps.
 pnpm add -D @taserjs/router-plugin
 ```
 
-**JSR:**
-
-```sh
-deno add jsr:@taserjs/router-plugin
-npx jsr add @taserjs/router-plugin
-```
-
 Peer dependencies per entry:
 
 - `/vite` — requires `vite` (v5–v8)

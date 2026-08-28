@@ -10,13 +10,6 @@ Route manifest code generation for Taser
 npm install @taserjs/router-generator
 ```
 
-**JSR:**
-
-```bash
-deno add jsr:@taserjs/router-generator
-npx jsr add @taserjs/router-generator
-```
-
 ## Documentation
 
 See the [main documentation](https://github.com/taserjs/taserjs) for usage examples and API reference.

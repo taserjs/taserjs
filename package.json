@@ -21,8 +21,8 @@
     "docs:build": "turbo run build --filter=docs",
     "changeset": "changeset",
     "build-packages": "turbo run build --filter=!docs",
-    "version-packages": "changeset version && node scripts/sync-jsr-versions.mjs",
-    "release": "pnpm build-packages && changeset publish && deno task release"
+    "version-packages": "changeset version",
+    "release": "pnpm build-packages && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.0",

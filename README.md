@@ -15,9 +15,6 @@
   <a href="https://www.npmjs.com/package/@taserjs/router">
     <img alt="npm downloads" src="https://img.shields.io/npm/dw/@taserjs/router?style=for-the-badge&logo=npm&logoColor=white&label=downloads" />
   </a>
-  <a href="https://jsr.io/@taserjs/router">
-    <img alt="jsr" src="https://img.shields.io/jsr/v/@taserjs/router?style=for-the-badge&logo=deno&logoColor=white&label=jsr" />
-  </a>
   <a href="https://discord.gg/Q3AQUBKqt">
     <img alt="discord" src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" />
   </a>

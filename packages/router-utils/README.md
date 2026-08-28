@@ -10,13 +10,6 @@ HTTP reply helpers, streams, and Standard Schema validation for Taser
 npm install @taserjs/router-utils
 ```
 
-**JSR:**
-
-```bash
-deno add jsr:@taserjs/router-utils
-npx jsr add @taserjs/router-utils
-```
-
 ## Documentation
 
 See the [main documentation](https://github.com/taserjs/taserjs) for usage examples and API reference.

@@ -11,12 +11,6 @@ npm create taserjs@latest
 pnpm create taserjs@latest
 ```
 
-**JSR:**
-
-```bash
-npx jsr @taserjs/create
-```
-
 This will scaffold a new Taser application with your choice of deployment preset and optional add-ons.
 
 ## License
