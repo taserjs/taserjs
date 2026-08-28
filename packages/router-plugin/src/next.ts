@@ -56,7 +56,15 @@ export type TaserNextOptions = TaserConfig & {
   watcher?: WatcherOptions | undefined;
 };
 
-const DEVELOPMENT_PHASE = "PHASE_DEVELOPMENT_SERVER";
+const DEVELOPMENT_PHASES = new Set(["phase-development-server", "PHASE_DEVELOPMENT_SERVER"]);
+
+function isDevelopmentPhase(phase?: string): boolean {
+  const current = phase ?? process.env.NEXT_PHASE;
+  if (current) {
+    return DEVELOPMENT_PHASES.has(current);
+  }
+  return process.env.NODE_ENV === "development";
+}
 const TASER_KEY = "__taserRouterPlugin";
 
 type MarkedConfig = TaserNextConfig & { [TASER_KEY]?: boolean };
@@ -138,7 +146,7 @@ function applyTaserNext(
   const ready = generate();
 
   let closeWatcher: (() => Promise<void>) | undefined;
-  const isDev = (phase ?? process.env.NEXT_PHASE) === DEVELOPMENT_PHASE;
+  const isDev = isDevelopmentPhase(phase);
 
   if (ctx && isDev) {
     const handle = watchAndSyncRoutes(ctx, () => generate(), options.watcher);

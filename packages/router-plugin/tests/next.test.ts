@@ -237,4 +237,59 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
     expect(error).toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();
   });
+
+  it("watches and auto-scaffolds newly created route files in development phase", async () => {
+    const routesDir = join(testDir, "src", "server", "routes");
+    await fsp.mkdir(routesDir, { recursive: true });
+    await fsp.writeFile(
+      join(routesDir, "index.get.ts"),
+      'export const Route = t.get("/").handler(() => new Response("ok"));',
+      "utf8",
+    );
+
+    const withTaserCustom = createTaser({
+      rootDir: testDir,
+      serverDir: "src/server",
+      basePath: "/api",
+      watcher: { debounceMs: 20 },
+    });
+
+    // Invoke in dev phase ("phase-development-server")
+    const configFn = withTaserCustom(() => ({}));
+    await (configFn as NextConfigFn)("phase-development-server", { defaultConfig: {} });
+
+    // Allow watcher to finish initial scan
+    await new Promise((r) => setTimeout(r, 200));
+
+    const newRouteFile = join(routesDir, "users.get.ts");
+    await fsp.writeFile(newRouteFile, "", "utf8");
+
+    const manifestFile = join(testDir, ".taser", "manifest.ts");
+
+    const waitForScaffoldAndManifest = async (
+      attempts = 0,
+    ): Promise<{ content: string; manifest: string }> => {
+      try {
+        const [content, manifest] = await Promise.all([
+          fsp.readFile(newRouteFile, "utf8"),
+          fsp.readFile(manifestFile, "utf8"),
+        ]);
+        if (content.length > 0 && manifest.includes("users")) {
+          return { content, manifest };
+        }
+        throw new Error("Not ready yet");
+      } catch (err) {
+        if (attempts >= 40) {
+          throw err;
+        }
+        await new Promise((r) => setTimeout(r, 50));
+        return waitForScaffoldAndManifest(attempts + 1);
+      }
+    };
+
+    const { content, manifest } = await waitForScaffoldAndManifest();
+    expect(content).toContain("export const Route =");
+    expect(content).toContain("t.get('/users')");
+    expect(manifest).toContain("users.get");
+  });
 });
