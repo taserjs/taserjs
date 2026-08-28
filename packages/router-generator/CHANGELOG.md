@@ -1,5 +1,14 @@
 # @taserjs/router-generator
 
+## 0.1.3
+
+### Patch Changes
+
+- 73bd632: fix: Next.js dev phase detection and add auto-scaffolding for new
+  routes
+- Updated dependencies [73bd632]
+  - @taserjs/router-utils@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes
