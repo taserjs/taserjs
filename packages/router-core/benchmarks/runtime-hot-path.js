@@ -212,6 +212,23 @@ function buildManifests() {
         },
       },
     },
+    "get-params": {
+      layouts: {},
+      routes: {
+        "/user/:userId/posts/:postId": {
+          GET: {
+            layoutChain: [],
+            route: {
+              path: "/user/:userId/posts/:postId",
+              method: "GET",
+              middlewares: [],
+              handlerMiddlewares: [],
+              handler: (ctx) => json({ userId: ctx.params.userId, postId: ctx.params.postId }),
+            },
+          },
+        },
+      },
+    },
   };
 }
 
@@ -228,6 +245,7 @@ function createScenarios() {
   const postBodyRuntime = createTaserRuntime(manifests["post-with-body-schema"], () => ({}));
   const postFormRuntime = createTaserRuntime(manifests["post-form"], () => ({}));
   const honoMwRuntime = createTaserRuntime(manifests["hono-mw-1"], () => ({}));
+  const getParamsRuntime = createTaserRuntime(manifests["get-params"], () => ({}));
 
   return [
     {
@@ -282,6 +300,10 @@ function createScenarios() {
     {
       name: "hono-mw-1",
       run: () => honoMwRuntime.fetch(new Request("http://localhost/hello")),
+    },
+    {
+      name: "get-params",
+      run: () => getParamsRuntime.fetch(new Request("http://localhost/user/usr_12345/posts/post_67890")),
     },
   ];
 }
