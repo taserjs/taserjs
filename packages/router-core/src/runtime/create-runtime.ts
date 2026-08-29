@@ -33,6 +33,22 @@ type PreparedRoute = {
 
 type HonoRegExpRouter<T> = InstanceType<typeof RegExpRouter<T>>;
 
+type ParamEntry = readonly [name: string, index: number];
+
+const paramEntriesCache = new WeakMap<object, readonly ParamEntry[]>();
+
+function getParamEntries(paramLabels: object | undefined): readonly ParamEntry[] {
+  if (!paramLabels) return [];
+  let entries = paramEntriesCache.get(paramLabels);
+  if (!entries) {
+    entries = Object.entries(paramLabels).map(
+      ([name, index]) => [name, index as number] as const,
+    );
+    paramEntriesCache.set(paramLabels, entries);
+  }
+  return entries;
+}
+
 function extractPathname(url: string): string {
   const schemeEnd = url.indexOf("://");
   const pathStart =
@@ -125,10 +141,12 @@ export function createTaserRuntime<
           const [preparedRoute, paramLabels] = firstMatch;
           const values = matchResult[1] ?? [];
           const params: Record<string, string> = {};
-          for (const [name, index] of Object.entries(paramLabels ?? {})) {
-            const value = values[index as number];
+          const entries = getParamEntries(paramLabels);
+          for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i]!;
+            const value = values[entry[1]];
             if (value !== undefined && value !== null) {
-              params[name] = value;
+              params[entry[0]] = value;
             }
           }
           return { data: preparedRoute as PreparedRoute, params };
