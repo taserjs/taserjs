@@ -54,7 +54,7 @@ describe("defineHandler units", () => {
     expect(handler.middlewares).toHaveLength(1);
     expect(typeof handler.middlewares[0]?.handler).toBe("function");
 
-    const route = t.get("/plain-handler").handler(handler);
+    const route = t.get("/hello").handler(handler);
     expect(route.handlerMiddlewares).toHaveLength(1);
   });
 
