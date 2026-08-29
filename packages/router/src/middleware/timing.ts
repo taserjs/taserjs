@@ -1,11 +1,10 @@
 import { timing as honoTiming } from "hono/timing";
 
-import { wrapHonoMiddleware } from "./wrap-hono.js";
-
-const wrapped = wrapHonoMiddleware(honoTiming);
+import { defineMiddleware } from "../define/middleware.js";
+import { honoMw } from "./hono-mw.js";
 
 export function timing(...args: Parameters<typeof honoTiming>) {
-  return wrapped(...args);
+  return defineMiddleware(honoMw(honoTiming(...args)));
 }
 
 export type TimingOptions = NonNullable<Parameters<typeof honoTiming>[0]>;

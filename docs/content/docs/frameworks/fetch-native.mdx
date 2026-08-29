@@ -137,15 +137,15 @@ When an incoming HTTP request reaches your server:
 
 ## Reusing Web Standard Middleware in Taser
 
-`defineMiddleware()` accepts native Web Standard and Fetch-native middleware functions directly:
+Using the `honoMw()` helper, you can adapt any native Web Standard and Fetch-native middleware function into Taser:
 
 ```ts title="src/routes/$.ts"
-import { defineMiddleware } from "@taserjs/router";
+import { defineMiddleware, honoMw } from "@taserjs/router";
 import { secureHeaders } from "hono/secure-headers";
 import { t } from "#taserjs/router";
 
-// Wrap any Web Standard middleware seamlessly
-const securityHeadersMiddleware = defineMiddleware(secureHeaders());
+// Wrap any Web Standard middleware seamlessly using honoMw()
+const securityHeadersMiddleware = defineMiddleware(honoMw(secureHeaders()));
 
 export const Middleware = t.middleware("/$").use(securityHeadersMiddleware);
 ```

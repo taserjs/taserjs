@@ -1,7 +1,7 @@
 import "./register.js";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { createTaserApp, defineMiddleware } from "../src/index.js";
+import { createTaserApp, defineMiddleware, honoMw } from "../src/index.js";
 import { json, unauthorized } from "../src/reply.js";
 
 describe("defineMiddleware units", () => {
@@ -118,21 +118,105 @@ describe("defineMiddleware units", () => {
     expect(middlewares.layout).toBe("index");
   });
 
-  it("accepts a Hono middleware function", () => {
-    const cors = defineMiddleware(async (c, next) => {
-      c.header("Access-Control-Allow-Origin", "*");
-      return next();
+  it("supports short function signature defineMiddleware((ctx, next) => ...) with state inference", () => {
+    const auth = defineMiddleware((ctx, next) => {
+      expectTypeOf(ctx.headers.get("Authorization")).toEqualTypeOf<string | undefined>();
+      expectTypeOf(ctx.cookies.get("token")).toEqualTypeOf<string | undefined>();
+      return next({ userId: "user-short" });
     });
 
     const route = t
       .get("/hello")
-      .use(cors)
+      .use(auth)
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.userId).toEqualTypeOf<string>();
+        return json({ userId: ctx.state.userId });
+      });
+
+    expect(route.middlewares).toHaveLength(1);
+    expect(route.handlerMiddlewares).toHaveLength(0);
+    expect(route.path).toBe("/hello");
+    expect(route.method).toBe("GET");
+  });
+
+  it("supports short function signature with explicit generic state defineMiddleware<TState>((ctx, next) => ...)", () => {
+    type UserState = { user: { id: string; role: "admin" | "user" } };
+
+    const auth = defineMiddleware<UserState>((_ctx, next) => {
+      return next({ user: { id: "u-1", role: "admin" } });
+    });
+
+    const route = t
+      .get("/hello")
+      .use(auth)
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.user).toEqualTypeOf<{ id: string; role: "admin" | "user" }>();
+        return json({ user: ctx.state.user });
+      });
+
+    expect(route.middlewares).toHaveLength(1);
+  });
+
+  it("supports short function signature layout-scoped defineMiddleware(layout, (ctx, next) => ...)", () => {
+    const userMiddleware = defineMiddleware("index", (ctx, next) => {
+      expectTypeOf(ctx.state.user).toEqualTypeOf<string>();
+      return next({ role: "admin" });
+    });
+
+    const route = t
+      .post("/")
+      .use(userMiddleware)
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.user).toEqualTypeOf<string>();
+        expectTypeOf(ctx.state.role).toEqualTypeOf<string>();
+        return json({ user: ctx.state.user, role: ctx.state.role });
+      });
+
+    expect(route.middlewares).toHaveLength(1);
+  });
+
+  it("supports short function signature multi-layout scoped defineMiddleware(layouts, (ctx, next) => ...)", () => {
+    const multiLayoutMiddleware = defineMiddleware(["index", "admin"], (ctx, next) => {
+      expectTypeOf(ctx.state.user).toEqualTypeOf<string>();
+      return next({ permission: "write" });
+    });
+
+    const route1 = t
+      .post("/")
+      .use(multiLayoutMiddleware)
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.permission).toEqualTypeOf<string>();
+        return json({ ok: true });
+      });
+
+    expect(route1.middlewares).toHaveLength(1);
+  });
+
+  it("accepts a Hono middleware wrapped in honoMw() via defineMiddleware and .use()", () => {
+    const customHonoMw = honoMw(async (c, next) => {
+      c.header("Access-Control-Allow-Origin", "*");
+      c.set("honoVar", 123);
+      return next();
+    });
+
+    const corsUnit = defineMiddleware(customHonoMw);
+
+    const route = t
+      .get("/hello")
+      .use(corsUnit)
+      .use(
+        honoMw(async (c, next) => {
+          c.header("X-Direct-Hono", "true");
+          return next();
+        }),
+      )
       .handler((ctx) => {
         return json({ ok: ctx.var });
       });
 
-    expect(route.middlewares).toHaveLength(1);
+    expect(route.middlewares).toHaveLength(2);
     expect(typeof route.middlewares[0]?.handler).toBe("function");
+    expect(typeof route.middlewares[1]?.handler).toBe("function");
   });
 
   it("handles early return in middleware while inferring next state", () => {
