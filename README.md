@@ -55,7 +55,7 @@ Traditional Node.js routers force painful trade-offs between clean folder struct
 
 ## Quick Start
 
-Scaffold a complete project with your choice of runtime, database, validator, and logger in seconds:
+Scaffold a complete project with your choice of host framework, deployment preset, database, validator, and logger in seconds:
 
 ```bash
 # npm
@@ -71,7 +71,13 @@ bun create taserjs@latest my-api
 Or pass flags directly for non-interactive / CI setup:
 
 ```bash
-pnpm create taserjs@latest my-api --type express --db drizzle --driver postgres --validator zod --logger pino -y
+pnpm create taserjs@latest my-api \
+  --framework express \
+  --preset node-server \
+  --db drizzle:postgres \
+  --validator zod \
+  --logger pino \
+  -y
 ```
 
 <hr />

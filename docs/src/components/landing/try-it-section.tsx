@@ -11,8 +11,10 @@ type Framework = "none" | "hono" | "express" | "fastify";
 type DeployPreset =
   | "node-server"
   | "node-cluster"
+  | "none"
   | "bun"
   | "deno-server"
+  | "deno-deploy"
   | "cloudflare-module"
   | "vercel"
   | "aws-lambda"
@@ -34,8 +36,10 @@ const frameworks: { id: Framework; label: string }[] = [
 const deployPresets: { id: DeployPreset; label: string }[] = [
   { id: "node-server", label: "Node Server" },
   { id: "node-cluster", label: "Node Cluster" },
+  { id: "none", label: "Standalone Vite" },
   { id: "bun", label: "Bun" },
-  { id: "deno-server", label: "Deno" },
+  { id: "deno-server", label: "Deno Server" },
+  { id: "deno-deploy", label: "Deno Deploy" },
   { id: "cloudflare-module", label: "Cloudflare" },
   { id: "vercel", label: "Vercel" },
   { id: "aws-lambda", label: "AWS Lambda" },
@@ -90,14 +94,13 @@ export function TryItSection() {
     const parts = [pmConfig.prefix, "my-api", `--framework ${framework}`, `--preset ${preset}`];
 
     if (db !== "none") {
-      parts.push(`--db ${db}`);
-      parts.push(`--driver ${driver}`);
-    }
-    if (validator) {
-      parts.push(`--validator ${validator}`);
+      parts.push(`--db ${db}:${driver}`);
     }
     if (logger !== "none") {
       parts.push(`--logger ${logger}`);
+    }
+    if (validator) {
+      parts.push(`--validator ${validator}`);
     }
     parts.push("-y");
 
@@ -268,31 +271,7 @@ export function TryItSection() {
                     </div>
                   )}
 
-                  {/* Step 5: Validator Selection (Green tint) */}
-                  <div className="space-y-0.5 mt-2">
-                    <div className="flex items-center gap-2 text-fd-muted-foreground">
-                      <span className="text-cyan-500">◇</span>
-                      <span>Validator</span>
-                    </div>
-                    <div className="border-l-2 border-fd-border/70 pl-4 flex flex-wrap gap-x-3 gap-y-1">
-                      {validators.map((v) => (
-                        <span
-                          key={v.id}
-                          className={cn(
-                            "transition-colors",
-                            v.id === validator
-                              ? "text-emerald-500 font-bold"
-                              : "text-fd-muted-foreground/60",
-                          )}
-                        >
-                          {v.id === validator ? "● " : "○ "}
-                          {v.label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Step 6: Logger Selection (Purple tint) */}
+                  {/* Step 5: Logger Selection (Purple tint) */}
                   <div className="space-y-0.5 mt-2">
                     <div className="flex items-center gap-2 text-fd-muted-foreground">
                       <span className="text-cyan-500">◇</span>
@@ -311,6 +290,30 @@ export function TryItSection() {
                         >
                           {l.id === logger ? "● " : "○ "}
                           {l.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Step 6: Validator Selection (Green tint) */}
+                  <div className="space-y-0.5 mt-2">
+                    <div className="flex items-center gap-2 text-fd-muted-foreground">
+                      <span className="text-cyan-500">◇</span>
+                      <span>Validator</span>
+                    </div>
+                    <div className="border-l-2 border-fd-border/70 pl-4 flex flex-wrap gap-x-3 gap-y-1">
+                      {validators.map((v) => (
+                        <span
+                          key={v.id}
+                          className={cn(
+                            "transition-colors",
+                            v.id === validator
+                              ? "text-emerald-500 font-bold"
+                              : "text-fd-muted-foreground/60",
+                          )}
+                        >
+                          {v.id === validator ? "● " : "○ "}
+                          {v.label}
                         </span>
                       ))}
                     </div>
@@ -461,31 +464,7 @@ export function TryItSection() {
                   )}
                 </div>
 
-                {/* 4. Validator */}
-                <div>
-                  <label className="block mb-2 text-[11px] font-semibold text-fd-muted-foreground uppercase tracking-wider">
-                    Validator
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {validators.map((v) => (
-                      <button
-                        key={v.id}
-                        type="button"
-                        onClick={() => setValidator(v.id)}
-                        className={cn(
-                          "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all cursor-pointer",
-                          validator === v.id
-                            ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30 font-semibold"
-                            : "border-fd-border bg-fd-muted/30 text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground",
-                        )}
-                      >
-                        {v.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 5. Logger */}
+                {/* 4. Logger */}
                 <div>
                   <label className="block mb-2 text-[11px] font-semibold text-fd-muted-foreground uppercase tracking-wider">
                     Logger
@@ -504,6 +483,30 @@ export function TryItSection() {
                         )}
                       >
                         {l.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 5. Validator */}
+                <div>
+                  <label className="block mb-2 text-[11px] font-semibold text-fd-muted-foreground uppercase tracking-wider">
+                    Validator
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {validators.map((v) => (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() => setValidator(v.id)}
+                        className={cn(
+                          "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all cursor-pointer",
+                          validator === v.id
+                            ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30 font-semibold"
+                            : "border-fd-border bg-fd-muted/30 text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground",
+                        )}
+                      >
+                        {v.label}
                       </button>
                     ))}
                   </div>

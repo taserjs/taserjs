@@ -105,6 +105,11 @@ export function getComposedAppCode(options: ComposedAppOptions = {}): string {
     .filter(Boolean)
     .join("\n");
 
+  const fastResponseSetup = isHosted
+    ? ""
+    : `import { FastResponse } from "srvx";
+globalThis.Response = FastResponse;`;
+
   const hostHelper = hostSpecifier ? HOST_RESOLUTION_CODE.trim() : "";
 
   const scopeDefinition = normalizedScope
@@ -133,6 +138,7 @@ export function initNitroPlugins(app) {
   const sections = [
     "// @ts-nocheck",
     imports,
+    fastResponseSetup,
     hostHelper,
     scopeDefinition,
     `export const handler = async (req) => {\n${dispatchLogic}\n};`,

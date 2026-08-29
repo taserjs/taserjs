@@ -87,6 +87,41 @@ Taser operates around a deterministic, fully type-safe request lifecycle:
 
 ---
 
+## Scaffold with create-taserjs
+
+Get up and running in seconds using the official scaffolding CLI. Customize your stack across five modular dimensions:
+
+- **Host Framework**: Standalone Taser (`none`), `hono`, `express`, or `fastify`.
+- **Deployment Preset**: `node-server`, `node-cluster`, `bun`, `deno-server`, `deno-deploy`, `cloudflare-module`, `vercel`, `aws-lambda`, `netlify`, or standalone Vite (`none`).
+- **Runtime Override**: Explicit `node` or `bun` execution target for self-hosted presets.
+- **Database & Driver**: Drizzle, Prisma, or Kysely with SQLite, PostgreSQL, or MySQL drivers (`--db <odm>:<driver>`).
+- **Standard Add-ons**: Zod, ArkType, or Valibot for schema validation; Pino or Winston for structured logging.
+
+<Tabs items={["Interactive", "Non-Interactive"]} groupId="scaffold-mode" persist>
+  <Tab value="Interactive">
+    ```bash
+    pnpm create taserjs@latest my-api
+    ```
+
+  </Tab>
+  <Tab value="Non-Interactive">
+    ```bash
+    pnpm create taserjs@latest my-api \
+      --framework none \
+      --preset node-server \
+      --db drizzle:postgres \
+      --validator zod \
+      --logger pino \
+      -y
+    ```
+    
+  </Tab>
+</Tabs>
+
+For full flag definitions and project structure options, see the [Quickstart Guide](/docs/getting-started).
+
+---
+
 ## Quick Navigation
 
 Explore the documentation to start building or migrating your existing server:

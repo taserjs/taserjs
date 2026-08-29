@@ -64,29 +64,52 @@ Before creating a project, make sure your development environment meets these re
 
     1. **Project Name**: Enter a directory name (for example, `my-taser-api`).
     2. **Host Framework**:
-       - **None (Standalone)**: Pure Taser with high-performance virtual routing and zero host overhead.
-       - **Hono / Fetch-Native**: Lightweight web standard framework for Node, Bun, Deno, and edge runtimes.
+       - **None (Standalone)**: Pure Taser with high-performance virtual routing and zero host overhead (default).
+       - **Hono**: Lightweight web standard framework for Node, Bun, Deno, and edge runtimes.
        - **Express**: Battle-tested Node.js web framework with pass-through routing.
        - **Fastify**: High-throughput Node.js framework with pass-through routing.
     3. **Deployment Target / Preset**:
-       - **Node Server** (`node-server`, `node-cluster`): Standard Node.js environments.
+       - **Node Server** (`node-server`, `node-cluster`): Standard Node.js environments (default: `node-server`).
+       - **Standalone Vite** (`none`): Direct `vite build` with production serve shim without Nitro.
        - **Serverless & Edge**: `cloudflare-module`, `vercel`, `aws-lambda`, `netlify`.
        - **Runtimes**: `bun`, `deno-server`, `deno-deploy`.
-    4. **Schema Validator**:
+    4. **Runtime Override** (Optional):
+       - Override runtime for self-hosted targets (`node`, `bun`, or preset default).
+    5. **Database / ORM** (Optional):
+       - **Drizzle**, **Prisma**, **Kysely**, or None (supports `sqlite`, `postgres`, or `mysql` drivers).
+    6. **Logger** (Optional):
+       - **Pino**, **Winston**, or standard Console.
+    7. **Schema Validator** (Optional):
        - **Zod**: TypeScript-first schema declaration and validation.
        - **ArkType**: TypeScript-native syntax with runtime performance.
        - **Valibot**: Modular, lightweight, tree-shakeable schema library.
-    5. **Database / ORM** (Optional):
-       - **Drizzle**, **Prisma**, **Kysely**, or None (with SQLite, PostgreSQL, or MySQL drivers).
-    6. **Logger** (Optional):
-       - **Pino**, **Winston**, or standard Console.
 
     <Callout type="info" title="Non-Interactive Scaffolding">
-      You can also pass CLI flags directly for automated or CI environments:
+      You can pass CLI flags directly for automated or CI environments:
       ```bash
-      pnpm create taserjs@latest my-api --framework none --preset node-server --validator zod --db drizzle --driver sqlite --logger pino -y
+      pnpm create taserjs@latest my-api \
+        --framework none \
+        --preset node-server \
+        --db drizzle:postgres \
+        --validator zod \
+        --logger pino \
+        -y
       ```
     </Callout>
+
+    ### CLI Flags Reference
+
+    | Flag | Description | Values / Syntax | Default |
+    | :--- | :--- | :--- | :--- |
+    | `--framework` | Host server framework | `none`, `hono`, `express`, `fastify` | `none` |
+    | `--preset`, `-p` | Deployment preset (Nitro target or `none`) | `none`, `node-server`, `node-cluster`, `bun`, `deno-server`, `deno-deploy`, `cloudflare-module`, `vercel`, `aws-lambda`, `netlify` | `node-server` |
+    | `--runtime` | Explicit runtime override (for self-hosted presets) | `node`, `bun`, `deno` | Implied by preset |
+    | `--db` | Database ODM and optional driver (`odm:driver`) | `drizzle`, `prisma`, `kysely` with `:sqlite`, `:postgres`, `:mysql` (e.g. `drizzle:postgres`) | None (driver defaults to `sqlite`) |
+    | `--validator` | Schema validation library | `zod`, `arktype`, `valibot` | None |
+    | `--logger` | Structured logger integration | `pino`, `winston` | None |
+    | `-y`, `--yes` | Non-interactive mode using defaults for omitted flags | `boolean` | `false` |
+    | `--noInstall` | Skip automatic package installation | `boolean` | `false` |
+    | `--json` | Output result as JSON (prints capability catalog when no name) | `boolean` | `false` |
 
   </Step>
 
@@ -142,14 +165,13 @@ A freshly scaffolded Taser project contains a clean, modern layout:
     <File name="package.json" />
     <File name="tsconfig.json" />
     <File name="vite.config.ts" />
-    <File name="nitro.config.ts" />
     <Folder name="src" defaultOpen>
       <File name="taser.ts" />
       <File name="context.ts" />
-      <File name="server.ts" />
       <Folder name="routes" defaultOpen>
         <File name="$.ts" />
         <File name="index.get.ts" />
+        <File name="health.get.ts" />
       </Folder>
     </Folder>
     <Folder name=".taser">
@@ -160,11 +182,12 @@ A freshly scaffolded Taser project contains a clean, modern layout:
 
 ### Key Files Explained
 
-- **`vite.config.ts`**: Connects the `taser()` plugin from `@taserjs/router-plugin/vite` and `nitro()` for zero-config builds.
-- **`nitro.config.ts`**: Configures your production deployment preset (e.g. `node-server`, `cloudflare-module`, `vercel`).
-- **`src/taser.ts`**: Configures the `createTaserApp()` instance, error boundaries (`.onError()`), and context binding.
-- **`src/context.ts`**: Defines dependency singletons (database, Redis, loggers) and request-scoped metadata.
-- **`src/routes/`**: Contains your API endpoints and layout middleware.
+- **`vite.config.ts`**: Connects the `taser()` plugin from `@taserjs/router-plugin/vite` and `nitro()` for zero-config builds (or pure Vite in standalone `none` preset).
+- **`nitro.config.ts`** _(conditional)_: Generated when targeting non-default deployment presets (e.g. `cloudflare-module`, `vercel`, `aws-lambda`, `netlify`). Omitted for default `node-server` and standalone `none`.
+- **`src/server.ts` / `src/server.node.ts`** _(conditional)_: Generated when a host framework is configured (`src/server.ts` for Hono, `src/server.node.ts` for Express or Fastify).
+- **`src/taser.ts`**: Configures the `createTaserApp()` instance, error boundaries (`.onError()`), response validation, and context binding.
+- **`src/context.ts`**: Defines application singletons (database, logger, external services) and request-scoped context.
+- **`src/routes/`**: Contains your API endpoints (`index.get.ts`, `health.get.ts`) and root layout middleware (`$.ts`).
 - **`.taser/`**: Contains auto-generated ambient TypeScript types (`.taser/types/`) so your editor provides full route autocomplete.
 
 ---

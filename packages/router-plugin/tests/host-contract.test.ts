@@ -9,6 +9,20 @@ describe("getComposedAppCode host contract", () => {
     expect(code).not.toContain("srvx/node");
   });
 
+  it("installs srvx FastResponse in standalone mode", () => {
+    const code = getComposedAppCode({ scope: "/" });
+    expect(code).toContain('import { FastResponse } from "srvx"');
+    expect(code).toContain("globalThis.Response = FastResponse");
+    expect(code).toContain('new Response("Not Found"');
+  });
+
+  it("keeps native Response in hosted mode", () => {
+    const code = getComposedAppCode({ scope: "/", composeStyle: "hosted" });
+    expect(code).not.toContain("FastResponse");
+    expect(code).not.toContain("globalThis.Response");
+    expect(code).toContain('new Response("Not Found"');
+  });
+
   it("loads the node bridge via dynamic import inside getHostFetch, never at top-level", () => {
     const code = getComposedAppCode({ serverEntrySpecifier: "#taserjs/server-entry" });
     expect(code).not.toMatch(/from\s+"srvx\/node"/);
