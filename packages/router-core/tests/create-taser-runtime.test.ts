@@ -172,6 +172,7 @@ describe("createTaserRuntime", () => {
     const cookies = response!.headers.getSetCookie?.() ?? [response!.headers.get("set-cookie")!];
     expect(cookies).toEqual(expect.arrayContaining([expect.stringContaining("session=abc")]));
     expect(cookies.join("; ")).toMatch(/HttpOnly/i);
+    expect(cookies.join("; ")).toMatch(/Secure/i);
     expect(cookies.join("; ")).toMatch(/SameSite=Lax/i);
   });
 

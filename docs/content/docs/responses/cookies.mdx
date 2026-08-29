@@ -183,7 +183,7 @@ const sessionId = ctx.cookies.get("session", "host");
     secure: {
       description: "Restricts cookie transmission to HTTPS requests.",
       type: "boolean",
-      default: "false",
+      default: "true",
     },
     sameSite: {
       description: "Controls cross-site cookie behavior to mitigate CSRF attacks.",

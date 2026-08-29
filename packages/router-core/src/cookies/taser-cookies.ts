@@ -13,6 +13,7 @@ const BUILTIN_COOKIE_DEFAULTS: CookieDefaults = {
   path: "/",
   httpOnly: true,
   sameSite: "Lax",
+  secure: true,
 };
 
 export type TaserCookieJar = {
