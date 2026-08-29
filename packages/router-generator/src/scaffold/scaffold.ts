@@ -51,9 +51,7 @@ export function layoutScaffoldSource(layoutId: string, entry: string = DEFAULT_E
   const mountPath = layoutId === "/$" ? "/$" : layoutId;
   return `import { t } from '${entry}';
 
-export const Middleware = t.middleware('${mountPath}').use({
-  handler: (_ctx, next) => next(),
-});
+export const Middleware = t.middleware('${mountPath}').use((_ctx, next) => next());
 `;
 }
 

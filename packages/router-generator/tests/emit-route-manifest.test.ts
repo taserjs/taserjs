@@ -16,11 +16,11 @@ describe("emitRouteManifestSource snapshot", () => {
 
     writeFileSync(
       join(routesDir, "$.ts"),
-      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('/$').use({});\n`,
+      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('/$').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "index.ts"),
-      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('index').use({});\n`,
+      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('index').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "index.get.ts"),
@@ -50,11 +50,11 @@ describe("emitRouteManifestSource", () => {
 
     writeFileSync(
       join(routesDir, "$.ts"),
-      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('/$').use({});\n`,
+      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('/$').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "index.ts"),
-      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('index').use({});\n`,
+      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('index').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "index.get.ts"),

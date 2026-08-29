@@ -73,101 +73,37 @@ function createContext<TBoot, TReq>(definition: {
 
 ---
 
-### `defineHandler(options?)`
-
-Constructs a standalone, reusable route handler.
-
-```ts
-function defineHandler(options?: {
-  query?: Schema;
-  params?: Schema;
-  body?: Schema;
-}): HandlerBuilder;
-```
-
----
-
 ### `defineMiddleware()`
 
-Constructs a standalone, reusable middleware unit with support for layout scoping, multi-layout branch unions, and state preconditions:
+Constructs a standalone, reusable middleware unit with support for fluent schema chaining (`query`, `params`, `body`, `returns`), body mode tagging (`"json" | "form" | "urlencoded"`), layout scoping, multi-layout branch unions, and state preconditions:
 
 ```ts
 // 1. Short Function Signature (Unscoped, Inferred State)
-function defineMiddleware<R = unknown>(
-  fn: (
-    ctx: StandaloneMiddlewareContext<unknown, unknown, unknown, AppContext, {}>,
-    next: NextFn,
-  ) => Awaitable<R>,
-): MiddlewareUnit;
+const log = defineMiddleware((ctx, next) => {
+  return next({ traceId: "123" });
+});
 
 // 2. Short Function Signature (Layout-Scoped)
-function defineMiddleware<Layout extends LayoutId, R = unknown>(
-  layout: Layout,
-  fn: (
-    ctx: StandaloneMiddlewareContext<
-      unknown,
-      unknown,
-      unknown,
-      AppContext,
-      ResolveLayoutMiddlewaresState<Layout>
-    >,
-    next: NextFn,
-  ) => Awaitable<R>,
-): MiddlewareUnit;
+const adminAuth = defineMiddleware("admin", (ctx, next) => {
+  return next({ role: "admin" });
+});
 
-// 3. Standard / Unscoped Options
-function defineMiddleware<TState = unknown, TRequires = {}>(options: {
-  query?: Schema;
-  params?: Schema;
-  body?: Schema;
-  returns?: Record<number, Schema>;
-  handler: (
-    ctx: StandaloneMiddlewareContext<unknown, unknown, unknown, AppContext, TRequires>,
-    next: (state?: TState) => Promise<Response>,
-  ) => unknown;
-}): MiddlewareUnit;
+// 3. Fluent Builder (Unscoped, with Tagged Body Mode & Schemas)
+const uploadMw = defineMiddleware()
+  .query(z.object({ tag: z.string() }))
+  .params(z.object({ id: z.coerce.number() }))
+  .body("form", z.object({ file: z.instanceof(File) })) // tagged bodyMode!
+  .returns({ 400: z.object({ error: z.string() }) })
+  .handler(async (ctx, next) => {
+    return next({ uploadedFile: ctx.body.file });
+  });
 
-// 4. Single Layout-Scoped Options (inherits layout state & enforces branch mounting)
-function defineMiddleware<Layout extends LayoutId, TState = unknown, TRequires = {}>(
-  layout: Layout,
-  options: {
-    query?: Schema;
-    params?: Schema;
-    body?: Schema;
-    returns?: Record<number, Schema>;
-    handler: (
-      ctx: StandaloneMiddlewareContext<
-        unknown,
-        unknown,
-        unknown,
-        AppContext,
-        ResolveLayoutMiddlewaresState<Layout> & TRequires
-      >,
-      next: (state?: TState) => Promise<Response>,
-    ) => unknown;
-  },
-): MiddlewareUnit;
-
-// 5. Multi-Layout Scoped Options (Branch Union)
-function defineMiddleware<Layouts extends readonly LayoutId[], TState = unknown, TRequires = {}>(
-  layouts: Layouts,
-  options: {
-    query?: Schema;
-    params?: Schema;
-    body?: Schema;
-    returns?: Record<number, Schema>;
-    handler: (
-      ctx: StandaloneMiddlewareContext<
-        unknown,
-        unknown,
-        unknown,
-        AppContext,
-        ResolveLayoutsState<Layouts> & TRequires
-      >,
-      next: (state?: TState) => Promise<Response>,
-    ) => unknown;
-  },
-): MiddlewareUnit;
+// 4. Fluent Builder (Layout-Scoped with Inherited State)
+const scopedMw = defineMiddleware("admin")
+  .query(z.object({ filter: z.string() }))
+  .handler(async (ctx, next) => {
+    return next({ permission: "write" });
+  });
 ```
 
 ### `honoMw()`
@@ -185,18 +121,16 @@ t.get("/hello").use(honoMw(cors()));
 const corsMiddleware = defineMiddleware(honoMw(cors()));
 ```
 
-#### Generic Parameters
+#### Builder Methods & Generics
 
-| Parameter       | Position           | Role                          | Description                                                                                      |
-| :-------------- | :----------------- | :---------------------------- | :----------------------------------------------------------------------------------------------- |
-| **`TState`**    | `1st`              | **Produced State**            | Type of state injected by this middleware and passed downstream via `next(state)`.               |
-| **`TRequires`** | `2nd`              | **Required / Enforced State** | Upstream state required to already exist on `ctx.state`. Checked at compile time by `.use(...)`. |
-| **`TQuery`**    | `3rd` _(inferred)_ | Query Schema                  | Output type inferred from the `query` validator schema.                                          |
-| **`TParams`**   | `4th` _(inferred)_ | Params Schema                 | Output type inferred from the `params` validator schema.                                         |
-| **`TBody`**     | `5th` _(inferred)_ | Body Schema                   | Output type inferred from the `body` validator schema.                                           |
-| **`TReturns`**  | `6th` _(inferred)_ | Returns Map                   | Response contract map inferred from the `returns` validator option.                              |
+- **`.query(schema)`**: Attaches query parameter validation schema.
+- **`.params(schema)`**: Attaches path parameter validation schema.
+- **`.body(schema)` / `.body(mode, schema)`**: Attaches JSON or tagged (`"form" | "urlencoded"`) body validation schema.
+- **`.returns(returnsMap)`**: Declares strongly-typed response schema contracts.
+- **`.requires<TState>()`**: Declares required upstream state preconditions that must exist on `ctx.state`. Checked at compile time by `.use(...)`.
+- **`.handler((ctx, next) => ...)`**: Implements middleware logic and returns a strongly-typed `MiddlewareUnit`.
 
-For layout-scoped overloads (`defineMiddleware("layout", options)`), `Layout` precedes `TState` as the first generic (`defineMiddleware<Layout, TState, TRequires, ...>`).
+For simple unvalidated middlewares, short function signatures `defineMiddleware((ctx, next) => ...)` and `defineMiddleware<TState>((ctx, next) => ...)` are also supported.
 
 ---
 
@@ -262,16 +196,13 @@ For layout-scoped overloads (`defineMiddleware("layout", options)`), `Layout` pr
         "Constructs a standalone reusable middleware unit that automatically inherits the router's bound TAppContext.",
       type: "(options: StandaloneMiddlewareOptions) => MiddlewareUnit",
     },
-    defineHandler: {
-      description:
-        "Constructs a standalone reusable route handler that automatically inherits the router's bound TAppContext.",
-      type: "(options?: StandaloneHandlerOptions) => HandlerBuilder",
-    },
+
     create: {
       description: "Compiles the route manifest into a runnable TaserApp instance.",
       type: "(manifest: RouteManifest) => TaserApp",
     },
-  }}
+
+}}
 />
 
 ---

@@ -39,7 +39,7 @@ export const Middleware = t.middleware("dashboard").use(
 Any route inside `src/routes/dashboard/` receives `ctx.state.jwtPayload` with complete type inference:
 
 ```ts title="src/routes/dashboard/profile.get.ts"
-import { reply } from "@taserjs/router";
+import { json } from "@taserjs/router/reply";
 import { t } from "#taserjs/router";
 
 export const Route = t.get("/dashboard/profile").handler(async (ctx) => {
@@ -49,7 +49,7 @@ export const Route = t.get("/dashboard/profile").handler(async (ctx) => {
   const userRole = ctx.state.jwtPayload.role;
 
   const user = await ctx.db.getUser(userId);
-  return reply.json(user);
+  return json(user);
 });
 ```
 

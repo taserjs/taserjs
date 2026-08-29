@@ -32,7 +32,6 @@ describe("runtime with global.Response override", () => {
         path: "/account/plain",
         method: "GET" as const,
         middlewares: [] as const,
-        handlerMiddlewares: [] as const,
         handler: () => text("Hello, world!"),
       };
       const manifest = {

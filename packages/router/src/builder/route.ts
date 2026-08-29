@@ -16,8 +16,6 @@ import type {
   Schema,
 } from "../types/index.js";
 import type { HttpMethod, MiddlewareDefinition } from "../types/units.js";
-import { isHandlerUnit } from "../types/units.js";
-import { HANDLER_SCHEMA_KEY_MAP } from "./constants.js";
 import { pickDefinedSchemas, type SchemaValidators } from "../define/validators.js";
 
 function toUtilsMap(map: ReturnsMap | undefined): Record<number, StandardSchemaV1> {
@@ -36,24 +34,16 @@ function toUtilsMap(map: ReturnsMap | undefined): Record<number, StandardSchemaV
 function buildEffectiveReturns(args: {
   middlewareReturns: ReturnsMap;
   routeReturns: ReturnsMap;
-  handlerMiddlewareReturns: ReturnsMap;
-  handlerReturns: ReturnsMap | undefined;
   schemas: {
     query?: unknown;
     params?: unknown;
     body?: unknown;
-    handlerQuery?: unknown;
-    handlerParams?: unknown;
-    handlerBody?: unknown;
     middlewares?: readonly MiddlewareDefinition[];
-    handlerMiddlewares?: readonly MiddlewareDefinition[];
   };
 }): Record<number, StandardSchemaV1> | undefined {
   const merged = mergeReturnsMaps(
     toUtilsMap(args.middlewareReturns),
     toUtilsMap(args.routeReturns),
-    toUtilsMap(args.handlerMiddlewareReturns),
-    toUtilsMap(args.handlerReturns),
   );
   const with422 = withAuto422(merged, hasInputSchemas(args.schemas));
   return Object.keys(with422).length > 0 ? with422 : undefined;
@@ -119,43 +109,23 @@ export function createRouteBuilder(
       }
       return builder;
     },
-    handler(fnOrUnit: ((ctx: unknown) => unknown) | unknown) {
+    handler(fn: (ctx: unknown) => Response | Promise<Response>) {
       const routeSchemas = pickDefinedSchemas(validators);
       const base = buildRouteBase(path, method, methods, middlewares);
-
-      const unit = isHandlerUnit(fnOrUnit)
-        ? fnOrUnit
-        : {
-            handler: fnOrUnit as (ctx: unknown) => Response | Promise<Response>,
-            middlewares: [] as MiddlewareDefinition[],
-            returns: undefined as ReturnsMap | undefined,
-          };
-
-      const handlerSchemas = isHandlerUnit(fnOrUnit)
-        ? pickDefinedSchemas(fnOrUnit, HANDLER_SCHEMA_KEY_MAP)
-        : {};
 
       const returns = buildEffectiveReturns({
         middlewareReturns: collectReturnsFromDefinitions(middlewares),
         routeReturns,
-        handlerMiddlewareReturns: collectReturnsFromDefinitions(unit.middlewares),
-        handlerReturns: unit.returns,
         schemas: {
           ...validators,
-          handlerQuery: (unit as any).query,
-          handlerParams: (unit as any).params,
-          handlerBody: (unit as any).body,
           middlewares,
-          handlerMiddlewares: unit.middlewares,
         },
       });
 
       return {
         ...base,
-        handlerMiddlewares: [...unit.middlewares],
-        handler: unit.handler,
+        handler: fn,
         ...routeSchemas,
-        ...handlerSchemas,
         ...(bodyMode ? { bodyMode } : {}),
         ...(returns ? { returns } : {}),
       };
