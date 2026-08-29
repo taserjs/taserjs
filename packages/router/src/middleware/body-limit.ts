@@ -1,11 +1,10 @@
 import { bodyLimit as honoBodyLimit } from "hono/body-limit";
 
-import { wrapHonoMiddleware } from "./wrap-hono.js";
-
-const wrapped = wrapHonoMiddleware(honoBodyLimit);
+import { defineMiddleware } from "../define/middleware.js";
+import { honoMw } from "./hono-mw.js";
 
 export function bodyLimit(...args: Parameters<typeof honoBodyLimit>) {
-  return wrapped(...args);
+  return defineMiddleware(honoMw(honoBodyLimit(...args)));
 }
 
 export type BodyLimitOptions = Parameters<typeof honoBodyLimit>[0];

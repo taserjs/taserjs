@@ -21,6 +21,7 @@ import type {
   MiddlewareDefinition,
   MiddlewareReturnFromParts,
   MiddlewareUnit,
+  NextFn,
   ValidatorParts,
 } from "./units.js";
 
@@ -482,6 +483,16 @@ export type MiddlewareBuilder<
           },
         ]
   ): MiddlewareBuilder<Layout, readonly [...Acc, TAcc], TAppContext>;
+  use<R = unknown>(
+    fn: (
+      ctx: MiddlewareChainContext<Layout, Acc, unknown, unknown, unknown, TAppContext>,
+      next: NextFn,
+    ) => Awaitable<R>,
+  ): MiddlewareBuilder<
+    Layout,
+    readonly [...Acc, MiddlewareReturnFromParts<unknown, unknown, unknown, ExtractState<R>>],
+    TAppContext
+  >;
   use<
     TQuery = unknown,
     TParams = unknown,
@@ -639,6 +650,19 @@ export type RouteBuilderBase<
     Omit<TReturns, keyof UReturns> & UReturns,
     TAppContext
   >;
+  use<R = unknown>(
+    fn: (
+      ctx: RouteChainContext<Path, TMethod, Acc, unknown, unknown, unknown, TAppContext>,
+      next: NextFn,
+    ) => Awaitable<R>,
+  ): RouteBuilder<
+    Path,
+    TMethod,
+    readonly [...Acc, MiddlewareReturnFromParts<unknown, unknown, unknown, ExtractState<R>>],
+    Validators,
+    TReturns,
+    TAppContext
+  >;
   use<
     TQuery = unknown,
     TParams = unknown,
@@ -772,6 +796,17 @@ export type HandlerBuilder<
     readonly [...Acc, TAcc],
     Validators,
     Omit<TReturns, keyof UReturns> & UReturns,
+    TAppContext
+  >;
+  use<R = unknown>(
+    fn: (
+      ctx: HandlerContext<Acc, { query: unknown; params: unknown; body: unknown }, TAppContext>,
+      next: NextFn,
+    ) => Awaitable<R>,
+  ): HandlerBuilder<
+    readonly [...Acc, MiddlewareReturnFromParts<unknown, unknown, unknown, ExtractState<R>>],
+    Validators,
+    TReturns,
     TAppContext
   >;
   use<

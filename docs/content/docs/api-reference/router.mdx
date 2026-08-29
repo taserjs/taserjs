@@ -92,7 +92,30 @@ function defineHandler(options?: {
 Constructs a standalone, reusable middleware unit with support for layout scoping, multi-layout branch unions, and state preconditions:
 
 ```ts
-// 1. Standard / Unscoped
+// 1. Short Function Signature (Unscoped, Inferred State)
+function defineMiddleware<R = unknown>(
+  fn: (
+    ctx: StandaloneMiddlewareContext<unknown, unknown, unknown, AppContext, {}>,
+    next: NextFn,
+  ) => Awaitable<R>,
+): MiddlewareUnit;
+
+// 2. Short Function Signature (Layout-Scoped)
+function defineMiddleware<Layout extends LayoutId, R = unknown>(
+  layout: Layout,
+  fn: (
+    ctx: StandaloneMiddlewareContext<
+      unknown,
+      unknown,
+      unknown,
+      AppContext,
+      ResolveLayoutMiddlewaresState<Layout>
+    >,
+    next: NextFn,
+  ) => Awaitable<R>,
+): MiddlewareUnit;
+
+// 3. Standard / Unscoped Options
 function defineMiddleware<TState = unknown, TRequires = {}>(options: {
   query?: Schema;
   params?: Schema;
@@ -104,7 +127,7 @@ function defineMiddleware<TState = unknown, TRequires = {}>(options: {
   ) => unknown;
 }): MiddlewareUnit;
 
-// 2. Single Layout-Scoped (inherits layout state & enforces branch mounting)
+// 4. Single Layout-Scoped Options (inherits layout state & enforces branch mounting)
 function defineMiddleware<Layout extends LayoutId, TState = unknown, TRequires = {}>(
   layout: Layout,
   options: {
@@ -125,7 +148,7 @@ function defineMiddleware<Layout extends LayoutId, TState = unknown, TRequires =
   },
 ): MiddlewareUnit;
 
-// 3. Multi-Layout Scoped (Branch Union)
+// 5. Multi-Layout Scoped Options (Branch Union)
 function defineMiddleware<Layouts extends readonly LayoutId[], TState = unknown, TRequires = {}>(
   layouts: Layouts,
   options: {
@@ -145,10 +168,35 @@ function defineMiddleware<Layouts extends readonly LayoutId[], TState = unknown,
     ) => unknown;
   },
 ): MiddlewareUnit;
-
-// 4. Hono Middleware Wrapper
-function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit;
 ```
+
+### `honoMw()`
+
+Adapts a Web Standard / Hono-compatible middleware function `(c, next) => ...` into a Taser-compatible middleware handler function `(ctx, next) => Promise<Response>`.
+
+```ts
+import { defineMiddleware, honoMw } from "@taserjs/router";
+import { cors } from "hono/cors";
+
+// Used directly in route/layout chains
+t.get("/hello").use(honoMw(cors()));
+
+// Or wrapped in defineMiddleware
+const corsMiddleware = defineMiddleware(honoMw(cors()));
+```
+
+#### Generic Parameters
+
+| Parameter       | Position           | Role                          | Description                                                                                      |
+| :-------------- | :----------------- | :---------------------------- | :----------------------------------------------------------------------------------------------- |
+| **`TState`**    | `1st`              | **Produced State**            | Type of state injected by this middleware and passed downstream via `next(state)`.               |
+| **`TRequires`** | `2nd`              | **Required / Enforced State** | Upstream state required to already exist on `ctx.state`. Checked at compile time by `.use(...)`. |
+| **`TQuery`**    | `3rd` _(inferred)_ | Query Schema                  | Output type inferred from the `query` validator schema.                                          |
+| **`TParams`**   | `4th` _(inferred)_ | Params Schema                 | Output type inferred from the `params` validator schema.                                         |
+| **`TBody`**     | `5th` _(inferred)_ | Body Schema                   | Output type inferred from the `body` validator schema.                                           |
+| **`TReturns`**  | `6th` _(inferred)_ | Returns Map                   | Response contract map inferred from the `returns` validator option.                              |
+
+For layout-scoped overloads (`defineMiddleware("layout", options)`), `Layout` precedes `TState` as the first generic (`defineMiddleware<Layout, TState, TRequires, ...>`).
 
 ---
 

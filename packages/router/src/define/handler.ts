@@ -19,8 +19,12 @@ function createHandlerBuilder<TAppContext extends Record<string, unknown> = AppC
     returns(map: ReturnsMap) {
       return createHandlerBuilder<TAppContext>(validators, middlewares, { ...returnsMap, ...map });
     },
-    use(unitOrOptions: MiddlewareDefinition) {
-      middlewares.push(unitOrOptions);
+    use(unitOrOptions: MiddlewareDefinition | ((ctx: any, next: any) => any)) {
+      if (typeof unitOrOptions === "function") {
+        middlewares.push({ handler: unitOrOptions as any });
+      } else {
+        middlewares.push(unitOrOptions);
+      }
       return builder;
     },
     handler(fn: (ctx: unknown) => unknown) {

@@ -34,5 +34,6 @@ export { TaserApp } from "./builder/app.js";
 export { createContext } from "./context/create-context.js";
 export { defineHandler } from "./define/handler.js";
 export { defineMiddleware } from "./define/middleware.js";
+export { honoMw } from "./middleware/hono-mw.js";
 
 export type { TaserCookieJar, TaserHeaders } from "@taserjs/router-core";

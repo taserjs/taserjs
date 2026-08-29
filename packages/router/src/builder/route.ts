@@ -111,8 +111,12 @@ export function createRouteBuilder(
       routeReturns = { ...routeReturns, ...toUtilsMap(map) };
       return builder;
     },
-    use(definition: MiddlewareDefinition) {
-      middlewares.push(definition);
+    use(definition: MiddlewareDefinition | ((ctx: any, next: any) => any)) {
+      if (typeof definition === "function") {
+        middlewares.push({ handler: definition as any });
+      } else {
+        middlewares.push(definition);
+      }
       return builder;
     },
     handler(fnOrUnit: ((ctx: unknown) => unknown) | unknown) {

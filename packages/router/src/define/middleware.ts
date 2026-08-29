@@ -1,11 +1,11 @@
-import { createTaserCompatHandler, type Awaitable } from "@taserjs/router-core";
+import { type Awaitable } from "@taserjs/router-core";
 
 import type { ReturnsMap } from "../types/returns.js";
 import type {
   AppContext,
   DefineMiddlewareResult,
-  MiddlewareReturnFromParts,
-  MiddlewareUnit,
+  ExtractState,
+  IsUnknown,
   NextFn,
   StandaloneMiddlewareContext,
 } from "../types/units.js";
@@ -15,15 +15,6 @@ import type {
   ResolveLayoutsState,
 } from "../types/index.js";
 import type { Schema } from "../types/schema.js";
-
-export type HonoMiddlewareHandler = Parameters<typeof createTaserCompatHandler>[0];
-
-export type HonoMiddlewareUnit = MiddlewareUnit<
-  MiddlewareReturnFromParts<unknown, unknown, unknown, {}>,
-  {},
-  null,
-  {}
->;
 
 export type DefineMiddlewareOptions<
   TState = unknown,
@@ -109,8 +100,38 @@ export type MultiScopedMiddlewareOptions<
 };
 
 export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> = AppContext> {
-  (middleware: HonoMiddlewareHandler): HonoMiddlewareUnit;
+  /**
+   * Defines a standalone middleware scoped to a single layout branch using a short function signature.
+   */
+  <const Layout extends LayoutId, TState = unknown, TRequires = {}, R = unknown>(
+    layout: Layout,
+    fn: (
+      ctx: StandaloneMiddlewareContext<
+        unknown,
+        unknown,
+        unknown,
+        TAppContext,
+        ResolveLayoutMiddlewaresState<Layout> & TRequires
+      >,
+      next: NextFn<NoInfer<TState>>,
+    ) => Awaitable<R>,
+  ): DefineMiddlewareResult<
+    unknown,
+    unknown,
+    unknown,
+    IsUnknown<TState> extends true ? ExtractState<R> : TState,
+    R,
+    unknown,
+    unknown,
+    unknown,
+    {},
+    Layout,
+    TRequires
+  >;
 
+  /**
+   * Defines a standalone middleware scoped to a single layout branch.
+   */
   <
     const Layout extends LayoutId,
     TState = unknown,
@@ -153,6 +174,43 @@ export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> 
     TRequires
   >;
 
+  /**
+   * Defines a standalone middleware scoped to multiple layout branches using a short function signature.
+   */
+  <
+    const Layouts extends readonly [LayoutId, ...LayoutId[]],
+    TState = unknown,
+    TRequires = {},
+    R = unknown,
+  >(
+    layouts: Layouts,
+    fn: (
+      ctx: StandaloneMiddlewareContext<
+        unknown,
+        unknown,
+        unknown,
+        TAppContext,
+        ResolveLayoutsState<Layouts> & TRequires
+      >,
+      next: NextFn<NoInfer<TState>>,
+    ) => Awaitable<R>,
+  ): DefineMiddlewareResult<
+    unknown,
+    unknown,
+    unknown,
+    IsUnknown<TState> extends true ? ExtractState<R> : TState,
+    R,
+    unknown,
+    unknown,
+    unknown,
+    {},
+    Layouts,
+    TRequires
+  >;
+
+  /**
+   * Defines a standalone middleware scoped to multiple layout branches (branch union).
+   */
   <
     const Layouts extends readonly [LayoutId, ...LayoutId[]],
     TState = unknown,
@@ -195,6 +253,38 @@ export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> 
     TRequires
   >;
 
+  /**
+   * Defines a standalone, unscoped middleware using a short function signature.
+   *
+   * @example
+   * ```ts
+   * const auth = defineMiddleware((ctx, next) => {
+   *   return next({ user: "alice" });
+   * });
+   * ```
+   */
+  <TState = unknown, TRequires = {}, R = unknown>(
+    fn: (
+      ctx: StandaloneMiddlewareContext<unknown, unknown, unknown, TAppContext, TRequires>,
+      next: NextFn<NoInfer<TState>>,
+    ) => Awaitable<R>,
+  ): DefineMiddlewareResult<
+    unknown,
+    unknown,
+    unknown,
+    IsUnknown<TState> extends true ? ExtractState<R> : TState,
+    R,
+    unknown,
+    unknown,
+    unknown,
+    {},
+    null,
+    TRequires
+  >;
+
+  /**
+   * Defines a standalone, unscoped middleware with optional produced state (`TState`) and required upstream state (`TRequires`).
+   */
   <
     TState = unknown,
     TRequires = {},
@@ -240,6 +330,13 @@ export const defineMiddleware: DefineMiddlewareFn<AppContext> = function defineM
   second?: any,
 ): any {
   if (typeof first === "string" || Array.isArray(first)) {
+    if (typeof second === "function") {
+      return {
+        handler: second,
+        __middlewareAcc: undefined as unknown,
+        __requiredLayouts: first,
+      };
+    }
     const options = second!;
     const unit = {
       ...options,
@@ -251,11 +348,10 @@ export const defineMiddleware: DefineMiddlewareFn<AppContext> = function defineM
   }
 
   if (typeof first === "function") {
-    const honoMiddleware = first as HonoMiddlewareHandler;
-    return defineMiddleware({
-      handler: (ctx: unknown, next: (state?: Record<string, unknown>) => unknown) =>
-        createTaserCompatHandler(honoMiddleware)(ctx, next),
-    });
+    return {
+      handler: first,
+      __middlewareAcc: undefined as unknown,
+    };
   }
 
   const options = first as DefineMiddlewareOptions<
