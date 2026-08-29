@@ -8,9 +8,7 @@ const t = createTaserApp().context({
   boot: () => ({ env: "production" as const }),
 });
 
-const customMw = defineMiddleware({
-  handler: (_ctx, next) => next({ traceId: "t-123" }),
-});
+const customMw = defineMiddleware((_ctx, next) => next({ traceId: "t-123" }));
 
 describe("50 routes x 3-deep layout benchmark", () => {
   it("compiles 50 deep fluent routes", () => {

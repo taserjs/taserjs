@@ -40,7 +40,7 @@ Each builder method returns a `RouteBuilder` that supports fluent method chainin
 | `.body(mode, schema)`            | Validates payloads with explicit mode (`json`, `form`, `text`, `raw`) |
 | `.returns({ [status]: schema })` | Enforces compile-time and runtime response contracts                  |
 | `.use(middleware)`               | Attaches route-level middleware                                       |
-| `.handler(fn \| handlerUnit)`    | Terminal method executing the route logic                             |
+| `.handler(fn)`                   | Terminal method executing the route logic                             |
 
 ---
 
@@ -198,44 +198,6 @@ export const Route = t.any("/webhooks/stripe", ["GET", "POST"]).handler(async (c
   await handleStripeEvent(payload);
   return ok();
 });
-```
-
----
-
-## Standalone Handlers with `defineHandler`
-
-For large codebases where you prefer separating route definitions from business logic controllers, use `t.defineHandler()` or `defineHandler()`:
-
-```ts title="src/controllers/user-controller.ts"
-import { json, notFound } from "@taserjs/router/reply";
-import { z } from "zod";
-import { t } from "#taserjs/router";
-
-export const getUserDetailsHandler = t
-  .defineHandler({
-    params: z.object({ id: z.string() }),
-    query: z.object({ detailed: z.coerce.boolean().default(false) }),
-  })
-  .returns({
-    200: z.object({ id: z.string(), name: z.string() }),
-    404: z.object({ message: z.string() }),
-  })
-  .handler(async (ctx) => {
-    const user = await ctx.db.findUser(ctx.params.id);
-    if (!user) {
-      return notFound({ message: "User not found" });
-    }
-    return json(user);
-  });
-```
-
-Then mount the handler inside the route file:
-
-```ts title="src/routes/users/$id.get.ts"
-import { t } from "#taserjs/router";
-import { getUserDetailsHandler } from "../../controllers/user-controller";
-
-export const Route = t.get("/users/:id").handler(getUserDetailsHandler);
 ```
 
 ---

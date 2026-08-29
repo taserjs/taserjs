@@ -5,14 +5,7 @@ import type {
   TaserHeaders,
 } from "@taserjs/router-core";
 
-import type {
-  MergeMiddlewareField,
-  MergePart,
-  RequestShape,
-  Simplify,
-  UnitRuntimeContext,
-  UnwrapPart,
-} from "./type-utils.js";
+import type { RequestShape, Simplify, UnitRuntimeContext, UnwrapPart } from "./type-utils.js";
 import type { ReturnsMap } from "./returns.js";
 import type { Schema } from "./schema.js";
 
@@ -131,37 +124,6 @@ export type StandaloneMiddlewareContext<
     }
 >;
 
-export type HandlerContext<
-  Acc extends readonly unknown[],
-  Validators extends ValidatorParts,
-  TAppContext extends Record<string, unknown> = AppContext,
-> = Simplify<
-  TAppContext &
-    UnitRuntimeContext & {
-      query: Simplify<
-        MergePart<
-          Validators extends { query?: infer Q } ? Q : unknown,
-          MergeMiddlewareField<Acc, "query">
-        >
-      >;
-      params: Simplify<
-        MergePart<
-          Validators extends { params?: infer P } ? P : unknown,
-          MergeMiddlewareField<Acc, "params">
-        >
-      >;
-      body: Simplify<
-        MergePart<
-          Validators extends { body?: infer B } ? B : unknown,
-          MergeMiddlewareField<Acc, "body">
-        >
-      >;
-      state: Simplify<MergeMiddlewareField<Acc, "state">>;
-      headers: TaserHeaders;
-      cookies: TaserCookieJar;
-    }
->;
-
 export type MiddlewareUnit<
   TAcc = unknown,
   TReturns extends ReturnsMap = {},
@@ -174,50 +136,130 @@ export type MiddlewareUnit<
   readonly __requiredState?: TRequiredState;
 };
 
-export type HandlerUnit<
-  _Acc extends readonly unknown[],
-  _Validators extends ValidatorParts,
-  TReturns extends ReturnsMap = {},
-  TOutput = Response,
-> = {
-  readonly __returns?: TReturns;
-  readonly $Infer: {
-    Output: TOutput;
-  };
-  middlewares: readonly MiddlewareDefinition[];
-  handler: (ctx: unknown) => Awaitable<Response>;
-  returns?: ReturnsMap;
-  query?: Schema<unknown>;
-  params?: Schema<unknown>;
-  body?: Schema<unknown>;
-};
-
-export type InlineMiddlewareOptions<
-  Ctx = unknown,
+export type MiddlewareUnitBuilder<
   TQuery = unknown,
   TParams = unknown,
   TBody = unknown,
   TReturns extends ReturnsMap = {},
+  TRequiredLayouts = unknown,
+  TRequiredState = {},
+  TAppContext extends Record<string, unknown> = AppContext,
+  TInheritedState = {},
   TQueryIn = unknown,
   TParamsIn = unknown,
   TBodyIn = unknown,
-  R = unknown,
 > = {
-  query?: Schema<TQuery, TQueryIn>;
-  params?: Schema<TParams, TParamsIn>;
-  body?: Schema<TBody, TBodyIn>;
-  returns?: TReturns;
-  handler: (ctx: Ctx, next: NextFn) => Awaitable<R>;
+  query<Q, QIn = unknown>(
+    schema: Schema<Q, QIn>,
+  ): MiddlewareUnitBuilder<
+    Q,
+    TParams,
+    TBody,
+    TReturns,
+    TRequiredLayouts,
+    TRequiredState,
+    TAppContext,
+    TInheritedState,
+    QIn,
+    TParamsIn,
+    TBodyIn
+  >;
+  params<P, PIn = unknown>(
+    schema: Schema<P, PIn>,
+  ): MiddlewareUnitBuilder<
+    TQuery,
+    P,
+    TBody,
+    TReturns,
+    TRequiredLayouts,
+    TRequiredState,
+    TAppContext,
+    TInheritedState,
+    TQueryIn,
+    PIn,
+    TBodyIn
+  >;
+  body<B, BIn = unknown>(
+    schema: Schema<B, BIn>,
+  ): MiddlewareUnitBuilder<
+    TQuery,
+    TParams,
+    B,
+    TReturns,
+    TRequiredLayouts,
+    TRequiredState,
+    TAppContext,
+    TInheritedState,
+    TQueryIn,
+    TParamsIn,
+    BIn
+  >;
+  body<Mode extends "json" | "form" | "urlencoded", B, BIn = unknown>(
+    mode: Mode,
+    schema: Schema<B, BIn>,
+  ): MiddlewareUnitBuilder<
+    TQuery,
+    TParams,
+    B,
+    TReturns,
+    TRequiredLayouts,
+    TRequiredState,
+    TAppContext,
+    TInheritedState,
+    TQueryIn,
+    TParamsIn,
+    BIn
+  >;
+  returns<const M extends ReturnsMap>(
+    map: M,
+  ): MiddlewareUnitBuilder<
+    TQuery,
+    TParams,
+    TBody,
+    Omit<TReturns, keyof M> & M,
+    TRequiredLayouts,
+    TRequiredState,
+    TAppContext,
+    TInheritedState,
+    TQueryIn,
+    TParamsIn,
+    TBodyIn
+  >;
+  requires<Requires extends Record<string, unknown>>(): MiddlewareUnitBuilder<
+    TQuery,
+    TParams,
+    TBody,
+    TReturns,
+    TRequiredLayouts,
+    TRequiredState & Requires,
+    TAppContext,
+    TInheritedState,
+    TQueryIn,
+    TParamsIn,
+    TBodyIn
+  >;
+  handler<TState = unknown, R = unknown>(
+    fn: (
+      ctx: StandaloneMiddlewareContext<
+        TQuery,
+        TParams,
+        TBody,
+        TAppContext,
+        TInheritedState & TRequiredState
+      >,
+      next: NextFn<NoInfer<TState>>,
+    ) => Awaitable<R>,
+  ): DefineMiddlewareResult<
+    TQuery,
+    TParams,
+    TBody,
+    TState,
+    R,
+    TQueryIn,
+    TParamsIn,
+    TBodyIn,
+    TReturns,
+    TRequiredLayouts,
+    TRequiredState
+  >;
 };
-
-export function isHandlerUnit(
-  value: unknown,
-): value is HandlerUnit<readonly unknown[], ValidatorParts> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "handler" in value &&
-    "middlewares" in value &&
-    Array.isArray((value as HandlerUnit<readonly unknown[], ValidatorParts>).middlewares)
-  );
-}

@@ -14,9 +14,6 @@ import type { Schema } from "./schema.js";
 import type {
   AppContext,
   ExtractState,
-  HandlerContext,
-  HandlerUnit,
-  InlineMiddlewareOptions,
   Method,
   MiddlewareDefinition,
   MiddlewareReturnFromParts,
@@ -57,16 +54,14 @@ export type {
 export type {
   AppContext,
   ExtractState,
-  HandlerContext,
-  HandlerUnit,
   HttpMethod,
-  InlineMiddlewareOptions,
   IsUnknown,
   Method,
   MiddlewareDefinition,
   MiddlewareNext,
   MiddlewareReturnFromParts,
   MiddlewareUnit,
+  MiddlewareUnitBuilder,
   NextFn,
   NextResult,
   StandaloneMiddlewareContext,
@@ -493,43 +488,6 @@ export type MiddlewareBuilder<
     readonly [...Acc, MiddlewareReturnFromParts<unknown, unknown, unknown, ExtractState<R>>],
     TAppContext
   >;
-  use<
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    TReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-    R = unknown,
-  >(
-    options: InlineMiddlewareOptions<
-      MiddlewareChainContext<Layout, Acc, TQuery, TParams, TBody, TAppContext>,
-      TQuery,
-      TParams,
-      TBody,
-      TReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn,
-      R
-    >,
-  ): MiddlewareBuilder<
-    Layout,
-    readonly [
-      ...Acc,
-      MiddlewareReturnFromParts<
-        TQuery,
-        TParams,
-        TBody,
-        ExtractState<R>,
-        TQueryIn,
-        TParamsIn,
-        TBodyIn
-      >,
-    ],
-    TAppContext
-  >;
 };
 
 export type RouteExport<
@@ -559,9 +517,6 @@ export type RouteExport<
   query?: Schema<unknown>;
   params?: Schema<unknown>;
   body?: Schema<unknown>;
-  handlerQuery?: Schema<unknown>;
-  handlerParams?: Schema<unknown>;
-  handlerBody?: Schema<unknown>;
 };
 
 type RouteHandleResult<
@@ -663,46 +618,6 @@ export type RouteBuilderBase<
     TReturns,
     TAppContext
   >;
-  use<
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    UReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-    R = unknown,
-  >(
-    options: InlineMiddlewareOptions<
-      RouteChainContext<Path, TMethod, Acc, TQuery, TParams, TBody, TAppContext>,
-      TQuery,
-      TParams,
-      TBody,
-      UReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn,
-      R
-    >,
-  ): RouteBuilder<
-    Path,
-    TMethod,
-    readonly [
-      ...Acc,
-      MiddlewareReturnFromParts<
-        TQuery,
-        TParams,
-        TBody,
-        ExtractState<R>,
-        TQueryIn,
-        TParamsIn,
-        TBodyIn
-      >,
-    ],
-    Validators,
-    Omit<TReturns, keyof UReturns> & UReturns,
-    TAppContext
-  >;
   handler<R extends Response = Response>(
     fn: (
       ctx: TMethod extends "GET" | "DELETE" | "HEAD" | "OPTIONS"
@@ -718,22 +633,6 @@ export type RouteBuilderBase<
           },
         ]
   ): RouteHandleResult<Path, TMethod, Acc, Validators, TReturns, R, TAppContext>;
-  handler<
-    HandlerAcc extends readonly unknown[] = readonly [],
-    HandlerValidators extends ValidatorParts = ValidatorParts,
-    HReturns extends ReturnsMap = {},
-    HOutput = Response,
-  >(
-    unit: HandlerUnit<HandlerAcc, HandlerValidators, HReturns, HOutput>,
-  ): RouteHandleResult<
-    Path,
-    TMethod,
-    readonly [...Acc, ...HandlerAcc],
-    Validators,
-    Omit<TReturns, keyof HReturns> & HReturns,
-    HOutput,
-    TAppContext
-  >;
 };
 
 export type RouteBuilder<
@@ -769,96 +668,6 @@ export type RouteBuilder<
           TAppContext
         >;
       });
-
-export type HandlerBuilder<
-  Acc extends readonly unknown[] = readonly [],
-  Validators extends ValidatorParts = {},
-  TReturns extends ReturnsMap = {},
-  TAppContext extends Record<string, unknown> = AppContext,
-> = {
-  returns<const M extends ReturnsMap>(
-    map: M,
-  ): HandlerBuilder<Acc, Validators, Omit<TReturns, keyof M> & M, TAppContext>;
-  use<TAcc, UReturns extends ReturnsMap = {}, TRequiredLayouts = unknown, TRequiredState = unknown>(
-    unit: MiddlewareUnit<TAcc, UReturns, TRequiredLayouts, TRequiredState>,
-    ..._assert: [IsStateSatisfied<MergeMiddlewareField<Acc, "state">, TRequiredState>] extends [
-      true,
-    ]
-      ? []
-      : [
-          {
-            error: "Middleware cannot be attached to this handler";
-            requiredState: TRequiredState;
-            actualState: MergeMiddlewareField<Acc, "state">;
-          },
-        ]
-  ): HandlerBuilder<
-    readonly [...Acc, TAcc],
-    Validators,
-    Omit<TReturns, keyof UReturns> & UReturns,
-    TAppContext
-  >;
-  use<R = unknown>(
-    fn: (
-      ctx: HandlerContext<Acc, { query: unknown; params: unknown; body: unknown }, TAppContext>,
-      next: NextFn,
-    ) => Awaitable<R>,
-  ): HandlerBuilder<
-    readonly [...Acc, MiddlewareReturnFromParts<unknown, unknown, unknown, ExtractState<R>>],
-    Validators,
-    TReturns,
-    TAppContext
-  >;
-  use<
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    UReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-    R = unknown,
-  >(
-    options: InlineMiddlewareOptions<
-      HandlerContext<Acc, { query: TQuery; params: TParams; body: TBody }, TAppContext>,
-      TQuery,
-      TParams,
-      TBody,
-      UReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn,
-      R
-    >,
-  ): HandlerBuilder<
-    readonly [
-      ...Acc,
-      MiddlewareReturnFromParts<
-        TQuery,
-        TParams,
-        TBody,
-        ExtractState<R>,
-        TQueryIn,
-        TParamsIn,
-        TBodyIn
-      >,
-    ],
-    Validators,
-    Omit<TReturns, keyof UReturns> & UReturns,
-    TAppContext
-  >;
-  handler<R extends Response = Response>(
-    fn: (ctx: HandlerContext<Acc, Validators, TAppContext>) => Awaitable<R>,
-    ..._assert: [R] extends [ValidHandlerReply<R, TReturns>]
-      ? []
-      : [
-          {
-            expected: ValidHandlerReply<R, TReturns>;
-            actual: R;
-          },
-        ]
-  ): HandlerUnit<Acc, Validators, TReturns, R>;
-};
 
 export type RouteDefinition<
   Path extends RoutePath = RoutePath,

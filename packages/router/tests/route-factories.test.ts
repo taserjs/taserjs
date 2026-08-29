@@ -46,11 +46,9 @@ describe("route factories", () => {
       boot: () => ({ serviceName: "test-service" }),
     });
 
-    const mw = customT.defineMiddleware({
-      handler: (ctx, next) => {
-        expect(ctx.serviceName).toBeDefined();
-        return next();
-      },
+    const mw = customT.defineMiddleware((ctx, next) => {
+      expect(ctx.serviceName).toBeDefined();
+      return next();
     });
 
     expect(typeof mw.handler).toBe("function");

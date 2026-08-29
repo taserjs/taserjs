@@ -1,11 +1,12 @@
 import { type Awaitable } from "@taserjs/router-core";
 
-import type { ReturnsMap } from "../types/returns.js";
+import { createMiddlewareUnitBuilder } from "../builder/middleware-unit.js";
 import type {
   AppContext,
   DefineMiddlewareResult,
   ExtractState,
   IsUnknown,
+  MiddlewareUnitBuilder,
   NextFn,
   StandaloneMiddlewareContext,
 } from "../types/units.js";
@@ -14,92 +15,54 @@ import type {
   ResolveLayoutMiddlewaresState,
   ResolveLayoutsState,
 } from "../types/index.js";
-import type { Schema } from "../types/schema.js";
-
-export type DefineMiddlewareOptions<
-  TState = unknown,
-  TRequires = {},
-  TQuery = unknown,
-  TParams = unknown,
-  TBody = unknown,
-  TReturns extends ReturnsMap = {},
-  TQueryIn = unknown,
-  TParamsIn = unknown,
-  TBodyIn = unknown,
-  TAppContext extends Record<string, unknown> = AppContext,
-  R = unknown,
-> = {
-  query?: Schema<TQuery, TQueryIn>;
-  params?: Schema<TParams, TParamsIn>;
-  body?: Schema<TBody, TBodyIn>;
-  returns?: TReturns;
-  handler: (
-    ctx: StandaloneMiddlewareContext<TQuery, TParams, TBody, TAppContext, TRequires>,
-    next: NextFn<NoInfer<TState>>,
-  ) => Awaitable<R>;
-};
-
-export type ScopedMiddlewareOptions<
-  Layout extends LayoutId,
-  TState = unknown,
-  TRequires = {},
-  TQuery = unknown,
-  TParams = unknown,
-  TBody = unknown,
-  TReturns extends ReturnsMap = {},
-  TQueryIn = unknown,
-  TParamsIn = unknown,
-  TBodyIn = unknown,
-  TAppContext extends Record<string, unknown> = AppContext,
-  R = unknown,
-> = {
-  query?: Schema<TQuery, TQueryIn>;
-  params?: Schema<TParams, TParamsIn>;
-  body?: Schema<TBody, TBodyIn>;
-  returns?: TReturns;
-  handler: (
-    ctx: StandaloneMiddlewareContext<
-      TQuery,
-      TParams,
-      TBody,
-      TAppContext,
-      ResolveLayoutMiddlewaresState<Layout> & TRequires
-    >,
-    next: NextFn<NoInfer<TState>>,
-  ) => Awaitable<R>;
-};
-
-export type MultiScopedMiddlewareOptions<
-  Layouts extends readonly LayoutId[],
-  TState = unknown,
-  TRequires = {},
-  TQuery = unknown,
-  TParams = unknown,
-  TBody = unknown,
-  TReturns extends ReturnsMap = {},
-  TQueryIn = unknown,
-  TParamsIn = unknown,
-  TBodyIn = unknown,
-  TAppContext extends Record<string, unknown> = AppContext,
-  R = unknown,
-> = {
-  query?: Schema<TQuery, TQueryIn>;
-  params?: Schema<TParams, TParamsIn>;
-  body?: Schema<TBody, TBodyIn>;
-  returns?: TReturns;
-  handler: (
-    ctx: StandaloneMiddlewareContext<
-      TQuery,
-      TParams,
-      TBody,
-      TAppContext,
-      ResolveLayoutsState<Layouts> & TRequires
-    >,
-    next: NextFn<NoInfer<TState>>,
-  ) => Awaitable<R>;
-};
 
 export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> = AppContext> {
+  /**
+   * Constructs a fluent unscoped middleware builder.
+   *
+   * @example
+   * ```ts
+   * const auth = defineMiddleware()
+   *   .query(z.object({ token: z.string() }))
+   *   .body("form", z.object({ file: z.instanceof(File) }))
+   *   .returns({ 401: z.string() })
+   *   .handler(async (ctx, next) => next({ user: "alice" }));
+   * ```
+   */
+  (): MiddlewareUnitBuilder<unknown, unknown, unknown, {}, null, {}, TAppContext>;
+
+  /**
+   * Constructs a fluent middleware builder scoped to a single layout branch.
+   */
+  <const Layout extends LayoutId>(
+    layout: Layout,
+  ): MiddlewareUnitBuilder<
+    unknown,
+    unknown,
+    unknown,
+    {},
+    Layout,
+    {},
+    TAppContext,
+    ResolveLayoutMiddlewaresState<Layout>
+  >;
+
+  /**
+   * Constructs a fluent middleware builder scoped to multiple layout branches (branch union).
+   */
+  <const Layouts extends readonly [LayoutId, ...LayoutId[]]>(
+    layouts: Layouts,
+  ): MiddlewareUnitBuilder<
+    unknown,
+    unknown,
+    unknown,
+    {},
+    Layouts,
+    {},
+    TAppContext,
+    ResolveLayoutsState<Layouts>
+  >;
+
   /**
    * Defines a standalone middleware scoped to a single layout branch using a short function signature.
    */
@@ -125,51 +88,6 @@ export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> 
     unknown,
     unknown,
     {},
-    Layout,
-    TRequires
-  >;
-
-  /**
-   * Defines a standalone middleware scoped to a single layout branch.
-   */
-  <
-    const Layout extends LayoutId,
-    TState = unknown,
-    TRequires = {},
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    TReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-    R = unknown,
-  >(
-    layout: Layout,
-    options: ScopedMiddlewareOptions<
-      Layout,
-      TState,
-      TRequires,
-      TQuery,
-      TParams,
-      TBody,
-      TReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn,
-      TAppContext,
-      R
-    >,
-  ): DefineMiddlewareResult<
-    TQuery,
-    TParams,
-    TBody,
-    TState,
-    R,
-    TQueryIn,
-    TParamsIn,
-    TBodyIn,
-    TReturns,
     Layout,
     TRequires
   >;
@@ -209,51 +127,6 @@ export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> 
   >;
 
   /**
-   * Defines a standalone middleware scoped to multiple layout branches (branch union).
-   */
-  <
-    const Layouts extends readonly [LayoutId, ...LayoutId[]],
-    TState = unknown,
-    TRequires = {},
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    TReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-    R = unknown,
-  >(
-    layouts: Layouts,
-    options: MultiScopedMiddlewareOptions<
-      Layouts,
-      TState,
-      TRequires,
-      TQuery,
-      TParams,
-      TBody,
-      TReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn,
-      TAppContext,
-      R
-    >,
-  ): DefineMiddlewareResult<
-    TQuery,
-    TParams,
-    TBody,
-    TState,
-    R,
-    TQueryIn,
-    TParamsIn,
-    TBodyIn,
-    TReturns,
-    Layouts,
-    TRequires
-  >;
-
-  /**
    * Defines a standalone, unscoped middleware using a short function signature.
    *
    * @example
@@ -281,54 +154,16 @@ export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> 
     null,
     TRequires
   >;
-
-  /**
-   * Defines a standalone, unscoped middleware with optional produced state (`TState`) and required upstream state (`TRequires`).
-   */
-  <
-    TState = unknown,
-    TRequires = {},
-    TQuery = unknown,
-    TParams = unknown,
-    TBody = unknown,
-    TReturns extends ReturnsMap = {},
-    TQueryIn = unknown,
-    TParamsIn = unknown,
-    TBodyIn = unknown,
-    R = unknown,
-  >(
-    options: DefineMiddlewareOptions<
-      TState,
-      TRequires,
-      TQuery,
-      TParams,
-      TBody,
-      TReturns,
-      TQueryIn,
-      TParamsIn,
-      TBodyIn,
-      TAppContext,
-      R
-    >,
-  ): DefineMiddlewareResult<
-    TQuery,
-    TParams,
-    TBody,
-    TState,
-    R,
-    TQueryIn,
-    TParamsIn,
-    TBodyIn,
-    TReturns,
-    null,
-    TRequires
-  >;
 }
 
 export const defineMiddleware: DefineMiddlewareFn<AppContext> = function defineMiddleware(
-  first: any,
+  first?: any,
   second?: any,
 ): any {
+  if (first === undefined) {
+    return createMiddlewareUnitBuilder();
+  }
+
   if (typeof first === "string" || Array.isArray(first)) {
     if (typeof second === "function") {
       return {
@@ -337,14 +172,7 @@ export const defineMiddleware: DefineMiddlewareFn<AppContext> = function defineM
         __requiredLayouts: first,
       };
     }
-    const options = second!;
-    const unit = {
-      ...options,
-      __middlewareAcc: undefined as unknown,
-      ...(options?.returns ? { __returns: options.returns } : {}),
-      __requiredLayouts: first,
-    };
-    return unit;
+    return createMiddlewareUnitBuilder(first);
   }
 
   if (typeof first === "function") {
@@ -354,24 +182,5 @@ export const defineMiddleware: DefineMiddlewareFn<AppContext> = function defineM
     };
   }
 
-  const options = first as DefineMiddlewareOptions<
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any
-  >;
-  const unit = {
-    ...options,
-    __middlewareAcc: undefined as unknown,
-    ...(options.returns ? { __returns: options.returns } : {}),
-  };
-
-  return unit;
+  return createMiddlewareUnitBuilder();
 };
