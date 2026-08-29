@@ -3,7 +3,8 @@ import { resolve, sep } from "node:path";
 function isInsideRoot(resolvedPath: string, rootPath: string): boolean {
   const root = resolve(rootPath);
   const resolved = resolve(resolvedPath);
-  return resolved === root || resolved.startsWith(root + sep);
+  const prefix = root.endsWith(sep) ? root : root + sep;
+  return resolved === root || resolved.startsWith(prefix);
 }
 
 function isAbsolutePath(filePath: string): boolean {
@@ -19,16 +20,14 @@ export function resolveSafeFilePath(filePath: string, root?: string): string {
     throw new Error("Invalid file path");
   }
 
-  if (!isAbsolutePath(filePath)) {
-    if (!root) {
-      throw new Error("reply.file() requires init.root for relative paths");
-    }
-    const resolved = resolve(root, filePath);
-    if (!isInsideRoot(resolved, root)) {
-      throw new Error("File path escapes root directory");
-    }
-    return resolved;
+  if (!isAbsolutePath(filePath) && !root) {
+    throw new Error("reply.file() requires init.root for relative paths");
   }
 
-  return filePath;
+  const resolved = root ? resolve(root, filePath) : resolve(filePath);
+  if (root && !isInsideRoot(resolved, root)) {
+    throw new Error("File path escapes root directory");
+  }
+
+  return resolved;
 }
