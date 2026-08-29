@@ -2,9 +2,3 @@
 export const SCHEMA_KEYS = ["query", "params", "body"] as const;
 
 export type SchemaKey = (typeof SCHEMA_KEYS)[number];
-
-export const HANDLER_SCHEMA_KEY_MAP = {
-  query: "handlerQuery",
-  params: "handlerParams",
-  body: "handlerBody",
-} as const satisfies Record<SchemaKey, string>;

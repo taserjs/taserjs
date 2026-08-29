@@ -52,17 +52,12 @@ export type RouteHandler = {
   readonly path: string;
   readonly method: HttpMethod;
   readonly middlewares: readonly MiddlewareDefinition[];
-  readonly handlerMiddlewares?: readonly MiddlewareDefinition[];
   readonly returns?: Record<number, unknown>;
   readonly bodyMode?: BodyMode;
-  readonly handlerBodyMode?: BodyMode;
   handler: (ctx: unknown) => Awaitable<unknown>;
   query?: unknown;
   params?: unknown;
   body?: unknown;
-  handlerQuery?: unknown;
-  handlerParams?: unknown;
-  handlerBody?: unknown;
 };
 
 export type ManifestLayoutEntry = {

@@ -25,21 +25,19 @@ type Organization = {
   plan: "free" | "pro" | "enterprise";
 };
 
-export const Middleware = t.middleware("orgs").use({
-  handler: async (ctx, next) => {
-    const orgSlug = ctx.headers.get("x-org-slug");
-    if (!orgSlug) {
-      return reply.badRequest({ message: "Missing x-org-slug header" });
-    }
+export const Middleware = t.middleware("orgs").use(async (ctx, next) => {
+  const orgSlug = ctx.headers.get("x-org-slug");
+  if (!orgSlug) {
+    return reply.badRequest({ message: "Missing x-org-slug header" });
+  }
 
-    const org: Organization | null = await ctx.db.findOrgBySlug(orgSlug);
-    if (!org) {
-      return reply.notFound({ message: "Organization not found" });
-    }
+  const org: Organization | null = await ctx.db.findOrgBySlug(orgSlug);
+  if (!org) {
+    return reply.notFound({ message: "Organization not found" });
+  }
 
-    // TypeScript infers { organization: Organization } into ctx.state for all downstream routes:
-    return next({ organization: org });
-  },
+  // TypeScript infers { organization: Organization } into ctx.state for all downstream routes:
+  return next({ organization: org });
 });
 ```
 
@@ -47,18 +45,20 @@ export const Middleware = t.middleware("orgs").use({
 
 ## Validating Query, Params, and Body in Middleware
 
-Middleware can declare `query`, `params`, or `body` schemas using Standard Schema to reject invalid requests early before hitting child routes:
+Middleware can declare `query`, `params`, or `body` schemas using Standard Schema and fluent `defineMiddleware()` to reject invalid requests early before hitting child routes:
 
 ```ts title="src/routes/api/v2.ts"
-import { reply } from "@taserjs/router";
+import { defineMiddleware, reply } from "@taserjs/router";
 import { z } from "zod";
 import { t } from "#taserjs/router";
 
-export const Middleware = t.middleware("api_v2").use({
-  query: z.object({
-    apiKey: z.string().min(32),
-  }),
-  handler: async (ctx, next) => {
+const apiKeyGuard = defineMiddleware("api_v2")
+  .query(
+    z.object({
+      apiKey: z.string().min(32),
+    }),
+  )
+  .handler(async (ctx, next) => {
     // ctx.query.apiKey is validated
     const keyRecord = await ctx.db.findApiKey(ctx.query.apiKey);
     if (!keyRecord) {
@@ -66,8 +66,9 @@ export const Middleware = t.middleware("api_v2").use({
     }
 
     return next({ tier: keyRecord.tier });
-  },
-});
+  });
+
+export const Middleware = t.middleware("api_v2").use(apiKeyGuard);
 ```
 
 ---
@@ -83,30 +84,26 @@ import { t } from "#taserjs/router";
 export const Middleware = t
   .middleware("billing")
   // Step 1: Validate session & inject userId
-  .use({
-    handler: async (ctx, next) => {
-      const token = ctx.headers.get("authorization")?.replace("Bearer ", "");
-      if (!token) return reply.unauthorized();
-      return next({ userId: "user_123" });
-    },
+  .use(async (ctx, next) => {
+    const token = ctx.headers.get("authorization")?.replace("Bearer ", "");
+    if (!token) return reply.unauthorized();
+    return next({ userId: "user_123" });
   })
   // Step 2: Fetch subscription using userId from Step 1
-  .use({
-    handler: async (ctx, next) => {
-      // ctx.state.userId is 100% typed from Step 1!
-      const sub = await ctx.db.getSubscription(ctx.state.userId);
-      return next({
-        hasActiveSubscription: Boolean(sub?.active),
-      });
-    },
+  .use(async (ctx, next) => {
+    // ctx.state.userId is 100% typed from Step 1!
+    const sub = await ctx.db.getSubscription(ctx.state.userId);
+    return next({
+      hasActiveSubscription: Boolean(sub?.active),
+    });
   });
 ```
 
 ---
 
-## State Preconditions (`TRequires`)
+## State Preconditions (`.requires<TState>()` / `TRequires`)
 
-When writing reusable standalone middlewares that assume certain state was already produced upstream (e.g. an authenticated user or tenant ID), declare a state requirement type via `defineMiddleware<TState, TRequires>`:
+When writing reusable standalone middlewares that assume certain state was already produced upstream (e.g. an authenticated user or tenant ID), declare a state requirement via `.requires<TState>()` on `defineMiddleware()`:
 
 ```ts title="src/middleware/require-subscription.ts"
 import { defineMiddleware, reply } from "@taserjs/router";
@@ -115,16 +112,16 @@ type SubscriptionPrecondition = {
   hasActiveSubscription: boolean;
 };
 
-export const requireActivePlan = defineMiddleware<{}, SubscriptionPrecondition>({
-  handler: (ctx, next) => {
+export const requireActivePlan = defineMiddleware()
+  .requires<SubscriptionPrecondition>()
+  .handler((ctx, next) => {
     // TypeScript ensures ctx.state.hasActiveSubscription exists:
     if (!ctx.state.hasActiveSubscription) {
       return reply.forbidden({ message: "Active subscription required" });
     }
 
     return next();
-  },
-});
+  });
 ```
 
 If you attach `.use(requireActivePlan)` to a route or layout that has not initialized `hasActiveSubscription` upstream, TypeScript flags a compile-time type mismatch.

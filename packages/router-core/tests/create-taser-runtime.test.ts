@@ -42,7 +42,6 @@ describe("createTaserRuntime", () => {
                   },
                 },
               ],
-              handlerMiddlewares: [],
               handler: () => {
                 order.push("handler");
                 return json({ ok: true });
@@ -78,7 +77,6 @@ describe("createTaserRuntime", () => {
               path: "/posts/:id",
               method: "GET" as const,
               middlewares: [],
-              handlerMiddlewares: [],
               handler: (ctx: { params: { id: string } }) => json({ id: ctx.params.id }),
             },
           },
@@ -90,7 +88,6 @@ describe("createTaserRuntime", () => {
               path: "/files/*",
               method: "GET" as const,
               middlewares: [],
-              handlerMiddlewares: [],
               handler: (ctx: { params: { _splat: string } }) => json({ splat: ctx.params._splat }),
             },
           },
@@ -118,7 +115,6 @@ describe("createTaserRuntime", () => {
               path: "/test",
               method: "GET" as const,
               middlewares: [],
-              handlerMiddlewares: [],
               handler: (ctx: {
                 headers: { get: (n: string) => string | undefined };
                 cookies: { get: (n: string) => string | undefined };
@@ -156,7 +152,6 @@ describe("createTaserRuntime", () => {
               path: "/test",
               method: "GET" as const,
               middlewares: [],
-              handlerMiddlewares: [],
               handler: (ctx: { cookies: { set: (n: string, v: string) => void } }) => {
                 ctx.cookies.set("session", "abc");
                 return json({ ok: true });
@@ -201,7 +196,6 @@ describe("createTaserRuntime", () => {
               path: "/test",
               method: "GET" as const,
               middlewares: [],
-              handlerMiddlewares: [],
               handler: () => json({ ok: true }),
             },
           },
@@ -227,7 +221,6 @@ describe("createTaserRuntime", () => {
               path: "/hello",
               method: "GET" as const,
               middlewares: [],
-              handlerMiddlewares: [],
               handler: () => json({ ok: true }),
             },
           },
@@ -252,7 +245,6 @@ describe("createTaserRuntime", () => {
               path: "/hello",
               method: "GET" as const,
               middlewares: [],
-              handlerMiddlewares: [],
               handler: () => json({ ok: true }),
             },
           },
@@ -287,7 +279,6 @@ describe("createTaserRuntime", () => {
               path: "/echo",
               method: "POST" as const,
               middlewares: [],
-              handlerMiddlewares: [],
               body: z.object({ name: z.string() }),
               handler: (ctx: { body: { name: string } }) => json(ctx.body),
             },
@@ -318,7 +309,6 @@ describe("createTaserRuntime", () => {
               path: "/form",
               method: "POST" as const,
               middlewares: [],
-              handlerMiddlewares: [],
               body: z.object({ title: z.string() }),
               handler: (ctx: { body: { title: string } }) => json(ctx.body),
             },
@@ -349,7 +339,6 @@ describe("createTaserRuntime", () => {
               path: "/search",
               method: "GET" as const,
               middlewares: [],
-              handlerMiddlewares: [],
               query: z.object({ page: z.number() }),
               handler: () => json({ ok: true }),
             },
@@ -396,7 +385,6 @@ describe("createTaserRuntime", () => {
                 path: "/api/test",
                 method: "GET" as const,
                 middlewares: [],
-                handlerMiddlewares: [],
                 handler: () => {
                   order.push("handler");
                   return json({ message: "test" });
@@ -438,7 +426,6 @@ describe("createTaserRuntime", () => {
                 path: "/protected",
                 method: "GET" as const,
                 middlewares: [jwtMiddleware],
-                handlerMiddlewares: [],
                 handler: (ctx: { var: { user: { id: string } } }) => {
                   return json({
                     message: "Protected resource",
@@ -507,7 +494,6 @@ describe("createTaserRuntime", () => {
                 path: "/chained",
                 method: "GET" as const,
                 middlewares: [loggerMiddleware, compressionMiddleware],
-                handlerMiddlewares: [],
                 handler: () => {
                   order.push("handler");
                   return json({ ok: true });

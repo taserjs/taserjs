@@ -17,15 +17,13 @@ import {
   createPostRoute,
   createPutRoute,
 } from "./factories.js";
-import { defineHandler } from "../define/handler.js";
 import { defineMiddleware, type DefineMiddlewareFn } from "../define/middleware.js";
 import { createMiddleware } from "./middleware.js";
 import { TaserApp } from "./app.js";
 import type { ContextDefinition, CreateTaserAppOptions, OnErrorOptions } from "../types/app.js";
 import type { AppContext } from "../types/units.js";
-import type { HandlerBuilder, LayoutId, MiddlewareBuilder } from "../types/index.js";
+import type { LayoutId, MiddlewareBuilder } from "../types/index.js";
 import type { ReturnsMap } from "../types/returns.js";
-import type { Schema } from "../types/schema.js";
 import type {
   CreateAllRoute,
   CreateAnyRoute,
@@ -115,21 +113,6 @@ export class TaserRouter<
     layout: Layout,
   ): MiddlewareBuilder<Layout, readonly [], TAppContext> {
     return createMiddleware(layout) as MiddlewareBuilder<Layout, readonly [], TAppContext>;
-  }
-
-  defineHandler<TQuery = unknown, TParams = unknown, TBody = unknown>(options?: {
-    query?: Schema<TQuery>;
-    params?: Schema<TParams>;
-    body?: Schema<TBody>;
-  }): HandlerBuilder<
-    readonly [],
-    { query: TQuery; params: TParams; body: TBody },
-    {},
-    TAppContext
-  > {
-    return options === undefined
-      ? defineHandler<TAppContext>()
-      : defineHandler<TAppContext>(options);
   }
 
   defineMiddleware: DefineMiddlewareFn<TAppContext> =

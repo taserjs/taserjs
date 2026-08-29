@@ -2,20 +2,8 @@ import "./register.js";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
-import {
-  createTaserApp,
-  defineHandler,
-  defineMiddleware,
-  validationErrorSchema,
-} from "../src/index.js";
-import {
-  badRequest,
-  internalServerError,
-  json,
-  notFound,
-  text,
-  unauthorized,
-} from "../src/reply.js";
+import { createTaserApp, defineMiddleware, validationErrorSchema } from "../src/index.js";
+import { badRequest, internalServerError, json, text, unauthorized } from "../src/reply.js";
 import { createTaserRuntime } from "@taserjs/router-core";
 
 describe("returns fluent API", () => {
@@ -25,10 +13,9 @@ describe("returns fluent API", () => {
     {
       name: "middleware unit",
       build: () => {
-        const auth = defineMiddleware({
-          returns: { 401: z.object({ error: z.string() }) },
-          handler: (_ctx, next) => next(),
-        });
+        const auth = defineMiddleware()
+          .returns({ 401: z.object({ error: z.string() }) })
+          .handler((_ctx, next) => next());
         return t
           .get("/hello")
           .use(auth)
@@ -42,34 +29,22 @@ describe("returns fluent API", () => {
       build: () =>
         t
           .get("/hello")
-          .use({
-            returns: { 403: z.object({ error: z.string() }) },
-            handler: (_ctx, next) => next(),
-          })
+          .use(
+            defineMiddleware()
+              .returns({ 403: z.object({ error: z.string() }) })
+              .handler((_ctx, next) => next()),
+          )
           .returns({ 200: z.object({ ok: z.boolean() }) })
           .handler(() => json({ ok: true })),
       expectStatus: 403,
     },
-    {
-      name: "defineHandler unit",
-      build: () => {
-        const unit = defineHandler()
-          .returns({ 404: z.object({ error: z.string() }) })
-          .handler(() => notFound({ error: "missing" }));
-        return t
-          .get("/hello")
-          .returns({ 200: z.object({ id: z.string() }) })
-          .handler(unit);
-      },
-      expectStatus: 404,
-    },
+
     {
       name: "middleware with returns",
       build: () => {
-        const auth = defineMiddleware({
-          returns: { 401: z.object({ error: z.string() }) },
-          handler: (_ctx, next) => next(),
-        });
+        const auth = defineMiddleware()
+          .returns({ 401: z.object({ error: z.string() }) })
+          .handler((_ctx, next) => next());
         return t
           .get("/hello")
           .use(auth)
@@ -88,10 +63,9 @@ describe("returns fluent API", () => {
     const pluginSchema = z.object({ error: z.literal("plugin") });
     const routeSchema = z.object({ error: z.literal("route") });
 
-    const auth = defineMiddleware({
-      returns: { 401: pluginSchema },
-      handler: (_ctx, next) => next(),
-    });
+    const auth = defineMiddleware()
+      .returns({ 401: pluginSchema })
+      .handler((_ctx, next) => next());
 
     const route = t
       .get("/hello")
@@ -113,10 +87,9 @@ describe("returns fluent API", () => {
   });
 
   it("auto-injects 422 when route middleware defines input schemas", () => {
-    const auth = defineMiddleware({
-      query: z.object({ token: z.string() }),
-      handler: (_ctx, next) => next(),
-    });
+    const auth = defineMiddleware()
+      .query(z.object({ token: z.string() }))
+      .handler((_ctx, next) => next());
 
     const route = t
       .get("/search")
@@ -127,28 +100,10 @@ describe("returns fluent API", () => {
     expect(route.returns?.[422 as keyof typeof route.returns]).toBe(validationErrorSchema);
   });
 
-  it("auto-injects 422 when handler middleware defines input schemas", () => {
-    const unitMw = defineMiddleware({
-      body: z.object({ name: z.string() }),
-      handler: (_ctx, next) => next(),
-    });
-    const handler = defineHandler()
-      .use(unitMw)
-      .handler(() => json({ ok: true }));
-
-    const route = t
-      .post("/")
-      .returns({ 200: z.object({ ok: z.boolean() }) })
-      .handler(handler);
-
-    expect(route.returns?.[422 as keyof typeof route.returns]).toBe(validationErrorSchema);
-  });
-
   it("does not auto-inject 422 when chain only declares returns", () => {
-    const auth = defineMiddleware({
-      returns: { 401: z.object({ error: z.string() }) },
-      handler: (_ctx, next) => next(),
-    });
+    const auth = defineMiddleware()
+      .returns({ 401: z.object({ error: z.string() }) })
+      .handler((_ctx, next) => next());
 
     const route = t
       .get("/hello")
@@ -164,7 +119,7 @@ describe("returns fluent API", () => {
       .returns({ 200: z.object({ id: z.string() }) })
       .handler(() => json({ id: "1" }));
 
-    // Single .handler signature (fn | HandlerUnit): mismatch is reported without overload dump.
+    // Single .handler signature: mismatch is reported without overload dump.
     t.get("/hello")
       .returns({ 200: z.object({ id: z.string() }) })
       // @ts-expect-error

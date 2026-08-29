@@ -21,22 +21,20 @@ A layout file is any TypeScript file inside `src/routes/` that does not end with
 import { reply } from "@taserjs/router";
 import { t } from "#taserjs/router";
 
-export const Middleware = t.middleware("admin").use({
-  handler: async (ctx, next) => {
-    const authHeader = ctx.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return reply.unauthorized({ message: "Admin authorization required" });
-    }
+export const Middleware = t.middleware("admin").use(async (ctx, next) => {
+  const authHeader = ctx.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return reply.unauthorized({ message: "Admin authorization required" });
+  }
 
-    const token = authHeader.slice(7);
-    const adminUser = await verifyAdminToken(token);
-    if (!adminUser) {
-      return reply.forbidden({ message: "Insufficient permissions" });
-    }
+  const token = authHeader.slice(7);
+  const adminUser = await verifyAdminToken(token);
+  if (!adminUser) {
+    return reply.forbidden({ message: "Insufficient permissions" });
+  }
 
-    // Injects adminUser directly into ctx.state for all downstream routes
-    return next({ adminUser });
-  },
+  // Injects adminUser directly into ctx.state for all downstream routes
+  return next({ adminUser });
 });
 ```
 
@@ -75,11 +73,9 @@ While `src/routes/$.ts` applies globally to every route in your application, `sr
 ```ts title="src/routes/index.ts"
 import { t } from "#taserjs/router";
 
-export const Middleware = t.middleware("index").use({
-  handler: async (_ctx, next) => {
-    // Only runs for the root '/' endpoint
-    return next();
-  },
+export const Middleware = t.middleware("index").use(async (_ctx, next) => {
+  // Only runs for the root '/' endpoint
+  return next();
 });
 ```
 
@@ -152,15 +148,13 @@ When middleware calls `next({ session })`, the properties merge directly into `c
     import { reply } from "@taserjs/router";
     import { t } from "#taserjs/router";
 
-    export const Middleware = t.middleware("dashboard").use({
-      handler: async (ctx, next) => {
-        const session = await getSession(ctx.headers.get("cookie"));
-        if (!session) {
-          return reply.unauthorized({ message: "Invalid session" });
-        }
+    export const Middleware = t.middleware("dashboard").use(async (ctx, next) => {
+      const session = await getSession(ctx.headers.get("cookie"));
+      if (!session) {
+        return reply.unauthorized({ message: "Invalid session" });
+      }
 
-        return next({ session });
-      },
+      return next({ session });
     });
     ```
 
@@ -192,17 +186,15 @@ To create reusable, type-safe middlewares across layout files or projects, use `
 import { defineMiddleware, reply } from "@taserjs/router";
 
 export function rateLimiter(options: { maxRequests: number; windowSeconds: number }) {
-  return defineMiddleware({
-    handler: async (ctx, next) => {
-      const clientIp = ctx.headers.get("x-forwarded-for") ?? "127.0.0.1";
-      const remaining = await checkRateLimit(clientIp, options);
+  return defineMiddleware(async (ctx, next) => {
+    const clientIp = ctx.headers.get("x-forwarded-for") ?? "127.0.0.1";
+    const remaining = await checkRateLimit(clientIp, options);
 
-      if (remaining <= 0) {
-        return reply.badRequest({ message: "Rate limit exceeded" });
-      }
+    if (remaining <= 0) {
+      return reply.badRequest({ message: "Rate limit exceeded" });
+    }
 
-      return next({ rateLimitRemaining: remaining });
-    },
+    return next({ rateLimitRemaining: remaining });
   });
 }
 ```
@@ -215,12 +207,10 @@ When creating middlewares within your application, use `t.defineMiddleware` from
 import { reply } from "@taserjs/router";
 import { t } from "#taserjs/router";
 
-export const tenantLogger = t.defineMiddleware({
-  handler: async (ctx, next) => {
-    // ctx.db and ctx.requestId are 100% typed from your taser.context definition!
-    ctx.db.logTenantAccess(ctx.requestId);
-    return next();
-  },
+export const tenantLogger = t.defineMiddleware(async (ctx, next) => {
+  // ctx.db and ctx.requestId are 100% typed from your taser.context definition!
+  ctx.db.logTenantAccess(ctx.requestId);
+  return next();
 });
 ```
 
@@ -243,18 +233,16 @@ Passing a layout identifier binds the middleware directly to that layout branch:
 ```ts title="src/middleware/user-guard.ts"
 import { defineMiddleware, reply } from "@taserjs/router";
 
-export const requireActiveUser = defineMiddleware("users", {
-  handler: async (ctx, next) => {
-    // 1. ctx.state automatically inherits all state provided by the "users" layout chain:
-    const user = ctx.state.user;
+export const requireActiveUser = defineMiddleware("users", async (ctx, next) => {
+  // 1. ctx.state automatically inherits all state provided by the "users" layout chain:
+  const user = ctx.state.user;
 
-    if (!user.isActive) {
-      return reply.forbidden({ message: "User account suspended" });
-    }
+  if (!user.isActive) {
+    return reply.forbidden({ message: "User account suspended" });
+  }
 
-    // 2. Injects additional state downstream:
-    return next({ userTier: user.tier });
-  },
+  // 2. Injects additional state downstream:
+  return next({ userTier: user.tier });
 });
 ```
 
@@ -295,17 +283,15 @@ If a middleware applies to multiple distinct layout branches (such as both `"das
 ```ts title="src/middleware/tenant-guard.ts"
 import { defineMiddleware, reply } from "@taserjs/router";
 
-export const requireTenant = defineMiddleware(["dashboard", "admin"], {
-  handler: async (ctx, next) => {
-    // ctx.state receives the common state guaranteed across all specified layouts:
-    const session = ctx.state.session;
+export const requireTenant = defineMiddleware(["dashboard", "admin"], async (ctx, next) => {
+  // ctx.state receives the common state guaranteed across all specified layouts:
+  const session = ctx.state.session;
 
-    if (!session.tenantId) {
-      return reply.forbidden({ message: "Tenant required" });
-    }
+  if (!session.tenantId) {
+    return reply.forbidden({ message: "Tenant required" });
+  }
 
-    return next({ tenantId: session.tenantId });
-  },
+  return next({ tenantId: session.tenantId });
 });
 ```
 
@@ -313,9 +299,16 @@ This middleware can now be safely attached to routes inheriting either the `"das
 
 ---
 
-## State-Requirement Generics (`defineMiddleware<TState, TRequires>`)
+## State-Requirement Generics (`defineMiddleware<TState, TRequires>` / `.requires<TState>()`)
 
-For un-scoped middlewares that are not tied to a specific layout name but still require certain properties to exist in `ctx.state`, use the second generic parameter `TRequires`:
+> [!TIP]
+> **Generics Order: Output First, Precondition Second**
+> `defineMiddleware<TState, TRequires>((ctx, next) => ...)` or `defineMiddleware().requires<TRequires>().handler(...)`
+>
+> - **1st generic (`TState`)**: What this middleware **produces** / passes downstream via `next(state)`.
+> - **2nd generic (`TRequires`)**: What this middleware **requires** / enforces on `ctx.state` before running.
+
+For un-scoped middlewares that are not tied to a specific layout name but still require certain properties to exist in `ctx.state`, use the `.requires<TRequires>()` fluent builder method or generic parameters:
 
 ```ts title="src/middleware/admin-guard.ts"
 import { defineMiddleware, reply } from "@taserjs/router";
@@ -327,20 +320,16 @@ type RequiredState = {
   };
 };
 
-type InjectedState = {
-  isAdmin: boolean;
-};
-
-export const requireAdmin = defineMiddleware<InjectedState, RequiredState>({
-  handler: async (ctx, next) => {
+export const requireAdmin = defineMiddleware()
+  .requires<RequiredState>()
+  .handler(async (ctx, next) => {
     // ctx.state.user is guaranteed by TypeScript to exist:
-    if (ctx.state.user.role !== "admin" && ctx.state.user.role !== "superadmin") {
+    if (ctx.state.user.role !== "admin" && ctx.state.user.role !== "super-admin") {
       return reply.forbidden({ message: "Administrator privileges required" });
     }
 
     return next({ isAdmin: true });
-  },
-});
+  });
 ```
 
 ### Compile-Time Precondition Validation

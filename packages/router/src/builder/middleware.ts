@@ -9,8 +9,12 @@ export function createMiddleware<const Layout extends LayoutId>(
   const chain = {
     layout,
     middlewares: entries,
-    use(definition: MiddlewareDefinition) {
-      entries.push(definition);
+    use(definition: MiddlewareDefinition | ((ctx: any, next: any) => any)) {
+      if (typeof definition === "function") {
+        entries.push({ handler: definition as any });
+      } else {
+        entries.push(definition);
+      }
       return chain;
     },
   };

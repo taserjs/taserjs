@@ -73,30 +73,13 @@ export function hasInputSchemas(source: {
   query?: unknown;
   params?: unknown;
   body?: unknown;
-  handlerQuery?: unknown;
-  handlerParams?: unknown;
-  handlerBody?: unknown;
   middlewares?: readonly { query?: unknown; params?: unknown; body?: unknown }[];
-  handlerMiddlewares?: readonly { query?: unknown; params?: unknown; body?: unknown }[];
 }): boolean {
-  if (
-    source.query !== undefined ||
-    source.params !== undefined ||
-    source.body !== undefined ||
-    source.handlerQuery !== undefined ||
-    source.handlerParams !== undefined ||
-    source.handlerBody !== undefined
-  ) {
+  if (source.query !== undefined || source.params !== undefined || source.body !== undefined) {
     return true;
   }
 
   for (const layer of source.middlewares ?? []) {
-    if (layer.query !== undefined || layer.params !== undefined || layer.body !== undefined) {
-      return true;
-    }
-  }
-
-  for (const layer of source.handlerMiddlewares ?? []) {
     if (layer.query !== undefined || layer.params !== undefined || layer.body !== undefined) {
       return true;
     }

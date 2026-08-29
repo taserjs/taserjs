@@ -246,9 +246,7 @@ describe("middleware state injection", () => {
   const t = createTaserApp().context({});
 
   it("types and merges state onto the handler context", () => {
-    const withAdmin = defineMiddleware({
-      handler: (_ctx, next) => next({ adminDb: { name: "admin" } }),
-    });
+    const withAdmin = defineMiddleware((_ctx, next) => next({ adminDb: { name: "admin" } }));
 
     const route = t
       .get("/reports")
@@ -262,9 +260,7 @@ describe("middleware state injection", () => {
   });
 
   it("supports next({ userId, flag }) multiple fields", () => {
-    const mw = defineMiddleware({
-      handler: (_ctx, next) => next({ userId: "u1", flag: true }),
-    });
+    const mw = defineMiddleware((_ctx, next) => next({ userId: "u1", flag: true }));
 
     const route = t
       .get("/search")
