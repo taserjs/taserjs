@@ -144,7 +144,7 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
     "Auto-completing, end-to-end typed proxy client generated from your server router type with zero runtime drift.",
   cli: "Generate ambient TypeScript definitions and scaffold empty route files with @taserjs/router-cli.",
   "api-reference/router":
-    "Complete API reference for @taserjs/router: createTaserApp, createContext, TaserRouter, RouteBuilder, and reply.",
+    "Complete API reference for @taserjs/router: createTaserApp, createContext, TaserRouter, RouteBuilder, and reply helpers.",
   "api-reference/router-plugin":
     "Complete API reference for @taserjs/router-plugin: Vite, Next.js, and Nitro compiler plugin options.",
   "api-reference/router-client":

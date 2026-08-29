@@ -16,7 +16,8 @@ Taser features a centralized error handling architecture configured on the `crea
 Any uncaught exception thrown during middleware execution, input validation, or route handlers is passed directly to `.onError()`:
 
 ```ts title="src/taser.ts"
-import { createTaserApp, reply, ValidationError, type InferAppContext } from "@taserjs/router";
+import { createTaserApp, ValidationError, type InferAppContext } from "@taserjs/router";
+import { internalServerError, notFound, unprocessableEntity } from "@taserjs/router/reply";
 import { context } from "./context.js";
 
 export class ResourceNotFoundError extends Error {
@@ -31,7 +32,7 @@ export const t = createTaserApp()
   .onError((error, ctx) => {
     // 1. Handle Schema Validation Errors
     if (error instanceof ValidationError) {
-      return reply.unprocessableEntity({
+      return unprocessableEntity({
         status: 422,
         error: "Unprocessable Entity",
         issues: error.issues,
@@ -40,7 +41,7 @@ export const t = createTaserApp()
 
     // 2. Handle Custom Domain Exceptions
     if (error instanceof ResourceNotFoundError) {
-      return reply.notFound({
+      return notFound({
         status: 404,
         error: "Not Found",
         message: error.message,
@@ -51,7 +52,7 @@ export const t = createTaserApp()
     console.error(`[Error on ${ctx?.method} ${ctx?.path}]:`, error);
 
     const isProduction = process.env.NODE_ENV === "production";
-    return reply.internalServerError({
+    return internalServerError({
       status: 500,
       error: "Internal Server Error",
       message: isProduction ? "An unexpected error occurred" : (error as Error).message,
@@ -66,10 +67,12 @@ export const t = createTaserApp()
 Use `.notFound()` to define a standardized response when an incoming request does not match any registered route:
 
 ```ts title="src/taser.ts"
+import { notFound } from "@taserjs/router/reply";
+
 export const t = createTaserApp()
   .context(context)
   .notFound((ctx) => {
-    return reply.notFound({
+    return notFound({
       status: 404,
       error: "Not Found",
       message: `The endpoint ${ctx.method} ${ctx.path} does not exist on this server.`,

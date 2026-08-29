@@ -44,14 +44,14 @@ Prevents denial-of-service memory exhaustion by enforcing maximum request body l
 
 ```ts title="src/routes/uploads.ts"
 import { bodyLimit } from "@taserjs/router/body-limit";
-import { reply } from "@taserjs/router";
+import { payloadTooLarge } from "@taserjs/router/reply";
 import { t } from "#taserjs/router";
 
 export const Middleware = t.middleware("uploads").use(
   bodyLimit({
     maxSize: 10 * 1024 * 1024, // 10MB limit
     onError: () => {
-      return reply.badRequest({ message: "Payload too large. Maximum size is 10MB." });
+      return payloadTooLarge({ message: "Payload too large. Maximum size is 10MB." });
     },
   }),
 );

@@ -16,7 +16,7 @@ Validation in Taser is not limited to route handlers. Layout middleware can vali
 Layout middleware can validate incoming requests and inject typed state down the pipeline. Any object passed to `next({ ... })` is automatically merged into `ctx.state` and inferred across all child handlers:
 
 ```ts title="src/routes/orgs.ts"
-import { reply } from "@taserjs/router";
+import { badRequest, notFound } from "@taserjs/router/reply";
 import { t } from "#taserjs/router";
 
 type Organization = {
@@ -28,12 +28,12 @@ type Organization = {
 export const Middleware = t.middleware("orgs").use(async (ctx, next) => {
   const orgSlug = ctx.headers.get("x-org-slug");
   if (!orgSlug) {
-    return reply.badRequest({ message: "Missing x-org-slug header" });
+    return badRequest({ message: "Missing x-org-slug header" });
   }
 
   const org: Organization | null = await ctx.db.findOrgBySlug(orgSlug);
   if (!org) {
-    return reply.notFound({ message: "Organization not found" });
+    return notFound({ message: "Organization not found" });
   }
 
   // TypeScript infers { organization: Organization } into ctx.state for all downstream routes:
@@ -48,7 +48,8 @@ export const Middleware = t.middleware("orgs").use(async (ctx, next) => {
 Middleware can declare `query`, `params`, or `body` schemas using Standard Schema and fluent `defineMiddleware()` to reject invalid requests early before hitting child routes:
 
 ```ts title="src/routes/api/v2.ts"
-import { defineMiddleware, reply } from "@taserjs/router";
+import { defineMiddleware } from "@taserjs/router";
+import { unauthorized } from "@taserjs/router/reply";
 import { z } from "zod";
 import { t } from "#taserjs/router";
 
@@ -62,7 +63,7 @@ const apiKeyGuard = defineMiddleware("api_v2")
     // ctx.query.apiKey is validated
     const keyRecord = await ctx.db.findApiKey(ctx.query.apiKey);
     if (!keyRecord) {
-      return reply.unauthorized({ message: "Invalid API key" });
+      return unauthorized({ message: "Invalid API key" });
     }
 
     return next({ tier: keyRecord.tier });
@@ -78,7 +79,7 @@ export const Middleware = t.middleware("api_v2").use(apiKeyGuard);
 You can chain multiple `.use()` calls on a layout middleware. Each step enriches `ctx.state` and subsequent middleware steps immediately receive previously injected state:
 
 ```ts title="src/routes/billing.ts"
-import { reply } from "@taserjs/router";
+import { unauthorized } from "@taserjs/router/reply";
 import { t } from "#taserjs/router";
 
 export const Middleware = t
@@ -86,7 +87,7 @@ export const Middleware = t
   // Step 1: Validate session & inject userId
   .use(async (ctx, next) => {
     const token = ctx.headers.get("authorization")?.replace("Bearer ", "");
-    if (!token) return reply.unauthorized();
+    if (!token) return unauthorized();
     return next({ userId: "user_123" });
   })
   // Step 2: Fetch subscription using userId from Step 1
@@ -106,7 +107,8 @@ export const Middleware = t
 When writing reusable standalone middlewares that assume certain state was already produced upstream (e.g. an authenticated user or tenant ID), declare a state requirement via `.requires<TState>()` on `defineMiddleware()`:
 
 ```ts title="src/middleware/require-subscription.ts"
-import { defineMiddleware, reply } from "@taserjs/router";
+import { defineMiddleware } from "@taserjs/router";
+import { forbidden } from "@taserjs/router/reply";
 
 type SubscriptionPrecondition = {
   hasActiveSubscription: boolean;
@@ -117,7 +119,7 @@ export const requireActivePlan = defineMiddleware()
   .handler((ctx, next) => {
     // TypeScript ensures ctx.state.hasActiveSubscription exists:
     if (!ctx.state.hasActiveSubscription) {
-      return reply.forbidden({ message: "Active subscription required" });
+      return forbidden({ message: "Active subscription required" });
     }
 
     return next();

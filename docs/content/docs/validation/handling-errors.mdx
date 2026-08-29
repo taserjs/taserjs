@@ -33,7 +33,8 @@ Each issue typically contains:
 Configure your error envelope once in `src/taser.ts` using `.onError()`:
 
 ```ts title="src/taser.ts"
-import { createTaserApp, reply, ValidationError, type InferAppContext } from "@taserjs/router";
+import { createTaserApp, ValidationError, type InferAppContext } from "@taserjs/router";
+import { internalServerError, unprocessableEntity } from "@taserjs/router/reply";
 import { context } from "./context.js";
 
 export const t = createTaserApp()
@@ -51,7 +52,7 @@ export const t = createTaserApp()
         formattedErrors[fieldName].push(issue.message);
       }
 
-      return reply.unprocessableEntity({
+      return unprocessableEntity({
         status: 422,
         message: "The given data was invalid.",
         errors: formattedErrors,
@@ -60,7 +61,7 @@ export const t = createTaserApp()
 
     // 2. Handle Unexpected Server Errors
     console.error("[Unhandled Error]", error);
-    return reply.internalServerError({
+    return internalServerError({
       status: 500,
       message: "Internal Server Error",
     });
@@ -109,6 +110,6 @@ When you attach input schemas (`query`, `params`, `body`) to a route, Taser auto
   <Card
     title="Reply Helpers"
     href="/docs/responses/reply-helpers"
-    description="Discover status code helpers like reply.badRequest and reply.notFound."
+    description="Discover status code helpers like badRequest and notFound."
   />
 </Cards>

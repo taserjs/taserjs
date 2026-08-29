@@ -191,17 +191,16 @@ Prefixing a segment with `$` denotes a named URL path parameter:
 Inside your route handler, parameters are automatically typed and validated on `ctx.params`:
 
 ```ts title="src/routes/tasks/$id.complete.patch.ts"
-import { reply } from "@taserjs/router";
+import { json } from "@taserjs/router/reply";
 import { z } from "zod";
 import { t } from "#taserjs/router";
 
 export const Route = t
-  .patch("/tasks/:id/complete", {
-    params: z.object({ id: z.string().uuid() }),
-  })
+  .patch("/tasks/:id/complete")
+  .params(z.object({ id: z.string().uuid() }))
   .handler((ctx) => {
     // ctx.params.id is strictly typed as a UUID string
-    return reply.json({ taskId: ctx.params.id, completed: true });
+    return json({ taskId: ctx.params.id, completed: true });
   });
 ```
 

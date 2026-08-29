@@ -77,7 +77,7 @@ export type AppContext = InferAppContext<typeof context>;
 Every route handler and middleware automatically receives the combined properties of `boot` and `request` context directly on the `ctx` object:
 
 ```ts title="src/routes/users/$id.get.ts"
-import { reply } from "@taserjs/router";
+import { json, notFound } from "@taserjs/router/reply";
 import { t } from "#taserjs/router";
 
 export const Route = t.get("/users/:id").handler(async (ctx) => {
@@ -87,14 +87,14 @@ export const Route = t.get("/users/:id").handler(async (ctx) => {
   });
 
   if (!user) {
-    return reply.notFound({ message: "User not found" });
+    return notFound({ message: "User not found" });
   }
 
   // Available from request context:
   const elapsed = Date.now() - ctx.startTime;
   console.log(`[${ctx.requestId}] User ${user.id} fetched in ${elapsed}ms`);
 
-  return reply.json(user);
+  return json(user);
 });
 ```
 

@@ -18,7 +18,7 @@ Taser solves this by letting you define **Response Contracts** with `.returns()`
 Attach a `.returns()` map containing schemas keyed by HTTP status codes:
 
 ```ts title="src/routes/profile.get.ts"
-import { reply } from "@taserjs/router";
+import { json, notFound } from "@taserjs/router/reply";
 import { z } from "zod";
 import { t } from "#taserjs/router";
 
@@ -46,11 +46,11 @@ export const Route = t
 
     if (!user) {
       // Validated against 404 schema:
-      return reply.notFound({ message: "Profile not found" });
+      return notFound({ message: "Profile not found" });
     }
 
     // Validated against 200 schema:
-    return reply.json({
+    return json({
       id: user.id,
       username: user.username,
       email: user.email,
@@ -63,13 +63,13 @@ export const Route = t
 
 ## Compile-Time Type Checking
 
-The TypeScript compiler checks the value passed into `reply.json()` against the schema corresponding to that status code.
+The TypeScript compiler checks the value passed into `json()` against the schema corresponding to that status code.
 
 If you return an incorrect property name or omit a required field, TypeScript generates an immediate build error:
 
 ```ts
 // ❌ TypeScript Error: Property 'email' is missing in type '{ id: string; username: string }'
-return reply.json({
+return json({
   id: user.id,
   username: user.username,
 });
