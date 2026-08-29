@@ -89,7 +89,7 @@ export const Route = t
     // 1. Check inventory inline...
     const item = await ctx.db.item.findUnique({ where: { id: ctx.body.itemId } });
     if (!item || item.stock < ctx.body.quantity) {
-      return reply.badRequest({ message: "Out of stock" });
+      return badRequest({ message: "Out of stock" });
     }
 
     // 2. Charge Stripe inline...
@@ -113,7 +113,7 @@ export const Route = t
     // 4. Send email notification inline...
     await ctx.email.sendReceipt({ to: ctx.state.user.email, orderId: order.id });
 
-    return reply.ok(order);
+    return ok(order);
   });
 ```
 
@@ -124,7 +124,7 @@ export const Route = t
 By extracting `RouteContext`, each step becomes a pure or focused async helper:
 
 ```ts title="src/routes/checkout.post.ts"
-import { reply } from "@taserjs/router";
+import { badRequest, ok } from "@taserjs/router/reply";
 import { z } from "zod";
 import { t } from "#taserjs/router";
 
@@ -190,9 +190,9 @@ export const Route = POST.handler(async (ctx) => {
     // Trigger background notification
     ctx.email.sendReceipt({ to: ctx.state.user.email, orderId: order.id }).catch(console.error);
 
-    return reply.ok({ orderId: order.id, status: "confirmed" });
+    return ok({ orderId: order.id, status: "confirmed" });
   } catch (err) {
-    return reply.badRequest({ error: (err as Error).message });
+    return badRequest({ error: (err as Error).message });
   }
 });
 ```
@@ -235,7 +235,7 @@ For larger projects, you can organize helpers into dedicated service files:
 <Tabs items={["src/routes/users/$id.get.ts", "src/services/user-service.ts"]}>
   <Tab value="src/routes/users/$id.get.ts">
     ```ts title="src/routes/users/$id.get.ts"
-    import { reply } from "@taserjs/router";
+    import { notFound, ok } from "@taserjs/router/reply";
     import { z } from "zod";
     import { t } from "#taserjs/router";
     import { fetchUserProfile } from "../../services/user-service.js";
@@ -249,9 +249,9 @@ For larger projects, you can organize helpers into dedicated service files:
     export const Route = GET.handler(async (ctx) => {
       const profile = await fetchUserProfile(ctx);
       if (!profile) {
-        return reply.notFound({ message: "User not found" });
+        return notFound({ message: "User not found" });
       }
-      return reply.ok(profile);
+      return ok(profile);
     });
     ```
 

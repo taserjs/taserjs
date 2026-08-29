@@ -205,7 +205,6 @@ export const context = createContext({
 Use `next({ ... })` in layout middleware to compute and pass typed state downstream:
 
 ```ts title="src/routes/admin/$.ts"
-import { defineMiddleware } from "@taserjs/router";
 import { t } from "#taserjs/router";
 
 // State returned in next() cascades into all routes inside src/routes/admin/
