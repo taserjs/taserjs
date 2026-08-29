@@ -1,5 +1,17 @@
 # @taserjs/router-cli
 
+## 0.1.4
+
+### Patch Changes
+
+- 90091a4: feat: Performance Improvements in watcher and router
+  feat: Consistent defineMiddleware fluent API
+  feat: Short middleware syntax with `.use(callback)`
+  remove: Unnecessary defineHandler API
+  fix: `stream.file()` path traversal protection
+- Updated dependencies [90091a4]
+  - @taserjs/router-generator@0.1.4
+
 ## 0.1.3
 
 ### Patch Changes
