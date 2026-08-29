@@ -40,6 +40,9 @@ describe("stream export", () => {
     expect(() => stream.file("../../etc/passwd")).toThrow("Invalid file path");
     expect(() => stream.file("..", { root: dir })).toThrow("Invalid file path");
     expect(() => stream.file("nested.txt")).toThrow("requires init.root");
+    expect(() => stream.file("/etc/passwd", { root: dir })).toThrow(
+      "File path escapes root directory",
+    );
   });
 
   it("allows files under root in stream.file", async () => {
@@ -50,6 +53,10 @@ describe("stream export", () => {
     const response = stream.file("safe.txt", { root: dir });
     expect(response.headers.get("content-type")).toBe("text/plain");
     expect(await response.text()).toBe("safe stream");
+
+    const responseAbs = stream.file(path, { root: dir });
+    expect(responseAbs.headers.get("content-type")).toBe("text/plain");
+    expect(await responseAbs.text()).toBe("safe stream");
   });
 
   it("pipes web streams via stream.pipe", async () => {
