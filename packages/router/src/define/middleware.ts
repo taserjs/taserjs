@@ -109,8 +109,18 @@ export type MultiScopedMiddlewareOptions<
 };
 
 export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> = AppContext> {
+  /**
+   * Adapts a Web-standard / Hono-compatible middleware function `(c, next) => ...` into a Taser MiddlewareUnit.
+   */
   (middleware: HonoMiddlewareHandler): HonoMiddlewareUnit;
 
+  /**
+   * Defines a standalone middleware scoped to a single layout branch.
+   *
+   * @template Layout The layout identifier this middleware targets (e.g. `"admin"`, `"dashboard"`).
+   * @template TState The state produced by this middleware passed downstream via `next(state)`.
+   * @template TRequires The upstream state required on `ctx.state` before this middleware can run.
+   */
   <
     const Layout extends LayoutId,
     TState = unknown,
@@ -153,6 +163,13 @@ export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> 
     TRequires
   >;
 
+  /**
+   * Defines a standalone middleware scoped to multiple layout branches (branch union).
+   *
+   * @template Layouts Array of layout identifiers (e.g. `["dashboard", "admin"]`).
+   * @template TState The state produced by this middleware passed downstream via `next(state)`.
+   * @template TRequires The upstream state required on `ctx.state` before this middleware can run.
+   */
   <
     const Layouts extends readonly [LayoutId, ...LayoutId[]],
     TState = unknown,
@@ -195,6 +212,23 @@ export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> 
     TRequires
   >;
 
+  /**
+   * Defines a standalone, unscoped middleware with optional produced state (`TState`) and required upstream state (`TRequires`).
+   *
+   * @template TState The state produced by this middleware passed downstream via `next(state)` (1st generic).
+   * @template TRequires The upstream state required on `ctx.state` before this middleware can run (2nd generic).
+   *
+   * @example
+   * ```ts
+   * // 1st generic: produced state, 2nd generic: required state
+   * const requireAdmin = defineMiddleware<AdminState, RequiresUser>({
+   *   handler: async (ctx, next) => {
+   *     const isAdmin = ctx.state.user.role === "admin";
+   *     return next({ isAdmin });
+   *   },
+   * });
+   * ```
+   */
   <
     TState = unknown,
     TRequires = {},

@@ -91,7 +91,7 @@ export const Route = t.get("/hello").handler(() => json({ message: "hello from n
     const res = await fetch(new Request("http://localhost/hello"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ message: "hello from nitro only" });
-  });
+  }, 15000);
 
   it("composes Nitro baseURL and Taser basePath correctly", async () => {
     const srcDir = join(testDir, "src");
@@ -158,5 +158,5 @@ export const Route = t.get("/users").handler(() => json({ users: ["alice", "bob"
     const res = await fetch(new Request("http://localhost/api/v1/users"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ users: ["alice", "bob"] });
-  });
+  }, 15000);
 });

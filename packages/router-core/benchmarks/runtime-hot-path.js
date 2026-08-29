@@ -303,7 +303,8 @@ function createScenarios() {
     },
     {
       name: "get-params",
-      run: () => getParamsRuntime.fetch(new Request("http://localhost/user/usr_12345/posts/post_67890")),
+      run: () =>
+        getParamsRuntime.fetch(new Request("http://localhost/user/usr_12345/posts/post_67890")),
     },
   ];
 }

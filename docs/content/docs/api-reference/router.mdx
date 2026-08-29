@@ -150,6 +150,19 @@ function defineMiddleware<Layouts extends readonly LayoutId[], TState = unknown,
 function defineMiddleware(middleware: HonoMiddlewareHandler): HonoMiddlewareUnit;
 ```
 
+#### Generic Parameters
+
+| Parameter       | Position           | Role                          | Description                                                                                      |
+| :-------------- | :----------------- | :---------------------------- | :----------------------------------------------------------------------------------------------- |
+| **`TState`**    | `1st`              | **Produced State**            | Type of state injected by this middleware and passed downstream via `next(state)`.               |
+| **`TRequires`** | `2nd`              | **Required / Enforced State** | Upstream state required to already exist on `ctx.state`. Checked at compile time by `.use(...)`. |
+| **`TQuery`**    | `3rd` _(inferred)_ | Query Schema                  | Output type inferred from the `query` validator schema.                                          |
+| **`TParams`**   | `4th` _(inferred)_ | Params Schema                 | Output type inferred from the `params` validator schema.                                         |
+| **`TBody`**     | `5th` _(inferred)_ | Body Schema                   | Output type inferred from the `body` validator schema.                                           |
+| **`TReturns`**  | `6th` _(inferred)_ | Returns Map                   | Response contract map inferred from the `returns` validator option.                              |
+
+For layout-scoped overloads (`defineMiddleware("layout", options)`), `Layout` precedes `TState` as the first generic (`defineMiddleware<Layout, TState, TRequires, ...>`).
+
 ---
 
 ## `TaserRouter` Class Methods

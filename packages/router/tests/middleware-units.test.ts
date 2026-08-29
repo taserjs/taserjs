@@ -64,9 +64,7 @@ describe("defineMiddleware units", () => {
   });
 
   it("accepts plain function middleware on layout middleware chain", () => {
-    const middlewareChain = t
-      .middleware("index")
-      .use((_ctx, next) => next({ layoutPlain: 123 }));
+    const middlewareChain = t.middleware("index").use((_ctx, next) => next({ layoutPlain: 123 }));
 
     expect(middlewareChain.middlewares).toHaveLength(1);
     expect(typeof middlewareChain.middlewares[0]?.handler).toBe("function");

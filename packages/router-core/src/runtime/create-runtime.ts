@@ -41,9 +41,7 @@ function getParamEntries(paramLabels: object | undefined): readonly ParamEntry[]
   if (!paramLabels) return [];
   let entries = paramEntriesCache.get(paramLabels);
   if (!entries) {
-    entries = Object.entries(paramLabels).map(
-      ([name, index]) => [name, index as number] as const,
-    );
+    entries = Object.entries(paramLabels).map(([name, index]) => [name, index as number] as const);
     paramEntriesCache.set(paramLabels, entries);
   }
   return entries;

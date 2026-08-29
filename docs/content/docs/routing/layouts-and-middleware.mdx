@@ -315,6 +315,13 @@ This middleware can now be safely attached to routes inheriting either the `"das
 
 ## State-Requirement Generics (`defineMiddleware<TState, TRequires>`)
 
+> [!TIP]
+> **Generics Order: Output First, Precondition Second**
+> `defineMiddleware<TState, TRequires>(options)`
+>
+> - **1st generic (`TState`)**: What this middleware **produces** / passes downstream via `next(state)`.
+> - **2nd generic (`TRequires`)**: What this middleware **requires** / enforces on `ctx.state` before running.
+
 For un-scoped middlewares that are not tied to a specific layout name but still require certain properties to exist in `ctx.state`, use the second generic parameter `TRequires`:
 
 ```ts title="src/middleware/admin-guard.ts"
