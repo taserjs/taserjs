@@ -36,7 +36,7 @@ describe("hasInputSchemas", () => {
     ).toBe(true);
     expect(
       hasInputSchemas({
-        handlerMiddlewares: [{ body: z.object({ name: z.string() }) }],
+        middlewares: [{ body: z.object({ name: z.string() }) }],
       }),
     ).toBe(true);
     expect(

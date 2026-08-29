@@ -17,7 +17,7 @@ describe("scan to generated model", () => {
     );
     writeFileSync(
       join(routesDir, "settings.ts"),
-      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('settings').use({});\n`,
+      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('settings').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "settings.profile.get.ts"),
@@ -37,16 +37,16 @@ describe("scan to generated model", () => {
 
     writeFileSync(
       join(routesDir, "$.ts"),
-      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('/$').use({});\n`,
+      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('/$').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "account.ts"),
-      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('account').use({});\n`,
+      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('account').use((_ctx, next) => next());\n`,
     );
     mkdirSync(join(routesDir, "account"));
     writeFileSync(
       join(routesDir, "account", "$.ts"),
-      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('account/$').use({});\n`,
+      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('account/$').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "account", "overview.get.ts"),

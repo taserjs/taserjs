@@ -28,31 +28,22 @@ export async function mergeValidatedField(
   return validated;
 }
 
-async function applyRouteSchemas(
-  route: RouteHandler,
-  ctx: PipelineContext,
-  prefix: "route" | "handler",
-): Promise<void> {
-  const query = prefix === "route" ? route.query : route.handlerQuery;
-  const params = prefix === "route" ? route.params : route.handlerParams;
-  const body = prefix === "route" ? route.body : route.handlerBody;
-  const bodyMode = prefix === "route" ? route.bodyMode : route.handlerBodyMode;
-
-  if (query !== undefined) {
-    ctx.query = (await mergeValidatedField(query as StandardSchemaV1, ctx.query)) as Record<
+async function applyRouteSchemas(route: RouteHandler, ctx: PipelineContext): Promise<void> {
+  if (route.query !== undefined) {
+    ctx.query = (await mergeValidatedField(route.query as StandardSchemaV1, ctx.query)) as Record<
       string,
       unknown
     >;
   }
-  if (params !== undefined) {
-    ctx.params = (await mergeValidatedField(params as StandardSchemaV1, ctx.params)) as Record<
-      string,
-      unknown
-    >;
+  if (route.params !== undefined) {
+    ctx.params = (await mergeValidatedField(
+      route.params as StandardSchemaV1,
+      ctx.params,
+    )) as Record<string, unknown>;
   }
-  if (body !== undefined) {
-    await ensureBody(ctx, bodyMode);
-    ctx.body = await mergeValidatedField(body as StandardSchemaV1, ctx.body);
+  if (route.body !== undefined) {
+    await ensureBody(ctx, route.bodyMode);
+    ctx.body = await mergeValidatedField(route.body as StandardSchemaV1, ctx.body);
   }
 }
 
@@ -136,19 +127,7 @@ export function buildPipelineLayers(
   }
 
   if (route.query !== undefined || route.params !== undefined || route.body !== undefined) {
-    layers.push(schemaLayer((ctx) => applyRouteSchemas(route, ctx, "route")));
-  }
-
-  for (const definition of route.handlerMiddlewares ?? []) {
-    layers.push(middlewareToLayer(definition));
-  }
-
-  if (
-    route.handlerQuery !== undefined ||
-    route.handlerParams !== undefined ||
-    route.handlerBody !== undefined
-  ) {
-    layers.push(schemaLayer((ctx) => applyRouteSchemas(route, ctx, "handler")));
+    layers.push(schemaLayer((ctx) => applyRouteSchemas(route, ctx)));
   }
 
   return layers;

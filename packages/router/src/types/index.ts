@@ -501,7 +501,6 @@ export type RouteExport<
   readonly method: TMethod | "ANY" | "ALL";
   readonly methods?: readonly Method[];
   readonly middlewares: readonly MiddlewareDefinition[];
-  readonly handlerMiddlewares: readonly MiddlewareDefinition[];
   readonly returns?: TReturns;
   readonly bodyMode?: "json" | "form" | "urlencoded";
   handler: (ctx: unknown) => Awaitable<Response>;

@@ -24,7 +24,6 @@ describe("defineMiddleware units", () => {
       });
 
     expect(route.middlewares).toHaveLength(1);
-    expect(route.handlerMiddlewares).toHaveLength(0);
     expect(route.path).toBe("/hello");
     expect(route.method).toBe("GET");
   });
@@ -167,7 +166,6 @@ describe("defineMiddleware units", () => {
       });
 
     expect(route.middlewares).toHaveLength(1);
-    expect(route.handlerMiddlewares).toHaveLength(0);
     expect(route.path).toBe("/hello");
     expect(route.method).toBe("GET");
   });

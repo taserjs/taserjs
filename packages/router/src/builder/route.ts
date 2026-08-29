@@ -124,7 +124,6 @@ export function createRouteBuilder(
 
       return {
         ...base,
-        handlerMiddlewares: [],
         handler: fn,
         ...routeSchemas,
         ...(bodyMode ? { bodyMode } : {}),

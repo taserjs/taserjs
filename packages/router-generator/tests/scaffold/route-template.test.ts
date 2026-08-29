@@ -27,10 +27,7 @@ describe("route scaffold templates", () => {
     const source = layoutScaffoldSource("settings");
 
     expect(source).toContain("import { t } from '#taserjs/router'");
-    expect(source).toContain("t.middleware");
+    expect(source).toContain("t.middleware('settings').use((_ctx, next) => next())");
     expect(source).toContain("export const Middleware =");
-    expect(source).toContain("handler:");
-    expect(source).not.toMatch(/\bhandle\s*:/);
-    expect(source).toContain("'settings'");
   });
 });
