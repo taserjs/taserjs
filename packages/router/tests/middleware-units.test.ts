@@ -50,6 +50,28 @@ describe("defineMiddleware units", () => {
     expect(route.middlewares).toHaveLength(1);
   });
 
+  it("accepts plain function middleware with .use((ctx, next) => ...)", () => {
+    const route = t
+      .get("/hello")
+      .use((_ctx, next) => next({ plainState: "computed" }))
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.plainState).toEqualTypeOf<string>();
+        return json({ plainState: ctx.state.plainState });
+      });
+
+    expect(route.middlewares).toHaveLength(1);
+    expect(typeof route.middlewares[0]?.handler).toBe("function");
+  });
+
+  it("accepts plain function middleware on layout middleware chain", () => {
+    const middlewareChain = t
+      .middleware("index")
+      .use((_ctx, next) => next({ layoutPlain: 123 }));
+
+    expect(middlewareChain.middlewares).toHaveLength(1);
+    expect(typeof middlewareChain.middlewares[0]?.handler).toBe("function");
+  });
+
   it("accepts inline middleware with direct next(state)", () => {
     const route = t
       .get("/hello")

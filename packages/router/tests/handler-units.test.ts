@@ -43,6 +43,21 @@ describe("defineHandler units", () => {
     expect(route.handlerQuery).toBeDefined();
   });
 
+  it("accepts plain function middleware in defineHandler .use((ctx, next) => ...)", () => {
+    const handler = defineHandler()
+      .use((_ctx, next) => next({ handlerPlainState: true }))
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.handlerPlainState).toEqualTypeOf<boolean>();
+        return json({ ok: ctx.state.handlerPlainState });
+      });
+
+    expect(handler.middlewares).toHaveLength(1);
+    expect(typeof handler.middlewares[0]?.handler).toBe("function");
+
+    const route = t.get("/plain-handler").handler(handler);
+    expect(route.handlerMiddlewares).toHaveLength(1);
+  });
+
   it("composes route use then handler unit middlewares", () => {
     const routeMw = defineMiddleware({
       handler: (_ctx, next) => next({ a: 1 }),
