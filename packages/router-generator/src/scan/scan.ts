@@ -657,13 +657,22 @@ export async function scanSingleRouteFile(
   return null;
 }
 
+function resolveRouteLayouts(
+  routeRel: string,
+  layouts: LayoutFile[],
+): { layoutChain: string[]; parentLayout: string | null } {
+  const layoutChain = routeLayoutChain(routePathWithoutVerb(routeRel), layouts);
+  const parentLayout = layoutChain.length > 0 ? layoutChain[layoutChain.length - 1]! : null;
+  return { layoutChain, parentLayout };
+}
+
 export function finalizeScanResult(scan: ScanResult): ScanResult {
   const layouts = [...scan.layouts].sort((left, right) => left.id.localeCompare(right.id));
 
   for (const route of scan.routes) {
-    const chain = routeLayoutChain(routePathWithoutVerb(route.routeRel), layouts);
-    route.layoutChain = chain;
-    route.parentLayout = chain.length > 0 ? chain[chain.length - 1]! : null;
+    const { layoutChain, parentLayout } = resolveRouteLayouts(route.routeRel, layouts);
+    route.layoutChain = layoutChain;
+    route.parentLayout = parentLayout;
   }
 
   scan.routes.sort((left, right) => {
@@ -675,68 +684,66 @@ export function finalizeScanResult(scan: ScanResult): ScanResult {
   return { layouts, routes: scan.routes };
 }
 
-function expandRoutesByPath(routes: RouteEntry[]): Map<string, RouteMethodEntry[]> {
-  const byPath = new Map<string, RouteEntry[]>();
+function toRouteMethodEntry(route: RouteEntry, method: HttpVerb): RouteMethodEntry {
+  return {
+    method,
+    parentLayout: route.parentLayout,
+    importName: route.importName,
+    routeRel: route.routeRel,
+    layoutChain: route.layoutChain,
+  };
+}
 
+function groupRoutesByUrlPath(routes: RouteEntry[]): Map<string, RouteEntry[]> {
+  const byPath = new Map<string, RouteEntry[]>();
   for (const route of routes) {
     const list = byPath.get(route.urlPath) ?? [];
     list.push(route);
     byPath.set(route.urlPath, list);
   }
+  return byPath;
+}
 
+function expandMethodsForUrlPath(pathRoutes: RouteEntry[]): RouteMethodEntry[] {
+  const filled = new Map<HttpVerb, RouteMethodEntry>();
+  let anyRoute: RouteEntry | undefined;
+  let allRoute: RouteEntry | undefined;
+
+  for (const route of pathRoutes) {
+    if (isHttpVerb(route.method)) {
+      filled.set(route.method, toRouteMethodEntry(route, route.method));
+    } else if (route.method === "ANY") {
+      anyRoute = route;
+    } else if (route.method === "ALL") {
+      allRoute = route;
+    }
+  }
+
+  if (anyRoute) {
+    for (const method of anyRoute.methods ?? []) {
+      if (!filled.has(method)) {
+        filled.set(method, toRouteMethodEntry(anyRoute, method));
+      }
+    }
+  }
+
+  if (allRoute) {
+    for (const method of HTTP_VERBS) {
+      if (!filled.has(method)) {
+        filled.set(method, toRouteMethodEntry(allRoute, method));
+      }
+    }
+  }
+
+  return [...filled.values()].sort((left, right) => left.method.localeCompare(right.method));
+}
+
+function expandRoutesByPath(routes: RouteEntry[]): Map<string, RouteMethodEntry[]> {
+  const byPath = groupRoutesByUrlPath(routes);
   const routesByPath = new Map<string, RouteMethodEntry[]>();
 
   for (const [urlPath, pathRoutes] of byPath) {
-    const filled = new Map<HttpVerb, RouteMethodEntry>();
-    let anyRoute: RouteEntry | undefined;
-    let allRoute: RouteEntry | undefined;
-
-    for (const route of pathRoutes) {
-      if (isHttpVerb(route.method)) {
-        filled.set(route.method, {
-          method: route.method,
-          parentLayout: route.parentLayout,
-          importName: route.importName,
-          routeRel: route.routeRel,
-          layoutChain: route.layoutChain,
-        });
-      } else if (route.method === "ANY") {
-        anyRoute = route;
-      } else if (route.method === "ALL") {
-        allRoute = route;
-      }
-    }
-
-    if (anyRoute) {
-      for (const method of anyRoute.methods ?? []) {
-        if (filled.has(method)) continue;
-        filled.set(method, {
-          method,
-          parentLayout: anyRoute.parentLayout,
-          importName: anyRoute.importName,
-          routeRel: anyRoute.routeRel,
-          layoutChain: anyRoute.layoutChain,
-        });
-      }
-    }
-
-    if (allRoute) {
-      for (const method of HTTP_VERBS) {
-        if (filled.has(method)) continue;
-        filled.set(method, {
-          method,
-          parentLayout: allRoute.parentLayout,
-          importName: allRoute.importName,
-          routeRel: allRoute.routeRel,
-          layoutChain: allRoute.layoutChain,
-        });
-      }
-    }
-
-    routesByPath.set(
-      urlPath,
-      [...filled.values()].sort((left, right) => left.method.localeCompare(right.method)),
-    );
+    routesByPath.set(urlPath, expandMethodsForUrlPath(pathRoutes));
   }
 
   return routesByPath;
