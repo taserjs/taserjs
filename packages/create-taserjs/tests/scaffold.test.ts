@@ -9,7 +9,9 @@ vi.mock("package-manager-detector/commands", async (importOriginal) => {
   const actual = await importOriginal<typeof import("package-manager-detector/commands")>();
   return {
     ...actual,
-    resolveCommand: vi.fn((...args) => actual.resolveCommand(...args)),
+    resolveCommand: vi.fn((...args: Parameters<typeof actual.resolveCommand>) =>
+      actual.resolveCommand(...args),
+    ),
   };
 });
 
@@ -749,7 +751,7 @@ describe("package manager", () => {
   });
 
   it("throws an error when run command resolution fails", () => {
-    vi.mocked(pmCommands.resolveCommand).mockReturnValueOnce(undefined);
+    vi.mocked(pmCommands.resolveCommand).mockReturnValueOnce(null);
     expect(() => runScript("npm", "dev")).toThrowError(
       "Unable to resolve run command for npm",
     );
