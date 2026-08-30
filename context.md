@@ -63,7 +63,6 @@ export default createTaserApp({
       LayoutParents: LayoutParentsGen;
       LayoutTree: LayoutTreeGen;
       RouteByPathMethod: RouteByPathMethodGen;
-      ClientChain: ClientChainGen;
     }
   }
   ```
@@ -177,12 +176,13 @@ At runtime, requests flow through an onion middleware pipeline:
 
 ### 3.5 RPC Client (`@taserjs/router-client`)
 
-The client builds an end-to-end type-safe proxy against the router's `ClientChain`:
+The client builds an end-to-end type-safe proxy directly from your server's `App` type or `RouteManifest`:
 
 ```ts
 import { createClient } from "@taserjs/router-client";
+import type { App } from "../server/entry.js";
 
-const client = createClient({ baseUrl: "http://localhost:3000" });
+const client = createClient<App>({ baseUrl: "http://localhost:3000" });
 
 const res = await client.users._id.$get({
   param: { id: 1 },

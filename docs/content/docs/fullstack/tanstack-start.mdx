@@ -286,9 +286,10 @@ Fetch typed data on the server during route transitions with `@taserjs/router-cl
 ```tsx title="src/routes/users.tsx"
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@taserjs/router-client";
+import type { RouteManifest } from "../.taser/types/routes.js";
 
-// Initialize client with your app's base URL
-const api = createClient({ baseUrl: "http://localhost:3000/api" });
+// Initialize client with your app's base URL and manifest
+const api = createClient<RouteManifest>({ baseUrl: "http://localhost:3000/api" });
 
 export const Route = createFileRoute("/users")({
   loader: async () => {
@@ -330,8 +331,9 @@ Use Taser client calls directly inside `queryOptions` or `useQuery` hooks:
 ```tsx title="src/hooks/use-users.ts"
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@taserjs/router-client";
+import type { RouteManifest } from "../.taser/types/routes.js";
 
-const api = createClient({ baseUrl: "/api" });
+const api = createClient<RouteManifest>({ baseUrl: "/api" });
 
 export function useUsers(limit = 10) {
   return useQuery({

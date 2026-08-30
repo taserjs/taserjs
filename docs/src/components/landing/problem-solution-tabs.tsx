@@ -156,9 +156,10 @@ const data = await res.json();
     solutionBadge: "Auto-Completed SDK",
     solutionFilename: "frontend/client.ts",
     solutionCode: `import { createClient } from "@taserjs/router-client";
+import type { App } from "../server/entry.js";
 
-// Types detected automatically from ambient routes
-const api = createClient({ baseUrl: "https://api.example.com" });
+// End-to-end typed client derived directly from your server App
+const api = createClient<App>({ baseUrl: "https://api.example.com" });
 
 // ✓ Full autocomplete for routes, query, params, and response:
 const res = await api.admin.reports.$get({

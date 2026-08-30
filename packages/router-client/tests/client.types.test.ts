@@ -2,7 +2,6 @@ import { describe, expectTypeOf, it } from "vitest";
 
 import { createClient } from "../src/client.js";
 import type {
-  BuildClientChain,
   Client,
   InferRequestType,
   InferResponseType,
@@ -274,45 +273,13 @@ describe("client types", () => {
     expectTypeOf<HelloCall>().toBeCallableWith({ query: { name: "x" } });
   });
 
-  it("supports pre-nested generated ClientChain with BuildClientChain", () => {
-    type GeneratedChain = {
-      $get: { route: { $Infer: { Input: {}; Output: ReplyOf<200, { ok: true }> } } };
-      index: {
-        $get: { route: { $Infer: { Input: {}; Output: ReplyOf<200, { isLiteralIndex: true }> } } };
-      };
-      $well_known: {
-        jwks: {
-          $get: { route: { $Infer: { Input: {}; Output: ReplyOf<200, { keys: string[] }> } } };
-        };
-      };
-      users: {
-        _id: {
-          $get: {
-            route: {
-              $Infer: {
-                Input: { params: { id: string } };
-                Output: ReplyOf<200, { id: string }>;
-              };
-            };
-          };
-        };
-      };
-    };
+  it("creates type-safe client with explicit TaserApp or RouteManifest type", () => {
+    const client = createClient<TestApp>({ baseUrl: "http://localhost:3000" });
+    expectTypeOf(client).toHaveProperty("hello");
+    expectTypeOf(client.hello).toHaveProperty("$get");
 
-    type GenClient = BuildClientChain<GeneratedChain>;
-    expectTypeOf<GenClient>().toHaveProperty("$get");
-    expectTypeOf<GenClient>().toHaveProperty("index");
-    expectTypeOf<GenClient["index"]>().toHaveProperty("$get");
-    expectTypeOf<GenClient>().toHaveProperty("$well_known");
-    expectTypeOf<GenClient["$well_known"]["jwks"]>().toHaveProperty("$get");
-    expectTypeOf<GenClient["users"]["_id"]>().toHaveProperty("$get");
-
-    type UsersIdGet = InferRequestType<GenClient["users"]["_id"]["$get"]>;
-    expectTypeOf<UsersIdGet>().toEqualTypeOf<{ param: { id: string }; query?: OpenQuery }>();
-  });
-
-  it("automatically detects client types from ambient RouterRegister with zero type arguments", () => {
-    const client = createClient({ baseUrl: "http://localhost:3000" });
-    expectTypeOf(client).toBeObject();
+    const manifestClient = createClient<TestManifest>({ baseUrl: "http://localhost:3000" });
+    expectTypeOf(manifestClient).toHaveProperty("hello");
+    expectTypeOf(manifestClient.hello).toHaveProperty("$get");
   });
 });

@@ -1,7 +1,6 @@
-import { CLIENT_METHOD_MAP } from "@taserjs/router-utils/http";
 import { AST_NODE_TYPES, type TSESTree } from "@typescript-eslint/types";
 
-import type { GeneratedModel, HttpVerb, LayoutFile } from "../types.js";
+import type { GeneratedModel, LayoutFile } from "../types.js";
 import {
   exportConst,
   exportTypeAlias,
@@ -12,7 +11,6 @@ import {
   str,
   tsAsConst,
   tsConditionalType,
-  tsIndexedAccessType,
   tsInferType,
   tsLiteralType,
   tsNullKeyword,
@@ -32,89 +30,6 @@ import {
   type EmitManifestOptions,
 } from "./manifest.js";
 import { asNode } from "./ast.js";
-
-interface ChainNode {
-  methods: Map<string, { urlPath: string; method: HttpVerb }>;
-  children: Map<string, ChainNode>;
-}
-
-function createChainNode(): ChainNode {
-  return {
-    methods: new Map(),
-    children: new Map(),
-  };
-}
-
-function segmentToKey(segment: string): string {
-  if (segment === "*") return "_splat";
-  if (segment.startsWith(":")) return `_${segment.slice(1)}`;
-  if (segment.startsWith(".")) {
-    return `$${segment.slice(1).replaceAll("-", "_")}`;
-  }
-  return segment.replaceAll("-", "_");
-}
-
-function urlPathToSegments(urlPath: string): string[] {
-  if (urlPath === "/" || urlPath === "") {
-    return [];
-  }
-  const parts = urlPath.split("/").filter((s) => s.length > 0);
-  return parts.map(segmentToKey);
-}
-
-function propertyKey(name: string): TSESTree.PropertyNameNonComputed {
-  return /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name) ? id(name) : str(name);
-}
-
-function buildNodeMembers(node: ChainNode): TSESTree.TypeElement[] {
-  const members: TSESTree.TypeElement[] = [];
-
-  const sortedMethods = [...node.methods.entries()].sort(([a], [b]) => a.localeCompare(b));
-  for (const [clientMethodKey, { urlPath, method }] of sortedMethods) {
-    const indexedType = tsIndexedAccessType(
-      tsIndexedAccessType(tsTypeReference("RouteByPathMethodGen"), tsLiteralType(urlPath)),
-      tsLiteralType(method),
-    );
-    members.push(tsPropertySignature(propertyKey(clientMethodKey), indexedType));
-  }
-
-  const sortedChildren = [...node.children.entries()].sort(([a], [b]) => a.localeCompare(b));
-  for (const [childKey, childNode] of sortedChildren) {
-    const childMembers = buildNodeMembers(childNode);
-    members.push(tsPropertySignature(propertyKey(childKey), tsTypeLiteral(childMembers)));
-  }
-
-  return members;
-}
-
-export function buildClientChainType(
-  routesByPath: GeneratedModel["routesByPath"],
-): TSESTree.TSTypeAliasDeclaration {
-  const root = createChainNode();
-
-  for (const [urlPath, entries] of routesByPath) {
-    const segments = urlPathToSegments(urlPath);
-    let current = root;
-    for (const segment of segments) {
-      let child = current.children.get(segment);
-      if (!child) {
-        child = createChainNode();
-        current.children.set(segment, child);
-      }
-      current = child;
-    }
-
-    for (const entry of entries) {
-      const clientKey = CLIENT_METHOD_MAP[entry.method];
-      if (clientKey) {
-        current.methods.set(clientKey, { urlPath, method: entry.method });
-      }
-    }
-  }
-
-  const members = buildNodeMembers(root);
-  return tsTypeAlias("ClientChainGen", tsTypeLiteral(members));
-}
 
 export function buildLayoutTreeType(
   layoutIds: string[],
@@ -223,7 +138,6 @@ export function buildRouterRegisterAugmentation(
     tsPropertySignature(id("LayoutParents"), tsTypeReference("LayoutParentsGen")),
     tsPropertySignature(id("LayoutTree"), tsTypeReference("LayoutTreeGen")),
     tsPropertySignature(id("RouteByPathMethod"), tsTypeReference("RouteByPathMethodGen")),
-    tsPropertySignature(id("ClientChain"), tsTypeReference("ClientChainGen")),
   );
 
   return asNode<TSESTree.TSModuleDeclarationModuleWithStringIdDeclared>({
@@ -271,7 +185,6 @@ export function buildFullProgram(
   const layoutParentsType = buildLayoutParentsType(model.layoutIds, model.layoutParents);
   const layoutTreeType = buildLayoutTreeType(model.layoutIds, model.layoutParents, model.layouts);
   const routeByPathMethodType = buildRouteByPathMethodType(model.routesByPath);
-  const clientChainType = buildClientChainType(model.routesByPath);
 
   const imports: TSESTree.Statement[] = [];
 
@@ -301,7 +214,6 @@ export function buildFullProgram(
     layoutParentsType,
     layoutTreeType,
     routeByPathMethodType,
-    clientChainType,
     buildRouterRegisterAugmentation(Boolean(taserImportPath)),
     exportTypeAlias("RouteManifest", tsTypeQuery("routeManifest")),
   ];
