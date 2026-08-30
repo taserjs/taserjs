@@ -12,6 +12,8 @@ export function createMiddleware<const Layout extends LayoutId>(
     use(definition: MiddlewareDefinition | ((ctx: any, next: any) => any)) {
       if (typeof definition === "function") {
         entries.push({ handler: definition as any });
+      } else if (typeof (definition as any)?._toMiddlewareUnit === "function") {
+        entries.push((definition as any)._toMiddlewareUnit());
       } else {
         entries.push(definition);
       }

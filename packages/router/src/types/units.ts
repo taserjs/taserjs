@@ -22,7 +22,7 @@ export type {
 } from "./returns.js";
 
 /** Default empty app context for standalone units without a bound router instance. */
-export type AppContext = Record<never, never>;
+export type EmptyAppContext = Record<never, never>;
 
 export type ValidatorParts = {
   query?: unknown;
@@ -39,13 +39,17 @@ export type NextResult<TState = unknown> = Response & {
   readonly [StateBrand]?: TState;
 };
 
-export type ExtractState<T> = [Extract<Awaited<T>, { [StateBrand]?: unknown }>] extends [never]
-  ? {}
-  : Extract<Awaited<T>, { [StateBrand]?: unknown }> extends { [StateBrand]?: infer S }
-    ? [S] extends [never]
+export type ExtractStateFromUnion<T> = T extends { readonly [StateBrand]?: infer S }
+  ? [S] extends [never]
+    ? never
+    : [unknown] extends [S]
       ? {}
       : S
-    : {};
+  : never;
+
+export type ExtractState<T> = [ExtractStateFromUnion<Awaited<T>>] extends [never]
+  ? {}
+  : ExtractStateFromUnion<Awaited<T>>;
 
 export type IsUnknown<T> = [unknown] extends [T] ? true : false;
 
@@ -110,7 +114,7 @@ export type StandaloneMiddlewareContext<
   TQuery = unknown,
   TParams = unknown,
   TBody = unknown,
-  TAppContext extends Record<string, unknown> = AppContext,
+  TAppContext extends Record<string, unknown> = EmptyAppContext,
   TState = {},
 > = Simplify<
   TAppContext &
@@ -124,12 +128,15 @@ export type StandaloneMiddlewareContext<
     }
 >;
 
+export declare const MiddlewareUnitBrand: unique symbol;
+
 export type MiddlewareUnit<
   TAcc = unknown,
   TReturns extends ReturnsMap = {},
   TRequiredLayouts = unknown,
   TRequiredState = unknown,
 > = MiddlewareDefinition & {
+  readonly [MiddlewareUnitBrand]: true;
   readonly __middlewareAcc: TAcc;
   readonly __returns?: TReturns;
   readonly __requiredLayouts?: TRequiredLayouts;
@@ -143,12 +150,26 @@ export type MiddlewareUnitBuilder<
   TReturns extends ReturnsMap = {},
   TRequiredLayouts = unknown,
   TRequiredState = {},
-  TAppContext extends Record<string, unknown> = AppContext,
+  TAppContext extends Record<string, unknown> = EmptyAppContext,
   TInheritedState = {},
   TQueryIn = unknown,
   TParamsIn = unknown,
   TBodyIn = unknown,
-> = {
+  TExpectedState = unknown,
+> = MiddlewareUnit<
+  MiddlewareReturnFromParts<
+    TQuery,
+    TParams,
+    TBody,
+    IsUnknown<TExpectedState> extends true ? {} : TExpectedState,
+    TQueryIn,
+    TParamsIn,
+    TBodyIn
+  >,
+  TReturns,
+  TRequiredLayouts,
+  TRequiredState
+> & {
   query<Q, QIn = unknown>(
     schema: Schema<Q, QIn>,
   ): MiddlewareUnitBuilder<
@@ -162,7 +183,8 @@ export type MiddlewareUnitBuilder<
     TInheritedState,
     QIn,
     TParamsIn,
-    TBodyIn
+    TBodyIn,
+    TExpectedState
   >;
   params<P, PIn = unknown>(
     schema: Schema<P, PIn>,
@@ -177,7 +199,8 @@ export type MiddlewareUnitBuilder<
     TInheritedState,
     TQueryIn,
     PIn,
-    TBodyIn
+    TBodyIn,
+    TExpectedState
   >;
   body<B, BIn = unknown>(
     schema: Schema<B, BIn>,
@@ -192,7 +215,8 @@ export type MiddlewareUnitBuilder<
     TInheritedState,
     TQueryIn,
     TParamsIn,
-    BIn
+    BIn,
+    TExpectedState
   >;
   body<Mode extends "json" | "form" | "urlencoded", B, BIn = unknown>(
     mode: Mode,
@@ -208,7 +232,8 @@ export type MiddlewareUnitBuilder<
     TInheritedState,
     TQueryIn,
     TParamsIn,
-    BIn
+    BIn,
+    TExpectedState
   >;
   returns<const M extends ReturnsMap>(
     map: M,
@@ -223,7 +248,8 @@ export type MiddlewareUnitBuilder<
     TInheritedState,
     TQueryIn,
     TParamsIn,
-    TBodyIn
+    TBodyIn,
+    TExpectedState
   >;
   requires<Requires extends Record<string, unknown>>(): MiddlewareUnitBuilder<
     TQuery,
@@ -236,9 +262,10 @@ export type MiddlewareUnitBuilder<
     TInheritedState,
     TQueryIn,
     TParamsIn,
-    TBodyIn
+    TBodyIn,
+    TExpectedState
   >;
-  handler<TState = unknown, R = unknown>(
+  handler<R>(
     fn: (
       ctx: StandaloneMiddlewareContext<
         TQuery,
@@ -247,13 +274,37 @@ export type MiddlewareUnitBuilder<
         TAppContext,
         TInheritedState & TRequiredState
       >,
-      next: NextFn<NoInfer<TState>>,
-    ) => Awaitable<R>,
+      next: NextFn<TExpectedState>,
+    ) => R,
   ): DefineMiddlewareResult<
     TQuery,
     TParams,
     TBody,
-    TState,
+    IsUnknown<TExpectedState> extends true ? ExtractState<R> : TExpectedState,
+    R,
+    TQueryIn,
+    TParamsIn,
+    TBodyIn,
+    TReturns,
+    TRequiredLayouts,
+    TRequiredState
+  >;
+  handle<R>(
+    fn: (
+      ctx: StandaloneMiddlewareContext<
+        TQuery,
+        TParams,
+        TBody,
+        TAppContext,
+        TInheritedState & TRequiredState
+      >,
+      next: NextFn<TExpectedState>,
+    ) => R,
+  ): DefineMiddlewareResult<
+    TQuery,
+    TParams,
+    TBody,
+    IsUnknown<TExpectedState> extends true ? ExtractState<R> : TExpectedState,
     R,
     TQueryIn,
     TParamsIn,

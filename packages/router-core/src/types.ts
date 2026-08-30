@@ -35,9 +35,9 @@ export type MiddlewareDefinition<TReturns = Readonly<Record<number, unknown>>> =
   query?: unknown;
   params?: unknown;
   body?: unknown;
-  bodyMode?: BodyMode;
-  returns?: TReturns;
-  handler: (ctx: unknown, next: PipelineNext) => Awaitable<unknown>;
+  bodyMode?: BodyMode | undefined;
+  returns?: TReturns | undefined;
+  handler?: ((ctx: unknown, next: PipelineNext) => Awaitable<unknown>) | undefined;
 };
 
 export type MiddlewareChain = {

@@ -15,43 +15,37 @@ import {
 } from "../scan/paths.js";
 import { createRouteFactoryName } from "../scan/scan.js";
 
-const ROUTE_EXPORT_PATTERN = /export\s+const\s+Route\s*=/;
-const MIDDLEWARE_EXPORT_PATTERN = /export\s+const\s+Middleware\s*=/;
+const DEFAULT_EXPORT_PATTERN = /export\s+default\s+/;
 
-export function fileNeedsScaffold(source: string, kind: "route" | "layout"): boolean {
+export function fileNeedsScaffold(source: string, _kind: "route" | "layout"): boolean {
   const trimmed = source.trim();
   if (trimmed.length === 0) return true;
-  if (kind === "route") return !ROUTE_EXPORT_PATTERN.test(source);
-  return !MIDDLEWARE_EXPORT_PATTERN.test(source);
+  return !DEFAULT_EXPORT_PATTERN.test(source);
 }
 
 export function routeScaffoldSource(
   urlPath: string,
   method: RouteFileMethod,
-  entry: string = DEFAULT_ENTRY,
+  _entry?: string,
 ): string {
   const factoryName = createRouteFactoryName(method);
   const factoryCall =
     method === "ANY" ? `${factoryName}('${urlPath}', ['GET'])` : `${factoryName}('${urlPath}')`;
 
-  return `import { json } from '@taserjs/router/reply';
-import { t } from '${entry}';
+  return `import { t } from '@taserjs/router';
+import { json } from '@taserjs/router/reply';
 
-const ${method} = ${factoryCall};
-
-export type RouteContext = typeof ${method}.$Infer.Context;
-
-export const Route = ${method}.handler((_ctx) => {
+export default ${factoryCall}.handler((_ctx) => {
   return json({ ok: true });
 });
 `;
 }
 
-export function layoutScaffoldSource(layoutId: string, entry: string = DEFAULT_ENTRY): string {
+export function layoutScaffoldSource(layoutId: string, _entry?: string): string {
   const mountPath = layoutId === "/$" ? "/$" : layoutId;
-  return `import { t } from '${entry}';
+  return `import { t } from '@taserjs/router';
 
-export const Middleware = t.middleware('${mountPath}').use((_ctx, next) => next());
+export default t.layout('${mountPath}').use((_ctx, next) => next());
 `;
 }
 

@@ -21,23 +21,20 @@ describe("any/all route expansion", () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-any-all-"));
     writeFileSync(
       join(routesDir, "order.get.ts"),
-      `import { json } from '@taserjs/router/reply'
-import { t } from '#taserjs/router'
-export const Route = t.get('/order').handler(() => json({ ok: true }))
+      `import { json, t } from '@taserjs/router'
+export default t.get('/order').handler(() => json({ ok: true }))
 `,
     );
     writeFileSync(
       join(routesDir, "order.any.ts"),
-      `import { json } from '@taserjs/router/reply'
-import { t } from '#taserjs/router'
-export const Route = t.any('/order', ['GET', 'OPTIONS']).handler(() => json({ ok: true }))
+      `import { json, t } from '@taserjs/router'
+export default t.any('/order', ['GET', 'OPTIONS']).handler(() => json({ ok: true }))
 `,
     );
     writeFileSync(
       join(routesDir, "order.all.ts"),
-      `import { json } from '@taserjs/router/reply'
-import { t } from '#taserjs/router'
-export const Route = t.all('/order').handler(() => json({ ok: true }))
+      `import { json, t } from '@taserjs/router'
+export default t.all('/order').handler(() => json({ ok: true }))
 `,
     );
 
@@ -68,9 +65,8 @@ export const Route = t.all('/order').handler(() => json({ ok: true }))
     const routesDir = mkdtempSync(join(tmpdir(), "taser-any-bad-"));
     writeFileSync(
       join(routesDir, "order.any.ts"),
-      `import { json } from '@taserjs/router/reply'
-import { t } from '#taserjs/router'
-export const Route = t.any('/order', []).handler(() => json({ ok: true }))
+      `import { json, t } from '@taserjs/router'
+export default t.any('/order', []).handler(() => json({ ok: true }))
 `,
     );
 
@@ -86,7 +82,7 @@ export const Route = t.any('/order', []).handler(() => json({ ok: true }))
       join(routesDir, "order.any.ts"),
       `import { createAnyRoute } from '@taserjs/router'
 import { json } from '@taserjs/router/reply'
-export const Route = createAnyRoute('/order', ['GET']).handler(() => json({ ok: true }))
+export default createAnyRoute('/order', ['GET']).handler(() => json({ ok: true }))
 `,
     );
 
@@ -113,7 +109,7 @@ describe("options/head/any/all scaffold", () => {
       expect(await scaffoldRouteFile(routesDir, path, scaffoldOptions)).toBe("written");
       const source = readFileSync(path, "utf8");
       expect(source).toContain(factory);
-      expect(source).toContain("export const Route =");
+      expect(source).toContain("export default");
     }
 
     expect(readFileSync(join(routesDir, "ping.any.ts"), "utf8")).toContain("['GET']");

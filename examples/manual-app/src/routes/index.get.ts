@@ -1,9 +1,6 @@
+import { t } from "@taserjs/router";
 import { json } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
 
-const GET = t.get("/");
-
-export type RouteContext = typeof GET.$Infer.Context;
-export const Route = GET.handler((_ctx) => {
+export default t.get("/").handler((_ctx) => {
   return json({ message: "Hello from taser + srvx (no nitro)!" });
 });

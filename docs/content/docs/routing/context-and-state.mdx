@@ -54,7 +54,7 @@ Attach your context in `src/taser.ts`:
 import { createTaserApp, type InferAppContext } from "@taserjs/router";
 import { context } from "./context.js";
 
-export const t = createTaserApp().context(context);
+export default createTaserApp().context(context);
 
 export type AppContext = InferAppContext<typeof context>;
 ```
@@ -78,9 +78,9 @@ Every route handler and middleware automatically receives the combined propertie
 
 ```ts title="src/routes/users/$id.get.ts"
 import { json, notFound } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t.get("/users/:id").handler(async (ctx) => {
+export default t.get("/users/:id").handler(async (ctx) => {
   // Available from boot context:
   const user = await ctx.db.user.findUnique({
     where: { id: ctx.params.id },
@@ -105,7 +105,7 @@ When writing helper functions that take `ctx` as an argument, extract the contex
 ```ts title="src/routes/users/$id.get.ts"
 import { json, notFound } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
 // 1. Declare builder variable
 const GET = t.get("/users/:id").params(z.object({ id: z.string() }));
@@ -121,7 +121,7 @@ async function getUserProfile(ctx: RouteContext) {
 }
 
 // 4. Call helper inside .handler()
-export const Route = GET.handler(async (ctx) => {
+export default GET.handler(async (ctx) => {
   const user = await getUserProfile(ctx);
   if (!user) {
     return notFound({ message: "User not found" });
@@ -129,14 +129,6 @@ export const Route = GET.handler(async (ctx) => {
   return json(user);
 });
 ```
-
-<Callout type="warn" title="Do Not Extract Context from typeof Route">
-  Never use `export type RouteContext = typeof Route.$Infer.Context` when `RouteContext` is used by
-  helper functions called inside that route handler. Because `Route` depends on the return type of
-  the handler and the handler calls your helper, referencing `typeof Route` in your helper type
-  creates a TypeScript circular/cyclic type evaluation error. Always infer from the verb variable
-  (`typeof GET.$Infer.Context`, `typeof POST.$Infer.Context`, etc.).
-</Callout>
 
 ---
 

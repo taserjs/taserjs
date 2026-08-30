@@ -9,7 +9,20 @@ export function createMiddlewareUnitBuilder(requiredLayouts?: string | readonly 
   let bodyMode: BodyMode | undefined;
   let returnsMap: ReturnsMap | undefined;
 
-  const builder = {
+  function toUnit(fn?: (ctx: any, next: any) => any) {
+    const schemas = pickDefinedSchemas(validators);
+    return {
+      ...(fn ? { handler: fn } : {}),
+      ...schemas,
+      ...(bodyMode ? { bodyMode } : {}),
+      ...(returnsMap ? { returns: returnsMap, __returns: returnsMap } : {}),
+      ...(requiredLayouts !== undefined ? { __requiredLayouts: requiredLayouts } : {}),
+      __middlewareAcc: undefined as unknown,
+    };
+  }
+
+  const builder: any = {
+    __isUnitBuilder: true,
     query(schema: Schema<unknown>) {
       validators.query = schema;
       return builder;
@@ -38,18 +51,20 @@ export function createMiddlewareUnitBuilder(requiredLayouts?: string | readonly 
       return builder;
     },
     handler(fn: (ctx: any, next: any) => any) {
-      const schemas = pickDefinedSchemas(validators);
-      const unit = {
-        handler: fn,
-        ...schemas,
-        ...(bodyMode ? { bodyMode } : {}),
-        ...(returnsMap ? { returns: returnsMap, __returns: returnsMap } : {}),
-        ...(requiredLayouts !== undefined ? { __requiredLayouts: requiredLayouts } : {}),
-        __middlewareAcc: undefined as unknown,
-      };
-      return unit;
+      return toUnit(fn);
     },
+    handle(fn: (ctx: any, next: any) => any) {
+      return toUnit(fn);
+    },
+    _toMiddlewareUnit() {
+      return toUnit();
+    },
+    __middlewareAcc: undefined as unknown,
   };
+
+  if (requiredLayouts !== undefined) {
+    builder.__requiredLayouts = requiredLayouts;
+  }
 
   return builder;
 }

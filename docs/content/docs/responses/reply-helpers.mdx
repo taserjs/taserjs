@@ -8,7 +8,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
-Taser provides standalone reply helper functions imported from `@taserjs/router/reply` to construct standardized, type-safe HTTP responses. Every helper returns a standard Web `Response` with its HTTP status code embedded into the TypeScript return type (`ReplyOf<Status, Body>`). Because each helper is an independent standalone function, only the helpers you use are bundled into your application.
+Taser provides standalone reply helper functions and a unified `reply` object imported from `@taserjs/router/reply` to construct standardized, type-safe HTTP responses. Every helper returns a standard Web `Response` with its HTTP status code embedded into the TypeScript return type (`ReplyOf<Status, Body>`). Because each helper is an independent standalone function, only the helpers you use are bundled into your application.
 
 ---
 
@@ -18,9 +18,9 @@ The `json()` function serializes data into a JSON string and automatically sets 
 
 ```ts title="src/routes/users.get.ts"
 import { json } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t.get("/users").handler((ctx) => {
+export default t.get("/users").handler((ctx) => {
   return json([
     { id: "1", name: "Alice" },
     { id: "2", name: "Bob" },
@@ -50,9 +50,9 @@ Use `text()` to return raw strings with `Content-Type: text/plain; charset=utf-8
 
 ```ts title="src/routes/robots.txt.get.ts"
 import { text } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t.get("/robots.txt").handler(() => {
+export default t.get("/robots.txt").handler(() => {
   return text("User-agent: *\nDisallow: /admin/\n");
 });
 ```
@@ -65,9 +65,9 @@ Use `html()` to return HTML documents or markup strings with `Content-Type: text
 
 ```ts title="src/routes/index.get.ts"
 import { html } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t.get("/").handler(() => {
+export default t.get("/").handler(() => {
   return html("<h1>Welcome to Taser!</h1>");
 });
 ```
@@ -80,9 +80,9 @@ For successful operations that do not return a payload (such as `DELETE` endpoin
 
 ```ts title="src/routes/items/$id.delete.ts"
 import { noContent } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t.delete("/items/:id").handler(async (ctx) => {
+export default t.delete("/items/:id").handler(async (ctx) => {
   await ctx.db.deleteItem(ctx.params.id);
   return noContent();
 });
@@ -96,9 +96,9 @@ Use `redirect()` to send HTTP redirects (default: `302 Found`):
 
 ```ts title="src/routes/old-docs.get.ts"
 import { redirect } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t.get("/old-docs").handler(() => {
+export default t.get("/old-docs").handler(() => {
   // Permanent 301 redirect:
   return redirect("/docs/getting-started", { status: 301 });
 });
@@ -143,9 +143,9 @@ All reply helpers are exported from `@taserjs/router/reply`:
 
 ```ts title="src/routes/documents/$id.get.ts"
 import { forbidden, json, notFound, unauthorized } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t.get("/documents/:id").handler(async (ctx) => {
+export default t.get("/documents/:id").handler(async (ctx) => {
   const user = ctx.state.user;
   if (!user) {
     return unauthorized({ message: "Login required" });
@@ -168,13 +168,13 @@ export const Route = t.get("/documents/:id").handler(async (ctx) => {
 
 ## Setting Cookies
 
-You can set, read, or delete cookies directly through `ctx.cookie` or by passing the `Set-Cookie` header in `ReplyInit`:
+You can set, read, or delete cookies directly through `ctx.cookies` or by passing the `Set-Cookie` header in `ReplyInit`:
 
 ```ts title="src/routes/auth/login.post.ts"
 import { json } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t.post("/auth/login").handler(async (ctx) => {
+export default t.post("/auth/login").handler(async (ctx) => {
   const sessionToken = await createSession();
 
   return json(

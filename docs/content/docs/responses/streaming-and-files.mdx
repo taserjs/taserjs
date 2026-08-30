@@ -18,10 +18,10 @@ Use `file()` imported from `@taserjs/router/stream` to serve files from disk. It
 ```ts title="src/routes/downloads/$file.get.ts"
 import { file } from "@taserjs/router/stream";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 import path from "node:path";
 
-export const Route = t
+export default t
   .get("/downloads/:file")
   .params(z.object({ file: z.string() }))
   .handler((ctx) => {
@@ -47,9 +47,9 @@ To stream dynamically generated data, AI completions, or proxy upstream streams,
 
 ```ts title="src/routes/ai/generate.post.ts"
 import { pipe } from "@taserjs/router/stream";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t.post("/ai/generate").handler(async (ctx) => {
+export default t.post("/ai/generate").handler(async (ctx) => {
   const encoder = new TextEncoder();
 
   const customStream = new ReadableStream({
@@ -79,9 +79,9 @@ When returning generated images, PDFs, or ZIP archives:
 
 ```ts title="src/routes/export/pdf.get.ts"
 import { buffer } from "@taserjs/router/stream";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t.get("/export/pdf").handler(async (ctx) => {
+export default t.get("/export/pdf").handler(async (ctx) => {
   const pdfBytes: Uint8Array = await generateInvoicePdf(ctx.query);
 
   return buffer(pdfBytes, {
@@ -100,10 +100,10 @@ export const Route = t.get("/export/pdf").handler(async (ctx) => {
 You can build Server-Sent Events (SSE) streams by piping formatted SSE message events:
 
 ```ts title="src/routes/events/notifications.get.ts"
-import { stream } from "@taserjs/router";
-import { t } from "#taserjs/router";
+import { stream } from "@taserjs/router/stream";
+import { t } from "@taserjs/router";
 
-export const Route = t.get("/events/notifications").handler((ctx) => {
+export default t.get("/events/notifications").handler((ctx) => {
   const encoder = new TextEncoder();
 
   const eventStream = new ReadableStream({

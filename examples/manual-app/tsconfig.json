@@ -8,9 +8,6 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noEmit": true,
-    "paths": {
-      "#taserjs/router": ["./src/taser.ts"]
-    },
     "types": ["node"]
   },
   "include": [

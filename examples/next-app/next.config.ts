@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
 
 const withTaser = createTaser({
   serverDir: "src/server",
-  entry: "@/server/taser",
+  entry: "src/server/taser.ts",
   basePath: "/api",
 });
 

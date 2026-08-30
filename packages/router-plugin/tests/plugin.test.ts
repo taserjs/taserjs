@@ -18,22 +18,22 @@ describe("vite-plugin-taser", () => {
     await fsp.writeFile(
       join(testDir, "taser.ts"),
       `import { createTaserApp } from "@taserjs/router";
-export const t = createTaserApp();
+export default createTaserApp();
 `,
     );
 
     await fsp.writeFile(
       join(routesDir, "$.ts"),
-      `import { t } from "../taser.js";
-export const Middleware = t.middleware("$").use((ctx, next) => next());
+      `import { t } from "@taserjs/router";
+export default t.layout("$").use((ctx, next) => next());
 `,
     );
 
     await fsp.writeFile(
       join(routesDir, "index.get.ts"),
-      `import { t } from "../taser.js";
-import { reply } from "@taserjs/router";
-export const Route = t.get("/").handle(() => reply.text("hello"));
+      `import { t } from "@taserjs/router";
+import { text } from "@taserjs/router/reply";
+export default t.get("/").handler(() => text("hello"));
 `,
     );
   });
@@ -72,9 +72,9 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
     });
 
     const entryCode = await ctx.getEntryCode();
-    expect(entryCode).toContain("import { t } from");
+    expect(entryCode).toContain("import taser from");
     expect(entryCode).toContain('import { routeManifest } from "#taserjs/virtual/manifest";');
-    expect(entryCode).toContain("export const app = t.create(routeManifest);");
+    expect(entryCode).toContain("export const app = taser.create(routeManifest);");
     expect(entryCode).toContain("export default app;");
   });
 
@@ -227,8 +227,7 @@ export const Route = t.get("/").handle(() => reply.text("hello"));
     await ctx.writeTypes();
 
     const scaffoldedContent = await fsp.readFile(emptyRoutePath, "utf8");
-    expect(scaffoldedContent).toContain("const GET = t.get");
-    expect(scaffoldedContent).toContain("export const Route = GET.handler");
+    expect(scaffoldedContent).toContain("export default t.get('/users')");
 
     const manifestCode = await ctx.getManifestCode();
     expect(manifestCode).toContain("users.get.js");

@@ -63,16 +63,20 @@ export type MiddlewareInputField<
 export type MergeMiddlewareField<
   Middlewares extends readonly unknown[],
   Field extends MiddlewareFieldName,
-> = [Middlewares] extends [readonly []]
+> = Middlewares extends readonly []
   ? {}
-  : UnionToIntersection<MiddlewareField<Middlewares[number], Field>>;
+  : Middlewares extends readonly [infer Head, ...infer Tail]
+    ? MiddlewareField<Head, Field> & MergeMiddlewareField<Tail, Field>
+    : MiddlewareField<Middlewares[number], Field>;
 
 export type MergeMiddlewareInputField<
   Middlewares extends readonly unknown[],
   Field extends MiddlewareInputFieldName,
-> = [Middlewares] extends [readonly []]
+> = Middlewares extends readonly []
   ? {}
-  : UnionToIntersection<MiddlewareInputField<Middlewares[number], Field>>;
+  : Middlewares extends readonly [infer Head, ...infer Tail]
+    ? MiddlewareInputField<Head, Field> & MergeMiddlewareInputField<Tail, Field>
+    : MiddlewareInputField<Middlewares[number], Field>;
 
 export type RuntimeContextFields = {
   request: Request;

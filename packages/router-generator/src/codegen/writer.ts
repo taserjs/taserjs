@@ -10,7 +10,8 @@ import {
   DEFAULT_VIRTUAL_TYPES_FILENAME,
   ROUTES_ALIAS_ID,
 } from "../constants.js";
-import { createAliasImportRewriter } from "../support/paths.js";
+import { createAliasImportRewriter, toPosixPath } from "../support/paths.js";
+import { relative } from "node:path";
 import type { GeneratedModel } from "../types.js";
 
 export type TypeWriterState = {
@@ -23,6 +24,7 @@ export type WriteTypesOptions = {
   header?: string[] | undefined;
   routesDir?: string | undefined;
   routesImportBase?: string | undefined;
+  taserEntryPath?: string | undefined;
   state?: TypeWriterState | undefined;
 };
 
@@ -46,10 +48,20 @@ export async function writeTaserTypes(
       })
     : undefined;
 
+  let taserImportPath: string | undefined;
+  if (options.taserEntryPath) {
+    const rel = toPosixPath(relative(typesDir, options.taserEntryPath)).replace(
+      /\.(ts|js|mjs|cjs)$/,
+      ".js",
+    );
+    taserImportPath = rel.startsWith(".") ? rel : `./${rel}`;
+  }
+
   const routesCode = emitTypeDeclarationsSource(model, {
     header,
     quotes: options.quotes ?? "double",
     rewriteImportPath,
+    taserImportPath,
   });
 
   const virtualCode = emitVirtualDeclarationsSource({ header });

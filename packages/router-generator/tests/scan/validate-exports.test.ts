@@ -4,11 +4,11 @@ import { analyzeLayoutFileSource, analyzeRouteFileSource } from "../../src/index
 
 describe("parse-route-source", () => {
   it("accepts valid route and layout exports", () => {
-    const routeSource = `import { t } from '#taserjs/router'
-export const Route = t.get('/hello').handler(() => {})
+    const routeSource = `import { t } from '@taserjs/router'
+export default t.get('/hello').handler(() => {})
 `;
-    const layoutSource = `import { t } from '#taserjs/router'
-export const Middleware = t.middleware('account').handler(() => {})
+    const layoutSource = `import { t } from '@taserjs/router'
+export default t.layout('account').use((_ctx, next) => next())
 `;
 
     expect(analyzeRouteFileSource(routeSource, "hello.get.ts", "GET").errors).toEqual([]);
@@ -16,15 +16,15 @@ export const Middleware = t.middleware('account').handler(() => {})
   });
 
   it("requires t.get factory for GET routes", () => {
-    const source = `export const Route = null
+    const source = `export default null
 `;
     const errors = analyzeRouteFileSource(source, "bad.get.ts", "GET").errors;
     expect(errors.some((error) => error.message.includes("t.get"))).toBe(true);
   });
 
   it("parses t.any methods from AST", () => {
-    const source = `import { t } from '#taserjs/router'
-export const Route = t.any('/order', ['GET', 'OPTIONS']).handler(() => {})
+    const source = `import { t } from '@taserjs/router'
+export default t.any('/order', ['GET', 'OPTIONS']).handler(() => {})
 `;
     const result = analyzeRouteFileSource(source, "order.any.ts", "ANY");
     expect(result.errors).toEqual([]);
@@ -32,7 +32,7 @@ export const Route = t.any('/order', ['GET', 'OPTIONS']).handler(() => {})
   });
 
   it("accepts split route configuration", () => {
-    const source = `import { t } from '#taserjs/router'
+    const source = `import { t } from '@taserjs/router'
 import { json } from '@taserjs/router/reply'
 import { z } from 'zod'
 
@@ -44,35 +44,32 @@ const route = t.delete('/todo/:id')
     }),
   })
 
-export type RouteContext = typeof route.$Infer.Context
-
-function doWork(ctx: RouteContext) {
-  return Promise.resolve(ctx.params.id)
-}
-
-export const Route = route.handler(async (ctx) => {
-  const id = await doWork(ctx)
-  return json({ id, userId: ctx.state.userId })
+export default route.handler(async (ctx) => {
+  return json({ id: ctx.params.id })
 })
 `;
     expect(analyzeRouteFileSource(source, "$id.delete.ts", "DELETE").errors).toEqual([]);
   });
 
   it("accepts split layout configuration", () => {
-    const source = `import { t } from '#taserjs/router'
+    const source = `import { t } from '@taserjs/router'
 
-const middleware = t.middleware('todo')
+const layoutChain = t.layout('todo')
 
-export const Middleware = middleware.handler(() => {})
+export default layoutChain.use((_ctx, next) => next())
 `;
     expect(analyzeLayoutFileSource(source, "todo.ts").errors).toEqual([]);
   });
 
-  it("rejects legacy createAnyRoute", () => {
-    const source = `import { createAnyRoute } from '@taserjs/router'
-export const Route = createAnyRoute('/order', ['GET']).handler(() => {})
+  it("accepts standalone builder functions", () => {
+    const routeSource = `import { get } from '@taserjs/router'
+export default get('/hello').handler(() => {})
 `;
-    const errors = analyzeRouteFileSource(source, "order.any.ts", "ANY").errors;
-    expect(errors.some((error) => error.message.includes("t.any"))).toBe(true);
+    const layoutSource = `import { layout } from '@taserjs/router'
+export default layout('account').use((_ctx, next) => next())
+`;
+
+    expect(analyzeRouteFileSource(routeSource, "hello.get.ts", "GET").errors).toEqual([]);
+    expect(analyzeLayoutFileSource(layoutSource, "account.ts").errors).toEqual([]);
   });
 });

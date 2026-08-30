@@ -15,13 +15,13 @@ Layout files in Taser allow you to organize cross-cutting concerns (authenticati
 
 ## What is a Layout File?
 
-A layout file is any TypeScript file inside `src/routes/` that does not end with an HTTP method. It exports a `Middleware` constant initialized with `t.middleware(layoutId)`.
+A layout file is any TypeScript file inside `src/routes/` that does not end with an HTTP method. It exports a default middleware pipeline initialized with `t.layout(layoutId)` or `layout(layoutId)`.
 
 ```ts title="src/routes/admin.ts"
 import { forbidden, unauthorized } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Middleware = t.middleware("admin").use(async (ctx, next) => {
+export default t.layout("admin").use(async (ctx, next) => {
   const authHeader = ctx.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return unauthorized({ message: "Admin authorization required" });
@@ -50,10 +50,10 @@ The root layout applies to every route in your application. It is the ideal plac
 import { cors } from "@taserjs/router/cors";
 import { secureHeaders } from "@taserjs/router/secure-headers";
 import { timing } from "@taserjs/router/timing";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Middleware = t
-  .middleware("/$")
+export default t
+  .layout("/$")
   .use(
     cors({
       origin: ["https://app.example.com", "https://admin.example.com"],
@@ -68,18 +68,18 @@ export const Middleware = t
 
 ## Root Index Layout (`src/routes/index.ts`)
 
-While `src/routes/$.ts` applies globally to every route in your application, `src/routes/index.ts` is scoped specifically to root index endpoints (such as `src/routes/index.get.ts`). It mounts with `t.middleware('index')`:
+While `src/routes/$.ts` applies globally to every route in your application, `src/routes/index.ts` is scoped specifically to root index endpoints (such as `src/routes/index.get.ts`). It mounts with `t.layout('index')`:
 
 ```ts title="src/routes/index.ts"
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Middleware = t.middleware("index").use(async (_ctx, next) => {
+export default t.layout("index").use(async (_ctx, next) => {
   // Only runs for the root '/' endpoint
   return next();
 });
 ```
 
-Nested directory index files (e.g. `src/routes/admin/index.ts`) similarly mount with `t.middleware('admin/index')` and execute only for `GET /admin` (`src/routes/admin/index.get.ts`).
+Nested directory index files (e.g. `src/routes/admin/index.ts`) similarly mount with `t.layout('admin/index')` and execute only for `GET /admin` (`src/routes/admin/index.get.ts`).
 
 ---
 
@@ -92,25 +92,30 @@ Taser executes layouts in a predictable cascading sequence from outermost to inn
     <File
       name="$.ts"
       icon={<span className="text-amber-500 text-xs font-mono font-bold">1. ROOT</span>}
+      route="/*"
     />
     <File
       name="api.ts"
       icon={<span className="text-purple-500 text-xs font-mono font-bold">2. SCOPED</span>}
+      route="/api/*"
     />
     <Folder name="api" defaultOpen>
       <File
         name="_auth.ts"
         icon={<span className="text-purple-500 text-xs font-mono font-bold">3. PATHLESS</span>}
+        route="/api/* (_auth)"
       />
       <Folder name="_auth" defaultOpen>
         <File
           name="admin.ts"
           icon={<span className="text-purple-500 text-xs font-mono font-bold">4. ROLE</span>}
+          route="/api/admin/*"
         />
         <Folder name="admin" defaultOpen>
           <File
             name="users.get.ts"
             icon={<span className="text-emerald-500 text-xs font-mono font-bold">5. ROUTE</span>}
+            route="/api/admin/users"
           />
         </Folder>
       </Folder>
@@ -146,9 +151,9 @@ When middleware calls `next({ session })`, the properties merge directly into `c
   <Tab value="Middleware">
     ```ts title="src/routes/dashboard.ts"
     import { unauthorized } from "@taserjs/router/reply";
-    import { t } from "#taserjs/router";
+    import { t } from "@taserjs/router";
 
-    export const Middleware = t.middleware("dashboard").use(async (ctx, next) => {
+    export default t.layout("dashboard").use(async (ctx, next) => {
       const session = await getSession(ctx.headers.get("cookie"));
       if (!session) {
         return unauthorized({ message: "Invalid session" });
@@ -162,9 +167,9 @@ When middleware calls `next({ session })`, the properties merge directly into `c
   <Tab value="Route Handler">
     ```ts title="src/routes/dashboard/metrics.get.ts"
     import { json } from "@taserjs/router/reply";
-    import { t } from "#taserjs/router";
+    import { t } from "@taserjs/router";
 
-    export const Route = t.get("/dashboard/metrics").handler(async (ctx) => {
+    export default t.get("/dashboard/metrics").handler(async (ctx) => {
       // ctx.state.session is 100% typed from dashboard.ts:
       const { userId, workspaceId } = ctx.state.session;
 
@@ -178,16 +183,16 @@ When middleware calls `next({ session })`, the properties merge directly into `c
 
 ---
 
-## Standalone Middlewares with `defineMiddleware`
+## Standalone Middlewares with `middleware()`
 
-To create reusable, type-safe middlewares across layout files or projects, use `defineMiddleware()`:
+To create reusable, type-safe middlewares across layout files or projects, use `middleware()` or `t.middleware()`:
 
 ```ts title="src/middleware/rate-limit.ts"
-import { defineMiddleware } from "@taserjs/router";
+import { middleware } from "@taserjs/router";
 import { badRequest } from "@taserjs/router/reply";
 
 export function rateLimiter(options: { maxRequests: number; windowSeconds: number }) {
-  return defineMiddleware(async (ctx, next) => {
+  return middleware(async (ctx, next) => {
     const clientIp = ctx.headers.get("x-forwarded-for") ?? "127.0.0.1";
     const remaining = await checkRateLimit(clientIp, options);
 
@@ -200,41 +205,35 @@ export function rateLimiter(options: { maxRequests: number; windowSeconds: numbe
 }
 ```
 
-### App-Bound Middlewares (`t.defineMiddleware`)
+### App Context Inheritance in Middlewares
 
-When creating middlewares within your application, use `t.defineMiddleware` from your initialized router instance (`t`). It automatically inherits your application's boot and request context (`ctx.db`, `ctx.requestId`, etc.) with zero manual type annotations:
+Middlewares created via `middleware()` or `t.middleware()` automatically inherit your application's boot and request context (`ctx.db`, `ctx.requestId`, etc.) via ambient type registration with zero manual type annotations:
 
 ```ts title="src/middleware/tenant-logger.ts"
-import { t } from "#taserjs/router";
+import { middleware } from "@taserjs/router";
 
-export const tenantLogger = t.defineMiddleware(async (ctx, next) => {
+export const tenantLogger = middleware(async (ctx, next) => {
   // ctx.db and ctx.requestId are 100% typed from your taser.context definition!
   ctx.db.logTenantAccess(ctx.requestId);
   return next();
 });
 ```
 
-<Callout type="info">
-  Use **`t.defineMiddleware`** for application-specific middlewares that interact with your
-  database, loggers, or app context. Use the global **`defineMiddleware`** from `@taserjs/router`
-  when building standalone, shareable npm middleware packages.
-</Callout>
-
 ---
 
 ## Layout-Scoped Middlewares
 
-When creating middleware tailored for a specific route hierarchy, pass the layout identifier as the first argument to `defineMiddleware()`.
+When creating middleware tailored for a specific route hierarchy, pass the layout identifier as the first argument to `middleware()`.
 
 ### 1. Single Layout Binding
 
 Passing a layout identifier binds the middleware directly to that layout branch:
 
 ```ts title="src/middleware/user-guard.ts"
-import { defineMiddleware } from "@taserjs/router";
+import { middleware } from "@taserjs/router";
 import { forbidden } from "@taserjs/router/reply";
 
-export const requireActiveUser = defineMiddleware("users", async (ctx, next) => {
+export const requireActiveUser = middleware("users", async (ctx, next) => {
   // 1. ctx.state automatically inherits all state provided by the "users" layout chain:
   const user = ctx.state.user;
 
@@ -253,11 +252,11 @@ TypeScript guarantees that `requireActiveUser` can only be attached to routes or
 
 ```ts title="src/routes/users/settings.get.ts"
 import { json } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 import { requireActiveUser } from "../../middleware/user-guard";
 
 // Allowed: Route inherits "users" layout
-export const Route = t
+export default t
   .get("/users/settings")
   .use(requireActiveUser)
   .handler((ctx) => {
@@ -269,8 +268,9 @@ If you attempt to mount it on an unrelated branch, TypeScript emits an immediate
 
 ```ts title="src/routes/posts/$id.get.ts"
 import { ok } from "@taserjs/router/reply";
+import { t } from "@taserjs/router";
 // ❌ TypeScript Error: Cannot attach middleware scoped to "users" layout on "posts" branch
-export const Route = t
+export default t
   .get("/posts/:id")
   .use(requireActiveUser)
   .handler((ctx) => ok());
@@ -283,10 +283,10 @@ export const Route = t
 If a middleware applies to multiple distinct layout branches (such as both `"dashboard"` and `"admin"`), pass an array of layout IDs:
 
 ```ts title="src/middleware/tenant-guard.ts"
-import { defineMiddleware } from "@taserjs/router";
+import { middleware } from "@taserjs/router";
 import { forbidden } from "@taserjs/router/reply";
 
-export const requireTenant = defineMiddleware(["dashboard", "admin"], async (ctx, next) => {
+export const requireTenant = middleware(["dashboard", "admin"], async (ctx, next) => {
   // ctx.state receives the common state guaranteed across all specified layouts:
   const session = ctx.state.session;
 
@@ -302,11 +302,11 @@ This middleware can now be safely attached to routes inheriting either the `"das
 
 ---
 
-## State-Requirement Generics (`defineMiddleware<TState, TRequires>` / `.requires<TState>()`)
+## State-Requirement Generics (`middleware<TState, TRequires>` / `.requires<TState>()`)
 
 > [!TIP]
 > **Generics Order: Output First, Precondition Second**
-> `defineMiddleware<TState, TRequires>((ctx, next) => ...)` or `defineMiddleware().requires<TRequires>().handler(...)`
+> `middleware<TState, TRequires>((ctx, next) => ...)` or `middleware().requires<TRequires>().handler(...)`
 >
 > - **1st generic (`TState`)**: What this middleware **produces** / passes downstream via `next(state)`.
 > - **2nd generic (`TRequires`)**: What this middleware **requires** / enforces on `ctx.state` before running.
@@ -314,7 +314,7 @@ This middleware can now be safely attached to routes inheriting either the `"das
 For un-scoped middlewares that are not tied to a specific layout name but still require certain properties to exist in `ctx.state`, use the `.requires<TRequires>()` fluent builder method or generic parameters:
 
 ```ts title="src/middleware/admin-guard.ts"
-import { defineMiddleware } from "@taserjs/router";
+import { middleware } from "@taserjs/router";
 import { forbidden } from "@taserjs/router/reply";
 
 type RequiredState = {
@@ -324,7 +324,7 @@ type RequiredState = {
   };
 };
 
-export const requireAdmin = defineMiddleware()
+export const requireAdmin = middleware()
   .requires<RequiredState>()
   .handler(async (ctx, next) => {
     // ctx.state.user is guaranteed by TypeScript to exist:

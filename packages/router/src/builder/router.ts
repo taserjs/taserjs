@@ -6,30 +6,10 @@ import {
 } from "@taserjs/router-core";
 import { isPromise, normalizeOnError } from "@taserjs/router-utils";
 
-import {
-  createAllRoute,
-  createAnyRoute,
-  createDeleteRoute,
-  createGetRoute,
-  createHeadRoute,
-  createOptionsRoute,
-  createPatchRoute,
-  createPostRoute,
-  createPutRoute,
-} from "./factories.js";
-import { defineMiddleware, type DefineMiddlewareFn } from "../define/middleware.js";
-import { createMiddleware } from "./middleware.js";
 import { TaserApp } from "./app.js";
 import type { ContextDefinition, CreateTaserAppOptions, OnErrorOptions } from "../types/app.js";
-import type { AppContext } from "../types/units.js";
-import type { LayoutId, MiddlewareBuilder } from "../types/index.js";
+import type { EmptyAppContext } from "../types/units.js";
 import type { ReturnsMap } from "../types/returns.js";
-import type {
-  CreateAllRoute,
-  CreateAnyRoute,
-  CreateWithBodyRoute,
-  CreateWithoutBodyRoute,
-} from "./factories.js";
 
 function toOnErrorHandler(
   onErrorOptions: OnErrorOptions | OnErrorOptions["handle"],
@@ -47,10 +27,13 @@ type RouterState = {
 const emptyContext: ContextDefinition<Record<string, unknown>, Record<string, unknown>> = {};
 
 export class TaserRouter<
-  TAppContext extends Record<string, unknown> = AppContext,
+  TAppContext extends Record<string, unknown> = EmptyAppContext,
   THasNotFound extends boolean = false,
 > {
   private readonly state: RouterState;
+  readonly $Infer!: {
+    Context: TAppContext;
+  };
 
   constructor(options: CreateTaserAppOptions = {}, state?: Partial<Omit<RouterState, "options">>) {
     this.state = {
@@ -81,42 +64,6 @@ export class TaserRouter<
     this.state.notFound = (ctx) => handler(ctx);
     return this as unknown as TaserRouter<TAppContext, true>;
   }
-
-  get: CreateWithoutBodyRoute<"GET", TAppContext> = createGetRoute as CreateWithoutBodyRoute<
-    "GET",
-    TAppContext
-  >;
-  post: CreateWithBodyRoute<"POST", TAppContext> = createPostRoute as CreateWithBodyRoute<
-    "POST",
-    TAppContext
-  >;
-  put: CreateWithBodyRoute<"PUT", TAppContext> = createPutRoute as CreateWithBodyRoute<
-    "PUT",
-    TAppContext
-  >;
-  patch: CreateWithBodyRoute<"PATCH", TAppContext> = createPatchRoute as CreateWithBodyRoute<
-    "PATCH",
-    TAppContext
-  >;
-  delete: CreateWithoutBodyRoute<"DELETE", TAppContext> =
-    createDeleteRoute as CreateWithoutBodyRoute<"DELETE", TAppContext>;
-  options: CreateWithoutBodyRoute<"OPTIONS", TAppContext> =
-    createOptionsRoute as CreateWithoutBodyRoute<"OPTIONS", TAppContext>;
-  head: CreateWithoutBodyRoute<"HEAD", TAppContext> = createHeadRoute as CreateWithoutBodyRoute<
-    "HEAD",
-    TAppContext
-  >;
-  any: CreateAnyRoute<TAppContext> = createAnyRoute as CreateAnyRoute<TAppContext>;
-  all: CreateAllRoute<TAppContext> = createAllRoute as CreateAllRoute<TAppContext>;
-
-  middleware<const Layout extends LayoutId>(
-    layout: Layout,
-  ): MiddlewareBuilder<Layout, readonly [], TAppContext> {
-    return createMiddleware(layout) as MiddlewareBuilder<Layout, readonly [], TAppContext>;
-  }
-
-  defineMiddleware: DefineMiddlewareFn<TAppContext> =
-    defineMiddleware as DefineMiddlewareFn<TAppContext>;
 
   create<const TManifest extends RouteManifestShape>(
     manifest: TManifest,
@@ -192,6 +139,6 @@ export class TaserRouter<
 
 export function createTaserApp(
   options: CreateTaserAppOptions = {},
-): TaserRouter<AppContext, false> {
-  return new TaserRouter<AppContext, false>(options);
+): TaserRouter<EmptyAppContext, false> {
+  return new TaserRouter<EmptyAppContext, false>(options);
 }

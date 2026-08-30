@@ -5,7 +5,7 @@ import { Readable } from "node:stream";
 
 import { describe, expect, it } from "vitest";
 
-import { createTaserApp, type RouteManifestShape } from "../src/index.js";
+import { createTaserApp, t, type RouteManifestShape } from "../src/index.js";
 import { blob, buffer, file, pipe, stream } from "../src/stream.js";
 
 describe("router stream export", () => {
@@ -14,7 +14,6 @@ describe("router stream export", () => {
     const path = join(dir, "data.json");
     await writeFile(path, JSON.stringify({ message: "streamed from file" }));
 
-    const t = createTaserApp();
     const route = t.get("/file").handler(() => file(path));
     const manifest = {
       layouts: {},
@@ -23,7 +22,7 @@ describe("router stream export", () => {
       },
     } satisfies RouteManifestShape;
 
-    const app = t.create(manifest);
+    const app = createTaserApp().create(manifest);
     const response = await app.fetch(new Request("http://localhost/file"));
     expect(response!.status).toBe(200);
     expect(response!.headers.get("content-type")).toBe("application/json");
@@ -31,7 +30,6 @@ describe("router stream export", () => {
   });
 
   it("serves pipe stream from route handler", async () => {
-    const t = createTaserApp();
     const route = t.get("/pipe").handler(() =>
       pipe(Readable.toWeb(Readable.from([Buffer.from("piped-stream-data")])) as ReadableStream, {
         headers: { "content-type": "text/plain" },
@@ -44,7 +42,7 @@ describe("router stream export", () => {
       },
     } satisfies RouteManifestShape;
 
-    const app = t.create(manifest);
+    const app = createTaserApp().create(manifest);
     const response = await app.fetch(new Request("http://localhost/pipe"));
     expect(response!.status).toBe(200);
     expect(response!.headers.get("content-type")).toBe("text/plain");
@@ -52,7 +50,6 @@ describe("router stream export", () => {
   });
 
   it("serves buffer from route handler", async () => {
-    const t = createTaserApp();
     const route = t.get("/buffer").handler(() => buffer(Buffer.from("binary-stream")));
     const manifest = {
       layouts: {},
@@ -61,7 +58,7 @@ describe("router stream export", () => {
       },
     } satisfies RouteManifestShape;
 
-    const app = t.create(manifest);
+    const app = createTaserApp().create(manifest);
     const response = await app.fetch(new Request("http://localhost/buffer"));
     expect(response!.status).toBe(200);
     expect(response!.headers.get("content-type")).toBe("application/octet-stream");
@@ -69,7 +66,6 @@ describe("router stream export", () => {
   });
 
   it("serves blob from route handler", async () => {
-    const t = createTaserApp();
     const route = t
       .get("/blob")
       .handler(() => blob(new Blob(["blob data"], { type: "text/html" })));
@@ -80,7 +76,7 @@ describe("router stream export", () => {
       },
     } satisfies RouteManifestShape;
 
-    const app = t.create(manifest);
+    const app = createTaserApp().create(manifest);
     const response = await app.fetch(new Request("http://localhost/blob"));
     expect(response!.status).toBe(200);
     expect(response!.headers.get("content-type")).toBe("text/html");

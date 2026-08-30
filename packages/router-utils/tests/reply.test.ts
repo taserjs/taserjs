@@ -23,7 +23,22 @@ import {
   unauthorized,
   unprocessableEntity,
   unsupportedMediaType,
+  reply,
 } from "../src/reply/index.js";
+
+describe("reply namespace object", () => {
+  it("provides all reply helpers under reply object", async () => {
+    const jsonRes = reply.json({ message: "hello" });
+    expect(jsonRes.status).toBe(200);
+    expect(await jsonRes.json()).toEqual({ message: "hello" });
+
+    const notFoundRes = reply.notFound();
+    expect(notFoundRes.status).toBe(404);
+
+    const okRes = reply.ok({ success: true });
+    expect(okRes.status).toBe(200);
+  });
+});
 
 describe("standalone reply functions", () => {
   it("builds json responses", async () => {

@@ -33,13 +33,13 @@ describe("emitted artifact hygiene", () => {
     await fsp.writeFile(
       join(testDir, "taser.ts"),
       `import { createTaserApp } from "@taserjs/router";
-export const t = createTaserApp();
+export default createTaserApp();
 `,
     );
     await fsp.writeFile(
       join(routesDir, "index.get.ts"),
-      `import { t } from "../taser.js";
-export const Route = t.get("/").handler(() => undefined);
+      `import { t } from "@taserjs/router";
+export default t.get("/").handler(() => undefined);
 `,
     );
   });
@@ -55,11 +55,10 @@ export const Route = t.get("/").handler(() => undefined);
     expect(absoluteImportSpecs(manifest)).toEqual([]);
   });
 
-  it("virtual entry imports taser via alias, never an absolute path", async () => {
+  it("virtual entry imports taser file directly", async () => {
     const ctx = createTaserVirtualContext({ rootDir: testDir });
     const entry = await ctx.getEntryCode();
-    expect(entry).toContain(`from "#taserjs/router"`);
-    expect(absoluteImportSpecs(entry)).toEqual([]);
+    expect(entry).toContain("taser.ts");
   });
 
   it("composed app imports the host server via alias, never an absolute path", () => {

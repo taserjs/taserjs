@@ -20,7 +20,7 @@ Attach a `.returns()` map containing schemas keyed by HTTP status codes:
 ```ts title="src/routes/profile.get.ts"
 import { json, notFound } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
 const UserProfileSchema = z.object({
   id: z.string(),
@@ -33,7 +33,7 @@ const ErrorSchema = z.object({
   message: z.string(),
 });
 
-export const Route = t
+export default t
   .get("/profile")
   .returns({
     // [!code highlight]
@@ -88,7 +88,7 @@ You can configure response validation behavior in `src/taser.ts`:
 ```ts title="src/taser.ts"
 import { createTaserApp } from "@taserjs/router";
 
-export const t = createTaserApp({
+export default createTaserApp({
   response: {
     // Enable/disable runtime response validation (default: true)
     validate: process.env.NODE_ENV !== "production",

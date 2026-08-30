@@ -17,9 +17,9 @@ Sets standard HTTP security headers (HSTS, X-Content-Type-Options, X-Frame-Optio
 
 ```ts title="src/routes/$.ts"
 import { secureHeaders } from "@taserjs/router/secure-headers";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Middleware = t.middleware("/$").use(
+export default t.layout("/$").use(
   secureHeaders({
     contentSecurityPolicy: {
       defaultSrc: ["'self'"],
@@ -45,9 +45,9 @@ Prevents denial-of-service memory exhaustion by enforcing maximum request body l
 ```ts title="src/routes/uploads.ts"
 import { bodyLimit } from "@taserjs/router/body-limit";
 import { payloadTooLarge } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Middleware = t.middleware("uploads").use(
+export default t.layout("uploads").use(
   bodyLimit({
     maxSize: 10 * 1024 * 1024, // 10MB limit
     onError: () => {
@@ -65,9 +65,9 @@ Validates incoming request origin against server origins to prevent cross-site r
 
 ```ts title="src/routes/$.ts"
 import { csrf } from "@taserjs/router/csrf";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Middleware = t.middleware("/$").use(
+export default t.layout("/$").use(
   csrf({
     origin: ["https://app.example.com"],
   }),
@@ -82,9 +82,9 @@ Calculates cryptographic hash ETags for response bodies and automatically respon
 
 ```ts title="src/routes/$.ts"
 import { etag } from "@taserjs/router/etag";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Middleware = t.middleware("/$").use(
+export default t.layout("/$").use(
   etag({
     weak: true,
   }),
@@ -99,9 +99,9 @@ Adds standard `Server-Timing` headers to responses, enabling Chrome DevTools and
 
 ```ts title="src/routes/$.ts"
 import { timing } from "@taserjs/router/timing";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Middleware = t.middleware("/$").use(timing());
+export default t.layout("/$").use(timing());
 ```
 
 ---
@@ -112,9 +112,9 @@ Automatically compresses outgoing HTTP response payloads using `gzip`, `deflate`
 
 ```ts title="src/routes/$.ts"
 import { compress } from "@taserjs/router/compress";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Middleware = t.middleware("/$").use(
+export default t.layout("/$").use(
   compress({
     threshold: 1024, // Compress responses larger than 1KB
   }),

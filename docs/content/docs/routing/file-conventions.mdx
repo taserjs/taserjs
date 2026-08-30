@@ -17,8 +17,8 @@ Taser adopts modern **TanStack Router-style file routing conventions** tailored 
 
 Under your `src/routes/` directory, files are classified into two distinct types:
 
-1. **Route Files**: Filenames containing an HTTP verb before `.ts` (such as `users.get.ts`, `posts.post.ts`, `items.$id.delete.ts`, `tasks/$id.complete.patch.ts`). Route files export a `Route` definition created with `t.get()`, `t.post()`, `t.patch()`, etc.
-2. **Layout Files**: Filenames ending in `.ts` without an HTTP verb (such as `$.ts`, `admin.ts`, `_auth.ts`, `tasks/$id.ts`). Layout files export a `Middleware` pipeline created with `t.middleware()`.
+1. **Route Files**: Filenames containing an HTTP verb before `.ts` (such as `users.get.ts`, `posts.post.ts`, `items.$id.delete.ts`, `tasks/$id.complete.patch.ts`). Route files export a default route definition created with `t.get()`, `t.post()`, `get()`, `post()`, etc.
+2. **Layout Files**: Filenames ending in `.ts` without an HTTP verb (such as `$.ts`, `admin.ts`, `_auth.ts`, `tasks/$id.ts`). Layout files export a default middleware pipeline created with `t.layout()` or `layout()`.
 
 ---
 
@@ -40,33 +40,9 @@ Taser determines the HTTP verb from the final extension segment before `.ts`:
 
 ## Flat Routes, Directory Routes, and Mixed Notation
 
-Taser supports **flat dot notation**, **nested directory structures**, and **mixed folder + dot notation**. You can use whichever structure keeps your codebase cleanest:
+Taser supports **nested directory structures**, **flat dot notation**, and **mixed folder + dot notation**. You can use whichever structure keeps your codebase cleanest:
 
-<Tabs
-  items={["Flat Dot Notation", "Directory Folders", "Mixed Folder + Dot Notation", "Resolved URL"]}
->
-  <Tab value="Flat Dot Notation">
-    <Files>
-      <Folder name="src/routes" defaultOpen>
-        <File
-          name="posts.index.get.ts"
-          icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
-        />
-        <File
-          name="posts.$id.get.ts"
-          icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
-        />
-        <File
-          name="posts.$id.edit.put.ts"
-          icon={<span className="text-blue-500 text-xs font-mono font-bold">PUT</span>}
-        />
-        <File
-          name="tasks.$id.complete.patch.ts"
-          icon={<span className="text-amber-500 text-xs font-mono font-bold">PATCH</span>}
-        />
-      </Folder>
-    </Files>
-  </Tab>
+<Tabs items={["Directory Folders", "Flat Dot Notation", "Mixed Folder + Dot Notation"]}>
   <Tab value="Directory Folders">
     <Files>
       <Folder name="src/routes" defaultOpen>
@@ -74,15 +50,18 @@ Taser supports **flat dot notation**, **nested directory structures**, and **mix
           <File
             name="index.get.ts"
             icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+            route="/posts"
           />
           <File
             name="$id.get.ts"
             icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+            route="/posts/:id"
           />
           <Folder name="$id" defaultOpen>
             <File
               name="edit.put.ts"
               icon={<span className="text-blue-500 text-xs font-mono font-bold">PUT</span>}
+              route="/posts/:id/edit"
             />
           </Folder>
         </Folder>
@@ -91,9 +70,36 @@ Taser supports **flat dot notation**, **nested directory structures**, and **mix
             <File
               name="complete.patch.ts"
               icon={<span className="text-amber-500 text-xs font-mono font-bold">PATCH</span>}
+              route="/tasks/:id/complete"
             />
           </Folder>
         </Folder>
+      </Folder>
+    </Files>
+  </Tab>
+  <Tab value="Flat Dot Notation">
+    <Files>
+      <Folder name="src/routes" defaultOpen>
+        <File
+          name="posts.index.get.ts"
+          icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+          route="/posts"
+        />
+        <File
+          name="posts.$id.get.ts"
+          icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+          route="/posts/:id"
+        />
+        <File
+          name="posts.$id.edit.put.ts"
+          icon={<span className="text-blue-500 text-xs font-mono font-bold">PUT</span>}
+          route="/posts/:id/edit"
+        />
+        <File
+          name="tasks.$id.complete.patch.ts"
+          icon={<span className="text-amber-500 text-xs font-mono font-bold">PATCH</span>}
+          route="/tasks/:id/complete"
+        />
       </Folder>
     </Files>
   </Tab>
@@ -104,23 +110,23 @@ Taser supports **flat dot notation**, **nested directory structures**, and **mix
           <File
             name="index.get.ts"
             icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+            route="/posts"
           />
           <File
             name="$id.edit.put.ts"
             icon={<span className="text-blue-500 text-xs font-mono font-bold">PUT</span>}
+            route="/posts/:id/edit"
           />
         </Folder>
         <Folder name="tasks" defaultOpen>
           <File
             name="$id.complete.patch.ts"
             icon={<span className="text-amber-500 text-xs font-mono font-bold">PATCH</span>}
+            route="/tasks/:id/complete"
           />
         </Folder>
       </Folder>
     </Files>
-  </Tab>
-  <Tab value="Resolved URL">
-    ``` GET /posts GET /posts/:id PUT /posts/:id/edit PATCH /tasks/:id/complete ```
   </Tab>
 </Tabs>
 
@@ -141,24 +147,29 @@ An `index` segment targets the root of its parent route without appending `/inde
     <File
       name="index.get.ts"
       icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      route="/"
     />
     <File
       name="api.index.get.ts"
       icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      route="/api"
     />
     <Folder name="products" defaultOpen>
       <File
         name="index.get.ts"
         icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+        route="/products"
       />
       <File
         name="index.post.ts"
         icon={<span className="text-blue-500 text-xs font-mono font-bold">POST</span>}
+        route="/products"
       />
     </Folder>
     <File
       name="posts.$id.index.get.ts"
       icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      route="/posts/:id"
     />
   </Folder>
 </Files>
@@ -174,16 +185,19 @@ Prefixing a segment with `$` denotes a named URL path parameter:
     <File
       name="users.$id.get.ts"
       icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      route="/users/:id"
     />
     <Folder name="tasks" defaultOpen>
       <File
         name="$id.complete.patch.ts"
         icon={<span className="text-amber-500 text-xs font-mono font-bold">PATCH</span>}
+        route="/tasks/:id/complete"
       />
     </Folder>
     <File
       name="orgs.$orgId.repos.$repoId.get.ts"
       icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      route="/orgs/:orgId/repos/:repoId"
     />
   </Folder>
 </Files>
@@ -193,9 +207,9 @@ Inside your route handler, parameters are automatically typed and validated on `
 ```ts title="src/routes/tasks/$id.complete.patch.ts"
 import { json } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t
+export default t
   .patch("/tasks/:id/complete")
   .params(z.object({ id: z.string().uuid() }))
   .handler((ctx) => {
@@ -215,15 +229,18 @@ A standalone `$` segment captures wildcard rest segments (splats):
     <File
       name="$.get.ts"
       icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      route="/*"
     />
     <File
       name="files.$.get.ts"
       icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      route="/files/*"
     />
     <Folder name="files" defaultOpen>
       <File
         name="$.get.ts"
         icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+        route="/files/*"
       />
     </Folder>
   </Folder>
@@ -240,10 +257,10 @@ A top-level file named `src/routes/$.ts` serves as the **Root Layout Middleware*
 ```ts title="src/routes/$.ts"
 import { bodyLimit } from "@taserjs/router/body-limit";
 import { secureHeaders } from "@taserjs/router/secure-headers";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Middleware = t
-  .middleware("/$")
+export default t
+  .layout("/$")
   .use(secureHeaders())
   .use(bodyLimit({ maxSize: 1_000_000 }));
 ```
@@ -259,20 +276,24 @@ A segment starting with an underscore `_` (like `_auth.ts`, `_auth/`, or `_auth.
     <File
       name="_auth.ts"
       icon={<span className="text-purple-500 text-xs font-mono font-bold">LAYOUT</span>}
+      route="/* (scoped _auth)"
     />
     <Folder name="_auth" defaultOpen>
       <File
         name="dashboard.get.ts"
         icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+        route="/dashboard"
       />
       <File
         name="profile.get.ts"
         icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+        route="/profile"
       />
     </Folder>
     <File
       name="login.post.ts"
       icon={<span className="text-blue-500 text-xs font-mono font-bold">POST</span>}
+      route="/login"
     />
   </Folder>
 </Files>
@@ -284,14 +305,17 @@ In flat dot notation:
     <File
       name="_auth.dashboard.get.ts"
       icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      route="/dashboard"
     />
     <File
       name="_auth.profile.get.ts"
       icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      route="/profile"
     />
     <File
       name="_app._dashboard.metrics.get.ts"
       icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+      route="/metrics"
     />
   </Folder>
 </Files>
@@ -317,37 +341,45 @@ By adding a trailing underscore to `posts_` or `$id_`, the route keeps the URL s
         <File
           name="$.ts"
           icon={<span className="text-amber-500 text-xs font-mono font-bold">ROOT</span>}
+          route="/*"
         />
         <File
           name="posts.ts"
           icon={<span className="text-purple-500 text-xs font-mono font-bold">LAYOUT</span>}
+          route="/posts/*"
         />
         <Folder name="posts" defaultOpen>
           <File
             name="index.get.ts"
             icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+            route="/posts"
           />
           <File
             name="$id.get.ts"
             icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+            route="/posts/:id"
           />
         </Folder>
         <File
           name="posts_.$id.preview.get.ts"
           icon={<span className="text-rose-500 text-xs font-mono font-bold">BREAKOUT</span>}
+          route="/posts/:id/preview (skips posts.ts)"
         />
         <Folder name="tasks" defaultOpen>
           <File
             name="$id.ts"
             icon={<span className="text-purple-500 text-xs font-mono font-bold">LAYOUT</span>}
+            route="/tasks/:id/*"
           />
           <File
             name="$id.status.get.ts"
             icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+            route="/tasks/:id/status"
           />
           <File
             name="$id_.complete.patch.ts"
             icon={<span className="text-rose-500 text-xs font-mono font-bold">BREAKOUT</span>}
+            route="/tasks/:id/complete (skips $id.ts)"
           />
         </Folder>
       </Folder>
@@ -395,24 +427,29 @@ To co-locate utility files, helper functions, schemas, or test fixtures directly
       <File
         name="-types.ts"
         icon={<span className="text-fd-muted-foreground text-xs font-mono font-bold">IGNORED</span>}
+        route="(not routed)"
       />
       <File
         name="-schema.ts"
         icon={<span className="text-fd-muted-foreground text-xs font-mono font-bold">IGNORED</span>}
+        route="(not routed)"
       />
       <File
         name="index.get.ts"
         icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+        route="/users"
       />
       <File
         name="$id.get.ts"
         icon={<span className="text-emerald-500 text-xs font-mono font-bold">GET</span>}
+        route="/users/:id"
       />
     </Folder>
-    <Folder name="-shared">
+    <Folder name="-shared" route="(not routed)" defaultOpen>
       <File
         name="utils.ts"
         icon={<span className="text-fd-muted-foreground text-xs font-mono font-bold">IGNORED</span>}
+        route="(not routed)"
       />
     </Folder>
   </Folder>

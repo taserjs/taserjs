@@ -4,7 +4,7 @@ import type { ReturnsMap } from "./validate.js";
 
 export function collectReturnsFromDefinitions(
   definitions: readonly {
-    returns?: ReturnsMap | Record<number, StandardSchemaV1> | Record<number, unknown>;
+    returns?: ReturnsMap | Record<number, StandardSchemaV1> | Record<number, unknown> | undefined;
   }[],
 ): Record<number, StandardSchemaV1> {
   const result: Record<number, StandardSchemaV1> = {};

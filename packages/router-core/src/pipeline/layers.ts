@@ -81,6 +81,10 @@ export function middlewareToLayer(definition: MiddlewareDefinition): PipelineLay
         await applyValidators(ctx, definition);
       }
 
+      if (!definition.handler || (definition as any).__isUnitBuilder) {
+        return next();
+      }
+
       let nextCalled = false;
       const trackedNext: PipelineNext = (args) => {
         nextCalled = true;

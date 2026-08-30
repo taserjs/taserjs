@@ -124,7 +124,7 @@ function syncHonoHeadersToResponse(c: Context, response: Response): Response {
 
 /**
  * Creates a Taser middleware handler that bridges a Hono middleware into the pipeline.
- * Used by `@taserjs/router`'s `defineMiddleware()` when passed a Hono middleware function.
+ * Used by `@taserjs/router`'s `middleware()` when passed a Hono middleware function.
  */
 export function createTaserCompatHandler(
   middleware: MiddlewareHandler,

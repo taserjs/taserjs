@@ -5,13 +5,11 @@ import { sign } from "hono/jwt";
 import { createTaserRuntime } from "@taserjs/router-core";
 
 import { cors } from "../src/middleware/cors.js";
-import { createTaserApp } from "../src/index.js";
+import { t } from "../src/index.js";
 import { json } from "../src/reply.js";
 import { jwt } from "../src/middleware/jwt.js";
 
 describe("middleware subpath exports", () => {
-  const t = createTaserApp().context({});
-
   it("cors() returns a MiddlewareUnit with a handler", () => {
     const unit = cors({ origin: "*" });
     expect(typeof unit.handler).toBe("function");

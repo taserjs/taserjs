@@ -1,7 +1,7 @@
+import { t } from "@taserjs/router";
 import { json } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
 
-export const Route = t.get("/hello").handler((ctx) => {
+export default t.get("/hello").handler((_ctx) => {
   return json({
     greeting: `Hello, World!`,
     from: "taser",

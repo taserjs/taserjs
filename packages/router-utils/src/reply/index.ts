@@ -1,3 +1,46 @@
+import { accepted, created, html, json, noContent, ok, redirect, text } from "./success.js";
+import {
+  badGateway,
+  badRequest,
+  conflict,
+  forbidden,
+  gatewayTimeout,
+  internalServerError,
+  notFound,
+  notImplemented,
+  payloadTooLarge,
+  serviceUnavailable,
+  tooManyRequests,
+  unauthorized,
+  unprocessableEntity,
+  unsupportedMediaType,
+} from "./errors.js";
+
+export const reply = {
+  ok,
+  created,
+  accepted,
+  json,
+  text,
+  html,
+  noContent,
+  redirect,
+  badRequest,
+  unauthorized,
+  forbidden,
+  notFound,
+  conflict,
+  payloadTooLarge,
+  unsupportedMediaType,
+  unprocessableEntity,
+  tooManyRequests,
+  internalServerError,
+  notImplemented,
+  badGateway,
+  serviceUnavailable,
+  gatewayTimeout,
+} as const;
+
 export { ok, created, accepted, json, text, html, noContent, redirect } from "./success.js";
 
 export {

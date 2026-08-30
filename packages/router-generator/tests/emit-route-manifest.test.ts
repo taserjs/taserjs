@@ -16,19 +16,19 @@ describe("emitRouteManifestSource snapshot", () => {
 
     writeFileSync(
       join(routesDir, "$.ts"),
-      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('/$').use((_ctx, next) => next());\n`,
+      `import { t } from '@taserjs/router';\nexport default t.layout('/$').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "index.ts"),
-      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('index').use((_ctx, next) => next());\n`,
+      `import { t } from '@taserjs/router';\nexport default t.layout('index').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "index.get.ts"),
-      `import { t } from '#taserjs/router';\nexport const Route = t.get('/').handler(() => {});\n`,
+      `import { t } from '@taserjs/router';\nexport default t.get('/').handler(() => {});\n`,
     );
     writeFileSync(
       join(routesDir, "posts.$id.get.ts"),
-      `import { t } from '#taserjs/router';\nexport const Route = t.get('/posts/:id').handler(() => {});\n`,
+      `import { t } from '@taserjs/router';\nexport default t.get('/posts/:id').handler(() => {});\n`,
     );
 
     const model = await buildTestModel(routesDir, outputFile);
@@ -50,15 +50,15 @@ describe("emitRouteManifestSource", () => {
 
     writeFileSync(
       join(routesDir, "$.ts"),
-      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('/$').use((_ctx, next) => next());\n`,
+      `import { t } from '@taserjs/router';\nexport default t.layout('/$').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "index.ts"),
-      `import { t } from '#taserjs/router';\nexport const Middleware = t.middleware('index').use((_ctx, next) => next());\n`,
+      `import { t } from '@taserjs/router';\nexport default t.layout('index').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "index.get.ts"),
-      `import { t } from '#taserjs/router';\nexport const Route = t.get('/').handler(() => {});\n`,
+      `import { t } from '@taserjs/router';\nexport default t.get('/').handler(() => {});\n`,
     );
 
     const model = await buildTestModel(routesDir, outputFile);

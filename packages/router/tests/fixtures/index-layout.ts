@@ -1,11 +1,9 @@
 import { z } from "zod";
 
-import { createTaserApp, defineMiddleware } from "../../src/index.js";
+import { middleware, t } from "../../src/index.js";
 
-const t = createTaserApp().context({});
-
-export const IndexLayout = t.middleware("index").use(
-  defineMiddleware()
+export const IndexLayout = t.layout("index").use(
+  middleware()
     .query(
       z.object({
         page: z.coerce.number().int().positive().default(1),

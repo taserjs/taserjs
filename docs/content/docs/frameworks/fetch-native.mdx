@@ -109,11 +109,11 @@ When an incoming HTTP request reaches your server:
 
     ```ts title="src/routes/users.get.ts"
     import { json } from "@taserjs/router/reply";
-    import { t } from "#taserjs/router";
+    import { t } from "@taserjs/router";
 
     const GET = t.get("/users");
 
-    export const Route = GET.handler(() => {
+    export default GET.handler(() => {
       return json({ users: ["Alice", "Bob"] });
     });
     ```
@@ -140,14 +140,13 @@ When an incoming HTTP request reaches your server:
 Using the `honoMw()` helper, you can adapt any native Web Standard and Fetch-native middleware function into Taser:
 
 ```ts title="src/routes/$.ts"
-import { defineMiddleware, honoMw } from "@taserjs/router";
+import { middleware, honoMw, t } from "@taserjs/router";
 import { secureHeaders } from "hono/secure-headers";
-import { t } from "#taserjs/router";
 
 // Wrap any Web Standard middleware seamlessly using honoMw()
-const securityHeadersMiddleware = defineMiddleware(honoMw(secureHeaders()));
+const securityHeadersMiddleware = middleware(honoMw(secureHeaders()));
 
-export const Middleware = t.middleware("/$").use(securityHeadersMiddleware);
+export default t.layout("/$").use(securityHeadersMiddleware);
 ```
 
 ---

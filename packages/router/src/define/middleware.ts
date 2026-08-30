@@ -2,7 +2,6 @@ import { type Awaitable } from "@taserjs/router-core";
 
 import { createMiddlewareUnitBuilder } from "../builder/middleware-unit.js";
 import type {
-  AppContext,
   DefineMiddlewareResult,
   ExtractState,
   IsUnknown,
@@ -11,30 +10,44 @@ import type {
   StandaloneMiddlewareContext,
 } from "../types/units.js";
 import type {
+  AppContext,
   LayoutId,
   ResolveLayoutMiddlewaresState,
   ResolveLayoutsState,
 } from "../types/index.js";
 
-export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> = AppContext> {
+export interface MiddlewareFn<TAppContext extends Record<string, unknown> = AppContext> {
   /**
-   * Constructs a fluent unscoped middleware builder.
+   * Constructs a fluent unscoped middleware builder, with optional explicit State generic.
    *
    * @example
    * ```ts
-   * const auth = defineMiddleware()
+   * const auth = middleware<{ user: string }>()
    *   .query(z.object({ token: z.string() }))
    *   .body("form", z.object({ file: z.instanceof(File) }))
    *   .returns({ 401: z.string() })
    *   .handler(async (ctx, next) => next({ user: "alice" }));
    * ```
    */
-  (): MiddlewareUnitBuilder<unknown, unknown, unknown, {}, null, {}, TAppContext>;
+  <TState = unknown>(): MiddlewareUnitBuilder<
+    unknown,
+    unknown,
+    unknown,
+    {},
+    null,
+    {},
+    TAppContext,
+    {},
+    unknown,
+    unknown,
+    unknown,
+    TState
+  >;
 
   /**
-   * Constructs a fluent middleware builder scoped to a single layout branch.
+   * Constructs a fluent middleware builder scoped to a single layout branch, with optional explicit State generic.
    */
-  <const Layout extends LayoutId>(
+  <const Layout extends LayoutId, TState = unknown>(
     layout: Layout,
   ): MiddlewareUnitBuilder<
     unknown,
@@ -44,13 +57,17 @@ export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> 
     Layout,
     {},
     TAppContext,
-    ResolveLayoutMiddlewaresState<Layout>
+    ResolveLayoutMiddlewaresState<Layout>,
+    unknown,
+    unknown,
+    unknown,
+    TState
   >;
 
   /**
-   * Constructs a fluent middleware builder scoped to multiple layout branches (branch union).
+   * Constructs a fluent middleware builder scoped to multiple layout branches (branch union), with optional explicit State generic.
    */
-  <const Layouts extends readonly [LayoutId, ...LayoutId[]]>(
+  <const Layouts extends readonly [LayoutId, ...LayoutId[]], TState = unknown>(
     layouts: Layouts,
   ): MiddlewareUnitBuilder<
     unknown,
@@ -60,7 +77,11 @@ export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> 
     Layouts,
     {},
     TAppContext,
-    ResolveLayoutsState<Layouts>
+    ResolveLayoutsState<Layouts>,
+    unknown,
+    unknown,
+    unknown,
+    TState
   >;
 
   /**
@@ -77,7 +98,7 @@ export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> 
         ResolveLayoutMiddlewaresState<Layout> & TRequires
       >,
       next: NextFn<NoInfer<TState>>,
-    ) => Awaitable<R>,
+    ) => R,
   ): DefineMiddlewareResult<
     unknown,
     unknown,
@@ -111,7 +132,7 @@ export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> 
         ResolveLayoutsState<Layouts> & TRequires
       >,
       next: NextFn<NoInfer<TState>>,
-    ) => Awaitable<R>,
+    ) => R,
   ): DefineMiddlewareResult<
     unknown,
     unknown,
@@ -131,7 +152,7 @@ export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> 
    *
    * @example
    * ```ts
-   * const auth = defineMiddleware((ctx, next) => {
+   * const auth = middleware((ctx, next) => {
    *   return next({ user: "alice" });
    * });
    * ```
@@ -140,7 +161,7 @@ export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> 
     fn: (
       ctx: StandaloneMiddlewareContext<unknown, unknown, unknown, TAppContext, TRequires>,
       next: NextFn<NoInfer<TState>>,
-    ) => Awaitable<R>,
+    ) => R,
   ): DefineMiddlewareResult<
     unknown,
     unknown,
@@ -156,7 +177,10 @@ export interface DefineMiddlewareFn<TAppContext extends Record<string, unknown> 
   >;
 }
 
-export const defineMiddleware: DefineMiddlewareFn<AppContext> = function defineMiddleware(
+export type DefineMiddlewareFn<TAppContext extends Record<string, unknown> = AppContext> =
+  MiddlewareFn<TAppContext>;
+
+export const middleware: MiddlewareFn<AppContext> = function middleware(
   first?: any,
   second?: any,
 ): any {

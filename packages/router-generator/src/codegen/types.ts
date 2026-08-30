@@ -6,11 +6,14 @@ import {
   exportConst,
   exportTypeAlias,
   id,
+  importDefaultDeclaration,
   objectExpression,
   objectProperty,
   str,
   tsAsConst,
+  tsConditionalType,
   tsIndexedAccessType,
+  tsInferType,
   tsLiteralType,
   tsNullKeyword,
   tsPropertySignature,
@@ -175,7 +178,54 @@ export function buildRouteByPathMethodType(
   return tsTypeAlias("RouteByPathMethodGen", tsTypeLiteral(properties));
 }
 
-export function buildRouterRegisterAugmentation(): TSESTree.TSModuleDeclarationModuleWithStringIdDeclared {
+export function buildAppContextType(): TSESTree.TSTypeAliasDeclaration {
+  return tsTypeAlias(
+    "AppContextGen",
+    tsConditionalType(
+      tsTypeQuery("taser"),
+      tsTypeLiteral([
+        tsPropertySignature(
+          id("$Infer"),
+          tsTypeLiteral([tsPropertySignature(id("Context"), tsInferType("C"))]),
+        ),
+      ]),
+      tsTypeReference("C"),
+      tsTypeLiteral([]),
+    ),
+  );
+}
+
+export function buildLayoutParentsType(
+  layoutIds: string[],
+  layoutParents: Map<string, string | null>,
+): TSESTree.TSTypeAliasDeclaration {
+  const properties: TSESTree.TypeElement[] = layoutIds.map((layoutId) => {
+    const parent = layoutParents.get(layoutId) ?? null;
+    const parentType = parent === null ? tsNullKeyword() : tsLiteralType(parent);
+    return tsPropertySignature(str(layoutId), parentType);
+  });
+
+  return tsTypeAlias("LayoutParentsGen", tsTypeLiteral(properties));
+}
+
+export function buildRouterRegisterAugmentation(
+  hasAppContext: boolean = false,
+): TSESTree.TSModuleDeclarationModuleWithStringIdDeclared {
+  const registerMembers: TSESTree.TypeElement[] = [];
+
+  if (hasAppContext) {
+    registerMembers.push(tsPropertySignature(id("AppContext"), tsTypeReference("AppContextGen")));
+  }
+
+  registerMembers.push(
+    tsPropertySignature(id("RoutePath"), tsTypeReference("RoutePathGen")),
+    tsPropertySignature(id("LayoutId"), tsTypeReference("LayoutIdGen")),
+    tsPropertySignature(id("LayoutParents"), tsTypeReference("LayoutParentsGen")),
+    tsPropertySignature(id("LayoutTree"), tsTypeReference("LayoutTreeGen")),
+    tsPropertySignature(id("RouteByPathMethod"), tsTypeReference("RouteByPathMethodGen")),
+    tsPropertySignature(id("ClientChain"), tsTypeReference("ClientChainGen")),
+  );
+
   return asNode<TSESTree.TSModuleDeclarationModuleWithStringIdDeclared>({
     type: AST_NODE_TYPES.TSModuleDeclaration,
     declare: true,
@@ -193,13 +243,7 @@ export function buildRouterRegisterAugmentation(): TSESTree.TSModuleDeclarationM
           extends: [],
           body: asNode<TSESTree.TSInterfaceBody>({
             type: AST_NODE_TYPES.TSInterfaceBody,
-            body: [
-              tsPropertySignature(id("RoutePath"), tsTypeReference("RoutePathGen")),
-              tsPropertySignature(id("LayoutId"), tsTypeReference("LayoutIdGen")),
-              tsPropertySignature(id("LayoutTree"), tsTypeReference("LayoutTreeGen")),
-              tsPropertySignature(id("RouteByPathMethod"), tsTypeReference("RouteByPathMethodGen")),
-              tsPropertySignature(id("ClientChain"), tsTypeReference("ClientChainGen")),
-            ],
+            body: registerMembers,
           }),
         }),
       ],
@@ -209,8 +253,11 @@ export function buildRouterRegisterAugmentation(): TSESTree.TSModuleDeclarationM
 
 export function buildFullProgram(
   model: GeneratedModel,
-  rewriteImportPath?: EmitManifestOptions["rewriteImportPath"],
+  options?: EmitManifestOptions,
 ): TSESTree.Program {
+  const rewriteImportPath = options?.rewriteImportPath;
+  const taserImportPath = options?.taserImportPath;
+
   const routePathType = tsTypeAlias(
     "RoutePathGen",
     tsUnionType(model.routePaths.map((path) => tsLiteralType(path))),
@@ -221,13 +268,24 @@ export function buildFullProgram(
     tsUnionType(model.layoutIds.map((idValue) => tsLiteralType(idValue))),
   );
 
+  const layoutParentsType = buildLayoutParentsType(model.layoutIds, model.layoutParents);
   const layoutTreeType = buildLayoutTreeType(model.layoutIds, model.layoutParents, model.layouts);
   const routeByPathMethodType = buildRouteByPathMethodType(model.routesByPath);
   const clientChainType = buildClientChainType(model.routesByPath);
 
-  const body: TSESTree.Statement[] = [
+  const imports: TSESTree.Statement[] = [];
+
+  if (taserImportPath) {
+    imports.push(importDefaultDeclaration("taser", taserImportPath, "type"));
+  }
+
+  imports.push(
     ...buildLayoutImports(model.layouts, rewriteImportPath),
     ...buildRouteImports(model.routes, rewriteImportPath),
+  );
+
+  const body: TSESTree.Statement[] = [
+    ...imports,
     exportConst(
       "routeManifest",
       tsAsConst(
@@ -237,12 +295,14 @@ export function buildFullProgram(
         ]),
       ),
     ),
+    ...(taserImportPath ? [buildAppContextType()] : []),
     routePathType,
     layoutIdType,
+    layoutParentsType,
     layoutTreeType,
     routeByPathMethodType,
     clientChainType,
-    buildRouterRegisterAugmentation(),
+    buildRouterRegisterAugmentation(Boolean(taserImportPath)),
     exportTypeAlias("RouteManifest", tsTypeQuery("routeManifest")),
   ];
 

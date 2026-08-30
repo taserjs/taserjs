@@ -11,27 +11,32 @@ import {
   taserConfigSchema,
   watchRoutes,
   writeTaserTypes,
+  DEFAULT_ENTRY,
   type TypeWriterState,
   type GeneratedModel,
 } from "@taserjs/router-generator";
 
-import { ENTRY_ALIAS_ID, ROUTES_ALIAS_ID } from "./constants.js";
+import { ROUTES_ALIAS_ID } from "./constants.js";
 import type { TaserPluginOptions, TaserVirtualContext, WatcherOptions } from "./types.js";
 
 function resolveTaserEntryPath(
   rootDir: string,
   serverDir: string,
-  entry: string,
+  entry?: string,
 ): string | undefined {
-  if (!entry.startsWith("#")) {
+  if (entry && !entry.startsWith("#")) {
     const candidate = isAbsolute(entry) ? entry : resolve(serverDir, entry);
-    return resolve(candidate);
+    if (existsSync(candidate)) return resolve(candidate);
+    const rootCandidate = resolve(rootDir, entry);
+    if (existsSync(rootCandidate)) return resolve(rootCandidate);
   }
-  if (entry === ENTRY_ALIAS_ID) {
-    const candidate = join(serverDir, "taser.ts");
-    if (existsSync(candidate)) {
-      return resolve(candidate);
-    }
+  const defaultCandidate = join(serverDir, "taser.ts");
+  if (existsSync(defaultCandidate)) {
+    return resolve(defaultCandidate);
+  }
+  const rootSrcCandidate = join(rootDir, "src", "taser.ts");
+  if (existsSync(rootSrcCandidate)) {
+    return resolve(rootSrcCandidate);
   }
   return undefined;
 }
@@ -42,11 +47,7 @@ export function createTaserVirtualContext(options: TaserPluginOptions = {}): Tas
   const serverDir = resolveServerDir(rootDir, resolved.serverDir);
   const routesDir = resolveRoutesDir(rootDir, serverDir, resolved.routesDir);
   const serverEntryPath = resolveServerEntry(rootDir, serverDir, resolved.serverEntry);
-  const taserEntryPath = resolveTaserEntryPath(
-    rootDir,
-    serverDir,
-    resolved.entry || ENTRY_ALIAS_ID,
-  );
+  const taserEntryPath = resolveTaserEntryPath(rootDir, serverDir, resolved.entry);
 
   const cache = new AnalysisCache();
   const writerState: TypeWriterState = {};
@@ -90,8 +91,9 @@ export function createTaserVirtualContext(options: TaserPluginOptions = {}): Tas
   const getEntryCode = async (): Promise<string> => {
     if (!entryCodePromise) {
       entryCodePromise = (async () => {
+        const importPath = taserEntryPath || resolved.entry || DEFAULT_ENTRY;
         return emitVirtualEntrySource({
-          taserAppImportPath: resolved.entry || ENTRY_ALIAS_ID,
+          taserAppImportPath: importPath,
           basePath: resolved.basePath,
         });
       })();
@@ -106,6 +108,7 @@ export function createTaserVirtualContext(options: TaserPluginOptions = {}): Tas
       quotes: resolved.formatting.quotes,
       header: resolved.formatting.header,
       routesDir,
+      taserEntryPath,
       state: writerState,
     });
   };

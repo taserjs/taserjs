@@ -12,7 +12,7 @@ import type { MiddlewareHandler } from "hono";
  *
  * const app = t.get("/hello").use(honoMw(cors()));
  * // or
- * const customCors = defineMiddleware(honoMw(cors()));
+ * const customCors = middleware(honoMw(cors()));
  * ```
  */
 export function honoMw(

@@ -50,7 +50,7 @@ export function emitManifestSource(
   const program =
     kind === "virtual"
       ? buildVirtualManifestProgram(model, options.rewriteImportPath)
-      : buildFullProgram(model, options.rewriteImportPath);
+      : buildFullProgram(model, options);
 
   const printFn = unwrapDefault(print);
   const tsLang = unwrapDefault(ts);

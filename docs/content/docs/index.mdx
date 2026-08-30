@@ -15,7 +15,7 @@ Traditional Node.js routing forces you to write manual route registries, perform
 ```ts title="src/routes/users/$id.get.ts"
 import { json, notFound } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
 const GET = t
   .get("/users/:id")
@@ -27,7 +27,7 @@ const GET = t
   });
 
 export type RouteContext = typeof GET.$Infer.Context;
-export const Route = GET.handler(async (ctx) => {
+export default GET.handler(async (ctx) => {
   // ctx.params.id is typed as string (UUID)
   // ctx.query.includeProfile is typed as boolean
   // ctx.state contains data injected by layout middlewares

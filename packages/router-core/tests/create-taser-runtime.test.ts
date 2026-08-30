@@ -353,7 +353,7 @@ describe("createTaserRuntime", () => {
     expect(body.errors.length).toBeGreaterThan(0);
   });
 
-  describe("defineMiddleware Hono bridge integration", () => {
+  describe("middleware Hono bridge integration", () => {
     it("runs Hono middleware in layout chain", async () => {
       const order: string[] = [];
 

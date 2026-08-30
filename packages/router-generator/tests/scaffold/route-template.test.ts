@@ -3,31 +3,27 @@ import { describe, expect, it } from "vitest";
 import { layoutScaffoldSource, routeScaffoldSource } from "../../src/index.js";
 
 describe("route scaffold templates", () => {
-  it("emits split GET route stub", () => {
+  it("emits GET route stub with export default", () => {
     const source = routeScaffoldSource("/posts", "GET");
 
+    expect(source).toContain("import { t } from '@taserjs/router'");
     expect(source).toContain("import { json } from '@taserjs/router/reply'");
-    expect(source).toContain("import { t } from '#taserjs/router'");
-    expect(source).toContain("const GET = t.get('/posts')");
-    expect(source).toContain("export type RouteContext = typeof GET.$Infer.Context");
-    expect(source).toContain("export const Route = GET.handler(");
+    expect(source).toContain("export default t.get('/posts').handler(");
     expect(source).toContain("return json({ ok: true })");
-    expect(source).not.toContain("export const Route = t.get");
   });
 
-  it("emits split POST route stub", () => {
+  it("emits POST route stub with export default", () => {
     const source = routeScaffoldSource("/todo", "POST");
 
-    expect(source).toContain("const POST = t.post('/todo')");
-    expect(source).toContain("export type RouteContext = typeof POST.$Infer.Context");
-    expect(source).toContain("export const Route = POST.handler(");
+    expect(source).toContain("import { t } from '@taserjs/router'");
+    expect(source).toContain("import { json } from '@taserjs/router/reply'");
+    expect(source).toContain("export default t.post('/todo').handler(");
   });
 
-  it("emits t.middleware layout stub", () => {
+  it("emits t.layout layout stub with export default", () => {
     const source = layoutScaffoldSource("settings");
 
-    expect(source).toContain("import { t } from '#taserjs/router'");
-    expect(source).toContain("t.middleware('settings').use((_ctx, next) => next())");
-    expect(source).toContain("export const Middleware =");
+    expect(source).toContain("import { t } from '@taserjs/router'");
+    expect(source).toContain("export default t.layout('settings').use((_ctx, next) => next())");
   });
 });

@@ -3,9 +3,6 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "imports": {
-    "#taserjs/router": "./src/server/taser.ts"
-  },
   "scripts": {
     "clean": "rimraf dist .output .taser .nitro",
     "dev": "vite dev",

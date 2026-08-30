@@ -74,24 +74,23 @@ function isTFactoryCall(node: OxcNode, member: string): boolean {
   return isIdentifier(node.property, member);
 }
 
-function findExportedConst(program: OxcNode, exportName: string): OxcNode | null {
+function isFactoryCall(node: OxcNode, member: string): boolean {
+  if (isTFactoryCall(node, member)) return true;
+  const standaloneName = member === "delete" ? "del" : member;
+  return isIdentifier(node, standaloneName);
+}
+
+function hasExportDefault(program: OxcNode): boolean {
   const body = program.body as OxcNode[] | undefined;
-  if (!body) return null;
+  if (!body) return false;
 
   for (const statement of body) {
-    if (statement.type !== "ExportNamedDeclaration") continue;
-    const declaration = statement.declaration as OxcNode | undefined;
-    if (declaration?.type !== "VariableDeclaration") continue;
-    const declarations = declaration.declarations as OxcNode[] | undefined;
-    for (const declarator of declarations ?? []) {
-      const declaratorId = declarator.id as OxcNode | undefined;
-      if (isIdentifier(declaratorId, exportName)) {
-        return declarator;
-      }
+    if (statement.type === "ExportDefaultDeclaration") {
+      return true;
     }
   }
 
-  return null;
+  return false;
 }
 
 function forEachTopLevelCall(program: OxcNode, callback: (callNode: OxcNode) => void): void {
@@ -123,7 +122,9 @@ function forEachTopLevelCall(program: OxcNode, callback: (callNode: OxcNode) => 
   }
 
   for (const statement of body) {
-    if (statement.type === "ExportNamedDeclaration") {
+    if (statement.type === "ExportDefaultDeclaration") {
+      checkExpression(statement.declaration as OxcNode | undefined);
+    } else if (statement.type === "ExportNamedDeclaration") {
       const declaration = statement.declaration as OxcNode | undefined;
       if (declaration?.type === "VariableDeclaration") {
         for (const declarator of (declaration.declarations as OxcNode[]) ?? []) {
@@ -143,7 +144,7 @@ function forEachTopLevelCall(program: OxcNode, callback: (callNode: OxcNode) => 
 function containsFactoryCall(root: OxcNode, member: string): boolean {
   let found = false;
   forEachTopLevelCall(root, (node) => {
-    if (isTFactoryCall(node.callee as OxcNode, member)) {
+    if (isFactoryCall(node.callee as OxcNode, member)) {
       found = true;
     }
   });
@@ -155,7 +156,7 @@ function parseAnyMethodsFromSource(root: OxcNode, rawRel: string): ParseRouteSou
   let methods: HttpVerb[] | undefined;
 
   forEachTopLevelCall(root, (node) => {
-    if (!isTFactoryCall(node.callee as OxcNode, "any")) return;
+    if (!isFactoryCall(node.callee as OxcNode, "any")) return;
 
     const args = node.arguments as OxcNode[] | undefined;
     const methodsArg = args?.[1];
@@ -251,9 +252,8 @@ export function analyzeRouteFileSource(
   if ("errors" in parsed) return { errors: parsed.errors };
 
   const errors: ScanError[] = [];
-  const routeExport = findExportedConst(parsed.program, "Route");
-  if (!routeExport) {
-    errors.push(new ScanError("Route file must export `Route`", rawRel));
+  if (!hasExportDefault(parsed.program)) {
+    errors.push(new ScanError("Route file must have a default export", rawRel));
   }
 
   const factoryMember = expectedFactoryMember(method);
@@ -285,9 +285,8 @@ export async function analyzeRouteFileSourceAsync(
   if ("errors" in parsed) return { errors: parsed.errors };
 
   const errors: ScanError[] = [];
-  const routeExport = findExportedConst(parsed.program, "Route");
-  if (!routeExport) {
-    errors.push(new ScanError("Route file must export `Route`", rawRel));
+  if (!hasExportDefault(parsed.program)) {
+    errors.push(new ScanError("Route file must have a default export", rawRel));
   }
 
   const factoryMember = expectedFactoryMember(method);
@@ -315,14 +314,13 @@ export function analyzeLayoutFileSource(source: string, rawRel: string): ParseRo
   if ("errors" in parsed) return { errors: parsed.errors };
 
   const errors: ScanError[] = [];
-  const middlewareExport = findExportedConst(parsed.program, "Middleware");
-  if (!middlewareExport) {
-    errors.push(new ScanError("Layout file must export `Middleware`", rawRel));
+  if (!hasExportDefault(parsed.program)) {
+    errors.push(new ScanError("Layout file must have a default export", rawRel));
   }
 
-  const hasMiddleware = containsFactoryCall(parsed.program, "middleware");
-  if (!hasMiddleware) {
-    errors.push(new ScanError("Layout file must use `t.middleware(...)`", rawRel));
+  const hasLayout = containsFactoryCall(parsed.program, "layout");
+  if (!hasLayout) {
+    errors.push(new ScanError("Layout file must use `t.layout(...)`", rawRel));
   }
 
   return { errors };
@@ -336,14 +334,13 @@ export async function analyzeLayoutFileSourceAsync(
   if ("errors" in parsed) return { errors: parsed.errors };
 
   const errors: ScanError[] = [];
-  const middlewareExport = findExportedConst(parsed.program, "Middleware");
-  if (!middlewareExport) {
-    errors.push(new ScanError("Layout file must export `Middleware`", rawRel));
+  if (!hasExportDefault(parsed.program)) {
+    errors.push(new ScanError("Layout file must have a default export", rawRel));
   }
 
-  const hasMiddleware = containsFactoryCall(parsed.program, "middleware");
-  if (!hasMiddleware) {
-    errors.push(new ScanError("Layout file must use `t.middleware(...)`", rawRel));
+  const hasLayout = containsFactoryCall(parsed.program, "layout");
+  if (!hasLayout) {
+    errors.push(new ScanError("Layout file must use `t.layout(...)`", rawRel));
   }
 
   return { errors };

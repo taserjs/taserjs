@@ -173,9 +173,8 @@ To ensure your editor recognizes all route types, verify your `tsconfig.json` in
   "compilerOptions": {
     "target": "ES2022",
     "module": "NodeNext",
-    "paths": {
-      "#taserjs/router": ["./src/taser.ts"]
-    }
+    "moduleResolution": "NodeNext",
+    "strict": true
   },
   "include": ["src", ".taser/types/**/*.d.ts"]
 }

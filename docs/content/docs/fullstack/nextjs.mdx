@@ -154,7 +154,7 @@ Install the necessary dependencies in your Next.js project:
     import { notFound } from "@taserjs/router/reply";
     import { context } from "./context";
 
-    export const t = createTaserApp({
+    export default createTaserApp({
       response: { validate: true },
     })
       .context(context)
@@ -192,7 +192,7 @@ Install the necessary dependencies in your Next.js project:
     ```ts title="src/server/routes/users.get.ts"
     import { json } from "@taserjs/router/reply";
     import { z } from "zod";
-    import { t } from "@/server/taser";
+    import { t } from "@taserjs/router";
 
     const GET = t
       .get("/users")
@@ -215,7 +215,7 @@ Install the necessary dependencies in your Next.js project:
       });
 
     export type RouteContext = typeof GET.$Infer.Context;
-    export const Route = GET.handler((ctx) => {
+    export default GET.handler((ctx) => {
       return json({
         users: [
           { id: "usr_1", name: "Alice", email: "alice@example.com" },

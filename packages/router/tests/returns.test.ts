@@ -2,18 +2,16 @@ import "./register.js";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
-import { createTaserApp, defineMiddleware, validationErrorSchema } from "../src/index.js";
+import { createTaserApp, middleware, t, validationErrorSchema } from "../src/index.js";
 import { badRequest, internalServerError, json, text, unauthorized } from "../src/reply.js";
 import { createTaserRuntime } from "@taserjs/router-core";
 
 describe("returns fluent API", () => {
-  const t = createTaserApp().context({});
-
   it.each([
     {
       name: "middleware unit",
       build: () => {
-        const auth = defineMiddleware()
+        const auth = middleware()
           .returns({ 401: z.object({ error: z.string() }) })
           .handler((_ctx, next) => next());
         return t
@@ -30,7 +28,7 @@ describe("returns fluent API", () => {
         t
           .get("/hello")
           .use(
-            defineMiddleware()
+            middleware()
               .returns({ 403: z.object({ error: z.string() }) })
               .handler((_ctx, next) => next()),
           )
@@ -42,7 +40,7 @@ describe("returns fluent API", () => {
     {
       name: "middleware with returns",
       build: () => {
-        const auth = defineMiddleware()
+        const auth = middleware()
           .returns({ 401: z.object({ error: z.string() }) })
           .handler((_ctx, next) => next());
         return t
@@ -63,7 +61,7 @@ describe("returns fluent API", () => {
     const pluginSchema = z.object({ error: z.literal("plugin") });
     const routeSchema = z.object({ error: z.literal("route") });
 
-    const auth = defineMiddleware()
+    const auth = middleware()
       .returns({ 401: pluginSchema })
       .handler((_ctx, next) => next());
 
@@ -87,7 +85,7 @@ describe("returns fluent API", () => {
   });
 
   it("auto-injects 422 when route middleware defines input schemas", () => {
-    const auth = defineMiddleware()
+    const auth = middleware()
       .query(z.object({ token: z.string() }))
       .handler((_ctx, next) => next());
 
@@ -101,7 +99,7 @@ describe("returns fluent API", () => {
   });
 
   it("does not auto-inject 422 when chain only declares returns", () => {
-    const auth = defineMiddleware()
+    const auth = middleware()
       .returns({ 401: z.object({ error: z.string() }) })
       .handler((_ctx, next) => next());
 
@@ -153,8 +151,6 @@ describe("returns fluent API", () => {
 });
 
 describe("pipeline response validation + onError", () => {
-  const t = createTaserApp().context({});
-
   it("validates handler reply against returns map", async () => {
     const schema = z.object({ id: z.string() });
     const route = {

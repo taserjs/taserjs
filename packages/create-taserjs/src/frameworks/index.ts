@@ -113,7 +113,7 @@ export function taserTsTemplate(): string {
 
 import { context } from './context.js'
 
-export const t = createTaserApp({
+export default createTaserApp({
   response: { validate: true },
 }).context(context)
 `;
