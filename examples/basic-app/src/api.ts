@@ -1,5 +1,5 @@
 import { createClient } from "@taserjs/router-client";
-import type { RouteManifest } from "../.taser/types/routes.js";
+import type { RouteManifest } from "#taserjs/virtual/manifest";
 
 const client = createClient<RouteManifest>({
   baseUrl: "http://localhost:3000",
