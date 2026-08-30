@@ -389,4 +389,17 @@ describe("middleware units", () => {
 
     expect(route.middlewares).toHaveLength(2);
   });
+
+  it("preserves upstream layout state when route adds .use(cors())", () => {
+    const route = t
+      .get("/check-ctx")
+      .use(cors())
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.user).toEqualTypeOf<string>();
+        expectTypeOf(ctx.query.page).toEqualTypeOf<number>();
+        return json({ user: ctx.state.user });
+      });
+
+    expect(route.middlewares).toHaveLength(1);
+  });
 });
