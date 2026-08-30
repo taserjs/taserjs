@@ -1,5 +1,11 @@
 # create-taserjs
 
+## 0.1.6
+
+### Patch Changes
+
+- 8ff9b40: fix: State inference from stateless middlewares from layout
+
 ## 0.1.5
 
 ### Patch Changes

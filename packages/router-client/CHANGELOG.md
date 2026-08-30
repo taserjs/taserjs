@@ -1,5 +1,13 @@
 # @taserjs/router-client
 
+## 0.1.6
+
+### Patch Changes
+
+- 8ff9b40: fix: State inference from stateless middlewares from layout
+- Updated dependencies [8ff9b40]
+  - @taserjs/router@0.1.6
+
 ## 0.1.5
 
 ### Patch Changes
