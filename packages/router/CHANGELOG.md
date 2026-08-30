@@ -1,5 +1,23 @@
 # @taserjs/router
 
+## 0.1.5
+
+### Patch Changes
+
+- 80b24e4: feat: Unified Fluent Architecture
+
+  - Should reduce friction of adoption, ambient types for everything, less manual setup
+  - All taser routes and app now explicitly export default instead of named export
+  - Avoid mistakes of inferring context from Route named export
+  - Clear difference between layout and middleware
+  - Fluent middleware syntax with validation only pattern
+  - Client supports multiple service instances
+  - Better docs
+
+- Updated dependencies [80b24e4]
+  - @taserjs/router-core@0.1.5
+  - @taserjs/router-utils@0.1.5
+
 ## 0.1.4
 
 ### Patch Changes
