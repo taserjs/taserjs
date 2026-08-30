@@ -121,6 +121,14 @@ type LayoutParent<Layout extends LayoutId> = Layout extends keyof LayoutParentsM
     ? Parent
     : null;
 
+type LayoutMiddlewares<Layout extends LayoutId> = LayoutTree[Layout]["middlewares"] extends {
+  readonly __acc?: infer Acc extends readonly unknown[];
+}
+  ? Acc
+  : LayoutTree[Layout]["middlewares"] extends infer Acc extends readonly unknown[]
+    ? Acc
+    : readonly [];
+
 type ResolveLayoutMiddlewares<
   Layout extends LayoutId | null,
   Depth extends readonly unknown[] = [],
@@ -129,7 +137,7 @@ type ResolveLayoutMiddlewares<
   : Layout extends LayoutId
     ? readonly [
         ...ResolveLayoutMiddlewares<LayoutParent<Layout>, [...Depth, unknown]>,
-        ...LayoutTree[Layout]["middlewares"],
+        ...LayoutMiddlewares<Layout>,
       ]
     : readonly [];
 
@@ -163,7 +171,7 @@ type ResolveLayoutChainMiddlewares<Chain extends readonly LayoutId[]> = Chain ex
   ...infer Rest,
 ]
   ? readonly [
-      ...LayoutTree[Head]["middlewares"],
+      ...LayoutMiddlewares<Head>,
       ...ResolveLayoutChainMiddlewares<Rest extends readonly LayoutId[] ? Rest : readonly []>,
     ]
   : readonly [];
@@ -470,9 +478,10 @@ export type MiddlewareBuilder<
   Layout extends LayoutId,
   Acc extends readonly unknown[] = readonly [],
   TAppContext extends Record<string, unknown> = AppContext,
-> = Acc & {
+> = {
   readonly layout: Layout;
   readonly middlewares: readonly MiddlewareDefinition[];
+  readonly __acc?: Acc;
   readonly $Infer: {
     Context: MiddlewareChainContext<Layout, Acc, unknown, unknown, unknown, TAppContext>;
   };
@@ -511,11 +520,12 @@ export type RouteExport<
   Acc extends readonly unknown[],
   TReturns extends ReturnsMap = {},
   TOutput = Response,
-> = Acc & {
+> = {
   readonly path: Path;
   readonly method: TMethod | "ANY" | "ALL";
   readonly methods?: readonly Method[];
   readonly middlewares: readonly MiddlewareDefinition[];
+  readonly __acc?: Acc;
   readonly returns?: TReturns;
   readonly bodyMode?: "json" | "form" | "urlencoded";
   handler: (ctx: unknown) => Awaitable<Response>;

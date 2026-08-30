@@ -3,6 +3,7 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import { z } from "zod";
 
 import { middleware, honoMw, t } from "../src/index.js";
+import { cors } from "../src/middleware/cors.js";
 import { json, unauthorized } from "../src/reply.js";
 
 describe("middleware units", () => {
@@ -367,5 +368,25 @@ describe("middleware units", () => {
       });
 
     expect(route.middlewares).toHaveLength(1);
+  });
+
+  it("accumulates state correctly when chaining cors() with stateful middlewares", () => {
+    const layout = t
+      .layout("index")
+      .use(cors())
+      .use((_ctx, next) => next({ appName: "test-app" }));
+
+    expect(layout.middlewares).toHaveLength(2);
+
+    const route = t
+      .get("/hello")
+      .use(cors())
+      .use((_ctx, next) => next({ user: "alice" }))
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.user).toEqualTypeOf<string>();
+        return json({ user: ctx.state.user });
+      });
+
+    expect(route.middlewares).toHaveLength(2);
   });
 });
