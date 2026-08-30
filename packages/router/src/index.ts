@@ -7,6 +7,7 @@ export type {
   InferOutput,
   InferRouteContext,
   InferRouteInput,
+  InferRouteInputFromPath,
   InferRouteOutput,
   LayoutBuilder,
   LayoutId,
@@ -58,5 +59,6 @@ export { createTaserApp, TaserRouter } from "./builder/router.js";
 export { TaserApp } from "./builder/app.js";
 export { createContext } from "./context/create-context.js";
 export { honoMw } from "./middleware/hono-mw.js";
+export type { MiddlewareFn } from "./define/middleware.js";
 
 export type { TaserCookieJar, TaserHeaders } from "@taserjs/router-core";

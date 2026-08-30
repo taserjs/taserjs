@@ -15,6 +15,7 @@ Taser natively adheres to the **Standard Schema** specification (`@standard-sche
 ## Path Parameters (`.params`)
 
 ### Default Behavior
+
 All path parameters defined in your route filenames (e.g. `src/routes/users/$id.get.ts` or `src/routes/orgs/$orgId/repos/$repoId.get.ts`) are **automatically inferred as `string` types** on `ctx.params` by default—no configuration required:
 
 ```ts title="src/routes/users/$id.get.ts"
@@ -29,6 +30,7 @@ export default t.get("/users/:id").handler(async (ctx) => {
 ```
 
 ### Validating & Coercing Path Parameters
+
 When you need strict validation (such as UUID formats, integer IDs, or enum values), chain `.params()` with a schema:
 
 ```ts title="src/routes/organizations/$orgId/members/$memberId.get.ts"
@@ -142,12 +144,12 @@ Taser gives you fine-grained control over request body parsing and performance:
 - **Default JSON Parsing**: Calling `.body(schema)` parses the body as JSON by default.
 - **Explicit Body Modes**: To parse file uploads, URL-encoded forms, raw text, or binary buffers, provide the mode as the first argument (`.body(mode, schema)`):
 
-| Body Mode | Method Signature | Use Case | Content Types |
-| :--- | :--- | :--- | :--- |
-| **`json`** *(default)* | `.body(schema)` or `.body("json", schema)` | REST JSON payloads | `application/json` |
-| **`form`** | `.body("form", schema)` | File uploads and form submissions | `multipart/form-data`, `application/x-www-form-urlencoded` |
-| **`text`** | `.body("text", schema)` | Raw text, webhook signatures, XML | `text/plain`, `application/xml` |
-| **`arrayBuffer`** | `.body("arrayBuffer", schema)` | Raw binary buffers, images, protobufs | `application/octet-stream`, any binary |
+| Body Mode              | Method Signature                           | Use Case                              | Content Types                                              |
+| :--------------------- | :----------------------------------------- | :------------------------------------ | :--------------------------------------------------------- |
+| **`json`** _(default)_ | `.body(schema)` or `.body("json", schema)` | REST JSON payloads                    | `application/json`                                         |
+| **`form`**             | `.body("form", schema)`                    | File uploads and form submissions     | `multipart/form-data`, `application/x-www-form-urlencoded` |
+| **`text`**             | `.body("text", schema)`                    | Raw text, webhook signatures, XML     | `text/plain`, `application/xml`                            |
+| **`arrayBuffer`**      | `.body("arrayBuffer", schema)`             | Raw binary buffers, images, protobufs | `application/octet-stream`, any binary                     |
 
 ### JSON Body Example
 

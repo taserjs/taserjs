@@ -290,9 +290,7 @@ describe("middleware units", () => {
   });
 
   it("rejects layout-scoped middleware when attached to unrelated route branch", () => {
-    const indexOnlyMiddleware = middleware("index", (_ctx, next) =>
-      next({ fromIndex: true }),
-    );
+    const indexOnlyMiddleware = middleware("index", (_ctx, next) => next({ fromIndex: true }));
 
     // @ts-expect-error - Route "/hello" does not inherit "index" layout
     t.get("/hello").use(indexOnlyMiddleware);

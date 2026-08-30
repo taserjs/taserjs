@@ -57,7 +57,6 @@ export type {
   IsUnknown,
   Method,
   MiddlewareDefinition,
-  MiddlewareNext,
   MiddlewareReturnFromParts,
   MiddlewareUnit,
   MiddlewareUnitBuilder,
@@ -211,13 +210,6 @@ type RouteResolvedField<
   Field extends "query" | "params" | "body" | "state",
 > = RouteLayoutField<Path, TMethod, Field> & MergeMiddlewareField<Acc, Field>;
 
-type RouteChainField<
-  Path extends RoutePath,
-  TMethod extends Method,
-  Acc extends readonly unknown[],
-  Field extends "query" | "params" | "body" | "state",
-> = RouteResolvedField<Path, TMethod, Acc, Field>;
-
 export type RouteChainContext<
   Path extends RoutePath,
   TMethod extends Method,
@@ -229,15 +221,15 @@ export type RouteChainContext<
 > = Simplify<
   TAppContext &
     UnitRuntimeContext & {
-      query: Simplify<MergePart<TQuery, RouteChainField<Path, TMethod, Acc, "query">>>;
+      query: Simplify<MergePart<TQuery, RouteResolvedField<Path, TMethod, Acc, "query">>>;
       params: Simplify<
         ResolveParams<
           PathParams<Path>,
-          MergePart<TParams, RouteChainField<Path, TMethod, Acc, "params">>
+          MergePart<TParams, RouteResolvedField<Path, TMethod, Acc, "params">>
         >
       >;
-      body: Simplify<MergePart<TBody, RouteChainField<Path, TMethod, Acc, "body">>>;
-      state: Simplify<RouteChainField<Path, TMethod, Acc, "state">>;
+      body: Simplify<MergePart<TBody, RouteResolvedField<Path, TMethod, Acc, "body">>>;
+      state: Simplify<RouteResolvedField<Path, TMethod, Acc, "state">>;
       headers: TaserHeaders;
       cookies: TaserCookieJar;
     }

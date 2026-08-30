@@ -22,7 +22,6 @@ export function createMiddlewareUnitBuilder(requiredLayouts?: string | readonly 
   }
 
   const builder: any = {
-    __isUnitBuilder: true,
     query(schema: Schema<unknown>) {
       validators.query = schema;
       return builder;
@@ -53,10 +52,7 @@ export function createMiddlewareUnitBuilder(requiredLayouts?: string | readonly 
     handler(fn: (ctx: any, next: any) => any) {
       return toUnit(fn);
     },
-    handle(fn: (ctx: any, next: any) => any) {
-      return toUnit(fn);
-    },
-    _toMiddlewareUnit() {
+    toUnit() {
       return toUnit();
     },
     __middlewareAcc: undefined as unknown,

@@ -104,8 +104,8 @@ export function createRouteBuilder(
     use(definition: MiddlewareDefinition | ((ctx: any, next: any) => any)) {
       if (typeof definition === "function") {
         middlewares.push({ handler: definition as any });
-      } else if (typeof (definition as any)?._toMiddlewareUnit === "function") {
-        middlewares.push((definition as any)._toMiddlewareUnit());
+      } else if (typeof (definition as any)?.toUnit === "function") {
+        middlewares.push((definition as any).toUnit());
       } else {
         middlewares.push(definition);
       }

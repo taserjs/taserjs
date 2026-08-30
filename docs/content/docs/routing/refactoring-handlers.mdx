@@ -167,6 +167,7 @@ By extracting `CheckoutContext`, each step becomes a pure or focused async helpe
       }
     });
     ```
+
   </Tab>
 
   <Tab value="src/services/inventory.ts">
@@ -185,6 +186,7 @@ By extracting `CheckoutContext`, each step becomes a pure or focused async helpe
       return item;
     }
     ```
+
   </Tab>
 
   <Tab value="src/services/payment.ts">
@@ -202,6 +204,7 @@ By extracting `CheckoutContext`, each step becomes a pure or focused async helpe
       });
     }
     ```
+
   </Tab>
 
   <Tab value="src/services/order.ts">
@@ -224,6 +227,7 @@ By extracting `CheckoutContext`, each step becomes a pure or focused async helpe
       });
     }
     ```
+
   </Tab>
 </Tabs>
 
@@ -308,6 +312,7 @@ For larger projects, you can organize helpers into dedicated service files:
 Taser's `export default` architecture intentionally separates route contract declaration from handler execution, eliminating circular type hazards by design:
 
 1. **Two-Phase Definition**:
+
    ```ts
    // Phase 1: Declare route contract (query, params, body, middlewares, returns)
    const GET = t.get("/users/:id").params(UserParamsSchema);

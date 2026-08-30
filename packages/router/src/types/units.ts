@@ -1,5 +1,4 @@
 import type {
-  Awaitable,
   MiddlewareDefinition as CoreMiddlewareDefinition,
   TaserCookieJar,
   TaserHeaders,
@@ -57,8 +56,6 @@ export type NextFn<TExpectedState = unknown> =
   IsUnknown<TExpectedState> extends true
     ? <S extends Record<string, unknown> = {}>(state?: S) => Promise<NextResult<S>>
     : (state: TExpectedState) => Promise<NextResult<TExpectedState>>;
-
-export type MiddlewareNext = NextFn;
 
 export type MiddlewareDefinition = CoreMiddlewareDefinition<ReturnsMap>;
 
@@ -266,30 +263,6 @@ export type MiddlewareUnitBuilder<
     TExpectedState
   >;
   handler<R>(
-    fn: (
-      ctx: StandaloneMiddlewareContext<
-        TQuery,
-        TParams,
-        TBody,
-        TAppContext,
-        TInheritedState & TRequiredState
-      >,
-      next: NextFn<TExpectedState>,
-    ) => R,
-  ): DefineMiddlewareResult<
-    TQuery,
-    TParams,
-    TBody,
-    IsUnknown<TExpectedState> extends true ? ExtractState<R> : TExpectedState,
-    R,
-    TQueryIn,
-    TParamsIn,
-    TBodyIn,
-    TReturns,
-    TRequiredLayouts,
-    TRequiredState
-  >;
-  handle<R>(
     fn: (
       ctx: StandaloneMiddlewareContext<
         TQuery,

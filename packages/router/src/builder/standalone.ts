@@ -39,8 +39,7 @@ export const any: CreateAnyRoute<AppContext> = createAnyRoute as CreateAnyRoute<
 export const all: CreateAllRoute<AppContext> = createAllRoute as CreateAllRoute<AppContext>;
 
 export const layout: LayoutBuilder<AppContext> = createMiddleware as LayoutBuilder<AppContext>;
-export const middleware: MiddlewareFn<AppContext> =
-  createMiddlewareFn as MiddlewareFn<AppContext>;
+export const middleware: MiddlewareFn<AppContext> = createMiddlewareFn as MiddlewareFn<AppContext>;
 
 export type TaserNamespace<TAppContext extends Record<string, unknown> = AppContext> = {
   readonly get: CreateWithoutBodyRoute<"GET", TAppContext>;

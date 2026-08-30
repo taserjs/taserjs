@@ -61,14 +61,23 @@ export function File({
   );
 }
 
-export function Folder({ name, route, defaultOpen = false, ...props }: FolderProps): React.ReactElement {
+export function Folder({
+  name,
+  route,
+  defaultOpen = false,
+  ...props
+}: FolderProps): React.ReactElement {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} {...props}>
       <CollapsibleTrigger className={cn(itemVariants({ className: "w-full justify-between" }))}>
         <div className="flex items-center gap-2 min-w-0">
-          {open ? <FolderOpen className="text-amber-500" /> : <FolderIcon className="text-amber-500" />}
+          {open ? (
+            <FolderOpen className="text-amber-500" />
+          ) : (
+            <FolderIcon className="text-amber-500" />
+          )}
           <span className="truncate">{name}</span>
         </div>
         {route ? (

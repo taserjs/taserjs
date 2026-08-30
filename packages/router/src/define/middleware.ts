@@ -1,5 +1,3 @@
-import { type Awaitable } from "@taserjs/router-core";
-
 import { createMiddlewareUnitBuilder } from "../builder/middleware-unit.js";
 import type {
   DefineMiddlewareResult,
@@ -176,9 +174,6 @@ export interface MiddlewareFn<TAppContext extends Record<string, unknown> = AppC
     TRequires
   >;
 }
-
-export type DefineMiddlewareFn<TAppContext extends Record<string, unknown> = AppContext> =
-  MiddlewareFn<TAppContext>;
 
 export const middleware: MiddlewareFn<AppContext> = function middleware(
   first?: any,
