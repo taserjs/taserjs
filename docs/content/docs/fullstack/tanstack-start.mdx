@@ -104,24 +104,15 @@ yarn add -D @taserjs/router-plugin
   </Step>
 
   <Step>
-    ### 2. Configure Subpath Imports & TypeScript
+    ### 2. Configure TypeScript (`tsconfig.json`)
 
-    Update `package.json` and `tsconfig.json` so both your server routes and frontend code can import `#taserjs/router` and resolve generated ambient types in `.taser/types/`:
-
-    ```json title="package.json"
-    {
-      "imports": {
-        "#taserjs/router": "./src/server/taser.ts"
-      }
-    }
-    ```
+    Update `tsconfig.json` so your editor resolves generated ambient types in `.taser/types/`:
 
     ```json title="tsconfig.json"
     {
       "compilerOptions": {
-        "paths": {
-          "#taserjs/router": ["./src/server/taser.ts"]
-        }
+        "strict": true,
+        "skipLibCheck": true
       },
       "include": ["src", ".taser/types/**/*.d.ts", "vite.config.ts"]
     }
@@ -137,7 +128,7 @@ yarn add -D @taserjs/router-plugin
     ```ts title="src/server/taser.ts"
     import { createTaserApp } from "@taserjs/router";
 
-    export const t = createTaserApp({
+    export default createTaserApp({
       response: { validate: true },
     }).notFound(() => new Response("Not Found", { status: 404 }));
     ```
@@ -151,7 +142,7 @@ yarn add -D @taserjs/router-plugin
 
     ```tsx title="src/routes/api/$.tsx"
     import { createFileRoute } from "@tanstack/react-router";
-    import { app } from "#taserjs/virtual/entry";
+    import { app } from "virtual:taser/entry";
 
     const handle = async ({ request }: { request: Request }) => app.fetch(request);
 
@@ -180,7 +171,7 @@ yarn add -D @taserjs/router-plugin
     ```ts title="src/server/routes/users.get.ts"
     import { json } from "@taserjs/router/reply";
     import { z } from "zod";
-    import { t } from "#taserjs/router";
+    import { t } from "@taserjs/router";
 
     const GET = t
       .get("/users")
@@ -203,7 +194,7 @@ yarn add -D @taserjs/router-plugin
       });
 
     export type RouteContext = typeof GET.$Infer.Context;
-    export const Route = GET.handler(async (ctx) => {
+    export default GET.handler(async (ctx) => {
       return json({
         users: [
           { id: "usr_1", name: "Alice", email: "alice@example.com" },
@@ -295,9 +286,10 @@ Fetch typed data on the server during route transitions with `@taserjs/router-cl
 ```tsx title="src/routes/users.tsx"
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@taserjs/router-client";
+import type { RouteManifest } from "../.taser/types/routes.js";
 
-// Initialize client with your app's base URL
-const api = createClient({ baseUrl: "http://localhost:3000/api" });
+// Initialize client with your app's base URL and manifest
+const api = createClient<RouteManifest>({ baseUrl: "http://localhost:3000/api" });
 
 export const Route = createFileRoute("/users")({
   loader: async () => {
@@ -339,8 +331,9 @@ Use Taser client calls directly inside `queryOptions` or `useQuery` hooks:
 ```tsx title="src/hooks/use-users.ts"
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@taserjs/router-client";
+import type { RouteManifest } from "../.taser/types/routes.js";
 
-const api = createClient({ baseUrl: "/api" });
+const api = createClient<RouteManifest>({ baseUrl: "/api" });
 
 export function useUsers(limit = 10) {
   return useQuery({

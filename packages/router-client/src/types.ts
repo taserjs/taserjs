@@ -181,32 +181,13 @@ type ClientFromRoutes<Manifest extends RouteManifestShape> = Manifest extends {
     >
   : never;
 
-export type BuildClientChain<T> = {
-  [K in keyof T]: K extends "$get" | "$post" | "$put" | "$patch" | "$delete" | "$options" | "$head"
-    ? ClientMethodFn<T[K]>
-    : BuildClientChain<T[K]>;
-};
-
-type RegisteredClientChain = import("@taserjs/router").RouterRegister extends {
-  ClientChain: infer C;
-}
-  ? [C] extends [never]
-    ? never
-    : BuildClientChain<C>
-  : never;
-
-type FallbackClient<TApp> =
-  InferAppManifest<TApp> extends infer Manifest
+export type Client<TApp = never> = [TApp] extends [never]
+  ? Record<string, any>
+  : InferAppManifest<TApp> extends infer Manifest
     ? Manifest extends RouteManifestShape
       ? ClientFromRoutes<Manifest>
-      : never
-    : never;
-
-export type Client<TApp = never> = [TApp] extends [never]
-  ? [RegisteredClientChain] extends [never]
-    ? Record<string, any>
-    : RegisteredClientChain
-  : FallbackClient<TApp>;
+      : Record<string, any>
+    : Record<string, any>;
 
 export type InferRequestType<T> = T extends (
   args: infer R,

@@ -66,6 +66,13 @@ declare module "@taserjs/router" {
       | "/r49"
       | "/r50";
     LayoutId: "index" | "admin" | "root" | "nested" | "deep";
+    LayoutParents: {
+      index: null;
+      admin: null;
+      root: null;
+      nested: "root";
+      deep: "nested";
+    };
     LayoutTree: {
       index: { middlewares: typeof IndexLayout; parent: null };
       admin: { middlewares: typeof IndexLayout; parent: null };

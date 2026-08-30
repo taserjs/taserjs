@@ -73,23 +73,23 @@ function createContext<TBoot, TReq>(definition: {
 
 ---
 
-### `defineMiddleware()`
+### `middleware()`
 
 Constructs a standalone, reusable middleware unit with support for fluent schema chaining (`query`, `params`, `body`, `returns`), body mode tagging (`"json" | "form" | "urlencoded"`), layout scoping, multi-layout branch unions, and state preconditions:
 
 ```ts
 // 1. Short Function Signature (Unscoped, Inferred State)
-const log = defineMiddleware((ctx, next) => {
+const log = middleware((ctx, next) => {
   return next({ traceId: "123" });
 });
 
 // 2. Short Function Signature (Layout-Scoped)
-const adminAuth = defineMiddleware("admin", (ctx, next) => {
+const adminAuth = middleware("admin", (ctx, next) => {
   return next({ role: "admin" });
 });
 
 // 3. Fluent Builder (Unscoped, with Tagged Body Mode & Schemas)
-const uploadMw = defineMiddleware()
+const uploadMw = middleware()
   .query(z.object({ tag: z.string() }))
   .params(z.object({ id: z.coerce.number() }))
   .body("form", z.object({ file: z.instanceof(File) })) // tagged bodyMode!
@@ -99,7 +99,7 @@ const uploadMw = defineMiddleware()
   });
 
 // 4. Fluent Builder (Layout-Scoped with Inherited State)
-const scopedMw = defineMiddleware("admin")
+const scopedMw = middleware("admin")
   .query(z.object({ filter: z.string() }))
   .handler(async (ctx, next) => {
     return next({ permission: "write" });
@@ -111,14 +111,14 @@ const scopedMw = defineMiddleware("admin")
 Adapts a Web Standard / Hono-compatible middleware function `(c, next) => ...` into a Taser-compatible middleware handler function `(ctx, next) => Promise<Response>`.
 
 ```ts
-import { defineMiddleware, honoMw } from "@taserjs/router";
+import { honoMw, middleware } from "@taserjs/router";
 import { cors } from "hono/cors";
 
 // Used directly in route/layout chains
 t.get("/hello").use(honoMw(cors()));
 
-// Or wrapped in defineMiddleware
-const corsMiddleware = defineMiddleware(honoMw(cors()));
+// Or wrapped in middleware
+const corsMiddleware = middleware(honoMw(cors()));
 ```
 
 #### Builder Methods & Generics
@@ -130,7 +130,7 @@ const corsMiddleware = defineMiddleware(honoMw(cors()));
 - **`.requires<TState>()`**: Declares required upstream state preconditions that must exist on `ctx.state`. Checked at compile time by `.use(...)`.
 - **`.handler((ctx, next) => ...)`**: Implements middleware logic and returns a strongly-typed `MiddlewareUnit`.
 
-For simple unvalidated middlewares, short function signatures `defineMiddleware((ctx, next) => ...)` and `defineMiddleware<TState>((ctx, next) => ...)` are also supported.
+For simple unvalidated middlewares, short function signatures `middleware((ctx, next) => ...)` and `middleware<TState>((ctx, next) => ...)` are also supported.
 
 ---
 
@@ -187,14 +187,13 @@ For simple unvalidated middlewares, short function signatures `defineMiddleware(
       description: "Creates a catch-all route builder matching all HTTP verbs.",
       type: "(path: string) => RouteBuilder",
     },
-    middleware: {
+    layout: {
       description: "Creates a layout middleware builder for root or scoped route directories.",
       type: "(layoutId: string) => MiddlewareBuilder",
     },
-    defineMiddleware: {
-      description:
-        "Constructs a standalone reusable middleware unit that automatically inherits the router's bound TAppContext.",
-      type: "(options: StandaloneMiddlewareOptions) => MiddlewareUnit",
+    middleware: {
+      description: "Creates a standalone middleware builder that automatically inherits the router's context.",
+      type: "(layoutId?: string) => MiddlewareBuilder",
     },
 
     create: {
@@ -390,5 +389,5 @@ import type {
 ```
 
 <Callout type="info" title="Context Type Extraction Best Practice">
-  Always extract route context from the builder variable before `.handler()` (e.g. `typeof GET.$Infer.Context` or `InferRouteContext<typeof GET>`), never from `typeof Route`, to prevent TypeScript circular type reference errors when typing helper functions.
+  Extract route context from the builder variable before `.handler()` (e.g. `typeof GET.$Infer.Context` or `InferRouteContext<typeof GET>`) when typing extracted helper functions.
 </Callout>

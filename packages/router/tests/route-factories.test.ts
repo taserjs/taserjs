@@ -1,57 +1,79 @@
 import { describe, expect, it } from "vitest";
 
-import { createTaserApp } from "../src/index.js";
+import {
+  all,
+  any,
+  del,
+  get,
+  head,
+  layout,
+  middleware,
+  options,
+  patch,
+  post,
+  put,
+  t,
+} from "../src/index.js";
 import { json, noContent } from "../src/reply.js";
 import "./register.js";
 
 describe("route factories", () => {
-  const t = createTaserApp().context({});
+  it("builds no-body routes including options and head via t", () => {
+    const getRoute = t.get("/hello").handler(() => json({ ok: true }));
+    const delRoute = t.delete("/hello").handler(() => json({ ok: true }));
+    const optionsRoute = t.options("/hello").handler(() => noContent());
+    const headRoute = t.head("/hello").handler(() => noContent());
 
-  it("builds no-body routes including options and head", () => {
-    const get = t.get("/hello").handler(() => json({ ok: true }));
-    const del = t.delete("/hello").handler(() => json({ ok: true }));
-    const options = t.options("/hello").handler(() => noContent());
-    const head = t.head("/hello").handler(() => noContent());
-
-    expect(get.method).toBe("GET");
-    expect(del.method).toBe("DELETE");
-    expect(options.method).toBe("OPTIONS");
-    expect(head.method).toBe("HEAD");
+    expect(getRoute.method).toBe("GET");
+    expect(delRoute.method).toBe("DELETE");
+    expect(optionsRoute.method).toBe("OPTIONS");
+    expect(headRoute.method).toBe("HEAD");
   });
 
-  it("builds with-body routes", () => {
+  it("builds no-body routes via standalone functions", () => {
+    const getRoute = get("/hello").handler(() => json({ ok: true }));
+    const delRoute = del("/hello").handler(() => json({ ok: true }));
+    const optionsRoute = options("/hello").handler(() => noContent());
+    const headRoute = head("/hello").handler(() => noContent());
+
+    expect(getRoute.method).toBe("GET");
+    expect(delRoute.method).toBe("DELETE");
+    expect(optionsRoute.method).toBe("OPTIONS");
+    expect(headRoute.method).toBe("HEAD");
+  });
+
+  it("builds with-body routes via t and standalone functions", () => {
     expect(t.post("/hello").handler(() => json({})).method).toBe("POST");
     expect(t.put("/hello").handler(() => json({})).method).toBe("PUT");
     expect(t.patch("/hello").handler(() => json({})).method).toBe("PATCH");
+
+    expect(post("/hello").handler(() => json({})).method).toBe("POST");
+    expect(put("/hello").handler(() => json({})).method).toBe("PUT");
+    expect(patch("/hello").handler(() => json({})).method).toBe("PATCH");
   });
 
   it("builds any and all routes", () => {
-    const any = t.any("/hello", ["GET", "OPTIONS"]).handler(() => json({ ok: true }));
-    const all = t.all("/hello").handler(() => json({ ok: true }));
+    const anyRoute = t.any("/hello", ["GET", "OPTIONS"]).handler(() => json({ ok: true }));
+    const allRoute = t.all("/hello").handler(() => json({ ok: true }));
 
-    expect(any.method).toBe("ANY");
-    expect(any.methods).toEqual(["GET", "OPTIONS"]);
-    expect(all.method).toBe("ALL");
+    expect(anyRoute.method).toBe("ANY");
+    expect(anyRoute.methods).toEqual(["GET", "OPTIONS"]);
+    expect(allRoute.method).toBe("ALL");
+
+    expect(any("/hello", ["GET"]).method).toBe("ANY");
+    expect(all("/hello").method).toBe("ALL");
   });
 
-  it("does not export legacy route factories from the public entry", async () => {
-    const exported = await import("../src/index.js");
-    expect("createAnyRoute" in exported).toBe(false);
-    expect("createAllRoute" in exported).toBe(false);
-    expect("createRouteBuilder" in exported).toBe(false);
-  });
+  it("supports standalone layout and middleware functions", () => {
+    const l1 = t.layout("admin").use((_ctx, next) => next());
+    const l2 = layout("admin").use((_ctx, next) => next());
+    expect(l1.layout).toBe("admin");
+    expect(l2.layout).toBe("admin");
 
-  it("supports t.defineMiddleware with context inheritance", () => {
-    const customT = createTaserApp().context({
-      boot: () => ({ serviceName: "test-service" }),
-    });
-
-    const mw = customT.defineMiddleware((ctx, next) => {
-      expect(ctx.serviceName).toBeDefined();
-      return next();
-    });
-
-    expect(typeof mw.handler).toBe("function");
+    const mw1 = t.middleware((_ctx, next) => next());
+    const mw2 = middleware((_ctx, next) => next());
+    expect(typeof mw1.handler).toBe("function");
+    expect(typeof mw2.handler).toBe("function");
   });
 
   it("supports fluent chaining of query, params, and body", () => {

@@ -9,7 +9,6 @@ export {
   DEFAULT_ROUTES_TYPES_FILENAME,
   DEFAULT_VIRTUAL_TYPES_FILENAME,
   ROUTES_ALIAS_ID,
-  ENTRY_ALIAS_ID,
   SERVER_ENTRY_ALIAS_ID,
   VIRTUAL_MANIFEST_ID,
   RESOLVED_VIRTUAL_MANIFEST_ID,
@@ -134,7 +133,6 @@ export {
 export { joinManifestSections } from "./codegen/manifest.js";
 
 export {
-  buildClientChainType,
   buildLayoutTreeType,
   buildRouteByPathMethodType,
   buildRouterRegisterAugmentation,

@@ -4,13 +4,12 @@ import { sign } from "hono/jwt";
 
 import { createTaserRuntime } from "@taserjs/router-core";
 
-import { createTaserApp } from "../src/index.js";
+import { t } from "../src/index.js";
 import { json } from "../src/reply.js";
 import { jwt } from "../src/middleware/jwt.js";
 import { jwk } from "../src/middleware/jwk.js";
 
 describe("jwt and jwk middleware", () => {
-  const t = createTaserApp().context({});
   const secret = "test-secret";
 
   async function runRoute(route: object, request: Request): Promise<Response> {

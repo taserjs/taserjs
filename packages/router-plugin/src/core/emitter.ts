@@ -69,8 +69,14 @@ export async function writeDiskArtifacts(
     rewriteImportPath,
   });
 
+  let taserAppImportPath = ctx.entry;
+  if (ctx.taserEntryPath) {
+    const relToTaser = relative(outDir, ctx.taserEntryPath).replace(/\.[cm]?[jt]sx?$/, "");
+    taserAppImportPath = ensureRelativePrefix(relToTaser);
+  }
+
   const entryCode = emitVirtualEntrySource({
-    taserAppImportPath: ctx.entry,
+    taserAppImportPath,
     basePath: ctx.basePath,
     manifestImportPath: "./manifest",
   });

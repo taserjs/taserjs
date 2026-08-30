@@ -18,9 +18,9 @@ Use `ctx.cookies.get()` to read an incoming cookie by name, or `ctx.cookies.getA
 
 ```ts title="src/routes/me.get.ts"
 import { json } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t.get("/me").handler((ctx) => {
+export default t.get("/me").handler((ctx) => {
   // Read a single cookie:
   const theme = ctx.cookies.get("theme") ?? "light";
 
@@ -40,9 +40,9 @@ Use `ctx.cookies.set()` to set cookies. Taser automatically handles options and 
 ```ts title="src/routes/preferences.post.ts"
 import { ok } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t
+export default t
   .post("/preferences")
   .body(
     z.object({
@@ -76,7 +76,7 @@ Set your signing secret in `src/taser.ts`:
 import { createTaserApp } from "@taserjs/router";
 import { context } from "./context.js";
 
-export const t = createTaserApp({
+export default createTaserApp({
   cookies: {
     secret: process.env.COOKIE_SECRET || "your-secure-secret-key-32-chars-long",
     httpOnly: true,
@@ -91,9 +91,9 @@ export const t = createTaserApp({
 ```ts title="src/routes/auth/login.post.ts"
 import { json, ok } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t
+export default t
   .post("/auth/login")
   .body(
     z.object({
@@ -112,9 +112,9 @@ Verify and read the signed cookie in protected endpoints:
 
 ```ts title="src/routes/auth/session.get.ts"
 import { json, unauthorized } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t.get("/auth/session").handler(async (ctx) => {
+export default t.get("/auth/session").handler(async (ctx) => {
   // Returns the verified string value, or false/undefined if signature is invalid or missing:
   const userId = await ctx.cookies.getSigned("session_user");
 
@@ -135,9 +135,9 @@ Use `ctx.cookies.delete()` to clear a cookie by setting its `maxAge` to `0`:
 
 ```ts title="src/routes/auth/logout.post.ts"
 import { json } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t.post("/auth/logout").handler((ctx) => {
+export default t.post("/auth/logout").handler((ctx) => {
   // Deletes cookie and returns its prior value (if present):
   const previousSession = ctx.cookies.delete("session_user", { path: "/" });
 

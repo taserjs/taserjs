@@ -24,12 +24,13 @@ Install the client package in your project:
   <Tab value="yarn">```bash yarn add @taserjs/router-client ```</Tab>
 </Tabs>
 
-Initialize the client with your backend `baseUrl`. In a Taser project, route types are **automatically detected from ambient declarations** with zero generic arguments:
+Initialize the client with your backend `baseUrl` and your server app/manifest type:
 
 ```ts title="src/lib/api.ts"
 import { createClient } from "@taserjs/router-client";
+import type { App } from "../server/entry.js"; // or type { RouteManifest } from "../.taser/types/routes.js"
 
-export const api = createClient({
+export const api = createClient<App>({
   baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api",
   headers: async () => {
     const token = localStorage.getItem("auth_token");
@@ -38,10 +39,10 @@ export const api = createClient({
 });
 ```
 
-<Callout type="info" title="Automatic Type Detection">
-  Because Taser automatically generates ambient route declarations at `.taser/types/routes.d.ts`,
-  `createClient()` infers all available routes, methods, input schemas, and return contracts
-  automatically without needing to manually import `RouteManifest` or `TaserAppRouter`.
+<Callout type="info" title="Explicit End-to-End Type Safety">
+  By passing your server's `App` type (or `RouteManifest`) as a generic to `createClient<App>()`,
+  the client automatically infers all available routes, methods, input schemas, and return contracts.
+  This allows multiple microservices in the same monorepo to maintain independent, collision-free client SDKs.
 </Callout>
 
 ---

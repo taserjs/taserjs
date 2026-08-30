@@ -187,7 +187,7 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
     await fsp.mkdir(routesDir, { recursive: true });
     await fsp.writeFile(
       join(routesDir, "index.get.ts"),
-      'export const Route = t.get("/").handler(() => new Response("ok"));',
+      'import { t } from "@taserjs/router";\nexport default t.get("/").handler(() => new Response("ok"));',
       "utf8",
     );
 
@@ -243,7 +243,7 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
     await fsp.mkdir(routesDir, { recursive: true });
     await fsp.writeFile(
       join(routesDir, "index.get.ts"),
-      'export const Route = t.get("/").handler(() => new Response("ok"));',
+      'import { t } from "@taserjs/router";\nexport default t.get("/").handler(() => new Response("ok"));',
       "utf8",
     );
 
@@ -288,7 +288,7 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
     };
 
     const { content, manifest } = await waitForScaffoldAndManifest();
-    expect(content).toContain("export const Route =");
+    expect(content).toContain("export default");
     expect(content).toContain("t.get('/users')");
     expect(manifest).toContain("users.get");
   });

@@ -1,113 +1,217 @@
-# TaserJS — Architecture & Core Concepts
+# Taser Architecture & Codebase Context
 
-TaserJS is a high-performance, full-stack, type-safe backend framework for JavaScript and TypeScript. It bridges file-based API routing, functional middleware pipelines, Standard Schema validation, compile-time return contracts, and multi-runtime deployment across Node.js, Bun, Deno, Cloudflare Workers, Vercel, and Next.js.
+## 1. Overview & Purpose
 
----
+**Taser** is a type-safe, file-based routing framework for backend HTTP APIs in TypeScript. It brings the intuitive routing, layout hierarchies, and type inference model of modern frontend routers (like TanStack Router) to backend server runtimes.
 
-## 1. Core Philosophy & Design Principles
+### Key Philosophy
 
-1. **End-to-End Type Safety Without Bloat**:
-   Route inputs (query, params, body), layout-derived context/state, and structured response returns (`t.returns({ 200: UserSchema })`) are inferred at compile time into an ambient declaration (`routes.d.ts`), enabling instant RPC client type inference without code bloat.
-
-2. **Decoupled Three-Tier Architecture**:
-   - **Definition Tier (`@taserjs/router`)**: Pure, fluent builder API used in application code (`src/taser.ts`, `src/routes/`).
-   - **Generation Tier (`@taserjs/router-generator`)**: Fast, AST-based file scanner and code/type generator with zero host or runtime dependencies.
-   - **Integration Tier (`@taserjs/router-plugin`)**: Universal bundler plugin (`unplugin`) connecting the generated routing model to build systems (Vite, Webpack, Rspack, Rollup, Rolldown, esbuild), standalone dev servers, Next.js, and Nitro.
-
-3. **Standard Schema First**:
-   All runtime validation uses the [Standard Schema Spec](https://github.com/standard-schema/spec) (`@standard-schema/spec`), providing vendor-agnostic schema validation for Zod, Valibot, ArkType, and TypeBox out of the box.
-
-4. **Multi-Runtime Deployment**:
-   Taser compiles down to standard Web Fetch API request handlers (`(request: Request) => Promise<Response>`), allowing transparent execution on any modern runtime or server framework (Hono, Express, Fastify, Nitro, Cloudflare Workers, Node.js HTTP).
+- **Deterministic File-Based Routing**: Route endpoints are defined by HTTP verb files (`.get.ts`, `.post.ts`, `.put.ts`, `.delete.ts`, etc.). Layout and middleware definitions are defined hierarchically using non-verb files (e.g. `src/routes/$.ts` or `src/routes/admin.ts`).
+- **Cascading Strongly-Typed Context**: Middleware passes state down the pipeline via `next({ key: value })`, automatically merged and typed on downstream handlers in `ctx.state` with zero runtime overhead and no manual type assertions (`req.user as User`).
+- **Standard Schema First**: Natively supports any validator implementing the `@standard-schema/spec` (Zod, ArkType, Valibot, Typia, etc.).
+- **Compile-Time Return Contracts**: `.returns({ 200: UserSchema, 401: ErrorSchema })` verifies that handler returns adhere to schemas at compile time and runtime.
+- **Framework & Runtime Agnostic**: Runs standalone on Node.js, Bun, Cloudflare Workers, or mounts directly onto Hono, Express, Fastify, Nitro, and Next.js.
+- **Zero-Drift RPC Client**: Generates an end-to-end typed client SDK (`@taserjs/router-client`) from router declarations.
 
 ---
 
-## 2. Package Topology & Roles
-
-```mermaid
-graph TD
-    Utils["@taserjs/router-utils\n(Reply, Stream, HTTP, Schemas)"]
-    Core["@taserjs/router-core\n(Runtime Pipeline, Onion Engine, Cookies/Headers)"]
-    Router["@taserjs/router\n(Fluent API, Builders, Middleware)"]
-    Generator["@taserjs/router-generator\n(AST Scanner, Manifest/Type Codegen, Watcher)"]
-    Plugin["@taserjs/router-plugin\n(Unplugin, Vite/Webpack/Rspack, Next, Nitro)"]
-    Client["@taserjs/router-client\n(Proxy RPC Client)"]
-    CLI["@taserjs/router-cli\n(taser generate CLI)"]
-    Create["create-taserjs\n(Starter Scaffolding CLI)"]
-
-    Utils --> Core
-    Utils --> Router
-    Utils --> Plugin
-    Utils --> Generator
-    Core --> Router
-    Generator --> Plugin
-    Generator --> CLI
-    Router -. Ambient Types .-> Client
-```
-
-### Monorepo Packages:
-
-| Package                         | Purpose & Boundary                                                                                                                                                                                                 |
-| :------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`@taserjs/router-utils`**     | Foundational leaf package: structured HTTP replies (`/reply`), SSE/binary streaming (`/stream`), HTTP verbs/status codes/MIME types (`/http`), path composition (`/mount`), and Standard Schema validation runner. |
-| **`@taserjs/router-core`**      | The execution engine: onion middleware dispatch pipeline, cookie and header lifecycles, body decoding, response finalization, and Hono-backed runtime adapter.                                                     |
-| **`@taserjs/router`**           | The user-facing fluent router builder API (`createTaserApp`, `t.get`, `t.post`, `t.middleware`, `t.returns`, `t.create(manifest)`).                                                                                |
-| **`@taserjs/router-generator`** | Build-time AST code scanner and compiler. Emits `routeManifest`, virtual app entrypoints, ambient `routes.d.ts` type declarations, and automated route file scaffolding.                                           |
-| **`@taserjs/router-plugin`**    | Multi-bundler integration layer built on `unplugin`. Provides Vite dev server middleware, standalone production entry shim, Nitro server engine module, and Next.js disk adapter (`withTaser`).                    |
-| **`@taserjs/router-client`**    | Lightweight, browser-compatible RPC client (`createClient<AppRoutes>`) consuming generated route types with zero runtime dependencies.                                                                             |
-| **`@taserjs/router-cli`**       | Developer CLI (`taser generate`) for manual or build-step route type generation.                                                                                                                                   |
-| **`create-taserjs`**            | Interactive project scaffolding CLI for rapid template initialization.                                                                                                                                             |
-
----
-
-## 3. The Request Lifecycle & Pipeline
-
-### A. Routing & File-System Hierarchy
-
-Routes live under `src/routes/` with verb-suffixed file names:
-
-- `src/routes/index.get.ts` $\rightarrow$ `GET /`
-- `src/routes/users/[id].get.ts` $\rightarrow$ `GET /users/:id`
-- `src/routes/users/index.post.ts` $\rightarrow$ `POST /users`
-- `src/routes/$.ts` $\rightarrow$ Root middleware layout applied to all sibling and child routes.
-- `src/routes/admin/$.ts` $\rightarrow$ Nested middleware layout applied only to `/admin/*` routes.
-
-### B. Cascading Context & Onion Middleware
-
-1. **Layout Cascading**: When a request arrives at `/admin/users/123`, the execution engine constructs the middleware chain by walking up the layout tree:
-   $$\text{Root Layout (\$.ts)} \longrightarrow \text{Admin Layout (admin/\$.ts)} \longrightarrow \text{Route Handler (admin/users/[id].get.ts)}$$
-2. **State Propagation**: Middleware passes state down the chain via `next({ user, org })`. State is strongly typed and inferred across middleware layers.
-3. **Short-Circuiting**: Any middleware can intercept and return an early response (e.g. auth guard returning `401 Unauthorized`), halting downstream handlers.
-
-### C. Standard Schema Validation & Coercion
-
-- Query parameters, path parameters, and request bodies are validated against declared Standard Schemas before the route handler is invoked.
-- Form data, URL-encoded bodies, and JSON payloads are decoded and validated automatically based on the route definition.
-
----
-
-## 4. Virtual Module Resolution & Compilation
-
-In Vite and other `unplugin`-supported bundlers, Taser uses zero-disk virtual modules during development:
-
-1. **`#taserjs/virtual/manifest`**: Dynamically synthesized object graph containing all route imports, layouts, and HTTP verb mappings.
-2. **`#taserjs/virtual/entry`**: The compiled Taser app instance initializing `t.create(routeManifest)`.
-3. **`#taserjs/virtual/app`**: The composed application bridging Taser routes, optional host servers (Hono/Express), and 404 fallbacks.
-
-For frameworks that do not support virtual module graphs (such as Next.js App Router), `@taserjs/router-plugin/next` emits materialized versions of these files directly to `.taser/` on disk and keeps them synced via file watching.
-
----
-
-## 5. End-to-End Type Flow
+## 2. Monorepo Structure
 
 ```
-[ Route Files (*.ts) ]
-       │ (AST Scan & Type Extraction)
-       ▼
-[ .taser/types/routes.d.ts ] ──► (Infers AppRoutes)
-       │
-       ├─────────────────────────┐
-       ▼                         ▼
-[ IDE Type Assistance ]    [ @taserjs/router-client ]
-(Route Params, Body, Context)  (Proxy RPC Client: client.users({ id }).$get())
+taserjs/
+├── packages/
+│   ├── router/            # Public entry point, standalone builders (t.get, t.layout, t.middleware), types
+│   ├── router-core/       # Runtime onion execution pipeline, context, headers, cookies, layers, Hono adapter
+│   ├── router-utils/      # Standard Schema validation, reply helpers (json, text, html), status codes, manifest helpers
+│   ├── router-generator/  # Route scanner, AST parser, watcher, type generator (.taser/types/routes.d.ts), scaffolder
+│   ├── router-plugin/     # Unplugin multi-bundler plugin (Vite, Nitro, Next.js, Rollup, Webpack, Rspack, Esbuild)
+│   ├── router-client/     # Lightweight typed RPC client proxy
+│   ├── router-cli/        # Command-line interface (taser dev, taser build, taser generate, taser scaffold)
+│   └── create-taserjs/    # CLI starter template generator
+├── docs/                  # Next.js 16 + Turbopack documentation application
+└── examples/              # Integration examples (basic-app, bun-app, hono-app, manual-app, next-app, start-app)
 ```
+
+---
+
+## 3. Core Concepts & Architecture
+
+### 3.1 `src/taser.ts` & Ambient AppContext
+
+A Taser application initializes a root runtime via `createTaserApp` in `src/taser.ts` and exports it as `default`:
+
+```ts
+import { createContext, createTaserApp } from "@taserjs/router";
+
+export const context = createContext({
+  boot: () => ({ db: new Database() }),
+  request: (req) => ({ requestId: crypto.randomUUID() }),
+});
+
+export default createTaserApp({
+  response: { validate: true },
+}).context(context);
+```
+
+- When `@taserjs/router-generator` runs, it generates `.taser/types/routes.d.ts` which augments `@taserjs/router`'s `RouterRegister`:
+  ```ts
+  declare module "@taserjs/router" {
+    interface RouterRegister {
+      AppContext: typeof taser.$Infer.Context;
+      RoutePath: RoutePathGen;
+      LayoutId: LayoutIdGen;
+      LayoutParents: LayoutParentsGen;
+      LayoutTree: LayoutTreeGen;
+      RouteByPathMethod: RouteByPathMethodGen;
+    }
+  }
+  ```
+- All route and middleware files import directly from `@taserjs/router` (e.g. `import { t } from "@taserjs/router"`). Builders resolve `AppContext` ambiently from `RouterRegister`, eliminating the need for path aliases (like `#taserjs/router`).
+
+---
+
+### 3.2 Defining Routes (`t.get`, `t.post`, etc.)
+
+Routes export a builder chain as `default`:
+
+```ts
+import { json, t } from "@taserjs/router";
+import { z } from "zod";
+
+export default t
+  .get("/users/:id")
+  .params(z.object({ id: z.coerce.number() }))
+  .query(z.object({ includePosts: z.boolean().default(false) }))
+  .returns({ 200: UserSchema, 404: ErrorSchema })
+  .handler(async (ctx) => {
+    // ctx.params.id is number
+    // ctx.query.includePosts is boolean
+    // ctx.db and ctx.requestId come from AppContext
+    // ctx.state comes from layout/route middlewares
+    return json({ id: ctx.params.id, name: "Alice" });
+  });
+```
+
+#### Validation & Body Parsing Semantics
+
+- **Path Params**: Inferred as `string` by default unless overridden by `.params(schema)`.
+- **Query Params**: Parsed and validated via `.query(schema)`.
+- **Body Parsing**:
+  - If no `.body()` is declared, request body parsing is **completely skipped** (optimizing hot paths like GET/HEAD).
+  - `.body(schema)` defaults to JSON body parsing.
+  - `.body("form", schema)` or `.body("urlencoded", schema)` enables multipart or URL-encoded form parsing.
+
+---
+
+### 3.3 Layout & Middleware System
+
+#### Hierarchical Layouts
+
+Non-verb files (e.g. `src/routes/$.ts` for root, `src/routes/admin.ts` for `/admin/*`) define layout middleware chains:
+
+```ts
+import { t } from "@taserjs/router";
+
+export default t.layout("admin").use(async (ctx, next) => {
+  const token = ctx.headers.get("authorization");
+  if (!token) return ctx.reply.text("Unauthorized", { status: 401 });
+  return next({ user: { id: "123", role: "admin" } });
+});
+```
+
+#### Fluent Middleware Units
+
+Standalone middlewares use the fluent `middleware()` builder:
+
+```ts
+import { middleware } from "@taserjs/router";
+import { z } from "zod";
+
+export const validatePagination = middleware().query(
+  z.object({ page: z.coerce.number().default(1), limit: z.coerce.number().default(20) }),
+);
+
+export const authGuard = middleware().handler(async (ctx, next) => {
+  return next({ session: { userId: "xyz" } });
+});
+```
+
+#### Validation-Only Middlewares
+
+Middlewares without handlers (e.g. `middleware().query(...)`) act as pure validation layers. The runtime pipeline automatically skips handler execution and forwards validation results into `ctx.query`, `ctx.params`, or `ctx.body`.
+
+#### Automatic Union State Inference
+
+When a middleware branches with different state payloads:
+
+```ts
+const featureFlag = middleware().handler((ctx, next) => {
+  if (ctx.query.beta === "true") {
+    return next({ betaUser: true as const, tier: "premium" as const });
+  }
+  return next({ betaUser: false as const, tier: "standard" as const });
+});
+```
+
+The state is automatically inferred on downstream route handlers as:
+`{ betaUser: true, tier: "premium" } | { betaUser: false, tier: "standard" }` without requiring manual generic annotations.
+
+#### Layout Decoupling (`LayoutParents`)
+
+Layout parent hierarchies (`LayoutParents`) are generated independently of layout middleware types, preventing circular TypeScript evaluation issues when layouts declare contextual middlewares.
+
+---
+
+### 3.4 Runtime Onion Pipeline (`@taserjs/router-core`)
+
+At runtime, requests flow through an onion middleware pipeline:
+
+1. **Layout Middlewares**: Executed from shallowest root to deepest nested layout.
+2. **Route Middlewares**: Attached via `.use(...)` on specific routes.
+3. **Route Validation Layer**: Merges validated fields (`query`, `params`, `body`).
+4. **Route Handler**: Produces a `Response`.
+5. **Response Finalization & Contracts**: Validates returned responses if response contracts are configured and handles cookies/headers.
+
+---
+
+### 3.5 RPC Client (`@taserjs/router-client`)
+
+The client builds an end-to-end type-safe proxy directly from your server's `App` type or `RouteManifest`:
+
+```ts
+import { createClient } from "@taserjs/router-client";
+import type { App } from "../server/entry.js";
+
+const client = createClient<App>({ baseUrl: "http://localhost:3000" });
+
+const res = await client.users._id.$get({
+  param: { id: 1 },
+  query: { includePosts: true },
+});
+```
+
+---
+
+## 4. Key Developer Commands
+
+```bash
+# Run tests across all packages
+pnpm test
+
+# Run typecheck across all packages & examples (21 targets)
+pnpm typecheck
+
+# Build all packages
+pnpm build
+
+# Build documentation site
+pnpm --filter docs build
+```
+
+---
+
+## 5. Coding & Contribution Guidelines
+
+- **Zero Type Assertion Principle**: Ensure all API builders and pipelines preserve compile-time inference without requiring user-level type casting.
+- **Fluent API Exclusivity**: Middleware and routes must use the fluent builder API (`middleware().query(...).handler(...)`) or function signature `(ctx, next) => next(...)`. Raw options object literals (`{ query, handler }`) are intentionally disallowed.
+- **Exact Optional Properties**: Codebase compiles with `exactOptionalPropertyTypes: true` — optional properties must explicitly include `| undefined` when applicable.

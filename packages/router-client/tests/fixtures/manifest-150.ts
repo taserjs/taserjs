@@ -1,5 +1,5 @@
 import type { ReplyOf } from "@taserjs/router/reply";
-import type { Client, BuildClientChain } from "../../src/types.js";
+import type { Client } from "../../src/types.js";
 
 export type Manifest150 = {
   layouts: { "/$": { middlewares: readonly [] } };
@@ -8111,4 +8111,3 @@ export type Chain150 = {
 };
 
 export type Client150 = Client<Manifest150>;
-export type PreGenClient150 = BuildClientChain<Chain150>;

@@ -38,24 +38,21 @@ describe("nitro-integration (Nitro Only Mode)", () => {
       JSON.stringify({
         name: "test-app",
         type: "module",
-        imports: {
-          "#taserjs/router": "./src/taser.ts",
-        },
       }),
     );
 
     await fsp.writeFile(
       join(srcDir, "taser.ts"),
       `import { createTaserApp } from "@taserjs/router";
-export const t = createTaserApp();
+export default createTaserApp();
 `,
     );
 
     await fsp.writeFile(
       join(routesDir, "hello.get.ts"),
-      `import { t } from "../taser.js";
+      `import { t } from "@taserjs/router";
 import { json } from "@taserjs/router/reply";
-export const Route = t.get("/hello").handler(() => json({ message: "hello from nitro only" }));
+export default t.get("/hello").handler(() => json({ message: "hello from nitro only" }));
 `,
     );
 
@@ -103,24 +100,21 @@ export const Route = t.get("/hello").handler(() => json({ message: "hello from n
       JSON.stringify({
         name: "test-app",
         type: "module",
-        imports: {
-          "#taserjs/router": "./src/taser.ts",
-        },
       }),
     );
 
     await fsp.writeFile(
       join(srcDir, "taser.ts"),
       `import { createTaserApp } from "@taserjs/router";
-export const t = createTaserApp();
+export default createTaserApp();
 `,
     );
 
     await fsp.writeFile(
       join(routesDir, "users.get.ts"),
-      `import { t } from "../taser.js";
+      `import { t } from "@taserjs/router";
 import { json } from "@taserjs/router/reply";
-export const Route = t.get("/users").handler(() => json({ users: ["alice", "bob"] }));
+export default t.get("/users").handler(() => json({ users: ["alice", "bob"] }));
 `,
     );
 

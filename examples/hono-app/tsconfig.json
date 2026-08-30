@@ -5,10 +5,7 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
     "strict": true,
-    "skipLibCheck": true,
-    "paths": {
-      "#taserjs/router": ["./src/taser.ts"]
-    }
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*",

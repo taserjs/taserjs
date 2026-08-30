@@ -51,7 +51,7 @@ GET, DELETE, OPTIONS, and HEAD routes accept validation schemas for `query` and 
 ```ts title="src/routes/articles.get.ts"
 import { json } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
 const GET = t
   .get("/articles")
@@ -77,7 +77,7 @@ const GET = t
   });
 
 export type RouteContext = typeof GET.$Infer.Context;
-export const Route = GET.handler(async (ctx) => {
+export default GET.handler(async (ctx) => {
   const articles = await ctx.db.getArticles(ctx.query);
   return json({
     articles,
@@ -96,9 +96,9 @@ When you supply a `.params()` schema, the validated schema types **take preceden
 ```ts title="src/routes/tasks/$id.get.ts"
 import { json } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t
+export default t
   .get("/tasks/:id")
   .params(
     z.object({
@@ -122,7 +122,7 @@ POST, PUT, and PATCH routes accept `.body()`, `.query()`, and `.params()` schema
 ```ts title="src/routes/articles.post.ts"
 import { created } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
 const POST = t
   .post("/articles")
@@ -143,7 +143,7 @@ const POST = t
   });
 
 export type RouteContext = typeof POST.$Infer.Context;
-export const Route = POST.handler(async (ctx) => {
+export default POST.handler(async (ctx) => {
   const article = await ctx.db.createArticle(ctx.body);
   return created(article);
 });
@@ -164,11 +164,11 @@ In addition to directory layout middlewares, you can attach route-specific middl
 
 ```ts title="src/routes/admin/purge.delete.ts"
 import { noContent } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 import { verifySuperAdmin } from "../../middleware/super-admin";
 import { rateLimit } from "../../middleware/rate-limit";
 
-export const Route = t
+export default t
   .delete("/admin/purge")
   .use(rateLimit({ max: 5, windowMs: 60000 }))
   .use(verifySuperAdmin())
@@ -186,10 +186,10 @@ When an endpoint needs to handle multiple HTTP methods with shared logic, use `t
 
 ```ts title="src/routes/webhooks/stripe.post.ts"
 import { json, ok } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
 // Accepts GET and POST requests
-export const Route = t.any("/webhooks/stripe", ["GET", "POST"]).handler(async (ctx) => {
+export default t.any("/webhooks/stripe", ["GET", "POST"]).handler(async (ctx) => {
   if (ctx.method === "GET") {
     return json({ status: "Stripe webhook endpoint active" });
   }
@@ -209,7 +209,7 @@ Route builders provide an `$Infer` namespace for extracting the exact compile-ti
 ```ts title="src/routes/users/$id.get.ts"
 import { json, notFound } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
 const GET = t
   .get("/users/:id")
@@ -229,7 +229,7 @@ export type RouteInput = typeof GET.$Infer.Input;
 // Extract returns shape:
 export type RouteOutput = typeof GET.$Infer.Output;
 
-export const Route = GET.handler(async (ctx) => {
+export default GET.handler(async (ctx) => {
   const user = await ctx.db.findUser(ctx.params.id);
   if (!user) {
     return notFound({ message: "User not found" });
@@ -237,39 +237,6 @@ export const Route = GET.handler(async (ctx) => {
   return json(user);
 });
 ```
-
-<Callout type="warn" title="Always Infer Context from the Verb Variable (GET / POST), Not Route">
-  When extracting `RouteContext` to type helper functions or extracted methods called inside your handler, **always** infer from the verb variable (e.g. `typeof GET.$Infer.Context`), **never** from the finalized `Route` export (e.g. `typeof Route.$Infer.Context`).
-
-```ts
-// ✅ YES: Inferred from the builder variable before .handler()
-const GET = t.get("/users/:id");
-export type RouteContext = typeof GET.$Infer.Context; // [!code highlight]
-
-async function fetchUser(ctx: RouteContext) {
-  return ctx.db.findUser(ctx.params.id);
-}
-
-export const Route = GET.handler(async (ctx) => {
-  const user = await fetchUser(ctx);
-  return json(user);
-});
-```
-
-```ts
-// ❌ NO: Will cause TypeScript circular/cyclic type errors
-export const Route = t.get("/users/:id").handler(async (ctx) => {
-  const user = await fetchUser(ctx);
-  return json(user);
-});
-
-// Cyclic dependency: Route -> handler -> fetchUser -> typeof Route -> Route
-export type RouteContext = typeof Route.$Infer.Context;
-
-async function fetchUser(ctx: RouteContext) { ... }
-```
-
-</Callout>
 
 ---
 

@@ -14,12 +14,12 @@ describe("runGenerate", () => {
 
     writeFileSync(
       join(srcDir, "taser.ts"),
-      `import { createTaserApp } from "@taserjs/router";\nexport const t = createTaserApp();\n`,
+      `import { createTaserApp } from "@taserjs/router";\nexport default createTaserApp();\n`,
     );
 
     writeFileSync(
       join(routesDir, "index.get.ts"),
-      `import { t } from "../taser.js";\nconst GET = t.get("/");\nexport const Route = GET.handler(() => ({ ok: true }));\n`,
+      `import { t } from "@taserjs/router";\nexport default t.get("/").handler(() => ({ ok: true }));\n`,
     );
 
     await runGenerate({ dir });

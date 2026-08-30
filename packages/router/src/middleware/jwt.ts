@@ -1,6 +1,6 @@
 import { jwt as honoJwt } from "hono/jwt";
 
-import { defineMiddleware } from "../define/middleware.js";
+import { middleware } from "../define/middleware.js";
 import type { MiddlewareReturnFromParts, MiddlewareUnit } from "../types/units.js";
 import { honoMw } from "./hono-mw.js";
 
@@ -22,7 +22,7 @@ export function jwt<TPayload = Record<string, unknown>>(
   options: JwtOptions,
 ): JwtMiddlewareUnit<TPayload> {
   const mw = honoMw(honoJwt(options));
-  return defineMiddleware<JwtPayloadState<TPayload>>((ctx, next) =>
+  return middleware<JwtPayloadState<TPayload>>((ctx, next) =>
     mw(ctx, async () => {
       const payload = (ctx as unknown as { var: { jwtPayload?: unknown } }).var.jwtPayload;
       return next({ jwtPayload: payload as TPayload });

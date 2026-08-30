@@ -11,7 +11,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 
 If you have an existing project or prefer configuring dependencies manually without the `create-taserjs` wizard, this guide provides complete step-by-step instructions.
 
-Taser is **Vite-native** by design. You can run Taser as a standalone server, pair it with **Nitro** for multi-cloud deployment presets, embed it inside **Next.js**, or enable **Host Pass-Through** to dispatch alongside existing frameworks.
+Taser is **Vite-native** by design. You can run Taser as a standalone server, pair it with **Nitro** for multi-cloud deployment presets, or enable **Host Pass-Through** to dispatch alongside existing frameworks.
 
 ---
 
@@ -23,31 +23,31 @@ At its foundation, Taser operates as a Vite compiler plugin (`@taserjs/router-pl
   <Step>
     ### Install Core Dependencies
 
-    Install `@taserjs/router`, `@taserjs/router-plugin`, `vite`, `srvx`, and your preferred schema validator (such as `zod`):
+    Install `@taserjs/router`, `srvx`, `@taserjs/router-plugin`, `vite`, and your preferred schema validator (such as `zod`):
 
     <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
       <Tab value="pnpm">
         ```bash
-        pnpm add @taserjs/router zod
-        pnpm add -D @taserjs/router-plugin vite srvx
+        pnpm add @taserjs/router srvx zod
+        pnpm add -D @taserjs/router-plugin vite
         ```
       </Tab>
       <Tab value="npm">
         ```bash
-        npm install @taserjs/router zod
-        npm install -D @taserjs/router-plugin vite srvx
+        npm install @taserjs/router srvx zod
+        npm install -D @taserjs/router-plugin vite
         ```
       </Tab>
       <Tab value="bun">
         ```bash
-        bun add @taserjs/router zod
-        bun add -d @taserjs/router-plugin vite srvx
+        bun add @taserjs/router srvx zod
+        bun add -d @taserjs/router-plugin vite
         ```
       </Tab>
       <Tab value="yarn">
         ```bash
-        yarn add @taserjs/router zod
-        yarn add -D @taserjs/router-plugin vite srvx
+        yarn add @taserjs/router srvx zod
+        yarn add -D @taserjs/router-plugin vite
         ```
       </Tab>
     </Tabs>
@@ -57,15 +57,12 @@ At its foundation, Taser operates as a Vite compiler plugin (`@taserjs/router-pl
   <Step>
     ### Configure `package.json`
 
-    Configure the `#taserjs/router` subpath import and lifecycle scripts:
+    Configure your project scripts:
 
     ```json title="package.json"
     {
       "name": "my-taser-app",
       "type": "module",
-      "imports": {
-        "#taserjs/router": "./src/taser.ts"
-      },
       "scripts": {
         "dev": "vite",
         "build": "vite build",
@@ -88,9 +85,6 @@ At its foundation, Taser operates as a Vite compiler plugin (`@taserjs/router-pl
         "target": "ES2022",
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
-        "paths": {
-          "#taserjs/router": ["./src/taser.ts"]
-        },
         "strict": true,
         "skipLibCheck": true,
         "isolatedModules": true,
@@ -142,7 +136,7 @@ At its foundation, Taser operates as a Vite compiler plugin (`@taserjs/router-pl
     import { createTaserApp } from "@taserjs/router";
     import { context } from "./context.js";
 
-    export const t = createTaserApp({
+    export default createTaserApp({
       response: { validate: true },
     }).context(context);
     ```
@@ -156,12 +150,9 @@ At its foundation, Taser operates as a Vite compiler plugin (`@taserjs/router-pl
 
     ```ts title="src/routes/index.get.ts"
     import { json } from "@taserjs/router/reply";
-    import { t } from "#taserjs/router";
+    import { t } from "@taserjs/router";
 
-    const GET = t.get("/");
-
-    export type RouteContext = typeof GET.$Infer.Context;
-    export const Route = GET.handler((ctx) => {
+    export default t.get("/").handler((ctx) => {
       return json({ message: "Welcome to Taser!", requestId: ctx.requestId });
     });
     ```
@@ -251,128 +242,7 @@ At its foundation, Taser operates as a Vite compiler plugin (`@taserjs/router-pl
 
 ---
 
-## 3. Embedding Taser inside Next.js (App Router)
-
-To embed Taser's type-safe file routing inside an existing Next.js 15+ App Router project:
-
-<Steps>
-  <Step>
-    ### Install Dependencies
-
-    <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
-      <Tab value="pnpm">
-        ```bash
-        pnpm add @taserjs/router @taserjs/router-client zod
-        pnpm add -D @taserjs/router-plugin
-        ```
-      </Tab>
-      <Tab value="npm">
-        ```bash
-        npm install @taserjs/router @taserjs/router-client zod
-        npm install -D @taserjs/router-plugin
-        ```
-      </Tab>
-      <Tab value="bun">
-        ```bash
-        bun add @taserjs/router @taserjs/router-client zod
-        bun add -d @taserjs/router-plugin
-        ```
-      </Tab>
-      <Tab value="yarn">
-        ```bash
-        yarn add @taserjs/router @taserjs/router-client zod
-        yarn add -D @taserjs/router-plugin
-        ```
-      </Tab>
-    </Tabs>
-
-  </Step>
-
-  <Step>
-    ### Configure `next.config.ts` & `tsconfig.json`
-
-    Wrap your Next.js configuration with `createTaser`:
-
-    ```ts title="next.config.ts"
-    import type { NextConfig } from "next";
-    import { createTaser } from "@taserjs/router-plugin/next";
-
-    const nextConfig: NextConfig = {
-      reactStrictMode: true,
-    };
-
-    const withTaser = createTaser({
-      serverDir: "src/server", // Directory hosting Taser server code & routes
-      entry: "@/server/taser",  // Path alias or path to your router instance
-      basePath: "/api",        // URL prefix where Taser routes dispatch
-    });
-
-    export default withTaser(nextConfig);
-    ```
-
-    Ensure `tsconfig.json` includes `@/*` and `@/.taser/*` path aliases:
-
-    ```json title="tsconfig.json"
-    {
-      "compilerOptions": {
-        "paths": {
-          "@/*": ["./src/*"],
-          "@/.taser/*": ["./.taser/*"]
-        }
-      },
-      "include": [
-        "next-env.d.ts",
-        "**/*.ts",
-        "**/*.tsx",
-        ".taser/**/*.ts",
-        ".taser/**/*.d.ts"
-      ]
-    }
-    ```
-
-  </Step>
-
-  <Step>
-    ### Create Taser Router Instance
-
-    Create `src/server/taser.ts` to initialize your router instance:
-
-    ```ts title="src/server/taser.ts"
-    import { createTaserApp } from "@taserjs/router";
-    import { notFound } from "@taserjs/router/reply";
-
-    export const t = createTaserApp({
-      response: { validate: true },
-    }).notFound(() => notFound({ message: "Not Found" }));
-    ```
-
-  </Step>
-
-  <Step>
-    ### Create Catch-All Route Handler
-
-    Create `src/app/api/[[...slug]]/route.ts` to forward incoming Next.js API requests to Taser:
-
-    ```ts title="src/app/api/[[...slug]]/route.ts"
-    import { app } from "@/.taser/entry";
-
-    const handle = (request: Request) => app.fetch(request);
-
-    export const GET = handle;
-    export const POST = handle;
-    export const PUT = handle;
-    export const DELETE = handle;
-    export const PATCH = handle;
-    export const OPTIONS = handle;
-    export const HEAD = handle;
-    ```
-
-  </Step>
-</Steps>
-
----
-
-## 4. Host Pass-Through (Coexisting with Existing Frameworks)
+## 3. Host Pass-Through (Coexisting with Existing Frameworks)
 
 <Callout type="info" title="Host Pass-Through is an Architectural Feature">
   Host Pass-Through is not a separate setup mode. It is a dispatch mechanism that works seamlessly

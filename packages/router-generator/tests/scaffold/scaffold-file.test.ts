@@ -24,15 +24,13 @@ describe("scaffoldRouteFile", () => {
 
     expect(result).toBe("written");
     const source = readFileSync(routePath, "utf8");
-    expect(source).toContain("const GET = t.get");
-    expect(source).toContain("export type RouteContext = typeof GET.$Infer.Context");
-    expect(source).toContain("export const Route = GET.handler(");
+    expect(source).toContain("export default t.get('/posts').handler(");
   });
 
-  it("skips non-empty route files with Route export", async () => {
+  it("skips non-empty route files with default export", async () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-scaffold-skip-"));
     const routePath = join(routesDir, "posts.get.ts");
-    writeFileSync(routePath, 'export const Route = t.get("/posts", {})\n');
+    writeFileSync(routePath, 'export default t.get("/posts").handler(() => {});\n');
 
     const result = await scaffoldRouteFile(routesDir, routePath, scaffoldOptions);
 
@@ -47,8 +45,8 @@ describe("scaffoldRouteFile", () => {
     const result = await scaffoldRouteFile(routesDir, layoutPath, scaffoldOptions);
 
     expect(result).toBe("written");
-    expect(readFileSync(layoutPath, "utf8")).toContain("t.middleware");
-    expect(readFileSync(layoutPath, "utf8")).toContain("export const Middleware =");
+    expect(readFileSync(layoutPath, "utf8")).toContain("t.layout");
+    expect(readFileSync(layoutPath, "utf8")).toContain("export default t.layout('settings')");
   });
 
   it("ignores files starting with ignorePrefix", async () => {
@@ -89,7 +87,7 @@ describe("scaffoldRouteFileAtPath", () => {
     const result = await scaffoldRouteFileAtPath(routesDir, "users/$id.get.ts", scaffoldOptions);
     expect(result).toBe("written");
     const source = readFileSync(join(routesDir, "users", "$id.get.ts"), "utf8");
-    expect(source).toContain("export const Route = GET.handler(");
+    expect(source).toContain("export default t.get('/users/:id').handler(");
   });
 
   it("rejects path traversal", async () => {

@@ -27,7 +27,7 @@ export class ResourceNotFoundError extends Error {
   }
 }
 
-export const t = createTaserApp()
+export default createTaserApp()
   .context(context)
   .onError((error, ctx) => {
     // 1. Handle Schema Validation Errors
@@ -69,7 +69,7 @@ Use `.notFound()` to define a standardized response when an incoming request doe
 ```ts title="src/taser.ts"
 import { notFound } from "@taserjs/router/reply";
 
-export const t = createTaserApp()
+export default createTaserApp()
   .context(context)
   .notFound((ctx) => {
     return notFound({
@@ -88,10 +88,10 @@ Because `.onError()` catches all unhandled exceptions, you can throw errors dire
 
 ```ts title="src/routes/teams/$id.get.ts"
 import { json } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 import { ResourceNotFoundError } from "../../errors.js";
 
-export const Route = t.get("/teams/:id").handler(async (ctx) => {
+export default t.get("/teams/:id").handler(async (ctx) => {
   const team = await ctx.db.findTeam(ctx.params.id);
 
   if (!team) {

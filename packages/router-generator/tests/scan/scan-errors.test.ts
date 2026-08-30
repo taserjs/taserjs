@@ -22,12 +22,12 @@ describe("scanRouteFiles errors", () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-dup-route-"));
     writeFileSync(
       join(routesDir, "posts.get.ts"),
-      `import { t } from '#taserjs/router';\nexport const Route = t.get('/posts').handler(() => {});\n`,
+      `import { t } from '@taserjs/router';\nexport default t.get('/posts').handler(() => {});\n`,
     );
     mkdirSync(join(routesDir, "posts"));
     writeFileSync(
       join(routesDir, "posts", "index.get.ts"),
-      `import { t } from '#taserjs/router';\nexport const Route = t.get('/posts').handler(() => {});\n`,
+      `import { t } from '@taserjs/router';\nexport default t.get('/posts').handler(() => {});\n`,
     );
 
     const files = await walkRouteFiles(routesDir, testGeneratorConfig.ignore);
@@ -41,7 +41,7 @@ describe("scanRouteFiles errors", () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-invalid-param-"));
     writeFileSync(
       join(routesDir, "items.$bad-name.get.ts"),
-      `import { t } from '#taserjs/router';\nexport const Route = t.get('/items/:bad-name').handler(() => {});\n`,
+      `import { t } from '@taserjs/router';\nexport default t.get('/items/:bad-name').handler(() => {});\n`,
     );
 
     const files = await walkRouteFiles(routesDir, testGeneratorConfig.ignore);

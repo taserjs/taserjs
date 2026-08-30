@@ -37,7 +37,7 @@ import { createTaserApp, ValidationError, type InferAppContext } from "@taserjs/
 import { internalServerError, unprocessableEntity } from "@taserjs/router/reply";
 import { context } from "./context.js";
 
-export const t = createTaserApp()
+export default createTaserApp()
   .context(context)
   .onError((error) => {
     // 1. Handle Schema Validation Errors

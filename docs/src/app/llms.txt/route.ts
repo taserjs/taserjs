@@ -18,7 +18,7 @@ const LLM_SUMMARY_HEADER = `# TaserJS API Router Quick Reference
 ## Route Handler Pattern
 \`\`\`ts
 import { json, notFound } from "@taserjs/router/reply";
-import { t } from "#taserjs/router"; // Configured in tsconfig.json to resolve taser.ts
+import { t } from "@taserjs/router";
 import { z } from "zod";
 
 const GET = t
@@ -32,7 +32,7 @@ const GET = t
 
 export type RouteContext = typeof GET.$Infer.Context;
 
-export const Route = GET.handler(async (ctx) => {
+export default GET.handler(async (ctx) => {
   const user = await ctx.db.findUser(ctx.params.id);
   if (!user) {
     return notFound({ message: "User not found" });
@@ -43,11 +43,10 @@ export const Route = GET.handler(async (ctx) => {
 
 ## Middleware & Layout Pattern
 \`\`\`ts
-import { defineMiddleware } from "@taserjs/router";
 import { unauthorized } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Middleware = t.middleware("dashboard").use(async (ctx, next) => {
+export default t.layout("dashboard").use(async (ctx, next) => {
   const authHeader = ctx.headers.get("authorization");
   if (!authHeader) {
     return unauthorized({ message: "Missing authorization" });
@@ -56,20 +55,17 @@ export const Middleware = t.middleware("dashboard").use(async (ctx, next) => {
 });
 \`\`\`
 
-## Standalone Middleware with Validation & Preconditions
+## Standalone Middleware Unit
 \`\`\`ts
-import { defineMiddleware } from "@taserjs/router";
-import { forbidden } from "@taserjs/router/reply";
+import { middleware } from "@taserjs/router";
+import { unauthorized } from "@taserjs/router/reply";
 import { z } from "zod";
 
-export const adminGuard = defineMiddleware()
-  .requires<{ user: { role: string } }>()
-  .query(z.object({ apiKey: z.string().min(16) }))
+export const adminGuard = middleware()
+  .query(z.object({ token: z.string() }))
   .handler(async (ctx, next) => {
-    if (ctx.state.user.role !== "admin") {
-      return forbidden({ message: "Admin access required" });
-    }
-    return next();
+    if (ctx.query.token !== "secret") return unauthorized();
+    return next({ admin: true });
   });
 \`\`\`
 

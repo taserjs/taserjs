@@ -63,11 +63,11 @@ Taser integrates with Fastify applications using the **Host Pass-Through Archite
 
     ```ts title="src/routes/health.get.ts"
     import { json } from "@taserjs/router/reply";
-    import { t } from "#taserjs/router";
+    import { t } from "@taserjs/router";
 
     const GET = t.get("/health");
 
-    export const Route = GET.handler(() => {
+    export default GET.handler(() => {
       return json({ ok: true, timestamp: Date.now() });
     });
     ```

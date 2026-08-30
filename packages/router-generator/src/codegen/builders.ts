@@ -121,6 +121,36 @@ export function tsTupleType(elements: TSESTree.TypeNode[]): TSESTree.TSTupleType
   });
 }
 
+export function tsConditionalType(
+  checkType: TSESTree.TypeNode,
+  extendsType: TSESTree.TypeNode,
+  trueType: TSESTree.TypeNode,
+  falseType: TSESTree.TypeNode,
+): TSESTree.TSConditionalType {
+  return asNode<TSESTree.TSConditionalType>({
+    type: AST_NODE_TYPES.TSConditionalType,
+    checkType,
+    extendsType,
+    trueType,
+    falseType,
+  });
+}
+
+export function tsInferType(typeParameterName: string): TSESTree.TSInferType {
+  return asNode<TSESTree.TSInferType>({
+    type: AST_NODE_TYPES.TSInferType,
+    typeParameter: asNode<TSESTree.TSTypeParameter>({
+      type: AST_NODE_TYPES.TSTypeParameter,
+      name: id(typeParameterName),
+      in: false,
+      out: false,
+      const: false,
+      default: undefined,
+      constraint: undefined,
+    }),
+  });
+}
+
 export function objectProperty(
   key: TSESTree.PropertyNameNonComputed,
   value: TSESTree.Expression,
@@ -167,6 +197,27 @@ export function importDeclaration(
         imported: id(imported),
         local: id(local),
         importKind: "value",
+      }),
+    ],
+    source: str(source),
+    importKind,
+    assertions: [],
+    attributes: [],
+    phase: null,
+  });
+}
+
+export function importDefaultDeclaration(
+  local: string,
+  source: string,
+  importKind: "type" | "value" = "value",
+): TSESTree.ImportDeclaration {
+  return asNode<TSESTree.ImportDeclaration>({
+    type: AST_NODE_TYPES.ImportDeclaration,
+    specifiers: [
+      asNode<TSESTree.ImportDefaultSpecifier>({
+        type: AST_NODE_TYPES.ImportDefaultSpecifier,
+        local: id(local),
       }),
     ],
     source: str(source),

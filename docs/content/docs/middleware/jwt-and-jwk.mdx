@@ -18,7 +18,7 @@ The `jwt()` middleware extracts the `Authorization: Bearer <token>` header, veri
 
 ```ts title="src/routes/dashboard.ts"
 import { jwt } from "@taserjs/router/jwt";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
 type JwtClaims = {
   sub: string;
@@ -26,7 +26,7 @@ type JwtClaims = {
   role: "user" | "admin";
 };
 
-export const Middleware = t.middleware("dashboard").use(
+export default t.layout("dashboard").use(
   jwt<JwtClaims>({
     secret: process.env.JWT_SECRET!,
     alg: "HS256",
@@ -40,9 +40,9 @@ Any route inside `src/routes/dashboard/` receives `ctx.state.jwtPayload` with co
 
 ```ts title="src/routes/dashboard/profile.get.ts"
 import { json } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t.get("/dashboard/profile").handler(async (ctx) => {
+export default t.get("/dashboard/profile").handler(async (ctx) => {
   // 100% typed from JwtClaims:
   const userId = ctx.state.jwtPayload.sub;
   const userEmail = ctx.state.jwtPayload.email;
@@ -61,7 +61,7 @@ For auth providers like Auth0, Clerk, Firebase, AWS Cognito, or Supabase, use `@
 
 ```ts title="src/routes/api.ts"
 import { jwk } from "@taserjs/router/jwk";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
 type ClerkPayload = {
   sub: string;
@@ -69,7 +69,7 @@ type ClerkPayload = {
   azp?: string;
 };
 
-export const Middleware = t.middleware("api").use(
+export default t.layout("api").use(
   jwk<ClerkPayload>({
     jwks_uri: "https://clerk.your-domain.com/.well-known/jwks.json",
   }),

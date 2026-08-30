@@ -169,9 +169,9 @@ A freshly scaffolded Taser project contains a clean, modern layout:
       <File name="taser.ts" />
       <File name="context.ts" />
       <Folder name="routes" defaultOpen>
-        <File name="$.ts" />
-        <File name="index.get.ts" />
-        <File name="health.get.ts" />
+        <File name="$.ts" route="/*" />
+        <File name="index.get.ts" route="/" />
+        <File name="health.get.ts" route="/health" />
       </Folder>
     </Folder>
     <Folder name=".taser">
@@ -200,27 +200,11 @@ Create `src/routes/hello.get.ts`:
 
 ```ts title="src/routes/hello.get.ts"
 import { json } from "@taserjs/router/reply";
-import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-const GET = t
-  .get("/hello")
-  .query(
-    z.object({
-      name: z.string().default("World"),
-    }),
-  )
-  .returns({
-    200: z.object({
-      message: z.string(),
-      timestamp: z.string(),
-    }),
-  });
-
-export type RouteContext = typeof GET.$Infer.Context;
-export const Route = GET.handler((ctx) => {
+export default t.get("/hello").handler(() => {
   return json({
-    message: `Hello, ${ctx.query.name}!`,
+    message: "Hello from Taser!",
     timestamp: new Date().toISOString(),
   });
 });
@@ -231,14 +215,14 @@ Save the file. Vite hot-reloads the new route immediately without restarting the
 Test your new endpoint in another terminal or browser:
 
 ```bash
-curl http://localhost:3000/hello?name=Taser
+curl http://localhost:3000/hello
 ```
 
 Response:
 
 ```json
 {
-  "message": "Hello, Taser!",
+  "message": "Hello from Taser!",
   "timestamp": "2026-08-25T00:00:00.000Z"
 }
 ```

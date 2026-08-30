@@ -48,7 +48,7 @@ app.post("/private", validateBody(schema), (req, res) => {
     solutionBadge: "100% Inferred Context",
     solutionFilename: "routes/admin.ts + routes/admin/reports.post.ts",
     solutionCode: `// Middleware validates and passes state to next()
-export const Middleware = t.middleware("/admin/$").use(async (ctx, next) => {
+export default t.layout("/admin/$").use(async (ctx, next) => {
   const token = ctx.headers.get("authorization");
   const user = await verifyUser(token);
   if (!user) throw new Error("Unauthorized");
@@ -58,7 +58,7 @@ export const Middleware = t.middleware("/admin/$").use(async (ctx, next) => {
 // Handler receives fully-inferred ctx automatically
 const POST = t.post("/admin/reports").body(ReportInputSchema);
 
-export const Route = POST.handler(async (ctx) => {
+export default POST.handler(async (ctx) => {
   const user = ctx.state.user; // ✓ Inferred User from next({ user })
   const body = ctx.body;       // ✓ Inferred ReportInput
   return json({ created: true, by: user.id });
@@ -120,7 +120,7 @@ adminRouter.get("/reports/:id", getReportHandler);
     solutionTitle: "Compiler-Enforced Contracts",
     solutionBadge: "Build-Time Return Check",
     solutionFilename: "routes/admin/reports.get.ts",
-    solutionCode: `export const Route = t.get("/admin/reports")
+    solutionCode: `export default t.get("/admin/reports")
   .returns({
     200: z.object({
       reports: z.array(ReportSchema),
@@ -156,9 +156,10 @@ const data = await res.json();
     solutionBadge: "Auto-Completed SDK",
     solutionFilename: "frontend/client.ts",
     solutionCode: `import { createClient } from "@taserjs/router-client";
+import type { App } from "../server/entry.js";
 
-// Types detected automatically from ambient routes
-const api = createClient({ baseUrl: "https://api.example.com" });
+// End-to-end typed client derived directly from your server App
+const api = createClient<App>({ baseUrl: "https://api.example.com" });
 
 // ✓ Full autocomplete for routes, query, params, and response:
 const res = await api.admin.reports.$get({

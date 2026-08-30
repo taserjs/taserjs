@@ -1,14 +1,10 @@
 import "./register.js";
 import { describe, it, expectTypeOf, expect } from "vitest";
 import { z } from "zod";
-import { createTaserApp, defineMiddleware } from "../src/index.js";
+import { middleware, t } from "../src/index.js";
 import { json } from "../src/reply.js";
 
-const t = createTaserApp().context({
-  boot: () => ({ env: "production" as const }),
-});
-
-const customMw = defineMiddleware((_ctx, next) => next({ traceId: "t-123" }));
+const customMw = middleware((_ctx, next) => next({ traceId: "t-123" }));
 
 describe("50 routes x 3-deep layout benchmark", () => {
   it("compiles 50 deep fluent routes", () => {

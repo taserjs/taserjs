@@ -15,10 +15,10 @@ export function emitVirtualEntrySource(options: EmitVirtualEntryOptions): string
 
   const manifestImportPath = options.manifestImportPath ?? VIRTUAL_MANIFEST_ID;
 
-  return `import { t } from "${options.taserAppImportPath}";
+  return `import taser from "${options.taserAppImportPath}";
 import { routeManifest } from "${manifestImportPath}";
 
-export const app = t.create(${createArgs});
+export const app = taser.create(${createArgs});
 export default app;
 `;
 }

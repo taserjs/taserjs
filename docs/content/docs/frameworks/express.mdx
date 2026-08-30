@@ -76,11 +76,11 @@ Taser integrates with Express applications using the **Host Pass-Through Archite
 
     ```ts title="src/routes/users.get.ts"
     import { json } from "@taserjs/router/reply";
-    import { t } from "#taserjs/router";
+    import { t } from "@taserjs/router";
 
     const GET = t.get("/users");
 
-    export const Route = GET.handler(() => {
+    export default GET.handler(() => {
       return json({ users: [{ id: "1", name: "Alice" }] });
     });
     ```

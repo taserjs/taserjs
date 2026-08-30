@@ -25,19 +25,19 @@ export const context = createContext({
   }),
 })`,
   layout: `import { cors } from '@taserjs/router/cors'
-import { t } from '#taserjs/router'
+import { t } from '@taserjs/router'
 
-export const Middleware = t.middleware('/$')
+export default t.layout('/$')
   .use(cors({ origin: ['https://app.example.com'] }))`,
   auth: `import { jwt } from '@taserjs/router/jwt'
-import { t } from '#taserjs/router'
+import { t } from '@taserjs/router'
 
 type JwtClaims = {
   sub: string
   role: string
 }
 
-export const Middleware = t.middleware('dashboard')
+export default t.layout('dashboard')
   .use(
     jwt<JwtClaims>({
       secret: process.env.JWT_SECRET!,
@@ -46,7 +46,7 @@ export const Middleware = t.middleware('dashboard')
   )`,
   route: `import { json } from '@taserjs/router/reply'
 import { z } from 'zod'
-import { t } from '#taserjs/router'
+import { t } from '@taserjs/router'
 
 const GET = t.get('/dashboard/users')
   .query(z.object({
@@ -55,7 +55,7 @@ const GET = t.get('/dashboard/users')
   }))
 
 export type RouteContext = typeof GET.$Infer.Context
-export const Route = GET.handler(async (ctx) => {
+export default GET.handler(async (ctx) => {
   const sub = ctx.state.jwtPayload.sub
   const { page, limit } = ctx.query
   const users = await ctx.db.getUsers(page, limit)

@@ -13,19 +13,19 @@ async function setupFixture(): Promise<string> {
   await fsp.writeFile(
     join(testDir, "taser.ts"),
     `import { createTaserApp } from "@taserjs/router";
-export const t = createTaserApp();
+export default createTaserApp();
 `,
   );
   await fsp.writeFile(
     join(routesDir, "$.ts"),
-    `import { t } from "../taser.js";
-export const Middleware = t.middleware("$").use((ctx, next) => next());
+    `import { t } from "@taserjs/router";
+export default t.layout("$").use((ctx, next) => next());
 `,
   );
   await fsp.writeFile(
     join(routesDir, "index.get.ts"),
-    `import { t } from "../taser.js";
-export const Route = t.get("/").handler(() => undefined);
+    `import { t } from "@taserjs/router";
+export default t.get("/").handler(() => undefined);
 `,
   );
   return testDir;
@@ -67,12 +67,12 @@ describe("writeDiskArtifacts", () => {
     expect(manifest).not.toMatch(/#taserjs\/[a-z/-]+/);
   });
 
-  it("writes the entry artifact importing #taserjs/router and ./manifest", async () => {
+  it("writes the entry artifact importing relative taser and ./manifest", async () => {
     const ctx = createTaserVirtualContext({ rootDir: testDir });
     await writeDiskArtifacts(ctx);
 
     const entry = await fsp.readFile(join(testDir, ".taser", "entry.ts"), "utf8");
-    expect(entry).toContain('from "#taserjs/router"');
+    expect(entry).toContain('from "../taser"');
     expect(entry).toContain('from "./manifest"');
   });
 

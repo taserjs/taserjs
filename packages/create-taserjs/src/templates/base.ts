@@ -10,9 +10,6 @@ export function packageJsonTemplate(
     version: "1.0.0",
     private: true,
     type: "module",
-    imports: {
-      "#taserjs/router": "./src/taser.ts",
-    },
     scripts: {
       dev: "vite",
       build: "vite build",
@@ -30,9 +27,6 @@ export function tsconfigTemplate(): string {
       compilerOptions: {
         target: "ES2022",
         module: "NodeNext",
-        paths: {
-          "#taserjs/router": ["./src/taser.ts"],
-        },
         strict: true,
         skipLibCheck: true,
         verbatimModuleSyntax: true,
@@ -86,22 +80,18 @@ ${bootBlock}
 
 export function rootLayoutTemplate(): string {
   return `import { cors } from '@taserjs/router/cors'
+import { t } from '@taserjs/router'
 
-import { t } from '#taserjs/router'
-
-export const Middleware = t.middleware('/$')
+export default t.layout('/$')
   .use(cors())
 `;
 }
 
 export function indexRouteTemplate(): string {
-  return `import { json } from '@taserjs/router/reply'
-import { t } from '#taserjs/router'
+  return `import { t } from '@taserjs/router'
+import { json } from '@taserjs/router/reply'
 
-const GET = t.get('/')
-
-export type RouteContext = typeof GET.$Infer.Context
-export const Route = GET.handler((_ctx) => {
+export default t.get('/').handler((_ctx) => {
   return json({ message: 'Welcome to Taser' })
 })
 `;
@@ -121,13 +111,10 @@ export function healthRouteTemplate(ctx: ScaffoldContext): string {
   const body = lines.length > 0 ? `${lines.join("\n")}\n` : "";
   const ctxArg = lines.length > 0 ? "(ctx)" : "(_ctx)";
 
-  return `import { json } from '@taserjs/router/reply'
-import { t } from '#taserjs/router'
+  return `import { t } from '@taserjs/router'
+import { json } from '@taserjs/router/reply'
 
-const GET = t.get('/health')
-
-export type RouteContext = typeof GET.$Infer.Context
-export const Route = GET.handler(${ctxArg} => {
+export default t.get('/health').handler(${ctxArg} => {
 ${body}  return json({ ok: true })
 })
 `;

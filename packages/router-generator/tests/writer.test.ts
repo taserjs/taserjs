@@ -18,8 +18,8 @@ describe("writeTaserTypes", () => {
     await fsp.mkdir(routesDir, { recursive: true });
     await fsp.writeFile(
       join(routesDir, "index.get.ts"),
-      `import { t } from "../taser.js";
-export const Route = t.get("/").handler(() => undefined);
+      `import { t } from "@taserjs/router";
+export default t.get("/").handler(() => undefined);
 `,
     );
   });

@@ -16,7 +16,7 @@ async function buildFixtureModel() {
   mkdirSync(routesDir, { recursive: true });
   writeFileSync(
     join(routesDir, "index.get.ts"),
-    `import { t } from '#taserjs/router';\nexport const Route = t.get('/').handler(() => {});\n`,
+    `import { t } from '@taserjs/router';\nexport default t.get('/').handler(() => {});\n`,
   );
   return buildTestModel(routesDir);
 }

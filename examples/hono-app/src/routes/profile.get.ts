@@ -1,9 +1,20 @@
+import { t } from "@taserjs/router";
 import { json } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import z from "zod";
 
-const GET = t.get("/profile");
+const mw = t
+  .middleware()
+  .query(z.object({ filter: z.string() }))
+  .handler((ctx, next) => {
+    if (ctx.query.filter === "yes") {
+      return next({ type: "yes" as const });
+    }
+    return next({ type: "no" as const });
+  });
 
-export type RouteContext = typeof GET.$Infer.Context;
-export const Route = GET.handler((_ctx) => {
-  return json({ ok: "profile" });
-});
+export default t
+  .get("/profile")
+  .use(mw)
+  .handler((ctx) => {
+    return json({ ok: "profile", state: ctx.state });
+  });

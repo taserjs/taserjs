@@ -12,18 +12,62 @@ Taser natively adheres to the **Standard Schema** specification (`@standard-sche
 
 ---
 
-## Validating Query Parameters
+## Path Parameters (`.params`)
 
-HTTP query parameters always arrive as strings. Use your schema library to coerce numbers, booleans, and dates:
+### Default Behavior
+
+All path parameters defined in your route filenames (e.g. `src/routes/users/$id.get.ts` or `src/routes/orgs/$orgId/repos/$repoId.get.ts`) are **automatically inferred as `string` types** on `ctx.params` by default—no configuration required:
+
+```ts title="src/routes/users/$id.get.ts"
+import { json } from "@taserjs/router/reply";
+import { t } from "@taserjs/router";
+
+export default t.get("/users/:id").handler(async (ctx) => {
+  // ctx.params.id is inferred as string by default:
+  const user = await ctx.db.getUser(ctx.params.id);
+  return json(user);
+});
+```
+
+### Validating & Coercing Path Parameters
+
+When you need strict validation (such as UUID formats, integer IDs, or enum values), chain `.params()` with a schema:
+
+```ts title="src/routes/organizations/$orgId/members/$memberId.get.ts"
+import { json } from "@taserjs/router/reply";
+import { z } from "zod";
+import { t } from "@taserjs/router";
+
+export default t
+  .get("/organizations/:orgId/members/:memberId")
+  .params(
+    z.object({
+      orgId: z.string().uuid(),
+      memberId: z.coerce.number().int(),
+    }),
+  )
+  .handler(async (ctx) => {
+    // ctx.params.orgId is a validated UUID string
+    // ctx.params.memberId is a coerced number
+    const member = await ctx.db.getMember(ctx.params.orgId, ctx.params.memberId);
+    return json(member);
+  });
+```
+
+---
+
+## Query Parameters (`.query`)
+
+HTTP query parameters always arrive from the URL as strings. Use your schema library to coerce numbers, booleans, and dates:
 
 <Tabs items={["Zod", "ArkType", "Valibot"]}>
   <Tab value="Zod">
     ```ts title="src/routes/products.get.ts"
     import { json } from "@taserjs/router/reply";
     import { z } from "zod";
-    import { t } from "#taserjs/router";
+    import { t } from "@taserjs/router";
 
-    export const Route = t
+    export default t
       .get("/products")
       .query(
         z.object({
@@ -47,7 +91,7 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
     ```ts title="src/routes/products.get.ts"
     import { json } from "@taserjs/router/reply";
     import { type } from "arktype";
-    import { t } from "#taserjs/router";
+    import { t } from "@taserjs/router";
 
     const QuerySchema = type({
       "search?": "string",
@@ -56,7 +100,7 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
       "limit?": "string.integer.parse <= 100 = 20",
     });
 
-    export const Route = t
+    export default t
       .get("/products")
       .query(QuerySchema)
       .handler(async (ctx) => {
@@ -70,7 +114,7 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
     ```ts title="src/routes/products.get.ts"
     import { json } from "@taserjs/router/reply";
     import * as v from "valibot";
-    import { t } from "#taserjs/router";
+    import { t } from "@taserjs/router";
 
     const QuerySchema = v.object({
       search: v.optional(v.string()),
@@ -78,7 +122,7 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
       limit: v.fallback(v.pipe(v.string(), v.transform(Number), v.integer()), 20),
     });
 
-    export const Route = t
+    export default t
       .get("/products")
       .query(QuerySchema)
       .handler(async (ctx) => {
@@ -92,41 +136,27 @@ HTTP query parameters always arrive as strings. Use your schema library to coerc
 
 ---
 
-## Validating Path Parameters
+## Request Bodies & Body Modes (`.body`)
 
-Path parameters declared in file names (for example, `$id.get.ts` or `$orgId/$repoId.get.ts`) can be validated with a `.params()` schema:
+Taser gives you fine-grained control over request body parsing and performance:
 
-```ts title="src/routes/organizations/$orgId/members/$memberId.get.ts"
-import { json } from "@taserjs/router/reply";
-import { z } from "zod";
-import { t } from "#taserjs/router";
+- **Zero Overhead**: If a route does not call `.body()`, incoming body parsing is **completely skipped**.
+- **Default JSON Parsing**: Calling `.body(schema)` parses the body as JSON by default.
+- **Explicit Body Modes**: To parse file uploads, URL-encoded forms, raw text, or binary buffers, provide the mode as the first argument (`.body(mode, schema)`):
 
-export const Route = t
-  .get("/organizations/:orgId/members/:memberId")
-  .params(
-    z.object({
-      orgId: z.string().uuid(),
-      memberId: z.string().min(1),
-    }),
-  )
-  .handler(async (ctx) => {
-    // ctx.params.orgId is validated UUID string
-    // ctx.params.memberId is string
-    const member = await ctx.db.getMember(ctx.params.orgId, ctx.params.memberId);
-    return json(member);
-  });
-```
+| Body Mode              | Method Signature                           | Use Case                              | Content Types                                              |
+| :--------------------- | :----------------------------------------- | :------------------------------------ | :--------------------------------------------------------- |
+| **`json`** _(default)_ | `.body(schema)` or `.body("json", schema)` | REST JSON payloads                    | `application/json`                                         |
+| **`form`**             | `.body("form", schema)`                    | File uploads and form submissions     | `multipart/form-data`, `application/x-www-form-urlencoded` |
+| **`text`**             | `.body("text", schema)`                    | Raw text, webhook signatures, XML     | `text/plain`, `application/xml`                            |
+| **`arrayBuffer`**      | `.body("arrayBuffer", schema)`             | Raw binary buffers, images, protobufs | `application/octet-stream`, any binary                     |
 
----
-
-## Validating Request Bodies (JSON)
-
-For POST, PUT, and PATCH routes, chain `.body()` to validate incoming payloads:
+### JSON Body Example
 
 ```ts title="src/routes/posts.post.ts"
 import { json } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
 const CreatePostSchema = z.object({
   title: z.string().min(5).max(200),
@@ -136,7 +166,7 @@ const CreatePostSchema = z.object({
   tags: z.array(z.string()).max(5).default([]),
 });
 
-export const Route = t
+export default t
   .post("/posts")
   .body(CreatePostSchema)
   .returns({
@@ -157,16 +187,16 @@ export const Route = t
 
 ## Validating Multipart Form Data & File Uploads
 
-When requests arrive with `Content-Type: multipart/form-data` or `application/x-www-form-urlencoded`, Taser automatically parses both textual form fields and binary file uploads into standard JavaScript `File` objects.
+When handling file uploads or form data, pass `"form"` as the first argument to `.body()`. Taser automatically parses form fields and converts binary file uploads into standard JavaScript `File` objects.
 
 You can validate file presence, file size, and permitted MIME types using your schema validator:
 
 <Tabs items={["Zod", "ArkType", "Valibot"]}>
   <Tab value="Zod">
     ```ts title="src/routes/users/$id/avatar.post.ts"
-    import { reply } from "@taserjs/router";
+    import { json } from "@taserjs/router/reply";
     import { z } from "zod";
-    import { t } from "#taserjs/router";
+    import { t } from "@taserjs/router";
 
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -182,10 +212,10 @@ You can validate file presence, file size, and permitted MIME types using your s
         ),
     });
 
-    export const Route = t
+    export default t
       .post("/users/:id/avatar")
       .params(z.object({ id: z.string() }))
-      .body(AvatarUploadSchema)
+      .body("form", AvatarUploadSchema) // [!code highlight]
       .returns({
         200: z.object({ success: z.boolean(), fileName: z.string(), bytes: z.number() }),
       })
@@ -212,7 +242,7 @@ You can validate file presence, file size, and permitted MIME types using your s
     ```ts title="src/routes/users/$id/avatar.post.ts"
     import { json } from "@taserjs/router/reply";
     import { type } from "arktype";
-    import { t } from "#taserjs/router";
+    import { t } from "@taserjs/router";
 
     const AvatarUploadSchema = type({
       "caption?": "string",
@@ -224,9 +254,9 @@ You can validate file presence, file size, and permitted MIME types using your s
       }),
     });
 
-    export const Route = t
+    export default t
       .post("/users/:id/avatar")
-      .body(AvatarUploadSchema)
+      .body("form", AvatarUploadSchema) // [!code highlight]
       .handler(async (ctx) => {
         const { avatar } = ctx.body;
         const fileBuffer = await avatar.arrayBuffer();
@@ -239,7 +269,7 @@ You can validate file presence, file size, and permitted MIME types using your s
     ```ts title="src/routes/users/$id/avatar.post.ts"
     import { json } from "@taserjs/router/reply";
     import * as v from "valibot";
-    import { t } from "#taserjs/router";
+    import { t } from "@taserjs/router";
 
     const AvatarUploadSchema = v.object({
       caption: v.optional(v.string()),
@@ -249,9 +279,9 @@ You can validate file presence, file size, and permitted MIME types using your s
       ),
     });
 
-    export const Route = t
+    export default t
       .post("/users/:id/avatar")
-      .body(AvatarUploadSchema)
+      .body("form", AvatarUploadSchema) // [!code highlight]
       .handler(async (ctx) => {
         const { avatar } = ctx.body;
         const buffer = await avatar.arrayBuffer();
@@ -266,12 +296,12 @@ You can validate file presence, file size, and permitted MIME types using your s
 
 ## Multiple File Uploads
 
-When clients upload multiple files under the same form field name, validate them as an array of `File` objects:
+When clients upload multiple files under the same form field name, validate them with `.body("form", schema)` as an array of `File` objects:
 
 ```ts title="src/routes/documents/upload.post.ts"
 import { json } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
 const MultiDocSchema = z.object({
   folderId: z.string(),
@@ -281,9 +311,9 @@ const MultiDocSchema = z.object({
     .transform((val) => (Array.isArray(val) ? val : [val])),
 });
 
-export const Route = t
+export default t
   .post("/documents/upload")
-  .body(MultiDocSchema)
+  .body("form", MultiDocSchema) // [!code highlight]
   .handler(async (ctx) => {
     // ctx.body.files is typed as File[]:
     for (const file of ctx.body.files) {
@@ -325,9 +355,9 @@ Taser respects schema transformations. If your schema takes a string and transfo
 ```ts title="src/routes/events.post.ts"
 import { ok } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Route = t
+export default t
   .post("/events")
   .body(
     z.object({

@@ -17,7 +17,7 @@ Layout middleware can validate incoming requests and inject typed state down the
 
 ```ts title="src/routes/orgs.ts"
 import { badRequest, notFound } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
 type Organization = {
   id: string;
@@ -25,7 +25,7 @@ type Organization = {
   plan: "free" | "pro" | "enterprise";
 };
 
-export const Middleware = t.middleware("orgs").use(async (ctx, next) => {
+export default t.layout("orgs").use(async (ctx, next) => {
   const orgSlug = ctx.headers.get("x-org-slug");
   if (!orgSlug) {
     return badRequest({ message: "Missing x-org-slug header" });
@@ -45,15 +45,14 @@ export const Middleware = t.middleware("orgs").use(async (ctx, next) => {
 
 ## Validating Query, Params, and Body in Middleware
 
-Middleware can declare `query`, `params`, or `body` schemas using Standard Schema and fluent `defineMiddleware()` to reject invalid requests early before hitting child routes:
+Middleware can declare `query`, `params`, or `body` schemas using Standard Schema and fluent `middleware()` to reject invalid requests early before hitting child routes:
 
 ```ts title="src/routes/api/v2.ts"
-import { defineMiddleware } from "@taserjs/router";
+import { middleware, t } from "@taserjs/router";
 import { unauthorized } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
 
-const apiKeyGuard = defineMiddleware("api_v2")
+const apiKeyGuard = middleware("api_v2")
   .query(
     z.object({
       apiKey: z.string().min(32),
@@ -69,7 +68,43 @@ const apiKeyGuard = defineMiddleware("api_v2")
     return next({ tier: keyRecord.tier });
   });
 
-export const Middleware = t.middleware("api_v2").use(apiKeyGuard);
+export default t.layout("api_v2").use(apiKeyGuard);
+```
+
+---
+
+## Validation-Only Middleware (Optional Handler)
+
+When a middleware is used purely for schema validation, parameter coercion, or request parsing, calling `.handler()` is completely optional:
+
+```ts title="src/middleware/pagination.ts"
+import { middleware } from "@taserjs/router";
+import { z } from "zod";
+
+// No .handler() required!
+export const pagination = middleware().query(
+  z.object({
+    page: z.coerce.number().default(1),
+    limit: z.coerce.number().default(20),
+  }),
+);
+```
+
+You can pass `pagination` directly to any layout or route with `.use(pagination)`. Taser automatically validates and coerces the query parameters, and downstream handlers receive strongly-typed `ctx.query.page` and `ctx.query.limit` without any boilerplate:
+
+```ts title="src/routes/posts.get.ts"
+import { json } from "@taserjs/router/reply";
+import { t } from "@taserjs/router";
+import { pagination } from "../middleware/pagination.js";
+
+export default t
+  .get("/posts")
+  .use(pagination)
+  .handler(async (ctx) => {
+    // ctx.query.page and ctx.query.limit are automatically typed as numbers
+    const posts = await ctx.db.getPosts({ page: ctx.query.page, limit: ctx.query.limit });
+    return json(posts);
+  });
 ```
 
 ---
@@ -80,10 +115,10 @@ You can chain multiple `.use()` calls on a layout middleware. Each step enriches
 
 ```ts title="src/routes/billing.ts"
 import { unauthorized } from "@taserjs/router/reply";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
-export const Middleware = t
-  .middleware("billing")
+export default t
+  .layout("billing")
   // Step 1: Validate session & inject userId
   .use(async (ctx, next) => {
     const token = ctx.headers.get("authorization")?.replace("Bearer ", "");
@@ -104,17 +139,17 @@ export const Middleware = t
 
 ## State Preconditions (`.requires<TState>()` / `TRequires`)
 
-When writing reusable standalone middlewares that assume certain state was already produced upstream (e.g. an authenticated user or tenant ID), declare a state requirement via `.requires<TState>()` on `defineMiddleware()`:
+When writing reusable standalone middlewares that assume certain state was already produced upstream (e.g. an authenticated user or tenant ID), declare a state requirement via `.requires<TState>()` on `middleware()`:
 
 ```ts title="src/middleware/require-subscription.ts"
-import { defineMiddleware } from "@taserjs/router";
+import { middleware } from "@taserjs/router";
 import { forbidden } from "@taserjs/router/reply";
 
 type SubscriptionPrecondition = {
   hasActiveSubscription: boolean;
 };
 
-export const requireActivePlan = defineMiddleware()
+export const requireActivePlan = middleware()
   .requires<SubscriptionPrecondition>()
   .handler((ctx, next) => {
     // TypeScript ensures ctx.state.hasActiveSubscription exists:

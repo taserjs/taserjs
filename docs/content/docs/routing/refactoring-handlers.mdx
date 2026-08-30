@@ -28,7 +28,7 @@ To extract helper functions without repeating type definitions:
 ```ts title="src/routes/users/$id.get.ts"
 import { notFound, ok } from "@taserjs/router/reply";
 import { z } from "zod";
-import { t } from "#taserjs/router";
+import { t } from "@taserjs/router";
 
 // 1. Declare the verb builder
 const GET = t
@@ -54,7 +54,7 @@ async function fetchUserOrders(ctx: RouteContext) {
 }
 
 // 4. Orchestrate inside the handler
-export const Route = GET.handler(async (ctx) => {
+export default GET.handler(async (ctx) => {
   // [!code highlight]
   const user = await fetchUser(ctx);
   if (!user) {
@@ -76,7 +76,7 @@ Consider an e-commerce checkout route that handles inventory verification, payme
 
 ```ts title="src/routes/checkout.post.ts"
 // A 100+ line handler that is difficult to test and maintain
-export const Route = t
+export default t
   .post("/checkout")
   .body(
     z.object({
@@ -121,81 +121,115 @@ export const Route = t
 
 ### ✅ After: Clean Decomposition with `RouteContext`
 
-By extracting `RouteContext`, each step becomes a pure or focused async helper:
+By extracting `CheckoutContext`, each step becomes a pure or focused async helper across modular service files:
 
-```ts title="src/routes/checkout.post.ts"
-import { badRequest, ok } from "@taserjs/router/reply";
-import { z } from "zod";
-import { t } from "#taserjs/router";
+<Tabs items={["src/routes/checkout.post.ts", "src/services/inventory.ts", "src/services/payment.ts", "src/services/order.ts"]}>
+  <Tab value="src/routes/checkout.post.ts">
+    ```ts title="src/routes/checkout.post.ts"
+    import { badRequest, ok } from "@taserjs/router/reply";
+    import { z } from "zod";
+    import { t } from "@taserjs/router";
+    import { verifyStock } from "../services/inventory.js";
+    import { processPayment } from "../services/payment.js";
+    import { persistOrder } from "../services/order.js";
 
-// 1. Route builder definition
-const POST = t
-  .post("/checkout")
-  .body(
-    z.object({
-      itemId: z.string(),
-      quantity: z.number().min(1),
-      paymentMethodId: z.string(),
-    }),
-  )
-  .returns({
-    200: z.object({ orderId: z.string(), status: z.literal("confirmed") }),
-    400: z.object({ error: z.string() }),
-  });
+    // 1. Declare Route Contract
+    const POST = t
+      .post("/checkout")
+      .body(
+        z.object({
+          itemId: z.string(),
+          quantity: z.number().min(1),
+          paymentMethodId: z.string(),
+        }),
+      )
+      .returns({
+        200: z.object({ orderId: z.string(), status: z.literal("confirmed") }),
+        400: z.object({ error: z.string() }),
+      });
 
-export type CheckoutContext = typeof POST.$Infer.Context;
+    // 2. Export Inferred Route Context for Helpers
+    export type CheckoutContext = typeof POST.$Infer.Context;
 
-// 2. Helper: Validate Inventory
-async function verifyStock(ctx: CheckoutContext) {
-  const item = await ctx.db.item.findUnique({ where: { id: ctx.body.itemId } });
-  if (!item || item.stock < ctx.body.quantity) {
-    throw new Error("Item is out of stock");
-  }
-  return item;
-}
+    // 3. Clean Handler Orchestration
+    export default POST.handler(async (ctx) => {
+      try {
+        const item = await verifyStock(ctx);
+        const charge = await processPayment(ctx, item);
+        const order = await persistOrder(ctx, item, charge.id);
 
-// 3. Helper: Process Payment
-async function processPayment(ctx: CheckoutContext, item: { id: string; price: number }) {
-  return ctx.stripe.charges.create({
-    amount: item.price * ctx.body.quantity,
-    currency: "usd",
-    source: ctx.body.paymentMethodId,
-  });
-}
+        // Background notification
+        ctx.email.sendReceipt({ to: ctx.state.user.email, orderId: order.id }).catch(console.error);
 
-// 4. Helper: Persist Order Record
-async function persistOrder(
-  ctx: CheckoutContext,
-  item: { id: string; price: number },
-  chargeId: string,
-) {
-  return ctx.db.order.create({
-    data: {
-      itemId: item.id,
-      quantity: ctx.body.quantity,
-      total: item.price * ctx.body.quantity,
-      chargeId,
-      userId: ctx.state.user.id,
-    },
-  });
-}
+        return ok({ orderId: order.id, status: "confirmed" });
+      } catch (err) {
+        return badRequest({ error: (err as Error).message });
+      }
+    });
+    ```
 
-// 5. Clean, high-level handler orchestration
-export const Route = POST.handler(async (ctx) => {
-  try {
-    const item = await verifyStock(ctx);
-    const charge = await processPayment(ctx, item);
-    const order = await persistOrder(ctx, item, charge.id);
+  </Tab>
 
-    // Trigger background notification
-    ctx.email.sendReceipt({ to: ctx.state.user.email, orderId: order.id }).catch(console.error);
+  <Tab value="src/services/inventory.ts">
+    ```ts title="src/services/inventory.ts"
+    import type { CheckoutContext } from "../routes/checkout.post.js";
 
-    return ok({ orderId: order.id, status: "confirmed" });
-  } catch (err) {
-    return badRequest({ error: (err as Error).message });
-  }
-});
-```
+    export async function verifyStock(ctx: CheckoutContext) {
+      const item = await ctx.db.item.findUnique({
+        where: { id: ctx.body.itemId },
+      });
+
+      if (!item || item.stock < ctx.body.quantity) {
+        throw new Error("Item is out of stock");
+      }
+
+      return item;
+    }
+    ```
+
+  </Tab>
+
+  <Tab value="src/services/payment.ts">
+    ```ts title="src/services/payment.ts"
+    import type { CheckoutContext } from "../routes/checkout.post.js";
+
+    export async function processPayment(
+      ctx: CheckoutContext,
+      item: { id: string; price: number },
+    ) {
+      return ctx.stripe.charges.create({
+        amount: item.price * ctx.body.quantity,
+        currency: "usd",
+        source: ctx.body.paymentMethodId,
+      });
+    }
+    ```
+
+  </Tab>
+
+  <Tab value="src/services/order.ts">
+    ```ts title="src/services/order.ts"
+    import type { CheckoutContext } from "../routes/checkout.post.js";
+
+    export async function persistOrder(
+      ctx: CheckoutContext,
+      item: { id: string; price: number },
+      chargeId: string,
+    ) {
+      return ctx.db.order.create({
+        data: {
+          itemId: item.id,
+          quantity: ctx.body.quantity,
+          total: item.price * ctx.body.quantity,
+          chargeId,
+          userId: ctx.state.user.id,
+        },
+      });
+    }
+    ```
+
+  </Tab>
+</Tabs>
 
 ---
 
@@ -237,7 +271,7 @@ For larger projects, you can organize helpers into dedicated service files:
     ```ts title="src/routes/users/$id.get.ts"
     import { notFound, ok } from "@taserjs/router/reply";
     import { z } from "zod";
-    import { t } from "#taserjs/router";
+    import { t } from "@taserjs/router";
     import { fetchUserProfile } from "../../services/user-service.js";
 
     const GET = t
@@ -246,7 +280,7 @@ For larger projects, you can organize helpers into dedicated service files:
 
     export type UserRouteContext = typeof GET.$Infer.Context;
 
-    export const Route = GET.handler(async (ctx) => {
+    export default GET.handler(async (ctx) => {
       const profile = await fetchUserProfile(ctx);
       if (!profile) {
         return notFound({ message: "User not found" });
@@ -273,24 +307,42 @@ For larger projects, you can organize helpers into dedicated service files:
 
 ---
 
-## Why Infer from `GET`/`POST` Instead of `Route`?
+## Why Infer from `GET`/`POST` Before `export default`?
 
-<Callout type="warn" title="Preventing TypeScript Cyclic Type Errors">
-  Always extract context from the **route builder variable** (`GET`, `POST`, `DELETE`, etc.), **never** from the exported `Route`:
+Taser's `export default` architecture intentionally separates route contract declaration from handler execution, eliminating circular type hazards by design:
 
-- **`typeof GET.$Infer.Context`** ✅
-  Evaluates only the schemas and middlewares attached up to that point. The helper function can be typed immediately and called inside `.handler()`.
+1. **Two-Phase Definition**:
 
-- **`typeof Route.$Infer.Context`** ❌
-  Because `Route` represents the final output of `.handler()`, referencing `typeof Route` inside a helper that is consumed by `.handler()` creates a circular reference:
+   ```ts
+   // Phase 1: Declare route contract (query, params, body, middlewares, returns)
+   const GET = t.get("/users/:id").params(UserParamsSchema);
 
-      ```text
-      Route ──► handler ──► helper ──► typeof Route ──► Route (Cyclic Error)
-      ```
+   // Phase 2: Inferred cleanly from the contract BEFORE execution logic runs
+   export type RouteContext = typeof GET.$Infer.Context;
 
-      TypeScript will fail to resolve the types and report a cyclic reference error.
+   async function fetchUser(ctx: RouteContext) {
+     return ctx.db.findUser(ctx.params.id);
+   }
 
-</Callout>
+   // Phase 3: Export the handler implementation
+   export default GET.handler(async (ctx) => {
+     const user = await fetchUser(ctx);
+     return json(user);
+   });
+   ```
+
+2. **No Post-Handler Type Hazard**:
+   Because the handler is exported as `export default GET.handler(...)`, there is no monolithic post-execution variable holding both the contract and the handler implementation at the same time. `typeof default` is invalid TypeScript syntax, ensuring types are always derived from the upstream builder contract (`typeof GET.$Infer.Context`).
+
+```
+[Route Builder: const GET = t.get(...)] ──► typeof GET.$Infer.Context ──► [Helper Functions]
+                  │                                                               │
+                  ▼                                                               ▼
+        [GET.handler(async (ctx) => ...)] ◄────────────────────────────── [Orchestrate Helpers]
+                  │
+                  ▼
+          [export default]
+```
 
 ---
 

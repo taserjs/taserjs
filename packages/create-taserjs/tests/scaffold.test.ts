@@ -49,7 +49,7 @@ describe("scaffoldProject", () => {
         imports?: Record<string, string>;
         scripts: Record<string, string>;
       };
-      expect(pkg.imports?.["#taserjs/router"]).toBe("./src/taser.ts");
+      expect(pkg.imports).toBeUndefined();
       expect(pkg.scripts.dev).toBe("vite");
       expect(pkg.scripts.build).toBe("vite build");
       expect(pkg.scripts.start).toBe("node .output/server/index.mjs");
@@ -58,22 +58,22 @@ describe("scaffoldProject", () => {
         compilerOptions: { baseUrl?: string; paths?: Record<string, string[]> };
         include: string[];
       };
-      expect(tsconfig.compilerOptions.paths?.["#taserjs/router"]).toEqual(["./src/taser.ts"]);
+      expect(tsconfig.compilerOptions.paths).toBeUndefined();
       expect(tsconfig.include).toContain(".taser/types/**/*.d.ts");
 
       const indexRoute = await readFile(path.join(dir, "src/routes/index.get.ts"), "utf8");
-      expect(indexRoute).toContain("#taserjs/router");
-      expect(indexRoute).toContain("const GET = t.get('/')");
-      expect(indexRoute).toContain("export type RouteContext = typeof GET.$Infer.Context");
-      expect(indexRoute).toContain("export const Route = GET.handler(");
+      expect(indexRoute).toContain("@taserjs/router");
+      expect(indexRoute).toContain("export default t.get('/').handler(");
 
       const taserTs = await readFile(path.join(dir, "src/taser.ts"), "utf8");
       expect(taserTs).toContain("response: { validate: true }");
       expect(taserTs).toContain("./context.js");
+      expect(taserTs).toContain("export default createTaserApp(");
 
       const rootLayout = await readFile(path.join(dir, "src/routes/$.ts"), "utf8");
       expect(rootLayout).toContain("cors");
-      expect(rootLayout).toContain("#taserjs/router");
+      expect(rootLayout).toContain("@taserjs/router");
+      expect(rootLayout).toContain("export default t.layout('/$')");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

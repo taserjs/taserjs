@@ -1,12 +1,10 @@
 import "./register.js";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { createTaserApp } from "../src/index.js";
+import { t } from "../src/index.js";
 import { json, type ReplyOf } from "../src/reply.js";
 
 describe("route $Infer.Output", () => {
-  const t = createTaserApp().context({});
-
   it("preserves ReplyOf from handler return", () => {
     const route = t.get("/hello").handler(() => json({ id: "1" }));
 

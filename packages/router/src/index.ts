@@ -1,17 +1,25 @@
-export type { RouterRegister } from "./register.js";
+export interface RouterRegister {}
 export type {
+  AppContext,
+  EmptyAppContext,
   HttpMethod,
   InferInput,
   InferOutput,
   InferRouteContext,
   InferRouteInput,
+  InferRouteInputFromPath,
   InferRouteOutput,
+  LayoutBuilder,
+  LayoutId,
+  LayoutTree,
   Method,
+  MiddlewareBuilder,
   MiddlewareDefinition,
   MiddlewareUnit,
   MiddlewareUnitBuilder,
   PathParams,
   ReturnsMap,
+  RouteByPathMethod,
   RouteDefinition,
   RouteExport,
   RoutePath,
@@ -31,10 +39,26 @@ export type {
 export { ValidationError, validationErrorSchema } from "@taserjs/router-utils";
 export type { ResponseValidationFailureHandler, SuccessStatusCode } from "@taserjs/router-utils";
 
+export {
+  all,
+  any,
+  del,
+  get,
+  head,
+  layout,
+  middleware,
+  options,
+  patch,
+  post,
+  put,
+  t,
+  type TaserNamespace,
+} from "./builder/standalone.js";
+
 export { createTaserApp, TaserRouter } from "./builder/router.js";
 export { TaserApp } from "./builder/app.js";
 export { createContext } from "./context/create-context.js";
-export { defineMiddleware } from "./define/middleware.js";
 export { honoMw } from "./middleware/hono-mw.js";
+export type { MiddlewareFn } from "./define/middleware.js";
 
 export type { TaserCookieJar, TaserHeaders } from "@taserjs/router-core";

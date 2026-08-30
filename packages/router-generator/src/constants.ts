@@ -10,7 +10,6 @@ export const DEFAULT_MANIFEST_HEADER = [
 ] as const;
 
 export const ROUTES_ALIAS_ID = "#taserjs/routes";
-export const ENTRY_ALIAS_ID = "#taserjs/router";
 export const SERVER_ENTRY_ALIAS_ID = "#taserjs/server-entry";
 
 export const VIRTUAL_MANIFEST_ID = "#taserjs/virtual/manifest";
@@ -24,7 +23,7 @@ export const RESOLVED_VIRTUAL_APP_ID = "\0#taserjs/virtual/app";
 
 export const DEFAULT_SERVER_DIR = "src";
 export const DEFAULT_ROUTES_DIR = "routes";
-export const DEFAULT_ENTRY = ENTRY_ALIAS_ID;
+export const DEFAULT_ENTRY = "taser.ts";
 export const DEFAULT_SERVER_ENTRY = "server.ts";
 export const DEFAULT_IGNORE = ["**/-*"] as const;
 export const DEFAULT_GENERATED_TYPES_DIR = ".taser/types";

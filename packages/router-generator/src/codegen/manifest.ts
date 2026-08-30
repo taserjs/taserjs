@@ -5,7 +5,7 @@ import {
   arrayExpression,
   exportConst,
   id,
-  importDeclaration,
+  importDefaultDeclaration,
   objectExpression,
   objectProperty,
   str,
@@ -16,6 +16,7 @@ export type EmitManifestOptions = {
   quotes?: "single" | "double" | undefined;
   header?: readonly string[] | undefined;
   rewriteImportPath?: ((spec: string) => string) | undefined;
+  taserImportPath?: string | undefined;
 };
 
 export function joinManifestSections(
@@ -35,11 +36,7 @@ export function buildLayoutImports(
   rewriteImportPath?: (spec: string) => string,
 ): TSESTree.ImportDeclaration[] {
   return layouts.map((layout) =>
-    importDeclaration(
-      layout.importName,
-      "Middleware",
-      applyRewrite(layout.importPath, rewriteImportPath),
-    ),
+    importDefaultDeclaration(layout.importName, applyRewrite(layout.importPath, rewriteImportPath)),
   );
 }
 
@@ -48,7 +45,7 @@ export function buildRouteImports(
   rewriteImportPath?: (spec: string) => string,
 ): TSESTree.ImportDeclaration[] {
   return routes.map((route) =>
-    importDeclaration(route.importName, "Route", applyRewrite(route.importPath, rewriteImportPath)),
+    importDefaultDeclaration(route.importName, applyRewrite(route.importPath, rewriteImportPath)),
   );
 }
 

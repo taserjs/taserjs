@@ -1,5 +1,5 @@
 import type { Awaitable, TaserCookieJar, TaserHeaders } from "@taserjs/router-core";
-import type { RouterRegister } from "../register.js";
+import type { RouterRegister } from "../index.js";
 import type {
   MergeMiddlewareField,
   MergeMiddlewareInputField,
@@ -12,7 +12,7 @@ import type {
 import type { ReturnsMap, ValidHandlerReply } from "./returns.js";
 import type { Schema } from "./schema.js";
 import type {
-  AppContext,
+  EmptyAppContext,
   ExtractState,
   Method,
   MiddlewareDefinition,
@@ -30,7 +30,6 @@ export type {
   Schema,
   StandardSchemaV1,
 } from "./schema.js";
-export type { RouterRegister } from "../register.js";
 export type {
   MergeMiddlewareField,
   MergeMiddlewareInputField,
@@ -52,13 +51,12 @@ export type {
   ValidHandlerReply,
 } from "./returns.js";
 export type {
-  AppContext,
+  EmptyAppContext,
   ExtractState,
   HttpMethod,
   IsUnknown,
   Method,
   MiddlewareDefinition,
-  MiddlewareNext,
   MiddlewareReturnFromParts,
   MiddlewareUnit,
   MiddlewareUnitBuilder,
@@ -69,12 +67,20 @@ export type {
   ValidatorParts,
 } from "./units.js";
 
+export type AppContext = RouterRegister extends { AppContext: infer C } ? C : EmptyAppContext;
+
 export type RoutePath = RouterRegister extends { RoutePath: infer P } ? P : never;
 export type LayoutId = RouterRegister extends { LayoutId: infer L } ? L : never;
 export type LayoutTree = RouterRegister extends { LayoutTree: infer T } ? T : Record<never, never>;
 export type RouteByPathMethod = RouterRegister extends { RouteByPathMethod: infer R }
   ? R
   : Record<never, never>;
+
+export type LayoutBuilder<TAppContext extends Record<string, unknown> = AppContext> = <
+  const Layout extends LayoutId,
+>(
+  layout: Layout,
+) => MiddlewareBuilder<Layout, readonly [], TAppContext>;
 
 type ParseParam<Segment extends string> = Segment extends "*"
   ? { _splat: string }
@@ -99,25 +105,41 @@ export type ResolveParams<TPathParams, TSchemaParams> =
       : Simplify<Omit<TPathParams, keyof TSchemaParams> & TSchemaParams>
     : TPathParams;
 
-type LayoutParent<Layout extends LayoutId> = LayoutTree[Layout] extends {
-  parent: infer Parent extends LayoutId | null;
+type LayoutParentsMap = RouterRegister extends {
+  LayoutParents: infer LP extends Record<string, unknown>;
 }
-  ? Parent
-  : null;
+  ? LP
+  : {};
 
-type ResolveLayoutMiddlewares<Layout extends LayoutId | null> = Layout extends null
+type LayoutParent<Layout extends LayoutId> = Layout extends keyof LayoutParentsMap
+  ? LayoutParentsMap[Layout] extends LayoutId
+    ? LayoutParentsMap[Layout]
+    : null
+  : LayoutTree[Layout] extends {
+        parent: infer Parent extends LayoutId | null;
+      }
+    ? Parent
+    : null;
+
+type ResolveLayoutMiddlewares<
+  Layout extends LayoutId | null,
+  Depth extends readonly unknown[] = [],
+> = Depth["length"] extends 10
   ? readonly []
   : Layout extends LayoutId
     ? readonly [
-        ...ResolveLayoutMiddlewares<LayoutParent<Layout>>,
+        ...ResolveLayoutMiddlewares<LayoutParent<Layout>, [...Depth, unknown]>,
         ...LayoutTree[Layout]["middlewares"],
       ]
     : readonly [];
 
-export type ResolveLayoutIdChain<L extends LayoutId | null> = L extends null
+export type ResolveLayoutIdChain<
+  L extends LayoutId | null,
+  Depth extends readonly unknown[] = [],
+> = Depth["length"] extends 10
   ? readonly []
   : L extends LayoutId
-    ? readonly [...ResolveLayoutIdChain<LayoutParent<L>>, L]
+    ? readonly [...ResolveLayoutIdChain<LayoutParent<L>, [...Depth, unknown]>, L]
     : readonly [];
 
 export type ResolveLayoutMiddlewaresState<Layout extends LayoutId | null> = Layout extends LayoutId
@@ -188,13 +210,6 @@ type RouteResolvedField<
   Field extends "query" | "params" | "body" | "state",
 > = RouteLayoutField<Path, TMethod, Field> & MergeMiddlewareField<Acc, Field>;
 
-type RouteChainField<
-  Path extends RoutePath,
-  TMethod extends Method,
-  Acc extends readonly unknown[],
-  Field extends "query" | "params" | "body" | "state",
-> = RouteResolvedField<Path, TMethod, Acc, Field>;
-
 export type RouteChainContext<
   Path extends RoutePath,
   TMethod extends Method,
@@ -206,15 +221,15 @@ export type RouteChainContext<
 > = Simplify<
   TAppContext &
     UnitRuntimeContext & {
-      query: Simplify<MergePart<TQuery, RouteChainField<Path, TMethod, Acc, "query">>>;
+      query: Simplify<MergePart<TQuery, RouteResolvedField<Path, TMethod, Acc, "query">>>;
       params: Simplify<
         ResolveParams<
           PathParams<Path>,
-          MergePart<TParams, RouteChainField<Path, TMethod, Acc, "params">>
+          MergePart<TParams, RouteResolvedField<Path, TMethod, Acc, "params">>
         >
       >;
-      body: Simplify<MergePart<TBody, RouteChainField<Path, TMethod, Acc, "body">>>;
-      state: Simplify<RouteChainField<Path, TMethod, Acc, "state">>;
+      body: Simplify<MergePart<TBody, RouteResolvedField<Path, TMethod, Acc, "body">>>;
+      state: Simplify<RouteResolvedField<Path, TMethod, Acc, "state">>;
       headers: TaserHeaders;
       cookies: TaserCookieJar;
     }

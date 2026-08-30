@@ -21,10 +21,12 @@ export function Files({ className, ...props }: HTMLAttributes<HTMLDivElement>): 
 export interface FileProps extends HTMLAttributes<HTMLDivElement> {
   name: string;
   icon?: ReactNode;
+  route?: string;
 }
 
 export interface FolderProps extends HTMLAttributes<HTMLDivElement> {
   name: string;
+  route?: string;
 
   disabled?: boolean;
 
@@ -40,25 +42,49 @@ export const DefaultFileIcon = <FileIcon />;
 export function File({
   name,
   icon = DefaultFileIcon,
+  route,
   className,
   ...rest
 }: FileProps): React.ReactElement {
   return (
-    <div className={cn(itemVariants({ className }))} {...rest}>
-      {icon}
-      {name}
+    <div className={cn(itemVariants({ className }), "justify-between", className)} {...rest}>
+      <div className="flex items-center gap-2 min-w-0">
+        {icon}
+        <span className="truncate">{name}</span>
+      </div>
+      {route ? (
+        <code className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-fd-muted/60 text-fd-muted-foreground shrink-0 border border-fd-border/50">
+          {route}
+        </code>
+      ) : null}
     </div>
   );
 }
 
-export function Folder({ name, defaultOpen = false, ...props }: FolderProps): React.ReactElement {
+export function Folder({
+  name,
+  route,
+  defaultOpen = false,
+  ...props
+}: FolderProps): React.ReactElement {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} {...props}>
-      <CollapsibleTrigger className={cn(itemVariants({ className: "w-full" }))}>
-        {open ? <FolderOpen /> : <FolderIcon />}
-        {name}
+      <CollapsibleTrigger className={cn(itemVariants({ className: "w-full justify-between" }))}>
+        <div className="flex items-center gap-2 min-w-0">
+          {open ? (
+            <FolderOpen className="text-amber-500" />
+          ) : (
+            <FolderIcon className="text-amber-500" />
+          )}
+          <span className="truncate">{name}</span>
+        </div>
+        {route ? (
+          <code className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-fd-muted/60 text-fd-muted-foreground shrink-0 border border-fd-border/50">
+            {route}
+          </code>
+        ) : null}
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="ms-2 flex flex-col border-l ps-2">{props.children}</div>

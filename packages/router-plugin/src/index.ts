@@ -8,7 +8,6 @@ export {
 } from "@taserjs/router-generator";
 export {
   ROUTES_ALIAS_ID,
-  ENTRY_ALIAS_ID,
   SERVER_ENTRY_ALIAS_ID,
   VIRTUAL_MANIFEST_ID,
   RESOLVED_VIRTUAL_MANIFEST_ID,

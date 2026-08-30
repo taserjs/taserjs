@@ -20,11 +20,11 @@ describe("AnalysisCache", () => {
     await fsp.mkdir(routesDir, { recursive: true });
     await fsp.writeFile(
       join(routesDir, "hello.get.ts"),
-      `import { t } from '../taser.js'\nexport const Route = t.get('/hello').handler(() => {})`,
+      `import { t } from '@taserjs/router'\nexport default t.get('/hello').handler(() => {})`,
     );
     await fsp.writeFile(
       join(routesDir, "bye.get.ts"),
-      `import { t } from '../taser.js'\nexport const Route = t.get('/bye').handler(() => {})`,
+      `import { t } from '@taserjs/router'\nexport default t.get('/bye').handler(() => {})`,
     );
   });
 
@@ -69,7 +69,7 @@ describe("AnalysisCache", () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     await fsp.writeFile(
       join(routesDir, "hello.get.ts"),
-      `import { t } from '../taser.js'\nexport const Route = t.get('/hello').handler(() => 'v2')`,
+      `import { t } from '@taserjs/router'\nexport default t.get('/hello').handler(() => 'v2')`,
     );
 
     await scanRouteFilesWithCache(cache);

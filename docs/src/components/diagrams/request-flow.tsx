@@ -99,7 +99,7 @@ const FLOW_STEPS: FlowStep[] = [
     ],
     codeSnippet: {
       filename: "src/routes/admin/$.ts",
-      code: `export const Middleware = t.middleware("/admin/$").use(async (ctx, next) => {\n  const session = await verifyAuth(ctx.req);\n  return next({ user: session.user }); // Merges into ctx.state\n});`,
+      code: `export default t.layout("/admin/$").use(async (ctx, next) => {\n  const session = await verifyAuth(ctx.req);\n  return next({ user: session.user }); // Merges into ctx.state\n});`,
     },
   },
   {
@@ -137,7 +137,7 @@ const FLOW_STEPS: FlowStep[] = [
     ],
     codeSnippet: {
       filename: "src/routes/users/$id.get.ts",
-      code: `export const Route = GET.handler(async (ctx) => {\n  // ctx.params.id is string (UUID)\n  // ctx.state.user is User from middleware\n  const user = await ctx.db.find(ctx.params.id);\n  return json(user);\n});`,
+      code: `export default GET.handler(async (ctx) => {\n  // ctx.params.id is string (UUID)\n  // ctx.state.user is User from middleware\n  const user = await ctx.db.find(ctx.params.id);\n  return json(user);\n});`,
     },
   },
   {
