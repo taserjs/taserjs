@@ -51,6 +51,7 @@ export {
   patch,
   post,
   put,
+  query,
   t,
   type TaserNamespace,
 } from "./builder/standalone.js";

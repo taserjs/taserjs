@@ -130,6 +130,7 @@ type MethodToClientKey = {
   DELETE: "$delete";
   OPTIONS: "$options";
   HEAD: "$head";
+  QUERY: "$query";
 };
 
 export type ClientMethodFn<Entry> =

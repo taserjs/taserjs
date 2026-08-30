@@ -1,6 +1,7 @@
 export { HTTP_VERBS, HTTP_METHODS } from "@taserjs/router-utils/http";
 
-export const ROUTE_VERB_PATTERN = /\.(get|post|put|delete|patch|options|head|any|all)\.ts$/i;
+export const ROUTE_VERB_PATTERN =
+  /\.(get|post|put|delete|patch|options|head|query|any|all)\.ts$/i;
 
 export const DEFAULT_MANIFEST_HEADER = [
   "/* eslint-disable */",

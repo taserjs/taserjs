@@ -20,6 +20,14 @@ describe("route scaffold templates", () => {
     expect(source).toContain("export default t.post('/todo').handler(");
   });
 
+  it("emits QUERY route stub with export default", () => {
+    const source = routeScaffoldSource("/search", "QUERY");
+
+    expect(source).toContain("import { t } from '@taserjs/router'");
+    expect(source).toContain("import { json } from '@taserjs/router/reply'");
+    expect(source).toContain("export default t.query('/search').handler(");
+  });
+
   it("emits t.layout layout stub with export default", () => {
     const source = layoutScaffoldSource("settings");
 

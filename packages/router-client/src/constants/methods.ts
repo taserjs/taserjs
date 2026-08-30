@@ -6,6 +6,7 @@ export const METHOD_MAP = {
   DELETE: "$delete",
   OPTIONS: "$options",
   HEAD: "$head",
+  QUERY: "$query",
 } as const;
 
 export type HttpMethodName = keyof typeof METHOD_MAP;

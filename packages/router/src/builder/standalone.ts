@@ -9,6 +9,7 @@ import {
   createPatchRoute,
   createPostRoute,
   createPutRoute,
+  createQueryRoute,
   type CreateAllRoute,
   type CreateAnyRoute,
   type CreateWithBodyRoute,
@@ -35,6 +36,8 @@ export const options: CreateWithoutBodyRoute<"OPTIONS", AppContext> =
   createOptionsRoute as CreateWithoutBodyRoute<"OPTIONS", AppContext>;
 export const head: CreateWithoutBodyRoute<"HEAD", AppContext> =
   createHeadRoute as CreateWithoutBodyRoute<"HEAD", AppContext>;
+export const query: CreateWithBodyRoute<"QUERY", AppContext> =
+  createQueryRoute as CreateWithBodyRoute<"QUERY", AppContext>;
 export const any: CreateAnyRoute<AppContext> = createAnyRoute as CreateAnyRoute<AppContext>;
 export const all: CreateAllRoute<AppContext> = createAllRoute as CreateAllRoute<AppContext>;
 
@@ -49,6 +52,7 @@ export type TaserNamespace<TAppContext extends Record<string, unknown> = AppCont
   readonly delete: CreateWithoutBodyRoute<"DELETE", TAppContext>;
   readonly options: CreateWithoutBodyRoute<"OPTIONS", TAppContext>;
   readonly head: CreateWithoutBodyRoute<"HEAD", TAppContext>;
+  readonly query: CreateWithBodyRoute<"QUERY", TAppContext>;
   readonly any: CreateAnyRoute<TAppContext>;
   readonly all: CreateAllRoute<TAppContext>;
   readonly layout: LayoutBuilder<TAppContext>;
@@ -63,6 +67,7 @@ export const t: TaserNamespace<AppContext> = {
   delete: del,
   options,
   head,
+  query,
   any,
   all,
   layout,

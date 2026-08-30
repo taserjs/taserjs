@@ -10,7 +10,7 @@ export type CreateWithoutBodyRoute<
 ) => RouteBuilder<Path, M, readonly [], {}, {}, TAppContext>;
 
 export type CreateWithBodyRoute<
-  M extends "POST" | "PUT" | "PATCH",
+  M extends "POST" | "PUT" | "PATCH" | "QUERY",
   TAppContext extends Record<string, unknown> = AppContext,
 > = <const Path extends RoutePath>(
   path: Path,
@@ -37,7 +37,7 @@ function createWithoutBodyRoute<M extends "GET" | "DELETE" | "OPTIONS" | "HEAD">
     createRouteBuilder(path, method)) as unknown as CreateWithoutBodyRoute<M>;
 }
 
-function createWithBodyRoute<M extends "POST" | "PUT" | "PATCH">(
+function createWithBodyRoute<M extends "POST" | "PUT" | "PATCH" | "QUERY">(
   method: M,
 ): CreateWithBodyRoute<M> {
   return ((path: string) => createRouteBuilder(path, method)) as unknown as CreateWithBodyRoute<M>;
@@ -50,6 +50,7 @@ export const createHeadRoute = createWithoutBodyRoute("HEAD");
 export const createPostRoute = createWithBodyRoute("POST");
 export const createPutRoute = createWithBodyRoute("PUT");
 export const createPatchRoute = createWithBodyRoute("PATCH");
+export const createQueryRoute = createWithBodyRoute("QUERY");
 
 export const createAnyRoute: CreateAnyRoute = ((path: string, methods: readonly HttpMethod[]) =>
   createRouteBuilder(path, "ANY", methods)) as unknown as CreateAnyRoute;

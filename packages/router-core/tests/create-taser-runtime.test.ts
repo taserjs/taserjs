@@ -297,6 +297,37 @@ describe("createTaserRuntime", () => {
     expect(await response!.json()).toEqual({ name: "Ada" });
   });
 
+  it("handles QUERY method requests with JSON body", async () => {
+    const manifest = {
+      layouts: {},
+      routes: {
+        "/search": {
+          QUERY: {
+            layoutChain: [],
+            route: {
+              path: "/search",
+              method: "QUERY" as const,
+              middlewares: [],
+              body: z.object({ filter: z.string() }),
+              handler: (ctx: { body: { filter: string } }) => json({ results: [ctx.body.filter] }),
+            },
+          },
+        },
+      },
+    };
+
+    const runtime = createTaserRuntime(manifest, () => ({}));
+    const response = await runtime.fetch(
+      new Request("http://localhost/search", {
+        method: "QUERY",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ filter: "test-query" }),
+      }),
+    );
+    expect(response!.status).toBe(200);
+    expect(await response!.json()).toEqual({ results: ["test-query"] });
+  });
+
   it("parses urlencoded body via Hono parseBody", async () => {
     const manifest = {
       layouts: {},
