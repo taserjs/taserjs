@@ -752,8 +752,6 @@ describe("package manager", () => {
 
   it("throws an error when run command resolution fails", () => {
     vi.mocked(pmCommands.resolveCommand).mockReturnValueOnce(null);
-    expect(() => runScript("npm", "dev")).toThrowError(
-      "Unable to resolve run command for npm",
-    );
+    expect(() => runScript("npm", "dev")).toThrowError("Unable to resolve run command for npm");
   });
 });

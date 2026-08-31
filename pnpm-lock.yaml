@@ -123,6 +123,9 @@ importers:
       dotenv:
         specifier: ^16.4.7
         version: 16.4.7
+      srvx:
+        specifier: ^0.11.22
+        version: 0.11.22
       zod:
         specifier: ^3.24.2
         version: 3.25.76
