@@ -119,6 +119,26 @@ export default t.layout("admin").use(async (ctx, next) => {
 });
 ```
 
+#### Strict Phased Route Builder Lifecycle
+
+Route definitions enforce a strict phased lifecycle at the type level:
+
+1. **Middleware Phase** (`.use(...)`): Chained together at the start of the route definition.
+2. **Contract / Schema Phase** (`.query()`, `.params()`, `.body()`, `.returns()`): Transitions the builder to a `RouteContractBuilder` where `.use()` is eliminated from autocomplete and type signatures.
+3. **Execution Phase** (`.handler(...)`): The terminal handler function.
+
+#### Faceted Precondition Requirements (`.requires<{ state?, params?, query?, body? }>()`)
+
+Standalone middlewares declare compile-time preconditions across all 4 request facets:
+
+```ts
+const userParamMw = middleware()
+  .requires<{ params: { userId: string } }>()
+  .handler((ctx, next) => next({ user: ctx.params.userId }));
+```
+
+When attached via `.use(userParamMw)`, TypeScript verifies that the route path (e.g. `/users/:userId`) or upstream layout middleware provides the required facets.
+
 #### Fluent Middleware Units
 
 Standalone middlewares use the fluent `middleware()` builder:

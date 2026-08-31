@@ -126,11 +126,10 @@ const corsMiddleware = middleware(honoMw(cors()));
 - **`.query(schema)`**: Attaches query parameter validation schema.
 - **`.params(schema)`**: Attaches path parameter validation schema.
 - **`.body(schema)` / `.body(mode, schema)`**: Attaches JSON or tagged (`"form" | "urlencoded"`) body validation schema.
-- **`.returns(returnsMap)`**: Declares strongly-typed response schema contracts.
-- **`.requires<TState>()`**: Declares required upstream state preconditions that must exist on `ctx.state`. Checked at compile time by `.use(...)`.
+- **`.requires<{ state?, params?, query?, body? }>()`**: Declares required upstream preconditions across request facets (`state`, `params`, `query`, `body`). Checked at compile time by `.use(...)`.
 - **`.handler((ctx, next) => ...)`**: Implements middleware logic and returns a strongly-typed `MiddlewareUnit`.
 
-For simple unvalidated middlewares, short function signatures `middleware((ctx, next) => ...)` and `middleware<TState>((ctx, next) => ...)` are also supported.
+For simple unvalidated middlewares, short function signatures `middleware((ctx, next) => ...)` and `middleware<TState, TRequires>((ctx, next) => ...)` are also supported.
 
 ---
 

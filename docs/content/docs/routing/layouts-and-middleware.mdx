@@ -302,33 +302,37 @@ This middleware can now be safely attached to routes inheriting either the `"das
 
 ---
 
-## State-Requirement Generics (`middleware<TState, TRequires>` / `.requires<TState>()`)
+## Precondition Requirements (`.requires<{ state?, params?, query?, body? }>()`)
 
 > [!TIP]
-> **Generics Order: Output First, Precondition Second**
-> `middleware<TState, TRequires>((ctx, next) => ...)` or `middleware().requires<TRequires>().handler(...)`
+> **Faceted Requirements**
+> Middleware can declare compile-time preconditions across all 4 request facets: `params`, `query`, `body`, and `state`.
 >
-> - **1st generic (`TState`)**: What this middleware **produces** / passes downstream via `next(state)`.
-> - **2nd generic (`TRequires`)**: What this middleware **requires** / enforces on `ctx.state` before running.
+> ```ts
+> middleware().requires<{
+>   params?: { id: string };
+>   query?: { filter: string };
+>   body?: { token: string };
+>   state?: { user: User };
+> }>();
+> ```
 
-For un-scoped middlewares that are not tied to a specific layout name but still require certain properties to exist in `ctx.state`, use the `.requires<TRequires>()` fluent builder method or generic parameters:
+For middlewares that require certain properties to exist in `ctx.state`, `ctx.params`, `ctx.query`, or `ctx.body` before running, use `.requires<{ ... }>()`:
 
 ```ts title="src/middleware/admin-guard.ts"
 import { middleware } from "@taserjs/router";
 import { forbidden } from "@taserjs/router/reply";
 
-type RequiredState = {
-  user: {
-    id: string;
-    role: "admin" | "superadmin" | "user";
-  };
+type User = {
+  id: string;
+  role: "admin" | "superadmin" | "user";
 };
 
 export const requireAdmin = middleware()
-  .requires<RequiredState>()
+  .requires<{ state: { user: User } }>()
   .handler(async (ctx, next) => {
     // ctx.state.user is guaranteed by TypeScript to exist:
-    if (ctx.state.user.role !== "admin" && ctx.state.user.role !== "super-admin") {
+    if (ctx.state.user.role !== "admin" && ctx.state.user.role !== "superadmin") {
       return forbidden({ message: "Administrator privileges required" });
     }
 
@@ -336,22 +340,64 @@ export const requireAdmin = middleware()
   });
 ```
 
+### Param-Guarded & Query-Guarded Middlewares
+
+Middlewares can also enforce path parameters (validated against the route URL string e.g. `/users/:userId`) or query schemas provided by upstream layouts:
+
+```ts title="src/middleware/load-user.ts"
+export const loadUser = middleware()
+  .requires<{ params: { userId: string } }>()
+  .handler(async (ctx, next) => {
+    const user = await db.users.findById(ctx.params.userId);
+    return next({ user });
+  });
+
+// Allowed: Route has ":userId" in its path
+t.get("/users/:userId/profile").use(loadUser)...
+
+// ❌ TypeScript Error: Route "/profile" has no :userId path parameter
+t.get("/profile").use(loadUser)...
+```
+
 ### Compile-Time Precondition Validation
 
-When `.use(requireAdmin)` is added to a route or layout, TypeScript inspects the preceding middleware chain. If an upstream layout has not already injected `{ user: { ... } }`, TypeScript flags an error:
+When `.use(...)` is added to a route or layout, TypeScript inspects the preceding middleware chain and route path. If the required facets are not satisfied, TypeScript produces a compile error:
 
 ```ts
 import { json } from "@taserjs/router/reply";
 
-// ❌ TypeScript Error: Route state does not satisfy RequiredState { user: ... }
+// ❌ TypeScript Error: Preconditions not satisfied
 t.get("/unprotected").use(requireAdmin);
 
 // Allowed: Upstream auth middleware provides { user: ... }
 t.get("/protected")
-  .use(authenticateUser)
+  .use(authMiddleware)
   .use(requireAdmin)
+  .handler((ctx) => json({ ok: true }));
+```
+
+---
+
+## Phased Route Builder Lifecycle
+
+Route definitions in Taser follow a strict phased lifecycle:
+
+1. **Middleware Phase** (`.use(...)`) — Chained at the beginning of the route.
+2. **Contract / Schema Phase** (`.query()`, `.params()`, `.body()`, `.returns()`) — Once schemas or return maps are declared, `.use()` is locked out to maintain deterministic execution order.
+3. **Execution Phase** (`.handler(...)`) — The terminal route handler.
+
+```ts
+export default t
+  .get("/users/:id")
+  // 1. Middlewares at the top:
+  .use(cors())
+  .use(requireAdmin)
+  // 2. Contracts and schemas:
+  .query(z.object({ details: z.boolean().default(false) }))
+  .returns({ 200: UserResponseSchema })
+  // 3. Handler:
   .handler((ctx) => {
-    return json({ isAdmin: ctx.state.isAdmin });
+    return json({ id: ctx.params.id, isAdmin: ctx.state.isAdmin });
   });
 ```
 
