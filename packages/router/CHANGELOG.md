@@ -1,5 +1,14 @@
 # @taserjs/router
 
+## 0.1.8
+
+### Patch Changes
+
+- e4aa72d: fix: Layout Type Inference Cyclic Reference Issue
+- Updated dependencies [e4aa72d]
+  - @taserjs/router-core@0.1.8
+  - @taserjs/router-utils@0.1.8
+
 ## 0.1.7
 
 ### Patch Changes
