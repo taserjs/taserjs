@@ -16,6 +16,7 @@ import type {
   ExtractState,
   Method,
   MiddlewareDefinition,
+  MiddlewareRequirements,
   MiddlewareReturnFromParts,
   MiddlewareUnit,
   NextFn,
@@ -57,6 +58,7 @@ export type {
   IsUnknown,
   Method,
   MiddlewareDefinition,
+  MiddlewareRequirements,
   MiddlewareReturnFromParts,
   MiddlewareUnit,
   MiddlewareUnitBuilder,
@@ -352,19 +354,66 @@ export type IsLayoutAllowed<TRequiredLayouts, TChain extends readonly LayoutId[]
               : true
             : true;
 
-export type IsStateSatisfied<TActualState, TRequiredState> = [TRequiredState] extends [never]
+export type IsRequirementsSatisfied<
+  TActual extends {
+    query?: unknown;
+    params?: unknown;
+    body?: unknown;
+    state?: unknown;
+  },
+  TRequires extends MiddlewareRequirements,
+> = [TRequires] extends [never]
   ? true
-  : [unknown] extends [TRequiredState]
+  : [unknown] extends [TRequires]
     ? true
-    : [null] extends [TRequiredState]
+    : [null] extends [TRequires]
       ? true
-      : [undefined] extends [TRequiredState]
+      : [undefined] extends [TRequires]
         ? true
-        : [IsEmptyObject<TRequiredState>] extends [true]
+        : [IsEmptyObject<TRequires>] extends [true]
           ? true
-          : [TActualState] extends [TRequiredState]
-            ? true
-            : false;
+          : (
+                TRequires extends { state: infer S extends Record<string, unknown> }
+                  ? [TActual["state"]] extends [S]
+                    ? true
+                    : false
+                  : true
+              ) extends false
+            ? false
+            : (
+                  TRequires extends { query: infer Q extends Record<string, unknown> }
+                    ? [TActual["query"]] extends [Q]
+                      ? true
+                      : false
+                    : true
+                ) extends false
+              ? false
+              : (
+                    TRequires extends { params: infer P extends Record<string, unknown> }
+                      ? [TActual["params"]] extends [P]
+                        ? true
+                        : false
+                      : true
+                  ) extends false
+                ? false
+                : (
+                      TRequires extends { body: infer B }
+                        ? unknown extends B
+                          ? true
+                          : [TRequires["body"]] extends [undefined]
+                            ? true
+                            : [TActual["body"]] extends [B]
+                              ? true
+                              : false
+                        : true
+                    ) extends false
+                  ? false
+                  : true;
+
+export type IsStateSatisfied<TActualState, TRequiredState> = IsRequirementsSatisfied<
+  { state: TActualState },
+  { state: TRequiredState extends Record<string, unknown> ? TRequiredState : {} }
+>;
 
 type InputFacet<T, K extends string> =
   IsNever<T> extends true ? {} : IsEmptyObject<T> extends true ? {} : { [Key in K]: T };
@@ -485,22 +534,37 @@ export type MiddlewareBuilder<
   readonly $Infer: {
     Context: MiddlewareChainContext<Layout, Acc, unknown, unknown, unknown, TAppContext>;
   };
-  use<TAcc, TReturns extends ReturnsMap = {}, TRequiredLayouts = unknown, TRequiredState = unknown>(
-    unit: MiddlewareUnit<TAcc, TReturns, TRequiredLayouts, TRequiredState>,
-    ..._assert: [
+  use<
+    TAcc,
+    TReturns extends ReturnsMap = {},
+    TRequiredLayouts = unknown,
+    TRequires extends MiddlewareRequirements = {},
+  >(
+    unit: [
       IsLayoutAllowed<TRequiredLayouts, ResolveLayoutIdChain<Layout>>,
-      IsStateSatisfied<MiddlewareChainField<Layout, Acc, "state">, TRequiredState>,
+      IsRequirementsSatisfied<
+        {
+          query: MiddlewareChainField<Layout, Acc, "query">;
+          params: MiddlewareChainField<Layout, Acc, "params">;
+          body: MiddlewareChainField<Layout, Acc, "body">;
+          state: MiddlewareChainField<Layout, Acc, "state">;
+        },
+        TRequires
+      >,
     ] extends [true, true]
-      ? []
-      : [
-          {
-            error: "Middleware cannot be attached to this layout";
-            requiredLayouts: TRequiredLayouts;
-            layoutChain: ResolveLayoutIdChain<Layout>;
-            requiredState: TRequiredState;
-            actualState: MiddlewareChainField<Layout, Acc, "state">;
-          },
-        ]
+      ? MiddlewareUnit<TAcc, TReturns, TRequiredLayouts, TRequires>
+      : {
+          error: "Middleware cannot be attached to this layout";
+          requiredLayouts: TRequiredLayouts;
+          layoutChain: ResolveLayoutIdChain<Layout>;
+          requirements: TRequires;
+          actual: {
+            query: MiddlewareChainField<Layout, Acc, "query">;
+            params: MiddlewareChainField<Layout, Acc, "params">;
+            body: MiddlewareChainField<Layout, Acc, "body">;
+            state: MiddlewareChainField<Layout, Acc, "state">;
+          };
+        },
   ): MiddlewareBuilder<Layout, readonly [...Acc, TAcc], TAppContext>;
   use<R = unknown>(
     fn: (
@@ -563,7 +627,7 @@ type RouteHandleResult<
   };
 };
 
-export type RouteBuilderBase<
+export type RouteContractBuilderBase<
   Path extends RoutePath,
   TMethod extends Method,
   Acc extends readonly unknown[] = readonly [],
@@ -584,7 +648,7 @@ export type RouteBuilderBase<
   };
   query<TQuery, TQueryIn = unknown>(
     schema: Schema<TQuery, TQueryIn>,
-  ): RouteBuilder<
+  ): RouteContractBuilder<
     Path,
     TMethod,
     Acc,
@@ -594,7 +658,7 @@ export type RouteBuilderBase<
   >;
   params<TParams, TParamsIn = unknown>(
     schema: Schema<TParams, TParamsIn>,
-  ): RouteBuilder<
+  ): RouteContractBuilder<
     Path,
     TMethod,
     Acc,
@@ -604,44 +668,7 @@ export type RouteBuilderBase<
   >;
   returns<const M extends ReturnsMap>(
     map: M,
-  ): RouteBuilder<Path, TMethod, Acc, Validators, Omit<TReturns, keyof M> & M, TAppContext>;
-  use<TAcc, UReturns extends ReturnsMap = {}, TRequiredLayouts = unknown, TRequiredState = unknown>(
-    unit: MiddlewareUnit<TAcc, UReturns, TRequiredLayouts, TRequiredState>,
-    ..._assert: [
-      IsLayoutAllowed<TRequiredLayouts, RouteLayoutChain<Path, TMethod>>,
-      IsStateSatisfied<RouteResolvedField<Path, TMethod, Acc, "state">, TRequiredState>,
-    ] extends [true, true]
-      ? []
-      : [
-          {
-            error: "Middleware cannot be attached to this route";
-            requiredLayouts: TRequiredLayouts;
-            routeLayoutChain: RouteLayoutChain<Path, TMethod>;
-            requiredState: TRequiredState;
-            actualState: RouteResolvedField<Path, TMethod, Acc, "state">;
-          },
-        ]
-  ): RouteBuilder<
-    Path,
-    TMethod,
-    readonly [...Acc, TAcc],
-    Validators,
-    Omit<TReturns, keyof UReturns> & UReturns,
-    TAppContext
-  >;
-  use<R = unknown>(
-    fn: (
-      ctx: RouteChainContext<Path, TMethod, Acc, unknown, unknown, unknown, TAppContext>,
-      next: NextFn,
-    ) => Awaitable<R>,
-  ): RouteBuilder<
-    Path,
-    TMethod,
-    readonly [...Acc, MiddlewareReturnFromParts<unknown, unknown, unknown, ExtractState<R>>],
-    Validators,
-    TReturns,
-    TAppContext
-  >;
+  ): RouteContractBuilder<Path, TMethod, Acc, Validators, Omit<TReturns, keyof M> & M, TAppContext>;
   handler<R extends Response = Response>(
     fn: (
       ctx: TMethod extends "GET" | "DELETE" | "HEAD" | "OPTIONS"
@@ -659,20 +686,20 @@ export type RouteBuilderBase<
   ): RouteHandleResult<Path, TMethod, Acc, Validators, TReturns, R, TAppContext>;
 };
 
-export type RouteBuilder<
+export type RouteContractBuilder<
   Path extends RoutePath,
   TMethod extends Method,
   Acc extends readonly unknown[] = readonly [],
   Validators extends ValidatorParts = {},
   TReturns extends ReturnsMap = {},
   TAppContext extends Record<string, unknown> = AppContext,
-> = RouteBuilderBase<Path, TMethod, Acc, Validators, TReturns, TAppContext> &
+> = RouteContractBuilderBase<Path, TMethod, Acc, Validators, TReturns, TAppContext> &
   (TMethod extends "GET" | "DELETE" | "HEAD" | "OPTIONS"
     ? {}
     : {
         body<TBody, TBodyIn = unknown>(
           schema: Schema<TBody, TBodyIn>,
-        ): RouteBuilder<
+        ): RouteContractBuilder<
           Path,
           TMethod,
           Acc,
@@ -683,7 +710,7 @@ export type RouteBuilder<
         body<Mode extends "json" | "form" | "urlencoded", TBody, TBodyIn = unknown>(
           mode: Mode,
           schema: Schema<TBody, TBodyIn>,
-        ): RouteBuilder<
+        ): RouteContractBuilder<
           Path,
           TMethod,
           Acc,
@@ -692,6 +719,80 @@ export type RouteBuilder<
           TAppContext
         >;
       });
+
+export type RouteMiddlewareBuilder<
+  Path extends RoutePath,
+  TMethod extends Method,
+  Acc extends readonly unknown[] = readonly [],
+  Validators extends ValidatorParts = {},
+  TReturns extends ReturnsMap = {},
+  TAppContext extends Record<string, unknown> = AppContext,
+> = RouteContractBuilder<Path, TMethod, Acc, Validators, TReturns, TAppContext> & {
+  use<
+    TAcc,
+    UReturns extends ReturnsMap = {},
+    TRequiredLayouts = unknown,
+    TRequires extends MiddlewareRequirements = {},
+  >(
+    unit: [
+      IsLayoutAllowed<TRequiredLayouts, RouteLayoutChain<Path, TMethod>>,
+      IsRequirementsSatisfied<
+        {
+          query: RouteResolvedField<Path, TMethod, Acc, "query">;
+          params: ResolveParams<PathParams<Path>, RouteResolvedField<Path, TMethod, Acc, "params">>;
+          body: RouteResolvedField<Path, TMethod, Acc, "body">;
+          state: RouteResolvedField<Path, TMethod, Acc, "state">;
+        },
+        TRequires
+      >,
+    ] extends [true, true]
+      ? MiddlewareUnit<TAcc, UReturns, TRequiredLayouts, TRequires>
+      : {
+          error: "Middleware cannot be attached to this route";
+          requiredLayouts: TRequiredLayouts;
+          routeLayoutChain: RouteLayoutChain<Path, TMethod>;
+          requirements: TRequires;
+          actual: {
+            query: RouteResolvedField<Path, TMethod, Acc, "query">;
+            params: ResolveParams<
+              PathParams<Path>,
+              RouteResolvedField<Path, TMethod, Acc, "params">
+            >;
+            body: RouteResolvedField<Path, TMethod, Acc, "body">;
+            state: RouteResolvedField<Path, TMethod, Acc, "state">;
+          };
+        },
+  ): RouteMiddlewareBuilder<
+    Path,
+    TMethod,
+    readonly [...Acc, TAcc],
+    Validators,
+    Omit<TReturns, keyof UReturns> & UReturns,
+    TAppContext
+  >;
+  use<R = unknown>(
+    fn: (
+      ctx: RouteChainContext<Path, TMethod, Acc, unknown, unknown, unknown, TAppContext>,
+      next: NextFn,
+    ) => Awaitable<R>,
+  ): RouteMiddlewareBuilder<
+    Path,
+    TMethod,
+    readonly [...Acc, MiddlewareReturnFromParts<unknown, unknown, unknown, ExtractState<R>>],
+    Validators,
+    TReturns,
+    TAppContext
+  >;
+};
+
+export type RouteBuilder<
+  Path extends RoutePath,
+  TMethod extends Method,
+  Acc extends readonly unknown[] = readonly [],
+  Validators extends ValidatorParts = {},
+  TReturns extends ReturnsMap = {},
+  TAppContext extends Record<string, unknown> = AppContext,
+> = RouteMiddlewareBuilder<Path, TMethod, Acc, Validators, TReturns, TAppContext>;
 
 export type RouteDefinition<
   Path extends RoutePath = RoutePath,

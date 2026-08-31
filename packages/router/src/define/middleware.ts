@@ -3,6 +3,7 @@ import type {
   DefineMiddlewareResult,
   ExtractState,
   IsUnknown,
+  MiddlewareRequirements,
   MiddlewareUnitBuilder,
   NextFn,
   StandaloneMiddlewareContext,
@@ -85,7 +86,12 @@ export interface MiddlewareFn<TAppContext extends Record<string, unknown> = AppC
   /**
    * Defines a standalone middleware scoped to a single layout branch using a short function signature.
    */
-  <const Layout extends LayoutId, TState = unknown, TRequires = {}, R = unknown>(
+  <
+    const Layout extends LayoutId,
+    TState = unknown,
+    TRequires extends MiddlewareRequirements = {},
+    R = unknown,
+  >(
     layout: Layout,
     fn: (
       ctx: StandaloneMiddlewareContext<
@@ -93,7 +99,8 @@ export interface MiddlewareFn<TAppContext extends Record<string, unknown> = AppC
         unknown,
         unknown,
         TAppContext,
-        ResolveLayoutMiddlewaresState<Layout> & TRequires
+        ResolveLayoutMiddlewaresState<Layout>,
+        TRequires
       >,
       next: NextFn<NoInfer<TState>>,
     ) => R,
@@ -117,7 +124,7 @@ export interface MiddlewareFn<TAppContext extends Record<string, unknown> = AppC
   <
     const Layouts extends readonly [LayoutId, ...LayoutId[]],
     TState = unknown,
-    TRequires = {},
+    TRequires extends MiddlewareRequirements = {},
     R = unknown,
   >(
     layouts: Layouts,
@@ -127,7 +134,8 @@ export interface MiddlewareFn<TAppContext extends Record<string, unknown> = AppC
         unknown,
         unknown,
         TAppContext,
-        ResolveLayoutsState<Layouts> & TRequires
+        ResolveLayoutsState<Layouts>,
+        TRequires
       >,
       next: NextFn<NoInfer<TState>>,
     ) => R,
@@ -155,9 +163,9 @@ export interface MiddlewareFn<TAppContext extends Record<string, unknown> = AppC
    * });
    * ```
    */
-  <TState = unknown, TRequires = {}, R = unknown>(
+  <TState = unknown, TRequires extends MiddlewareRequirements = {}, R = unknown>(
     fn: (
-      ctx: StandaloneMiddlewareContext<unknown, unknown, unknown, TAppContext, TRequires>,
+      ctx: StandaloneMiddlewareContext<unknown, unknown, unknown, TAppContext, {}, TRequires>,
       next: NextFn<NoInfer<TState>>,
     ) => R,
   ): DefineMiddlewareResult<

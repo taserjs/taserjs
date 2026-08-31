@@ -78,11 +78,11 @@ describe("middleware units", () => {
     expect(jsonMw.body).toBe(jsonSchema);
   });
 
-  it("supports .requires<TState>() on fluent builder for upstream preconditions", () => {
+  it("supports .requires<TRequires>() on fluent builder for upstream preconditions", () => {
     type AuthState = { user: string };
 
     const requireUserMw = middleware()
-      .requires<AuthState>()
+      .requires<{ state: AuthState }>()
       .handler((ctx, next) => {
         expectTypeOf(ctx.state.user).toEqualTypeOf<string>();
         return next({ active: true });
@@ -401,5 +401,83 @@ describe("middleware units", () => {
       });
 
     expect(route.middlewares).toHaveLength(1);
+  });
+
+  it("enforces strict phased route builder where .use() is only valid before contract/schemas", () => {
+    // Valid: Multiple .use() chained at the start
+    const validRoute = t
+      .post("/users/:id")
+      .use((_ctx, next) => next({ step1: true }))
+      .use((_ctx, next) => next({ step2: true }))
+      .query(z.object({ filter: z.string() }))
+      .params(z.object({ id: z.string() }))
+      .body(z.object({ name: z.string() }))
+      .returns({ 200: z.object({ ok: z.boolean() }) })
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.step1).toEqualTypeOf<boolean>();
+        expectTypeOf(ctx.state.step2).toEqualTypeOf<boolean>();
+        expectTypeOf(ctx.query.filter).toEqualTypeOf<string>();
+        expectTypeOf(ctx.params.id).toEqualTypeOf<string>();
+        expectTypeOf(ctx.body.name).toEqualTypeOf<string>();
+        return json({ ok: true });
+      });
+
+    expect(validRoute.middlewares).toHaveLength(2);
+
+    // Invalid: .use() after .query() is not allowed by TypeScript
+    const queryBuilder = t.get("/hello").query(z.object({ tag: z.string() }));
+    // @ts-expect-error - .use() cannot be called after .query()
+    queryBuilder.use((_ctx, next) => next());
+
+    // Invalid: .use() after .returns() is not allowed by TypeScript
+    const returnsBuilder = t.get("/hello").returns({ 200: z.object({ ok: z.boolean() }) });
+    // @ts-expect-error - .use() cannot be called after .returns()
+    returnsBuilder.use((_ctx, next) => next());
+  });
+
+  it("supports faceted .requires<{ params: ... }>() verifying path params from URL string", () => {
+    const userParamMw = middleware()
+      .requires<{ params: { id: string } }>()
+      .handler((ctx, next) => {
+        expectTypeOf(ctx.params.id).toEqualTypeOf<string>();
+        return next({ loadedUserId: ctx.params.id });
+      });
+
+    // Allowed: Route "/users/:id" has path param :id
+    const route = t
+      .post("/users/:id")
+      .use(userParamMw)
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.loadedUserId).toEqualTypeOf<string>();
+        return json({ userId: ctx.state.loadedUserId });
+      });
+
+    expect(route.middlewares).toHaveLength(1);
+
+    // @ts-expect-error - Route "/hello" does not satisfy required params: { id: string }
+    t.get("/hello").use(userParamMw);
+  });
+
+  it("supports faceted .requires<{ query: ... }>() verifying query from upstream layout", () => {
+    const requirePageMw = middleware()
+      .requires<{ query: { page: number } }>()
+      .handler((ctx, next) => {
+        expectTypeOf(ctx.query.page).toEqualTypeOf<number>();
+        return next({ pageNumber: ctx.query.page });
+      });
+
+    // Allowed: Route "/check-ctx" inherits page: number from "admin" / "index" layout
+    const route = t
+      .get("/check-ctx")
+      .use(requirePageMw)
+      .handler((ctx) => {
+        expectTypeOf(ctx.state.pageNumber).toEqualTypeOf<number>();
+        return json({ page: ctx.state.pageNumber });
+      });
+
+    expect(route.middlewares).toHaveLength(1);
+
+    // @ts-expect-error - Route "/hello" has no upstream query { page: number }
+    t.get("/hello").use(requirePageMw);
   });
 });

@@ -80,6 +80,13 @@ export type MiddlewareReturnFromParts<
   };
 };
 
+export type MiddlewareRequirements = {
+  query?: Record<string, unknown>;
+  params?: Record<string, unknown>;
+  body?: unknown;
+  state?: Record<string, unknown>;
+};
+
 export type DefineMiddlewareResult<
   TQuery,
   TParams,
@@ -91,7 +98,7 @@ export type DefineMiddlewareResult<
   TBodyIn = TBody,
   TReturns extends ReturnsMap = {},
   TLayout = null,
-  TRequires = {},
+  TRequires extends MiddlewareRequirements = {},
 > = MiddlewareUnit<
   MiddlewareReturnFromParts<
     TQuery,
@@ -113,13 +120,30 @@ export type StandaloneMiddlewareContext<
   TBody = unknown,
   TAppContext extends Record<string, unknown> = EmptyAppContext,
   TState = {},
+  TRequires extends MiddlewareRequirements = {},
 > = Simplify<
   TAppContext &
     UnitRuntimeContext & {
-      query: Simplify<UnwrapPart<TQuery>>;
-      params: Simplify<UnwrapPart<TParams>>;
-      body: Simplify<UnwrapPart<TBody>>;
-      state: Simplify<UnwrapPart<TState>>;
+      query: Simplify<
+        UnwrapPart<TQuery> &
+          (TRequires["query"] extends Record<string, unknown> ? TRequires["query"] : {})
+      >;
+      params: Simplify<
+        UnwrapPart<TParams> &
+          (TRequires["params"] extends Record<string, unknown> ? TRequires["params"] : {})
+      >;
+      body: Simplify<
+        UnwrapPart<TBody> &
+          (unknown extends TRequires["body"]
+            ? {}
+            : [TRequires["body"]] extends [undefined]
+              ? {}
+              : TRequires["body"])
+      >;
+      state: Simplify<
+        UnwrapPart<TState> &
+          (TRequires["state"] extends Record<string, unknown> ? TRequires["state"] : {})
+      >;
       headers: TaserHeaders;
       cookies: TaserCookieJar;
     }
@@ -131,13 +155,13 @@ export type MiddlewareUnit<
   TAcc = unknown,
   TReturns extends ReturnsMap = {},
   TRequiredLayouts = unknown,
-  TRequiredState = unknown,
+  TRequires extends MiddlewareRequirements = {},
 > = MiddlewareDefinition & {
   readonly [MiddlewareUnitBrand]: true;
   readonly __middlewareAcc: TAcc;
   readonly __returns?: TReturns;
   readonly __requiredLayouts?: TRequiredLayouts;
-  readonly __requiredState?: TRequiredState;
+  readonly __requirements?: TRequires;
 };
 
 export type MiddlewareUnitBuilder<
@@ -146,7 +170,7 @@ export type MiddlewareUnitBuilder<
   TBody = unknown,
   TReturns extends ReturnsMap = {},
   TRequiredLayouts = unknown,
-  TRequiredState = {},
+  TRequires extends MiddlewareRequirements = {},
   TAppContext extends Record<string, unknown> = EmptyAppContext,
   TInheritedState = {},
   TQueryIn = unknown,
@@ -165,7 +189,7 @@ export type MiddlewareUnitBuilder<
   >,
   TReturns,
   TRequiredLayouts,
-  TRequiredState
+  TRequires
 > & {
   query<Q, QIn = unknown>(
     schema: Schema<Q, QIn>,
@@ -175,7 +199,7 @@ export type MiddlewareUnitBuilder<
     TBody,
     TReturns,
     TRequiredLayouts,
-    TRequiredState,
+    TRequires,
     TAppContext,
     TInheritedState,
     QIn,
@@ -191,7 +215,7 @@ export type MiddlewareUnitBuilder<
     TBody,
     TReturns,
     TRequiredLayouts,
-    TRequiredState,
+    TRequires,
     TAppContext,
     TInheritedState,
     TQueryIn,
@@ -207,7 +231,7 @@ export type MiddlewareUnitBuilder<
     B,
     TReturns,
     TRequiredLayouts,
-    TRequiredState,
+    TRequires,
     TAppContext,
     TInheritedState,
     TQueryIn,
@@ -224,7 +248,7 @@ export type MiddlewareUnitBuilder<
     B,
     TReturns,
     TRequiredLayouts,
-    TRequiredState,
+    TRequires,
     TAppContext,
     TInheritedState,
     TQueryIn,
@@ -240,7 +264,7 @@ export type MiddlewareUnitBuilder<
     TBody,
     Omit<TReturns, keyof M> & M,
     TRequiredLayouts,
-    TRequiredState,
+    TRequires,
     TAppContext,
     TInheritedState,
     TQueryIn,
@@ -248,13 +272,13 @@ export type MiddlewareUnitBuilder<
     TBodyIn,
     TExpectedState
   >;
-  requires<Requires extends Record<string, unknown>>(): MiddlewareUnitBuilder<
+  requires<Requires extends MiddlewareRequirements>(): MiddlewareUnitBuilder<
     TQuery,
     TParams,
     TBody,
     TReturns,
     TRequiredLayouts,
-    TRequiredState & Requires,
+    TRequires & Requires,
     TAppContext,
     TInheritedState,
     TQueryIn,
@@ -269,7 +293,8 @@ export type MiddlewareUnitBuilder<
         TParams,
         TBody,
         TAppContext,
-        TInheritedState & TRequiredState
+        TInheritedState,
+        TRequires
       >,
       next: NextFn<TExpectedState>,
     ) => R,
@@ -284,6 +309,6 @@ export type MiddlewareUnitBuilder<
     TBodyIn,
     TReturns,
     TRequiredLayouts,
-    TRequiredState
+    TRequires
   >;
 };

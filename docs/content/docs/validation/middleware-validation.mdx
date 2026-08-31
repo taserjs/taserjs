@@ -137,9 +137,9 @@ export default t
 
 ---
 
-## State Preconditions (`.requires<TState>()` / `TRequires`)
+## Preconditions (`.requires<{ state?, params?, query?, body? }>()`)
 
-When writing reusable standalone middlewares that assume certain state was already produced upstream (e.g. an authenticated user or tenant ID), declare a state requirement via `.requires<TState>()` on `middleware()`:
+When writing reusable standalone middlewares that assume certain state, params, query, or body was already produced upstream (e.g. an authenticated user or tenant ID), declare a precondition requirement via `.requires<{ ... }>()` on `middleware()`:
 
 ```ts title="src/middleware/require-subscription.ts"
 import { middleware } from "@taserjs/router";
@@ -150,7 +150,7 @@ type SubscriptionPrecondition = {
 };
 
 export const requireActivePlan = middleware()
-  .requires<SubscriptionPrecondition>()
+  .requires<{ state: SubscriptionPrecondition }>()
   .handler((ctx, next) => {
     // TypeScript ensures ctx.state.hasActiveSubscription exists:
     if (!ctx.state.hasActiveSubscription) {
@@ -161,7 +161,7 @@ export const requireActivePlan = middleware()
   });
 ```
 
-If you attach `.use(requireActivePlan)` to a route or layout that has not initialized `hasActiveSubscription` upstream, TypeScript flags a compile-time type mismatch.
+If you attach `.use(requireActivePlan)` to a route or layout that has not initialized `hasActiveSubscription` upstream, TypeScript flags a compile-time type mismatch. Middlewares can also declare requirements on `params: { ... }`, `query: { ... }`, and `body: { ... }`.
 
 ---
 
