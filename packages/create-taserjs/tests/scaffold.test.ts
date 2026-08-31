@@ -2,11 +2,22 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import * as pmCommands from "package-manager-detector/commands";
+
+vi.mock("package-manager-detector/commands", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("package-manager-detector/commands")>();
+  return {
+    ...actual,
+    resolveCommand: vi.fn((...args: Parameters<typeof actual.resolveCommand>) =>
+      actual.resolveCommand(...args),
+    ),
+  };
+});
 
 import { getCapabilitiesCatalog } from "../src/addons/registry.js";
 import { validateProjectName } from "../src/core/validate-project-name.js";
-import { resolveInstallCommand, resolveUserAgent } from "../src/core/package-manager.js";
+import { resolveInstallCommand, resolveUserAgent, runScript } from "../src/core/package-manager.js";
 import { parsePresetFlag, parseValidatorFlag } from "../src/core/parse-options.js";
 import { buildParsedArgsFromCli } from "../src/commands/create.js";
 import { resolveScaffoldDefaults } from "../src/core/parse-options.js";
@@ -728,5 +739,21 @@ describe("package manager", () => {
     const bunDev = resolveInstallCommand("bun", ["typescript"], true);
     expect(bunDev.command).toBe("bun");
     expect(bunDev.args).toEqual(["add", "-D", "typescript"]);
+  });
+
+  it("resolves run script command for different agents and scripts", () => {
+    expect(runScript("npm", "dev")).toBe("npm run dev");
+    expect(runScript("pnpm", "dev")).toBe("pnpm run dev");
+    expect(runScript("yarn", "dev")).toBe("yarn run dev");
+    expect(runScript("bun", "dev")).toBe("bun run dev");
+    expect(runScript("npm", "build")).toBe("npm run build");
+    expect(runScript("pnpm", "start")).toBe("pnpm run start");
+  });
+
+  it("throws an error when run command resolution fails", () => {
+    vi.mocked(pmCommands.resolveCommand).mockReturnValueOnce(null);
+    expect(() => runScript("npm", "dev")).toThrowError(
+      "Unable to resolve run command for npm",
+    );
   });
 });
