@@ -18,7 +18,7 @@ describe("jwt and jwk middleware", () => {
       routes: {
         "/hello": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route,
           },
         },

@@ -53,15 +53,21 @@ export default createTaserApp({
 }).context(context);
 ```
 
-- When `@taserjs/router-generator` runs, it generates `.taser/types/routes.d.ts` which augments `@taserjs/router`'s `RouterRegister`:
+- When `@taserjs/router-generator` runs, it generates `.taser/types/routes.d.ts` which augments `@taserjs/router`'s split interfaces:
   ```ts
   declare module "@taserjs/router" {
     interface RouterRegister {
       AppContext: typeof taser.$Infer.Context;
       RoutePath: RoutePathGen;
       LayoutId: LayoutIdGen;
-      LayoutParents: LayoutParentsGen;
       LayoutTree: LayoutTreeGen;
+    }
+
+    interface RouterMiddlewaresRegister {
+      LayoutMiddlewares: LayoutMiddlewaresGen;
+    }
+
+    interface RouterRoutesRegister {
       RouteByPathMethod: RouteByPathMethodGen;
     }
   }
@@ -176,17 +182,32 @@ const featureFlag = middleware().handler((ctx, next) => {
 The state is automatically inferred on downstream route handlers as:
 `{ betaUser: true, tier: "premium" } | { betaUser: false, tier: "standard" }` without requiring manual generic annotations.
 
-#### Layout Decoupling (`LayoutParents`)
-
-Layout parent hierarchies (`LayoutParents`) are generated independently of layout middleware types, preventing circular TypeScript evaluation issues when layouts declare contextual middlewares.
-
 ---
 
-### 3.4 Runtime Onion Pipeline (`@taserjs/router-core`)
+### 3.4 Generated Manifest & Runtime Pipeline (`@taserjs/router-core`)
+
+The generator produces a flattened, type-safe runtime manifest `routeManifest`:
+
+```ts
+export const routeManifest = {
+  layouts: {
+    "/$": RootSplatLayoutImport,
+    "admin": AdminLayoutImport,
+  },
+  routes: {
+    "/users": {
+      GET: {
+        layouts: ["/$"],
+        route: UsersGetRouteImport,
+      },
+    },
+  },
+} as const;
+```
 
 At runtime, requests flow through an onion middleware pipeline:
 
-1. **Layout Middlewares**: Executed from shallowest root to deepest nested layout.
+1. **Layout Middlewares**: Executed in order of `route.layouts` from shallowest root to deepest nested layout.
 2. **Route Middlewares**: Attached via `.use(...)` on specific routes.
 3. **Route Validation Layer**: Merges validated fields (`query`, `params`, `body`).
 4. **Route Handler**: Produces a `Response`.

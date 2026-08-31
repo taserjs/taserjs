@@ -33,7 +33,7 @@ type TestManifest = {
   routes: {
     "/": {
       POST: {
-        layoutChain: readonly ["/$"];
+        layouts: readonly ["/$"];
         route: {
           path: "/";
           method: "POST";
@@ -54,7 +54,7 @@ type TestManifest = {
     };
     "/hello": {
       GET: {
-        layoutChain: readonly ["/$"];
+        layouts: readonly ["/$"];
         route: {
           path: "/hello";
           method: "GET";
@@ -73,7 +73,7 @@ type TestManifest = {
     };
     "/posts/:id": {
       GET: {
-        layoutChain: readonly ["/$"];
+        layouts: readonly ["/$"];
         route: {
           path: "/posts/:id";
           method: "GET";
@@ -88,7 +88,7 @@ type TestManifest = {
     };
     "/upload": {
       POST: {
-        layoutChain: readonly ["/$"];
+        layouts: readonly ["/$"];
         route: {
           path: "/upload";
           method: "POST";
@@ -104,7 +104,7 @@ type TestManifest = {
     };
     "/inferred": {
       GET: {
-        layoutChain: readonly ["/$"];
+        layouts: readonly ["/$"];
         route: {
           path: "/inferred";
           method: "GET";
@@ -122,7 +122,7 @@ type TestManifest = {
     };
     "/schema-wins": {
       GET: {
-        layoutChain: readonly ["/$"];
+        layouts: readonly ["/$"];
         route: {
           path: "/schema-wins";
           method: "GET";
@@ -140,7 +140,7 @@ type TestManifest = {
     };
     "/index": {
       GET: {
-        layoutChain: readonly ["/$"];
+        layouts: readonly ["/$"];
         route: {
           path: "/index";
           method: "GET";
@@ -155,7 +155,7 @@ type TestManifest = {
     };
     "/.well-known/jwks": {
       GET: {
-        layoutChain: readonly ["/$"];
+        layouts: readonly ["/$"];
         route: {
           path: "/.well-known/jwks";
           method: "GET";

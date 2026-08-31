@@ -111,17 +111,17 @@ export function schemaLayer(apply: (ctx: PipelineContext) => Promise<void>): Pip
 
 export function buildPipelineLayers(
   manifest: RouteManifestShape,
-  layoutChain: readonly string[],
+  layouts: readonly string[],
   route: RouteHandler,
 ): PipelineLayer[] {
   const layers: PipelineLayer[] = [];
 
-  for (const layoutId of layoutChain) {
+  for (const layoutId of layouts) {
     const layout = manifest.layouts[layoutId];
     if (!layout) {
       continue;
     }
-    for (const definition of getMiddlewares(layout.middlewares)) {
+    for (const definition of getMiddlewares(layout)) {
       layers.push(middlewareToLayer(definition));
     }
   }

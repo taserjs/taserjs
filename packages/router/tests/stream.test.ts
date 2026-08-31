@@ -18,7 +18,7 @@ describe("router stream export", () => {
     const manifest = {
       layouts: {},
       routes: {
-        "/file": { GET: { layoutChain: [], route } },
+        "/file": { GET: { layouts: [], route } },
       },
     } satisfies RouteManifestShape;
 
@@ -38,7 +38,7 @@ describe("router stream export", () => {
     const manifest = {
       layouts: {},
       routes: {
-        "/pipe": { GET: { layoutChain: [], route } },
+        "/pipe": { GET: { layouts: [], route } },
       },
     } satisfies RouteManifestShape;
 
@@ -54,7 +54,7 @@ describe("router stream export", () => {
     const manifest = {
       layouts: {},
       routes: {
-        "/buffer": { GET: { layoutChain: [], route } },
+        "/buffer": { GET: { layouts: [], route } },
       },
     } satisfies RouteManifestShape;
 
@@ -72,7 +72,7 @@ describe("router stream export", () => {
     const manifest = {
       layouts: {},
       routes: {
-        "/blob": { GET: { layoutChain: [], route } },
+        "/blob": { GET: { layouts: [], route } },
       },
     } satisfies RouteManifestShape;
 

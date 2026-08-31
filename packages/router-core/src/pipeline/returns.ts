@@ -9,29 +9,33 @@ import type {
 } from "../types.js";
 
 export function getMiddlewares(value: unknown): readonly MiddlewareDefinition[] {
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "middlewares" in value &&
-    Array.isArray((value as MiddlewareChain).middlewares)
-  ) {
-    return (value as MiddlewareChain).middlewares;
+  if (typeof value === "object" && value !== null && "middlewares" in value) {
+    const inner = (value as { middlewares: unknown }).middlewares;
+    if (Array.isArray(inner)) {
+      return inner as readonly MiddlewareDefinition[];
+    }
+    if (typeof inner === "object" && inner !== null && "middlewares" in inner) {
+      const nested = (inner as { middlewares: unknown }).middlewares;
+      if (Array.isArray(nested)) {
+        return nested as readonly MiddlewareDefinition[];
+      }
+    }
   }
   return [];
 }
 
 export function buildEffectiveReturns(
   manifest: RouteManifestShape,
-  layoutChain: readonly string[],
+  layouts: readonly string[],
   route: RouteHandler,
 ): Record<number, StandardSchemaV1> | undefined {
   const layoutMaps: Array<Record<number, StandardSchemaV1>> = [];
-  for (const layoutId of layoutChain) {
+  for (const layoutId of layouts) {
     const layout = manifest.layouts[layoutId];
     if (!layout) {
       continue;
     }
-    layoutMaps.push(collectReturnsFromDefinitions(getMiddlewares(layout.middlewares)));
+    layoutMaps.push(collectReturnsFromDefinitions(getMiddlewares(layout)));
   }
 
   const maps: Array<Record<number, StandardSchemaV1> | undefined> = [

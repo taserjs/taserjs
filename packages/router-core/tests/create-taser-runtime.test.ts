@@ -28,7 +28,7 @@ describe("createTaserRuntime", () => {
       routes: {
         "/test": {
           GET: {
-            layoutChain: ["root"],
+            layouts: ["root"],
             route: {
               path: "/test",
               method: "GET" as const,
@@ -72,7 +72,7 @@ describe("createTaserRuntime", () => {
       routes: {
         "/posts/:id": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/posts/:id",
               method: "GET" as const,
@@ -83,7 +83,7 @@ describe("createTaserRuntime", () => {
         },
         "/files/*": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/files/*",
               method: "GET" as const,
@@ -110,7 +110,7 @@ describe("createTaserRuntime", () => {
       routes: {
         "/test": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/test",
               method: "GET" as const,
@@ -147,7 +147,7 @@ describe("createTaserRuntime", () => {
       routes: {
         "/test": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/test",
               method: "GET" as const,
@@ -190,7 +190,7 @@ describe("createTaserRuntime", () => {
       routes: {
         "/test": {
           GET: {
-            layoutChain: ["root"],
+            layouts: ["root"],
             route: {
               path: "/test",
               method: "GET" as const,
@@ -215,7 +215,7 @@ describe("createTaserRuntime", () => {
       routes: {
         "/hello": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/hello",
               method: "GET" as const,
@@ -239,7 +239,7 @@ describe("createTaserRuntime", () => {
       routes: {
         "/hello": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/hello",
               method: "GET" as const,
@@ -273,7 +273,7 @@ describe("createTaserRuntime", () => {
       routes: {
         "/echo": {
           POST: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/echo",
               method: "POST" as const,
@@ -303,7 +303,7 @@ describe("createTaserRuntime", () => {
       routes: {
         "/search": {
           QUERY: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/search",
               method: "QUERY" as const,
@@ -334,7 +334,7 @@ describe("createTaserRuntime", () => {
       routes: {
         "/form": {
           POST: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/form",
               method: "POST" as const,
@@ -364,7 +364,7 @@ describe("createTaserRuntime", () => {
       routes: {
         "/search": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/search",
               method: "GET" as const,
@@ -410,7 +410,7 @@ describe("createTaserRuntime", () => {
         routes: {
           "/api/test": {
             GET: {
-              layoutChain: ["api"],
+              layouts: ["api"],
               route: {
                 path: "/api/test",
                 method: "GET" as const,
@@ -451,7 +451,7 @@ describe("createTaserRuntime", () => {
         routes: {
           "/protected": {
             GET: {
-              layoutChain: [],
+              layouts: [],
               route: {
                 path: "/protected",
                 method: "GET" as const,
@@ -519,7 +519,7 @@ describe("createTaserRuntime", () => {
         routes: {
           "/chained": {
             GET: {
-              layoutChain: [],
+              layouts: [],
               route: {
                 path: "/chained",
                 method: "GET" as const,
@@ -555,7 +555,7 @@ describe("createTaserRuntime", () => {
         routes: {
           "/exists": {
             GET: {
-              layoutChain: [],
+              layouts: [],
               route: {
                 path: "/exists",
                 method: "GET" as const,
@@ -582,7 +582,7 @@ describe("createTaserRuntime", () => {
         routes: {
           "/exists": {
             GET: {
-              layoutChain: [],
+              layouts: [],
               route: {
                 path: "/exists",
                 method: "GET" as const,
@@ -612,7 +612,7 @@ describe("createTaserRuntime", () => {
         routes: {
           "/users": {
             GET: {
-              layoutChain: [],
+              layouts: [],
               route: {
                 path: "/users",
                 method: "GET" as const,
@@ -621,7 +621,7 @@ describe("createTaserRuntime", () => {
               },
             },
             POST: {
-              layoutChain: [],
+              layouts: [],
               route: {
                 path: "/users",
                 method: "POST" as const,

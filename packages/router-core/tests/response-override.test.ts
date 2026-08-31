@@ -40,7 +40,7 @@ describe("runtime with global.Response override", () => {
         },
         routes: {
           "/account/plain": {
-            GET: { layoutChain: ["root"], route },
+            GET: { layouts: ["root"], route },
           },
         },
       };

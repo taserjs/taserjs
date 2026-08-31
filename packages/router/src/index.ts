@@ -1,4 +1,6 @@
 export interface RouterRegister {}
+export interface RouterMiddlewaresRegister {}
+export interface RouterRoutesRegister {}
 export type {
   AppContext,
   EmptyAppContext,
@@ -11,6 +13,7 @@ export type {
   InferRouteOutput,
   LayoutBuilder,
   LayoutId,
+  LayoutMiddlewaresMap,
   LayoutTree,
   Method,
   MiddlewareBuilder,

@@ -19,18 +19,16 @@ export interface RouteEntry {
   urlPath: string;
   method: RouteFileMethod;
   methods?: HttpVerb[];
-  layoutChain: string[];
-  parentLayout: string | null;
+  layouts: string[];
   importName: string;
   importPath: string;
 }
 
 export type RouteMethodEntry = {
   method: HttpVerb;
-  parentLayout: string | null;
   importName: string;
   routeRel: string;
-  layoutChain: string[];
+  layouts: string[];
 };
 
 export type GeneratedModel = {

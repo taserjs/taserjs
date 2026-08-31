@@ -51,7 +51,7 @@ describe("createContext + createTaserApp", () => {
       },
       routes: {
         "/hello": {
-          GET: { layoutChain: ["root"], route },
+          GET: { layouts: ["root"], route },
         },
       },
     } satisfies RouteManifestShape;
@@ -81,7 +81,7 @@ describe("createContext + createTaserApp", () => {
       },
       routes: {
         "/hello": {
-          GET: { layoutChain: ["root"], route },
+          GET: { layouts: ["root"], route },
         },
       },
     } satisfies RouteManifestShape;
@@ -112,7 +112,7 @@ describe("createContext + createTaserApp", () => {
       layouts: {},
       routes: {
         "/hello": {
-          GET: { layoutChain: [], route },
+          GET: { layouts: [], route },
         },
       },
     } satisfies RouteManifestShape;
@@ -129,7 +129,7 @@ describe("createContext + createTaserApp", () => {
       layouts: {},
       routes: {
         "/hello": {
-          GET: { layoutChain: [], route },
+          GET: { layouts: [], route },
         },
       },
     } satisfies RouteManifestShape;
@@ -151,7 +151,7 @@ describe("createContext + createTaserApp", () => {
       layouts: {},
       routes: {
         "/hello": {
-          GET: { layoutChain: [], route },
+          GET: { layouts: [], route },
         },
       },
     } satisfies RouteManifestShape;
@@ -169,7 +169,7 @@ describe("createContext + createTaserApp", () => {
       layouts: {},
       routes: {
         "/hello": {
-          GET: { layoutChain: [], route },
+          GET: { layouts: [], route },
         },
       },
     } satisfies RouteManifestShape;
@@ -186,7 +186,7 @@ describe("createContext + createTaserApp", () => {
       layouts: {},
       routes: {
         "/hello": {
-          GET: { layoutChain: [], route },
+          GET: { layouts: [], route },
         },
       },
     } satisfies RouteManifestShape;
@@ -210,10 +210,10 @@ describe("createContext + createTaserApp", () => {
       layouts: {},
       routes: {
         "/hello": {
-          GET: { layoutChain: [], route: getRoute },
+          GET: { layouts: [], route: getRoute },
         },
         "/search": {
-          POST: { layoutChain: [], route: postRoute },
+          POST: { layouts: [], route: postRoute },
         },
       },
     } satisfies RouteManifestShape;

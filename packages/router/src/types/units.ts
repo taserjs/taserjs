@@ -68,10 +68,10 @@ export type MiddlewareReturnFromParts<
   TParamsIn = TParams,
   TBodyIn = TBody,
 > = {
-  query: Simplify<UnwrapPart<TQuery>>;
-  params: Simplify<UnwrapPart<TParams>>;
-  body: Simplify<UnwrapPart<TBody>>;
-  state: Simplify<UnwrapPart<TState>>;
+  query: UnwrapPart<TQuery>;
+  params: UnwrapPart<TParams>;
+  body: UnwrapPart<TBody>;
+  state: UnwrapPart<TState>;
   /** Pre-parse shapes merged into route `$Infer.Input`. */
   input: {
     query: RequestShape<TQueryIn, TQuery>;

@@ -34,6 +34,22 @@ import { asNode } from "./ast.js";
 export function buildLayoutTreeType(
   layoutIds: string[],
   layoutParents: Map<string, string | null>,
+): TSESTree.TSTypeAliasDeclaration {
+  const properties: TSESTree.TypeElement[] = layoutIds.map((layoutId) => {
+    const parent = layoutParents.get(layoutId) ?? null;
+    const parentType = parent === null ? tsNullKeyword() : tsLiteralType(parent);
+
+    return tsPropertySignature(
+      str(layoutId),
+      tsTypeLiteral([tsPropertySignature(id("parent"), parentType)]),
+    );
+  });
+
+  return tsTypeAlias("LayoutTreeGen", tsTypeLiteral(properties));
+}
+
+export function buildLayoutMiddlewaresType(
+  layoutIds: string[],
   layouts: LayoutFile[],
 ): TSESTree.TSTypeAliasDeclaration {
   const layoutById = new Map(layouts.map((layout) => [layout.id, layout]));
@@ -44,19 +60,10 @@ export function buildLayoutTreeType(
       throw new Error(`Missing layout import for ${layoutId}`);
     }
 
-    const parent = layoutParents.get(layoutId) ?? null;
-    const parentType = parent === null ? tsNullKeyword() : tsLiteralType(parent);
-
-    return tsPropertySignature(
-      str(layoutId),
-      tsTypeLiteral([
-        tsPropertySignature(id("parent"), parentType),
-        tsPropertySignature(id("middlewares"), tsTypeQuery(layout.importName)),
-      ]),
-    );
+    return tsPropertySignature(str(layoutId), tsTypeQuery(layout.importName));
   });
 
-  return tsTypeAlias("LayoutTreeGen", tsTypeLiteral(properties));
+  return tsTypeAlias("LayoutMiddlewaresGen", tsTypeLiteral(properties));
 }
 
 export function buildRouteByPathMethodType(
@@ -68,19 +75,15 @@ export function buildRouteByPathMethodType(
     const methodProperties: TSESTree.TypeElement[] = [];
 
     for (const entry of entries) {
-      const parentType =
-        entry.parentLayout === null ? tsNullKeyword() : tsLiteralType(entry.parentLayout);
-
-      const layoutChainType = tsTupleType(
-        entry.layoutChain.map((layoutId) => tsLiteralType(layoutId)),
+      const layoutsType = tsTupleType(
+        entry.layouts.map((layoutId) => tsLiteralType(layoutId)),
       );
 
       methodProperties.push(
         tsPropertySignature(
           id(entry.method),
           tsTypeLiteral([
-            tsPropertySignature(id("parent"), parentType),
-            tsPropertySignature(id("layoutChain"), layoutChainType),
+            tsPropertySignature(id("layouts"), layoutsType),
             tsPropertySignature(id("route"), tsTypeQuery(entry.importName)),
           ]),
         ),
@@ -110,19 +113,6 @@ export function buildAppContextType(): TSESTree.TSTypeAliasDeclaration {
   );
 }
 
-export function buildLayoutParentsType(
-  layoutIds: string[],
-  layoutParents: Map<string, string | null>,
-): TSESTree.TSTypeAliasDeclaration {
-  const properties: TSESTree.TypeElement[] = layoutIds.map((layoutId) => {
-    const parent = layoutParents.get(layoutId) ?? null;
-    const parentType = parent === null ? tsNullKeyword() : tsLiteralType(parent);
-    return tsPropertySignature(str(layoutId), parentType);
-  });
-
-  return tsTypeAlias("LayoutParentsGen", tsTypeLiteral(properties));
-}
-
 export function buildRouterRegisterAugmentation(
   hasAppContext: boolean = false,
 ): TSESTree.TSModuleDeclarationModuleWithStringIdDeclared {
@@ -135,9 +125,7 @@ export function buildRouterRegisterAugmentation(
   registerMembers.push(
     tsPropertySignature(id("RoutePath"), tsTypeReference("RoutePathGen")),
     tsPropertySignature(id("LayoutId"), tsTypeReference("LayoutIdGen")),
-    tsPropertySignature(id("LayoutParents"), tsTypeReference("LayoutParentsGen")),
     tsPropertySignature(id("LayoutTree"), tsTypeReference("LayoutTreeGen")),
-    tsPropertySignature(id("RouteByPathMethod"), tsTypeReference("RouteByPathMethodGen")),
   );
 
   return asNode<TSESTree.TSModuleDeclarationModuleWithStringIdDeclared>({
@@ -158,6 +146,32 @@ export function buildRouterRegisterAugmentation(
           body: asNode<TSESTree.TSInterfaceBody>({
             type: AST_NODE_TYPES.TSInterfaceBody,
             body: registerMembers,
+          }),
+        }),
+        asNode<TSESTree.TSInterfaceDeclaration>({
+          type: AST_NODE_TYPES.TSInterfaceDeclaration,
+          declare: false,
+          id: id("RouterMiddlewaresRegister"),
+          typeParameters: undefined,
+          extends: [],
+          body: asNode<TSESTree.TSInterfaceBody>({
+            type: AST_NODE_TYPES.TSInterfaceBody,
+            body: [
+              tsPropertySignature(id("LayoutMiddlewares"), tsTypeReference("LayoutMiddlewaresGen")),
+            ],
+          }),
+        }),
+        asNode<TSESTree.TSInterfaceDeclaration>({
+          type: AST_NODE_TYPES.TSInterfaceDeclaration,
+          declare: false,
+          id: id("RouterRoutesRegister"),
+          typeParameters: undefined,
+          extends: [],
+          body: asNode<TSESTree.TSInterfaceBody>({
+            type: AST_NODE_TYPES.TSInterfaceBody,
+            body: [
+              tsPropertySignature(id("RouteByPathMethod"), tsTypeReference("RouteByPathMethodGen")),
+            ],
           }),
         }),
       ],
@@ -182,8 +196,8 @@ export function buildFullProgram(
     tsUnionType(model.layoutIds.map((idValue) => tsLiteralType(idValue))),
   );
 
-  const layoutParentsType = buildLayoutParentsType(model.layoutIds, model.layoutParents);
-  const layoutTreeType = buildLayoutTreeType(model.layoutIds, model.layoutParents, model.layouts);
+  const layoutTreeType = buildLayoutTreeType(model.layoutIds, model.layoutParents);
+  const layoutMiddlewaresType = buildLayoutMiddlewaresType(model.layoutIds, model.layouts);
   const routeByPathMethodType = buildRouteByPathMethodType(model.routesByPath);
 
   const imports: TSESTree.Statement[] = [];
@@ -211,8 +225,8 @@ export function buildFullProgram(
     ...(taserImportPath ? [buildAppContextType()] : []),
     routePathType,
     layoutIdType,
-    layoutParentsType,
     layoutTreeType,
+    layoutMiddlewaresType,
     routeByPathMethodType,
     buildRouterRegisterAugmentation(Boolean(taserImportPath)),
     exportTypeAlias("RouteManifest", tsTypeQuery("routeManifest")),
