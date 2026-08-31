@@ -13,7 +13,16 @@ import {
 
 describe("router-utils /http subpath", () => {
   it("exports canonical HTTP methods and verbs", () => {
-    expect(HTTP_METHODS).toEqual(["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]);
+    expect(HTTP_METHODS).toEqual([
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE",
+      "PATCH",
+      "OPTIONS",
+      "HEAD",
+      "QUERY",
+    ]);
     expect(HTTP_VERBS).toBe(HTTP_METHODS);
   });
 
@@ -23,6 +32,8 @@ describe("router-utils /http subpath", () => {
     expect(isHttpMethod("post")).toBe(true);
     expect(isHttpMethod("POST")).toBe(true);
     expect(isHttpMethod("DELETE")).toBe(true);
+    expect(isHttpMethod("query")).toBe(true);
+    expect(isHttpMethod("QUERY")).toBe(true);
     expect(isHttpMethod("PURGE")).toBe(false);
     expect(isHttpMethod("")).toBe(false);
   });
@@ -35,6 +46,7 @@ describe("router-utils /http subpath", () => {
     expect(CLIENT_METHOD_MAP.DELETE).toBe("$delete");
     expect(CLIENT_METHOD_MAP.OPTIONS).toBe("$options");
     expect(CLIENT_METHOD_MAP.HEAD).toBe("$head");
+    expect(CLIENT_METHOD_MAP.QUERY).toBe("$query");
   });
 
   it("exports status codes and content type constants", () => {

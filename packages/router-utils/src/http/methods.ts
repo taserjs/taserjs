@@ -1,4 +1,13 @@
-export const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"] as const;
+export const HTTP_METHODS = [
+  "GET",
+  "POST",
+  "PUT",
+  "DELETE",
+  "PATCH",
+  "OPTIONS",
+  "HEAD",
+  "QUERY",
+] as const;
 
 export const HTTP_VERBS = HTTP_METHODS;
 
@@ -20,6 +29,7 @@ export const CLIENT_METHOD_MAP = {
   DELETE: "$delete",
   OPTIONS: "$options",
   HEAD: "$head",
+  QUERY: "$query",
 } as const;
 
 export type ClientMethodKey = (typeof CLIENT_METHOD_MAP)[HttpMethod];

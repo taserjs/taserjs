@@ -12,6 +12,7 @@ import {
   patch,
   post,
   put,
+  query,
   t,
 } from "../src/index.js";
 import { json, noContent } from "../src/reply.js";
@@ -46,10 +47,12 @@ describe("route factories", () => {
     expect(t.post("/hello").handler(() => json({})).method).toBe("POST");
     expect(t.put("/hello").handler(() => json({})).method).toBe("PUT");
     expect(t.patch("/hello").handler(() => json({})).method).toBe("PATCH");
+    expect(t.query("/hello").handler(() => json({})).method).toBe("QUERY");
 
     expect(post("/hello").handler(() => json({})).method).toBe("POST");
     expect(put("/hello").handler(() => json({})).method).toBe("PUT");
     expect(patch("/hello").handler(() => json({})).method).toBe("PATCH");
+    expect(query("/hello").handler(() => json({})).method).toBe("QUERY");
   });
 
   it("builds any and all routes", () => {

@@ -51,7 +51,8 @@ export default t.all('/order').handler(() => json({ ok: true }))
     expect(byMethod.PATCH).toContain("All");
     expect(byMethod.DELETE).toContain("All");
     expect(byMethod.HEAD).toContain("All");
-    expect(entries).toHaveLength(7);
+    expect(byMethod.QUERY).toContain("All");
+    expect(entries).toHaveLength(8);
 
     const source = emitRouteManifestSource(model, testEmitOptions);
     expect(source).toContain("GET:");
