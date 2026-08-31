@@ -1,5 +1,15 @@
 # @taserjs/router-plugin
 
+## 0.1.7
+
+### Patch Changes
+
+- c31d57a: feat: Strict handler middleware registration
+  feat: Add `QUERY` http handler
+- Updated dependencies [c31d57a]
+  - @taserjs/router-generator@0.1.7
+  - @taserjs/router-utils@0.1.7
+
 ## 0.1.6
 
 ### Patch Changes
