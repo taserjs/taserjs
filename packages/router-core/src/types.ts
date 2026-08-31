@@ -60,17 +60,15 @@ export type RouteHandler = {
   body?: unknown;
 };
 
-export type ManifestLayoutEntry = {
-  middlewares: unknown;
-};
+export type ManifestLayoutEntry = unknown;
 
 export type ManifestRouteEntry = {
-  layoutChain: readonly string[];
+  layouts: readonly string[];
   route: unknown;
 };
 
 export type RouteManifestShape = {
-  layouts: Record<string, ManifestLayoutEntry>;
+  layouts: Record<string, unknown>;
   routes: Record<string, Partial<Record<HttpMethod, ManifestRouteEntry>>>;
 };
 

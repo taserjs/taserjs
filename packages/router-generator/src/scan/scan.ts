@@ -442,8 +442,7 @@ function parseRouteEntry(
     routeRel,
     urlPath: buildUrlPath(routeRel),
     method,
-    layoutChain: [],
-    parentLayout: null,
+    layouts: [],
     importName: routeImportName(routeRel, method),
     importPath: importPathFromRouteRel(rawRel, routesImportBase, extension),
   };
@@ -657,22 +656,15 @@ export async function scanSingleRouteFile(
   return null;
 }
 
-function resolveRouteLayouts(
-  routeRel: string,
-  layouts: LayoutFile[],
-): { layoutChain: string[]; parentLayout: string | null } {
-  const layoutChain = routeLayoutChain(routePathWithoutVerb(routeRel), layouts);
-  const parentLayout = layoutChain.length > 0 ? layoutChain[layoutChain.length - 1]! : null;
-  return { layoutChain, parentLayout };
+function resolveRouteLayouts(routeRel: string, layouts: LayoutFile[]): string[] {
+  return routeLayoutChain(routePathWithoutVerb(routeRel), layouts);
 }
 
 export function finalizeScanResult(scan: ScanResult): ScanResult {
   const layouts = [...scan.layouts].sort((left, right) => left.id.localeCompare(right.id));
 
   for (const route of scan.routes) {
-    const { layoutChain, parentLayout } = resolveRouteLayouts(route.routeRel, layouts);
-    route.layoutChain = layoutChain;
-    route.parentLayout = parentLayout;
+    route.layouts = resolveRouteLayouts(route.routeRel, layouts);
   }
 
   scan.routes.sort((left, right) => {
@@ -687,10 +679,9 @@ export function finalizeScanResult(scan: ScanResult): ScanResult {
 function toRouteMethodEntry(route: RouteEntry, method: HttpVerb): RouteMethodEntry {
   return {
     method,
-    parentLayout: route.parentLayout,
     importName: route.importName,
     routeRel: route.routeRel,
-    layoutChain: route.layoutChain,
+    layouts: route.layouts,
   };
 }
 

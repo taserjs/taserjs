@@ -90,9 +90,9 @@ function registerManifestRoutes(
       const prepared: PreparedRoute = {
         path,
         method: httpMethod,
-        effectiveReturns: buildEffectiveReturns(manifest, routeEntry.layoutChain, route),
+        effectiveReturns: buildEffectiveReturns(manifest, routeEntry.layouts, route),
         run: composePipeline(
-          buildPipelineLayers(manifest, routeEntry.layoutChain, route),
+          buildPipelineLayers(manifest, routeEntry.layouts, route),
           route.handler,
         ),
       };

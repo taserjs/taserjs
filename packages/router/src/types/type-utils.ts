@@ -13,7 +13,7 @@ export type UnwrapPart<T> = unknown extends T ? {} : T;
 export type MergePart<T, Base> = unknown extends T ? Base : Base & T;
 
 /** Collapse intersections so `Omit`/`keyof` treat the result as one object type. */
-export type Simplify<T> = { [K in keyof T]: T[K] } & {};
+export type Simplify<T> = [T] extends [infer U] ? { [K in keyof U]: U[K] } : never;
 
 /**
  * Request prop: when schema input is `unknown` (e.g. zod coerce),

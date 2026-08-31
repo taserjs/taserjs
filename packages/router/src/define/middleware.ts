@@ -17,6 +17,35 @@ import type {
 
 export interface MiddlewareFn<TAppContext extends Record<string, unknown> = AppContext> {
   /**
+   * Defines a standalone, unscoped middleware using a short function signature.
+   *
+   * @example
+   * ```ts
+   * const auth = middleware((ctx, next) => {
+   *   return next({ user: "alice" });
+   * });
+   * ```
+   */
+  <TState = unknown, TRequires extends MiddlewareRequirements = {}, R = unknown>(
+    fn: (
+      ctx: StandaloneMiddlewareContext<unknown, unknown, unknown, TAppContext, {}, TRequires>,
+      next: NextFn<NoInfer<TState>>,
+    ) => R,
+  ): DefineMiddlewareResult<
+    unknown,
+    unknown,
+    unknown,
+    IsUnknown<TState> extends true ? ExtractState<R> : TState,
+    R,
+    unknown,
+    unknown,
+    unknown,
+    {},
+    null,
+    TRequires
+  >;
+
+  /**
    * Constructs a fluent unscoped middleware builder, with optional explicit State generic.
    *
    * @example
@@ -37,46 +66,6 @@ export interface MiddlewareFn<TAppContext extends Record<string, unknown> = AppC
     {},
     TAppContext,
     {},
-    unknown,
-    unknown,
-    unknown,
-    TState
-  >;
-
-  /**
-   * Constructs a fluent middleware builder scoped to a single layout branch, with optional explicit State generic.
-   */
-  <const Layout extends LayoutId, TState = unknown>(
-    layout: Layout,
-  ): MiddlewareUnitBuilder<
-    unknown,
-    unknown,
-    unknown,
-    {},
-    Layout,
-    {},
-    TAppContext,
-    ResolveLayoutMiddlewaresState<Layout>,
-    unknown,
-    unknown,
-    unknown,
-    TState
-  >;
-
-  /**
-   * Constructs a fluent middleware builder scoped to multiple layout branches (branch union), with optional explicit State generic.
-   */
-  <const Layouts extends readonly [LayoutId, ...LayoutId[]], TState = unknown>(
-    layouts: Layouts,
-  ): MiddlewareUnitBuilder<
-    unknown,
-    unknown,
-    unknown,
-    {},
-    Layouts,
-    {},
-    TAppContext,
-    ResolveLayoutsState<Layouts>,
     unknown,
     unknown,
     unknown,
@@ -154,32 +143,43 @@ export interface MiddlewareFn<TAppContext extends Record<string, unknown> = AppC
   >;
 
   /**
-   * Defines a standalone, unscoped middleware using a short function signature.
-   *
-   * @example
-   * ```ts
-   * const auth = middleware((ctx, next) => {
-   *   return next({ user: "alice" });
-   * });
-   * ```
+   * Constructs a fluent middleware builder scoped to a single layout branch, with optional explicit State generic.
    */
-  <TState = unknown, TRequires extends MiddlewareRequirements = {}, R = unknown>(
-    fn: (
-      ctx: StandaloneMiddlewareContext<unknown, unknown, unknown, TAppContext, {}, TRequires>,
-      next: NextFn<NoInfer<TState>>,
-    ) => R,
-  ): DefineMiddlewareResult<
-    unknown,
-    unknown,
-    unknown,
-    IsUnknown<TState> extends true ? ExtractState<R> : TState,
-    R,
+  <const Layout extends LayoutId, TState = unknown>(
+    layout: Layout,
+  ): MiddlewareUnitBuilder<
     unknown,
     unknown,
     unknown,
     {},
-    null,
-    TRequires
+    Layout,
+    {},
+    TAppContext,
+    ResolveLayoutMiddlewaresState<Layout>,
+    unknown,
+    unknown,
+    unknown,
+    TState
+  >;
+
+  /**
+   * Constructs a fluent middleware builder scoped to multiple layout branches (branch union), with optional explicit State generic.
+   */
+  <const Layouts extends readonly [LayoutId, ...LayoutId[]], TState = unknown>(
+    layouts: Layouts,
+  ): MiddlewareUnitBuilder<
+    unknown,
+    unknown,
+    unknown,
+    {},
+    Layouts,
+    {},
+    TAppContext,
+    ResolveLayoutsState<Layouts>,
+    unknown,
+    unknown,
+    unknown,
+    TState
   >;
 }
 

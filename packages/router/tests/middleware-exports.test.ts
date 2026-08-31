@@ -26,7 +26,7 @@ describe("middleware subpath exports", () => {
       routes: {
         "/hello": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route,
           },
         },
@@ -57,7 +57,7 @@ describe("middleware subpath exports", () => {
       routes: {
         "/hello": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route,
           },
         },

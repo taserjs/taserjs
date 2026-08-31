@@ -63,7 +63,6 @@ describe("scan to generated model", () => {
     expect(model.layoutParents.get("/$")).toBe(null);
 
     const overviewRoute = model.routes.find((route) => route.urlPath === "/account/overview");
-    expect(overviewRoute?.layoutChain).toEqual(["/$", "account", "account/$"]);
-    expect(overviewRoute?.parentLayout).toBe("account/$");
+    expect(overviewRoute?.layouts).toEqual(["/$", "account", "account/$"]);
   });
 });

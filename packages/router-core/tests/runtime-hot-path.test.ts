@@ -13,7 +13,7 @@ describe("runtime hot path", () => {
       routes: {
         "/items": {
           POST: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/items",
               method: "POST" as const,
@@ -44,7 +44,7 @@ describe("runtime hot path", () => {
       routes: {
         "/items": {
           POST: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/items",
               method: "POST" as const,
@@ -87,7 +87,7 @@ describe("runtime hot path", () => {
       routes: {
         "/items": {
           POST: {
-            layoutChain: ["root"],
+            layouts: ["root"],
             route: {
               path: "/items",
               method: "POST" as const,
@@ -122,7 +122,7 @@ describe("runtime hot path", () => {
       routes: {
         "/search": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/search",
               method: "GET" as const,
@@ -170,7 +170,7 @@ describe("runtime hot path", () => {
       routes: {
         "/": {
           GET: {
-            layoutChain: ["index"],
+            layouts: ["index"],
             route: {
               path: "/",
               method: "GET" as const,
@@ -199,7 +199,7 @@ describe("runtime hot path", () => {
       routes: {
         "/hello": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/hello",
               method: "GET" as const,
@@ -228,7 +228,7 @@ describe("runtime hot path", () => {
       routes: {
         "/search": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/search",
               method: "GET" as const,
@@ -255,7 +255,7 @@ describe("runtime hot path", () => {
       routes: {
         "/items": {
           POST: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/items",
               method: "POST" as const,

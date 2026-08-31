@@ -1,5 +1,9 @@
 import type { Awaitable, TaserCookieJar, TaserHeaders } from "@taserjs/router-core";
-import type { RouterRegister } from "../index.js";
+import type {
+  RouterMiddlewaresRegister,
+  RouterRegister,
+  RouterRoutesRegister,
+} from "../index.js";
 import type {
   MergeMiddlewareField,
   MergeMiddlewareInputField,
@@ -74,9 +78,18 @@ export type AppContext = RouterRegister extends { AppContext: infer C } ? C : Em
 export type RoutePath = RouterRegister extends { RoutePath: infer P } ? P : never;
 export type LayoutId = RouterRegister extends { LayoutId: infer L } ? L : never;
 export type LayoutTree = RouterRegister extends { LayoutTree: infer T } ? T : Record<never, never>;
-export type RouteByPathMethod = RouterRegister extends { RouteByPathMethod: infer R }
+export type LayoutMiddlewaresMap = RouterMiddlewaresRegister extends {
+  LayoutMiddlewares: infer M;
+}
+  ? M
+  : RouterRegister extends { LayoutMiddlewares: infer M }
+    ? M
+    : Record<never, never>;
+export type RouteByPathMethod = RouterRoutesRegister extends { RouteByPathMethod: infer R }
   ? R
-  : Record<never, never>;
+  : RouterRegister extends { RouteByPathMethod: infer R }
+    ? R
+    : Record<never, never>;
 
 export type LayoutBuilder<TAppContext extends Record<string, unknown> = AppContext> = <
   const Layout extends LayoutId,
@@ -107,40 +120,32 @@ export type ResolveParams<TPathParams, TSchemaParams> =
       : Simplify<Omit<TPathParams, keyof TSchemaParams> & TSchemaParams>
     : TPathParams;
 
-type LayoutParentsMap = RouterRegister extends {
-  LayoutParents: infer LP extends Record<string, unknown>;
-}
-  ? LP
-  : {};
-
-type LayoutParent<Layout extends LayoutId> = Layout extends keyof LayoutParentsMap
-  ? LayoutParentsMap[Layout] extends LayoutId
-    ? LayoutParentsMap[Layout]
+type LayoutParent<Layout extends LayoutId> = Layout extends keyof LayoutTree
+  ? LayoutTree[Layout] extends { parent: infer P extends LayoutId }
+    ? P
     : null
-  : LayoutTree[Layout] extends {
-        parent: infer Parent extends LayoutId | null;
-      }
-    ? Parent
-    : null;
+  : null;
 
-type LayoutMiddlewares<Layout extends LayoutId> = LayoutTree[Layout]["middlewares"] extends {
-  readonly __acc?: infer Acc extends readonly unknown[];
-}
-  ? Acc
-  : LayoutTree[Layout]["middlewares"] extends infer Acc extends readonly unknown[]
+type LayoutMiddlewares<Layout extends LayoutId> = [Layout] extends [keyof LayoutMiddlewaresMap]
+  ? LayoutMiddlewaresMap[Layout] extends { readonly __acc?: infer Acc extends readonly unknown[] }
     ? Acc
-    : readonly [];
+    : LayoutMiddlewaresMap[Layout] extends readonly unknown[]
+      ? LayoutMiddlewaresMap[Layout]
+      : readonly []
+  : readonly [];
 
 type ResolveLayoutMiddlewares<
   Layout extends LayoutId | null,
   Depth extends readonly unknown[] = [],
 > = Depth["length"] extends 10
   ? readonly []
-  : Layout extends LayoutId
-    ? readonly [
-        ...ResolveLayoutMiddlewares<LayoutParent<Layout>, [...Depth, unknown]>,
-        ...LayoutMiddlewares<Layout>,
-      ]
+  : [Layout] extends [LayoutId]
+    ? LayoutParent<Layout> extends infer Parent extends LayoutId
+      ? readonly [
+          ...ResolveLayoutMiddlewares<Parent, [...Depth, unknown]>,
+          ...LayoutMiddlewares<Layout>,
+        ]
+      : readonly [...LayoutMiddlewares<Layout>]
     : readonly [];
 
 export type ResolveLayoutIdChain<
@@ -184,17 +189,10 @@ type RouteEntry<Path extends RoutePath, TMethod extends Method> = RouteByPathMet
   ? Entry
   : never;
 
-type RouteParent<Path extends RoutePath, TMethod extends Method> =
-  RouteEntry<Path, TMethod> extends { parent: infer Parent extends LayoutId | null }
-    ? Parent
-    : null;
-
 type RouteLayoutChain<Path extends RoutePath, TMethod extends Method> =
-  RouteEntry<Path, TMethod> extends { layoutChain: infer Chain extends readonly LayoutId[] }
+  RouteEntry<Path, TMethod> extends { layouts: infer Chain extends readonly LayoutId[] }
     ? Chain
-    : RouteParent<Path, TMethod> extends LayoutId
-      ? readonly [RouteParent<Path, TMethod>]
-      : readonly [];
+    : readonly [];
 
 export type RouteLayoutMiddlewares<
   Path extends RoutePath,
@@ -231,15 +229,13 @@ export type RouteChainContext<
 > = Simplify<
   TAppContext &
     UnitRuntimeContext & {
-      query: Simplify<MergePart<TQuery, RouteResolvedField<Path, TMethod, Acc, "query">>>;
-      params: Simplify<
-        ResolveParams<
-          PathParams<Path>,
-          MergePart<TParams, RouteResolvedField<Path, TMethod, Acc, "params">>
-        >
+      query: MergePart<TQuery, RouteResolvedField<Path, TMethod, Acc, "query">>;
+      params: ResolveParams<
+        PathParams<Path>,
+        MergePart<TParams, RouteResolvedField<Path, TMethod, Acc, "params">>
       >;
-      body: Simplify<MergePart<TBody, RouteResolvedField<Path, TMethod, Acc, "body">>>;
-      state: Simplify<RouteResolvedField<Path, TMethod, Acc, "state">>;
+      body: MergePart<TBody, RouteResolvedField<Path, TMethod, Acc, "body">>;
+      state: RouteResolvedField<Path, TMethod, Acc, "state">;
       headers: TaserHeaders;
       cookies: TaserCookieJar;
     }
@@ -496,7 +492,9 @@ export type InferRouteInputFromPath<Path extends RoutePath, TMethod extends Meth
 export type MiddlewareLayoutField<
   Layout extends LayoutId,
   Field extends "query" | "params" | "body" | "state",
-> = MergeMiddlewareField<ResolveLayoutMiddlewares<LayoutParent<Layout>>, Field>;
+> = [LayoutParent<Layout>] extends [infer Parent extends LayoutId]
+  ? MergeMiddlewareField<ResolveLayoutMiddlewares<Parent>, Field>
+  : {};
 
 type MiddlewareChainField<
   Layout extends LayoutId,
@@ -507,20 +505,22 @@ type MiddlewareChainField<
 export type MiddlewareChainContext<
   Layout extends LayoutId,
   Acc extends readonly unknown[],
-  TQuery,
-  TParams,
-  TBody,
+  TQuery = unknown,
+  TParams = unknown,
+  TBody = unknown,
   TAppContext extends Record<string, unknown> = AppContext,
 > = Simplify<
-  TAppContext &
-    UnitRuntimeContext & {
-      query: Simplify<MergePart<TQuery, MiddlewareChainField<Layout, Acc, "query">>>;
-      params: Simplify<MergePart<TParams, MiddlewareChainField<Layout, Acc, "params">>>;
-      body: Simplify<MergePart<TBody, MiddlewareChainField<Layout, Acc, "body">>>;
-      state: Simplify<MiddlewareChainField<Layout, Acc, "state">>;
-      headers: TaserHeaders;
-      cookies: TaserCookieJar;
-    }
+  TAppContext & {
+    readonly request: Request;
+    readonly method: Method;
+    readonly url: URL;
+    readonly headers: TaserHeaders;
+    readonly cookies: TaserCookieJar;
+    query: Simplify<MergePart<TQuery, MiddlewareChainField<Layout, Acc, "query">>>;
+    params: Simplify<MergePart<TParams, MiddlewareChainField<Layout, Acc, "params">>>;
+    body: Simplify<MergePart<TBody, MiddlewareChainField<Layout, Acc, "body">>>;
+    state: Simplify<MiddlewareChainField<Layout, Acc, "state">>;
+  }
 >;
 
 export type MiddlewareBuilder<
@@ -531,9 +531,6 @@ export type MiddlewareBuilder<
   readonly layout: Layout;
   readonly middlewares: readonly MiddlewareDefinition[];
   readonly __acc?: Acc;
-  readonly $Infer: {
-    Context: MiddlewareChainContext<Layout, Acc, unknown, unknown, unknown, TAppContext>;
-  };
   use<
     TAcc,
     TReturns extends ReturnsMap = {},
@@ -553,22 +550,23 @@ export type MiddlewareBuilder<
       >,
     ] extends [true, true]
       ? MiddlewareUnit<TAcc, TReturns, TRequiredLayouts, TRequires>
-      : {
-          error: "Middleware cannot be attached to this layout";
-          requiredLayouts: TRequiredLayouts;
-          layoutChain: ResolveLayoutIdChain<Layout>;
-          requirements: TRequires;
-          actual: {
-            query: MiddlewareChainField<Layout, Acc, "query">;
-            params: MiddlewareChainField<Layout, Acc, "params">;
-            body: MiddlewareChainField<Layout, Acc, "body">;
-            state: MiddlewareChainField<Layout, Acc, "state">;
-          };
-        },
+      : never,
   ): MiddlewareBuilder<Layout, readonly [...Acc, TAcc], TAppContext>;
   use<R = unknown>(
     fn: (
-      ctx: MiddlewareChainContext<Layout, Acc, unknown, unknown, unknown, TAppContext>,
+      ctx: Simplify<
+        TAppContext & {
+          readonly request: Request;
+          readonly method: Method;
+          readonly url: URL;
+          readonly headers: TaserHeaders;
+          readonly cookies: TaserCookieJar;
+          query: Simplify<MergePart<unknown, MiddlewareChainField<Layout, Acc, "query">>>;
+          params: Simplify<MergePart<unknown, MiddlewareChainField<Layout, Acc, "params">>>;
+          body: Simplify<MergePart<unknown, MiddlewareChainField<Layout, Acc, "body">>>;
+          state: Simplify<MiddlewareChainField<Layout, Acc, "state">>;
+        }
+      >,
       next: NextFn,
     ) => Awaitable<R>,
   ): MiddlewareBuilder<
@@ -747,21 +745,7 @@ export type RouteMiddlewareBuilder<
       >,
     ] extends [true, true]
       ? MiddlewareUnit<TAcc, UReturns, TRequiredLayouts, TRequires>
-      : {
-          error: "Middleware cannot be attached to this route";
-          requiredLayouts: TRequiredLayouts;
-          routeLayoutChain: RouteLayoutChain<Path, TMethod>;
-          requirements: TRequires;
-          actual: {
-            query: RouteResolvedField<Path, TMethod, Acc, "query">;
-            params: ResolveParams<
-              PathParams<Path>,
-              RouteResolvedField<Path, TMethod, Acc, "params">
-            >;
-            body: RouteResolvedField<Path, TMethod, Acc, "body">;
-            state: RouteResolvedField<Path, TMethod, Acc, "state">;
-          };
-        },
+      : never,
   ): RouteMiddlewareBuilder<
     Path,
     TMethod,

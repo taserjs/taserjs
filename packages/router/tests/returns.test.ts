@@ -167,7 +167,7 @@ describe("pipeline response validation + onError", () => {
       routes: {
         "/hello": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route,
           },
         },
@@ -199,7 +199,7 @@ describe("pipeline response validation + onError", () => {
       routes: {
         "/hello": {
           GET: {
-            layoutChain: ["auth"],
+            layouts: ["auth"],
             route,
           },
         },
@@ -222,7 +222,7 @@ describe("pipeline response validation + onError", () => {
       routes: {
         "/hello": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route,
           },
         },

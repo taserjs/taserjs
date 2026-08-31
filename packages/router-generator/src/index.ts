@@ -133,6 +133,7 @@ export {
 export { joinManifestSections } from "./codegen/manifest.js";
 
 export {
+  buildLayoutMiddlewaresType,
   buildLayoutTreeType,
   buildRouteByPathMethodType,
   buildRouterRegisterAugmentation,

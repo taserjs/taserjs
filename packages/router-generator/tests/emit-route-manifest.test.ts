@@ -68,7 +68,7 @@ describe("emitRouteManifestSource", () => {
     expect(source).toContain("layouts:");
     expect(source).toContain("routes:");
     expect(source).toContain('"/$"');
-    expect(source).toContain("layoutChain:");
+    expect(source).toContain("layouts:");
     expect(source).not.toContain("AppContext");
   });
 });

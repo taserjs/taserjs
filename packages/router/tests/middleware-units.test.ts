@@ -480,4 +480,20 @@ describe("middleware units", () => {
     // @ts-expect-error - Route "/hello" has no upstream query { page: number }
     t.get("/hello").use(requirePageMw);
   });
+
+  it("supports chaining external middleware and inline callbacks on layouts with simplified ctx", () => {
+    const standaloneMw = middleware((_ctx, next) => next({ externalState: "from-mw" }));
+
+    const layoutBuilder = t
+      .layout("root")
+      .use(cors())
+      .use(standaloneMw)
+      .use((ctx, next) => {
+        // ctx.state includes externalState from previous middleware:
+        expectTypeOf(ctx.state.externalState).toEqualTypeOf<string>();
+        return next({ inlineState: 123 });
+      });
+
+    expect(layoutBuilder.middlewares).toHaveLength(3);
+  });
 });

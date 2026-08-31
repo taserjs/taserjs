@@ -75,7 +75,7 @@ function buildManifests() {
       routes: {
         "/hello": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/hello",
               method: "GET",
@@ -91,7 +91,7 @@ function buildManifests() {
       routes: {
         "/hello": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/hello",
               method: "GET",
@@ -107,7 +107,7 @@ function buildManifests() {
       routes: {
         "/hello": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/hello",
               method: "GET",
@@ -125,7 +125,7 @@ function buildManifests() {
       routes: {
         "/hello": {
           GET: {
-            layoutChain: ["root"],
+            layouts: ["root"],
             route: {
               path: "/hello",
               method: "GET",
@@ -141,7 +141,7 @@ function buildManifests() {
       routes: {
         "/items": {
           POST: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/items",
               method: "POST",
@@ -157,7 +157,7 @@ function buildManifests() {
       routes: {
         "/items": {
           POST: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/items",
               method: "POST",
@@ -174,7 +174,7 @@ function buildManifests() {
       routes: {
         "/form": {
           POST: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/form",
               method: "POST",
@@ -193,7 +193,7 @@ function buildManifests() {
       routes: {
         "/hello": {
           GET: {
-            layoutChain: ["root"],
+            layouts: ["root"],
             route: {
               path: "/hello",
               method: "GET",
@@ -209,7 +209,7 @@ function buildManifests() {
       routes: {
         "/user/:userId/posts/:postId": {
           GET: {
-            layoutChain: [],
+            layouts: [],
             route: {
               path: "/user/:userId/posts/:postId",
               method: "GET",

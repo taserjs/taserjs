@@ -59,12 +59,7 @@ export function buildManifestLayoutsObject(model: GeneratedModel): TSESTree.Obje
       throw new Error(`Missing layout for ${layoutId}`);
     }
 
-    properties.push(
-      objectProperty(
-        str(layoutId),
-        objectExpression([objectProperty(id("middlewares"), id(layout.importName))]),
-      ),
-    );
+    properties.push(objectProperty(str(layoutId), id(layout.importName)));
   }
 
   return objectExpression(properties);
@@ -86,9 +81,9 @@ export function buildManifestRoutesObject(model: GeneratedModel): TSESTree.Objec
           id(entry.method),
           objectExpression([
             objectProperty(
-              id("layoutChain"),
+              id("layouts"),
               arrayExpression(
-                (entry.layoutChain ?? fullRoute.layoutChain).map((layoutId) => str(layoutId)),
+                (entry.layouts ?? fullRoute.layouts).map((layoutId) => str(layoutId)),
               ),
             ),
             objectProperty(id("route"), id(fullRoute.importName)),
