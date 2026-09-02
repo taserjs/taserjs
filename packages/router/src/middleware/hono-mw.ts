@@ -20,5 +20,8 @@ import type { NextFn } from "../types/units.js";
 export function honoMw<TState extends Record<string, unknown> = {}>(
   middleware: MiddlewareHandler,
 ): (ctx: unknown, next: NextFn<TState>) => Promise<Response> {
-  return createTaserCompatHandler(middleware) as (ctx: unknown, next: NextFn<TState>) => Promise<Response>;
+  return createTaserCompatHandler(middleware) as (
+    ctx: unknown,
+    next: NextFn<TState>,
+  ) => Promise<Response>;
 }

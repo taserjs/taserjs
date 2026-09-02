@@ -1,9 +1,5 @@
 import type { Awaitable, TaserCookieJar, TaserHeaders } from "@taserjs/router-core";
-import type {
-  RouterMiddlewaresRegister,
-  RouterRegister,
-  RouterRoutesRegister,
-} from "../index.js";
+import type { RouterMiddlewaresRegister, RouterRegister, RouterRoutesRegister } from "../index.js";
 import type {
   MergeMiddlewareField,
   MergeMiddlewareInputField,

@@ -1,12 +1,7 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { collectReturnsFromDefinitions, mergeReturnsMaps } from "@taserjs/router-utils";
 
-import type {
-  MiddlewareChain,
-  MiddlewareDefinition,
-  RouteHandler,
-  RouteManifestShape,
-} from "../types.js";
+import type { MiddlewareDefinition, RouteHandler, RouteManifestShape } from "../types.js";
 
 export function getMiddlewares(value: unknown): readonly MiddlewareDefinition[] {
   if (typeof value === "object" && value !== null && "middlewares" in value) {
