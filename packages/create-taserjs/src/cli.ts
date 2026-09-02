@@ -41,7 +41,7 @@ async function main(): Promise<void> {
 
   if (!parsed.json) {
     console.clear();
-    p.intro(color.bgCyan(color.black(" create-taser ")));
+    p.intro(color.bgCyan(color.black(" create-taserjs ")));
   }
 
   try {
