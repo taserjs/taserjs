@@ -97,29 +97,40 @@ export function classifyRouteFile(relativePath: string): RouteFileKind | null {
   return null;
 }
 
+export function splitSegments(pathStr: string): string[] {
+  const rawParts = pathStr.split("/");
+  const segments: string[] = [];
+  for (const part of rawParts) {
+    if (part === "") continue;
+    for (const sub of part.split(SPLIT_DOT_REGEX)) {
+      if (sub !== "") segments.push(sub);
+    }
+  }
+  return segments;
+}
+
 export function normalizeRouteRel(routeRel: string): string {
   const posix = toPosixPath(routeRel);
   const isRoute = ROUTE_VERB_PATTERN.test(posix);
   const withoutVerb = isRoute ? routePathWithoutVerb(posix) : posix.replace(/\.ts$/, "");
   const extension = isRoute ? posix.slice(withoutVerb.length) : ".ts";
 
-  const rawParts = withoutVerb.split("/");
-  const segments: string[] = [];
-
-  for (const part of rawParts) {
-    if (part === "") continue;
-    const subSegments = part.split(SPLIT_DOT_REGEX);
-    for (const sub of subSegments) {
-      if (sub === "") continue;
-      segments.push(sub);
-    }
-  }
-
+  const segments = splitSegments(withoutVerb);
   if (segments.length === 0) {
     return isRoute ? `index${extension}` : "index.ts";
   }
 
   return `${segments.join("/")}${extension}`;
+}
+
+export function normalizeDynamicSegment(segment: string): string {
+  if (segment === "$") {
+    return "*";
+  }
+  if (segment.startsWith("$")) {
+    return `:${segment.slice(1)}`;
+  }
+  return segment;
 }
 
 function segmentToUrlPart(segment: string): string | null {
@@ -138,16 +149,7 @@ function segmentToUrlPart(segment: string): string | null {
   }
 
   unwrapped = unwrapped.replace(/\[(.*?)\]/g, "$1");
-
-  if (unwrapped === "$") {
-    return "*";
-  }
-
-  if (unwrapped.startsWith("$")) {
-    return `:${unwrapped.slice(1)}`;
-  }
-
-  return unwrapped;
+  return normalizeDynamicSegment(unwrapped);
 }
 
 export function buildUrlPath(routeRel: string): string {
@@ -182,8 +184,14 @@ export function buildUrlPath(routeRel: string): string {
 
 export function layoutIdFromPath(relativePath: string): string {
   const withoutExt = relativePath.replace(/\.ts$/, "");
-  const posix = toPosixPath(withoutExt);
-  return posix === "$" ? "/$" : posix;
+  const segments = splitSegments(toPosixPath(withoutExt));
+
+  if (segments.length === 0) {
+    return "/index";
+  }
+
+  const mapped = segments.map(normalizeDynamicSegment);
+  return `/${mapped.join("/")}`;
 }
 
 export function segmentToPascal(segment: string): string {
@@ -191,12 +199,15 @@ export function segmentToPascal(segment: string): string {
   if (clean === "index") {
     return "Index";
   }
+  if (clean === "*") {
+    return "Splat";
+  }
+  if (clean.startsWith(":") || clean.startsWith("$")) {
+    const paramName = clean.slice(1);
+    return paramName === "" ? "Param" : paramName.charAt(0).toUpperCase() + paramName.slice(1);
+  }
   if (clean.startsWith("_")) {
     return clean.slice(1).charAt(0).toUpperCase() + clean.slice(2);
-  }
-  if (clean.startsWith("$")) {
-    const paramName = clean.slice(1);
-    return paramName === "" ? "Splat" : paramName.charAt(0).toUpperCase() + paramName.slice(1);
   }
   if (clean.endsWith("_")) {
     const base = clean.slice(0, -1);
@@ -207,13 +218,14 @@ export function segmentToPascal(segment: string): string {
 }
 
 export function layoutImportName(layoutId: string): string {
-  if (layoutId === "index") {
+  if (layoutId === "/index") {
     return "RootIndexLayoutImport";
   }
-  if (layoutId === "/$") {
+  if (layoutId === "/*") {
     return "RootSplatLayoutImport";
   }
-  const parts = layoutId.split("/");
+  const cleanId = layoutId.startsWith("/") ? layoutId.slice(1) : layoutId;
+  const parts = cleanId.split("/");
   const name = parts.map(segmentToPascal).join("");
   return `${name}LayoutImport`;
 }
@@ -254,30 +266,22 @@ export function layoutImportPathFromRouteRel(
   routesImportPrefix: string,
   extension: ExtensionOption = true,
 ): string {
-  const id = layoutIdFromPath(normalizeRouteRel(routeRel));
-  if (routeRel === "$.ts") {
-    return toModuleImportPath(routesImportPrefix, "$", extension);
-  }
-  if (routeRel.endsWith("/$.ts")) {
-    return toModuleImportPath(routesImportPrefix, `${id.slice(0, -2)}/$`, extension);
-  }
-  if (routeRel.endsWith(".$.ts")) {
-    return toModuleImportPath(routesImportPrefix, `${id.slice(0, -2)}.$`, extension);
-  }
-  return toModuleImportPath(routesImportPrefix, id, extension);
+  const withoutExtension = routeRel.replace(/\.ts$/, "").replace(/^\//, "");
+  return toModuleImportPath(routesImportPrefix, withoutExtension, extension);
 }
 
 function layoutDepth(layoutId: string): number {
-  if (layoutId === "/$") return 0;
-  if (layoutId === "index") return 1;
-  if (layoutId.endsWith("/$")) {
-    const prefix = layoutId.slice(0, -2);
+  if (layoutId === "/*") return 0;
+  if (layoutId === "/index") return 1;
+  const cleanId = layoutId.startsWith("/") ? layoutId.slice(1) : layoutId;
+  if (cleanId.endsWith("/*")) {
+    const prefix = cleanId.slice(0, -2);
     return prefix === "" ? 0 : prefix.split("/").length;
   }
-  if (layoutId.endsWith("/index")) {
-    return layoutId.split("/").length + 0.5;
+  if (cleanId.endsWith("/index")) {
+    return cleanId.split("/").length + 0.5;
   }
-  return layoutId.split("/").length;
+  return cleanId.split("/").length;
 }
 
 function segmentBase(segment: string): string {
@@ -285,23 +289,41 @@ function segmentBase(segment: string): string {
 }
 
 export function layoutAppliesToRoute(layoutId: string, routeWithoutVerb: string): boolean {
-  const route = toPosixPath(routeWithoutVerb);
+  if (layoutId === "/*") return true;
 
-  if (layoutId === "index") return route === "index";
-  if (layoutId === "/$") return true;
+  const routeSegments = splitSegments(toPosixPath(routeWithoutVerb));
 
-  if (layoutId.endsWith("/$")) {
-    const prefix = layoutId.slice(0, -2);
-    return prefix === "" ? true : route.startsWith(`${prefix}/`);
+  if (layoutId === "/index") {
+    return (
+      routeSegments.length === 0 ||
+      (routeSegments.length === 1 && (routeSegments[0] === "index" || routeSegments[0] === ""))
+    );
   }
 
-  if (layoutId.endsWith("/index")) {
-    return route === layoutId;
+  const cleanLayout = layoutId.startsWith("/") ? layoutId.slice(1) : layoutId;
+
+  if (cleanLayout.endsWith("/*")) {
+    const prefix = cleanLayout.slice(0, -2);
+    if (prefix === "") return true;
+    const prefixSegments = prefix.split("/");
+    if (routeSegments.length <= prefixSegments.length) return false;
+
+    for (let i = 0; i < prefixSegments.length; i += 1) {
+      const pSeg = prefixSegments[i]!;
+      const rSeg = routeSegments[i]!;
+      if (pSeg.startsWith(":") || pSeg.startsWith("$")) continue;
+      if (segmentBase(pSeg) !== segmentBase(rSeg)) return false;
+    }
+    return true;
   }
 
-  const layoutSegments = layoutId.split("/");
-  const routeSegments = route.split("/");
+  if (cleanLayout.endsWith("/index")) {
+    const layoutWithoutIndex = cleanLayout.slice(0, -"/index".length);
+    const joinedRoute = routeSegments.join("/");
+    return joinedRoute === cleanLayout || joinedRoute === layoutWithoutIndex;
+  }
 
+  const layoutSegments = cleanLayout.split("/");
   if (routeSegments.length < layoutSegments.length) {
     return false;
   }
@@ -309,13 +331,17 @@ export function layoutAppliesToRoute(layoutId: string, routeWithoutVerb: string)
   for (let i = 0; i < layoutSegments.length; i += 1) {
     const lSeg = layoutSegments[i]!;
     const rSeg = routeSegments[i]!;
-    const lBase = segmentBase(lSeg);
-    const rBase = segmentBase(rSeg);
+    const lBase = segmentBase(lSeg).replace(/^[:$]/, "");
+    const rBase = segmentBase(rSeg).replace(/^[:$]/, "");
 
     if (rSeg.endsWith("_") && rSeg.length > 1 && !lSeg.endsWith("_")) {
       if (i === layoutSegments.length - 1 && rBase === lBase) {
         return false;
       }
+    }
+
+    if (lSeg.startsWith(":") || lSeg.startsWith("$")) {
+      continue;
     }
 
     if (lBase !== rBase) {
@@ -334,31 +360,26 @@ export function routeLayoutChain(routeWithoutVerb: string, layouts: LayoutFile[]
 }
 
 export function layoutParentId(layoutId: string, layoutIds: Set<string>): string | null {
-  if (layoutId === "/$") return null;
-  if (layoutId === "index") return layoutIds.has("/$") ? "/$" : null;
+  if (layoutId === "/*") return null;
 
-  if (layoutId.endsWith("/index")) {
-    const parent = layoutId.slice(0, -"/index".length);
-    if (layoutIds.has(parent)) return parent;
-    if (layoutIds.has(`${parent}/$`)) return `${parent}/$`;
-    return layoutIds.has("/$") ? "/$" : null;
+  const rootId = layoutIds.has("/*") ? "/*" : null;
+  if (layoutId === "/index") return rootId;
+
+  const clean = layoutId.startsWith("/") ? layoutId.slice(1) : layoutId;
+  const segments = clean.split("/");
+  const isWildcard = segments[segments.length - 1] === "*";
+  const startDepth = segments.length - 1;
+
+  for (let i = startDepth; i >= 1; i -= 1) {
+    const prefix = `/${segments.slice(0, i).join("/")}`;
+
+    if (!isWildcard || i < segments.length - 1) {
+      if (layoutIds.has(`${prefix}/*`)) return `${prefix}/*`;
+    }
+
+    if (layoutIds.has(prefix)) return prefix;
+    if (layoutIds.has(`${prefix}/index`)) return `${prefix}/index`;
   }
 
-  if (layoutId.endsWith("/$")) {
-    const parent = layoutId.slice(0, -2);
-    return layoutIds.has(parent) ? parent : layoutIds.has("/$") ? "/$" : null;
-  }
-
-  if (!layoutId.includes("/")) {
-    return layoutIds.has("/$") ? "/$" : null;
-  }
-
-  let current = layoutId.slice(0, layoutId.lastIndexOf("/"));
-  while (true) {
-    if (layoutIds.has(current)) return current;
-    if (!current.includes("/")) break;
-    current = current.slice(0, current.lastIndexOf("/"));
-  }
-
-  return layoutIds.has("/$") ? "/$" : null;
+  return rootId;
 }

@@ -82,7 +82,7 @@ export function rootLayoutTemplate(): string {
   return `import { cors } from '@taserjs/router/cors'
 import { t } from '@taserjs/router'
 
-export default t.layout('/$')
+export default t.layout('/*')
   .use(cors())
 `;
 }

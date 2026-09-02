@@ -16,11 +16,11 @@ describe("emitRouteManifestSource snapshot", () => {
 
     writeFileSync(
       join(routesDir, "$.ts"),
-      `import { t } from '@taserjs/router';\nexport default t.layout('/$').use((_ctx, next) => next());\n`,
+      `import { t } from '@taserjs/router';\nexport default t.layout('/*').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "index.ts"),
-      `import { t } from '@taserjs/router';\nexport default t.layout('index').use((_ctx, next) => next());\n`,
+      `import { t } from '@taserjs/router';\nexport default t.layout('/index').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "index.get.ts"),
@@ -50,11 +50,11 @@ describe("emitRouteManifestSource", () => {
 
     writeFileSync(
       join(routesDir, "$.ts"),
-      `import { t } from '@taserjs/router';\nexport default t.layout('/$').use((_ctx, next) => next());\n`,
+      `import { t } from '@taserjs/router';\nexport default t.layout('/*').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "index.ts"),
-      `import { t } from '@taserjs/router';\nexport default t.layout('index').use((_ctx, next) => next());\n`,
+      `import { t } from '@taserjs/router';\nexport default t.layout('/index').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "index.get.ts"),
@@ -67,7 +67,7 @@ describe("emitRouteManifestSource", () => {
     expect(source).toContain("export const routeManifest =");
     expect(source).toContain("layouts:");
     expect(source).toContain("routes:");
-    expect(source).toContain('"/$"');
+    expect(source).toContain('"/*"');
     expect(source).toContain("layouts:");
     expect(source).not.toContain("AppContext");
   });

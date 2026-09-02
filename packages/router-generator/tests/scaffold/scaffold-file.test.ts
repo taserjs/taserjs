@@ -46,7 +46,7 @@ describe("scaffoldRouteFile", () => {
 
     expect(result).toBe("written");
     expect(readFileSync(layoutPath, "utf8")).toContain("t.layout");
-    expect(readFileSync(layoutPath, "utf8")).toContain("export default t.layout('settings')");
+    expect(readFileSync(layoutPath, "utf8")).toContain("export default t.layout('/settings')");
   });
 
   it("ignores files starting with ignorePrefix", async () => {

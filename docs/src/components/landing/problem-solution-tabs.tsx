@@ -48,7 +48,7 @@ app.post("/private", validateBody(schema), (req, res) => {
     solutionBadge: "100% Inferred Context",
     solutionFilename: "routes/admin.ts + routes/admin/reports.post.ts",
     solutionCode: `// Middleware validates and passes state to next()
-export default t.layout("/admin/$").use(async (ctx, next) => {
+export default t.layout("/admin/*").use(async (ctx, next) => {
   const token = ctx.headers.get("authorization");
   const user = await verifyUser(token);
   if (!user) throw new Error("Unauthorized");

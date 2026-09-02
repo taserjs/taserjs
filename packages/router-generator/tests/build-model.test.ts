@@ -28,7 +28,7 @@ describe("scan to generated model", () => {
 
     expect(model.routePaths).toContain("/posts/:id");
     expect(model.routePaths).toContain("/settings/profile");
-    expect(model.layoutIds).toContain("settings");
+    expect(model.layoutIds).toContain("/settings");
   });
 
   it("builds root splat and stacked account layouts", async () => {
@@ -37,16 +37,16 @@ describe("scan to generated model", () => {
 
     writeFileSync(
       join(routesDir, "$.ts"),
-      `import { t } from '@taserjs/router';\nexport default t.layout('/$').use((_ctx, next) => next());\n`,
+      `import { t } from '@taserjs/router';\nexport default t.layout('/*').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "account.ts"),
-      `import { t } from '@taserjs/router';\nexport default t.layout('account').use((_ctx, next) => next());\n`,
+      `import { t } from '@taserjs/router';\nexport default t.layout('/account').use((_ctx, next) => next());\n`,
     );
     mkdirSync(join(routesDir, "account"));
     writeFileSync(
       join(routesDir, "account", "$.ts"),
-      `import { t } from '@taserjs/router';\nexport default t.layout('account/$').use((_ctx, next) => next());\n`,
+      `import { t } from '@taserjs/router';\nexport default t.layout('/account/*').use((_ctx, next) => next());\n`,
     );
     writeFileSync(
       join(routesDir, "account", "overview.get.ts"),
@@ -55,14 +55,14 @@ describe("scan to generated model", () => {
 
     const model = await buildTestModel(routesDir, outputFile);
 
-    expect(model.layoutIds).toContain("/$");
-    expect(model.layoutIds).toContain("account");
-    expect(model.layoutIds).toContain("account/$");
-    expect(model.layoutParents.get("account/$")).toBe("account");
-    expect(model.layoutParents.get("account")).toBe("/$");
-    expect(model.layoutParents.get("/$")).toBe(null);
+    expect(model.layoutIds).toContain("/*");
+    expect(model.layoutIds).toContain("/account");
+    expect(model.layoutIds).toContain("/account/*");
+    expect(model.layoutParents.get("/account/*")).toBe("/account");
+    expect(model.layoutParents.get("/account")).toBe("/*");
+    expect(model.layoutParents.get("/*")).toBe(null);
 
     const overviewRoute = model.routes.find((route) => route.urlPath === "/account/overview");
-    expect(overviewRoute?.layouts).toEqual(["/$", "account", "account/$"]);
+    expect(overviewRoute?.layouts).toEqual(["/*", "/account", "/account/*"]);
   });
 });

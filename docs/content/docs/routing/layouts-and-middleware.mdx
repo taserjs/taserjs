@@ -21,7 +21,7 @@ A layout file is any TypeScript file inside `src/routes/` that does not end with
 import { forbidden, unauthorized } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-export default t.layout("admin").use(async (ctx, next) => {
+export default t.layout("/admin").use(async (ctx, next) => {
   const authHeader = ctx.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return unauthorized({ message: "Admin authorization required" });
@@ -53,7 +53,7 @@ import { timing } from "@taserjs/router/timing";
 import { t } from "@taserjs/router";
 
 export default t
-  .layout("/$")
+  .layout("/*")
   .use(
     cors({
       origin: ["https://app.example.com", "https://admin.example.com"],
@@ -68,18 +68,18 @@ export default t
 
 ## Root Index Layout (`src/routes/index.ts`)
 
-While `src/routes/$.ts` applies globally to every route in your application, `src/routes/index.ts` is scoped specifically to root index endpoints (such as `src/routes/index.get.ts`). It mounts with `t.layout('index')`:
+While `src/routes/$.ts` applies globally to every route in your application, `src/routes/index.ts` is scoped specifically to root index endpoints (such as `src/routes/index.get.ts`). It mounts with `t.layout('/index')`:
 
 ```ts title="src/routes/index.ts"
 import { t } from "@taserjs/router";
 
-export default t.layout("index").use(async (_ctx, next) => {
+export default t.layout("/index").use(async (_ctx, next) => {
   // Only runs for the root '/' endpoint
   return next();
 });
 ```
 
-Nested directory index files (e.g. `src/routes/admin/index.ts`) similarly mount with `t.layout('admin/index')` and execute only for `GET /admin` (`src/routes/admin/index.get.ts`).
+Nested directory index files (e.g. `src/routes/admin/index.ts`) similarly mount with `t.layout('/admin/index')` and execute only for `GET /admin` (`src/routes/admin/index.get.ts`).
 
 ---
 
@@ -153,7 +153,7 @@ When middleware calls `next({ session })`, the properties merge directly into `c
     import { unauthorized } from "@taserjs/router/reply";
     import { t } from "@taserjs/router";
 
-    export default t.layout("dashboard").use(async (ctx, next) => {
+    export default t.layout("/dashboard").use(async (ctx, next) => {
       const session = await getSession(ctx.headers.get("cookie"));
       if (!session) {
         return unauthorized({ message: "Invalid session" });
@@ -233,8 +233,8 @@ Passing a layout identifier binds the middleware directly to that layout branch:
 import { middleware } from "@taserjs/router";
 import { forbidden } from "@taserjs/router/reply";
 
-export const requireActiveUser = middleware("users", async (ctx, next) => {
-  // 1. ctx.state automatically inherits all state provided by the "users" layout chain:
+export const requireActiveUser = middleware("/users", async (ctx, next) => {
+  // 1. ctx.state automatically inherits all state provided by the "/users" layout chain:
   const user = ctx.state.user;
 
   if (!user.isActive) {
@@ -248,14 +248,14 @@ export const requireActiveUser = middleware("users", async (ctx, next) => {
 
 #### Compile-Time Branch Safety
 
-TypeScript guarantees that `requireActiveUser` can only be attached to routes or layouts under the `"users"` branch:
+TypeScript guarantees that `requireActiveUser` can only be attached to routes or layouts under the `"/users"` branch:
 
 ```ts title="src/routes/users/settings.get.ts"
 import { json } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 import { requireActiveUser } from "../../middleware/user-guard";
 
-// Allowed: Route inherits "users" layout
+// Allowed: Route inherits "/users" layout
 export default t
   .get("/users/settings")
   .use(requireActiveUser)
@@ -269,7 +269,7 @@ If you attempt to mount it on an unrelated branch, TypeScript emits an immediate
 ```ts title="src/routes/posts/$id.get.ts"
 import { ok } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
-// ❌ TypeScript Error: Cannot attach middleware scoped to "users" layout on "posts" branch
+// ❌ TypeScript Error: Cannot attach middleware scoped to "/users" layout on "/posts" branch
 export default t
   .get("/posts/:id")
   .use(requireActiveUser)
@@ -280,13 +280,13 @@ export default t
 
 ### 2. Multi-Layout Binding (Branch Union)
 
-If a middleware applies to multiple distinct layout branches (such as both `"dashboard"` and `"admin"`), pass an array of layout IDs:
+If a middleware applies to multiple distinct layout branches (such as both `"/dashboard"` and `"/admin"`), pass an array of layout IDs:
 
 ```ts title="src/middleware/tenant-guard.ts"
 import { middleware } from "@taserjs/router";
 import { forbidden } from "@taserjs/router/reply";
 
-export const requireTenant = middleware(["dashboard", "admin"], async (ctx, next) => {
+export const requireTenant = middleware(["/dashboard", "/admin"], async (ctx, next) => {
   // ctx.state receives the common state guaranteed across all specified layouts:
   const session = ctx.state.session;
 
@@ -298,7 +298,7 @@ export const requireTenant = middleware(["dashboard", "admin"], async (ctx, next
 });
 ```
 
-This middleware can now be safely attached to routes inheriting either the `"dashboard"` or `"admin"` layout branches with total type safety.
+This middleware can now be safely attached to routes inheriting either the `"/dashboard"` or `"/admin"` layout branches with total type safety.
 
 ---
 

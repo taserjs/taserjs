@@ -208,7 +208,7 @@ Use `next({ ... })` in layout middleware to compute and pass typed state downstr
 import { t } from "@taserjs/router";
 
 // State returned in next() cascades into all routes inside src/routes/admin/
-export default t.layout("/admin/$").use(async (ctx, next) => {
+export default t.layout("/admin/*").use(async (ctx, next) => {
   const token = ctx.headers.get("authorization");
   if (!token) {
     throw new Error("Unauthorized");

@@ -9,7 +9,7 @@ import { indexRouteTemplate, rootLayoutTemplate } from "../src/templates/base.js
  */
 describe("template shape parity with generator scaffold", () => {
   const generatorRoute = routeScaffoldSource("/", "GET");
-  const generatorLayout = layoutScaffoldSource("/$");
+  const generatorLayout = layoutScaffoldSource("/*");
 
   it("route templates share the fluent builder shape", () => {
     expect(generatorRoute).toMatch(/export default t\.get\('\/'\)\.handler\(/);
@@ -24,9 +24,9 @@ describe("template shape parity with generator scaffold", () => {
   });
 
   it("layout templates share the layout mount shape", () => {
-    expect(generatorLayout).toMatch(/t\.layout\('\/\$'\)/);
+    expect(generatorLayout).toMatch(/t\.layout\('\/\*'\)/);
     expect(generatorLayout).toContain(".use(");
-    expect(rootLayoutTemplate()).toMatch(/t\.layout\('\/\$'\)/);
+    expect(rootLayoutTemplate()).toMatch(/t\.layout\('\/\*'\)/);
     expect(rootLayoutTemplate()).toContain(".use(");
   });
 });

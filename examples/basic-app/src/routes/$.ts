@@ -4,7 +4,7 @@ import { z } from "zod";
 
 const mw = t.middleware((_ctx, next) => next({ appWide: "*" }));
 export default t
-  .layout("/$")
+  .layout("/*")
   .use(cors())
   .use(mw)
   .use((_ctx, next) => next({ appWideChain: "*" }));

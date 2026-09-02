@@ -27,7 +27,7 @@ export const context = createContext({
   layout: `import { cors } from '@taserjs/router/cors'
 import { t } from '@taserjs/router'
 
-export default t.layout('/$')
+export default t.layout('/*')
   .use(cors({ origin: ['https://app.example.com'] }))`,
   auth: `import { jwt } from '@taserjs/router/jwt'
 import { t } from '@taserjs/router'
@@ -37,7 +37,7 @@ type JwtClaims = {
   role: string
 }
 
-export default t.layout('dashboard')
+export default t.layout('/dashboard')
   .use(
     jwt<JwtClaims>({
       secret: process.env.JWT_SECRET!,

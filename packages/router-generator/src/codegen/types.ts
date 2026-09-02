@@ -75,9 +75,7 @@ export function buildRouteByPathMethodType(
     const methodProperties: TSESTree.TypeElement[] = [];
 
     for (const entry of entries) {
-      const layoutsType = tsTupleType(
-        entry.layouts.map((layoutId) => tsLiteralType(layoutId)),
-      );
+      const layoutsType = tsTupleType(entry.layouts.map((layoutId) => tsLiteralType(layoutId)));
 
       methodProperties.push(
         tsPropertySignature(
