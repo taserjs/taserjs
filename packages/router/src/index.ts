@@ -14,6 +14,7 @@ export type {
   LayoutBuilder,
   LayoutId,
   LayoutMiddlewaresMap,
+  LayoutParams,
   LayoutTree,
   Method,
   MiddlewareBuilder,

@@ -26,7 +26,7 @@ type JwtClaims = {
   role: "user" | "admin";
 };
 
-export default t.layout("dashboard").use(
+export default t.layout("/dashboard").use(
   jwt<JwtClaims>({
     secret: process.env.JWT_SECRET!,
     alg: "HS256",
@@ -69,7 +69,7 @@ type ClerkPayload = {
   azp?: string;
 };
 
-export default t.layout("api").use(
+export default t.layout("/api").use(
   jwk<ClerkPayload>({
     jwks_uri: "https://clerk.your-domain.com/.well-known/jwks.json",
   }),

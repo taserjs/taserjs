@@ -25,7 +25,7 @@ type Organization = {
   plan: "free" | "pro" | "enterprise";
 };
 
-export default t.layout("orgs").use(async (ctx, next) => {
+export default t.layout("/orgs").use(async (ctx, next) => {
   const orgSlug = ctx.headers.get("x-org-slug");
   if (!orgSlug) {
     return badRequest({ message: "Missing x-org-slug header" });
@@ -52,7 +52,7 @@ import { middleware, t } from "@taserjs/router";
 import { unauthorized } from "@taserjs/router/reply";
 import { z } from "zod";
 
-const apiKeyGuard = middleware("api_v2")
+const apiKeyGuard = middleware("/api_v2")
   .query(
     z.object({
       apiKey: z.string().min(32),
@@ -68,7 +68,7 @@ const apiKeyGuard = middleware("api_v2")
     return next({ tier: keyRecord.tier });
   });
 
-export default t.layout("api_v2").use(apiKeyGuard);
+export default t.layout("/api_v2").use(apiKeyGuard);
 ```
 
 ---
@@ -118,7 +118,7 @@ import { unauthorized } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
 export default t
-  .layout("billing")
+  .layout("/billing")
   // Step 1: Validate session & inject userId
   .use(async (ctx, next) => {
     const token = ctx.headers.get("authorization")?.replace("Bearer ", "");

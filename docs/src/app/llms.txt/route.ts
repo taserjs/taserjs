@@ -46,7 +46,7 @@ export default GET.handler(async (ctx) => {
 import { unauthorized } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-export default t.layout("dashboard").use(async (ctx, next) => {
+export default t.layout("/dashboard").use(async (ctx, next) => {
   const authHeader = ctx.headers.get("authorization");
   if (!authHeader) {
     return unauthorized({ message: "Missing authorization" });

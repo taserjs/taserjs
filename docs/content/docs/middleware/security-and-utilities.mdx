@@ -19,7 +19,7 @@ Sets standard HTTP security headers (HSTS, X-Content-Type-Options, X-Frame-Optio
 import { secureHeaders } from "@taserjs/router/secure-headers";
 import { t } from "@taserjs/router";
 
-export default t.layout("/$").use(
+export default t.layout("/*").use(
   secureHeaders({
     contentSecurityPolicy: {
       defaultSrc: ["'self'"],
@@ -47,7 +47,7 @@ import { bodyLimit } from "@taserjs/router/body-limit";
 import { payloadTooLarge } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-export default t.layout("uploads").use(
+export default t.layout("/uploads").use(
   bodyLimit({
     maxSize: 10 * 1024 * 1024, // 10MB limit
     onError: () => {
@@ -67,7 +67,7 @@ Validates incoming request origin against server origins to prevent cross-site r
 import { csrf } from "@taserjs/router/csrf";
 import { t } from "@taserjs/router";
 
-export default t.layout("/$").use(
+export default t.layout("/*").use(
   csrf({
     origin: ["https://app.example.com"],
   }),
@@ -84,7 +84,7 @@ Calculates cryptographic hash ETags for response bodies and automatically respon
 import { etag } from "@taserjs/router/etag";
 import { t } from "@taserjs/router";
 
-export default t.layout("/$").use(
+export default t.layout("/*").use(
   etag({
     weak: true,
   }),
@@ -101,7 +101,7 @@ Adds standard `Server-Timing` headers to responses, enabling Chrome DevTools and
 import { timing } from "@taserjs/router/timing";
 import { t } from "@taserjs/router";
 
-export default t.layout("/$").use(timing());
+export default t.layout("/*").use(timing());
 ```
 
 ---
@@ -114,7 +114,7 @@ Automatically compresses outgoing HTTP response payloads using `gzip`, `deflate`
 import { compress } from "@taserjs/router/compress";
 import { t } from "@taserjs/router";
 
-export default t.layout("/$").use(
+export default t.layout("/*").use(
   compress({
     threshold: 1024, // Compress responses larger than 1KB
   }),

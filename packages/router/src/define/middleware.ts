@@ -11,6 +11,7 @@ import type {
 import type {
   AppContext,
   LayoutId,
+  LayoutParams,
   ResolveLayoutMiddlewaresState,
   ResolveLayoutsState,
 } from "../types/index.js";
@@ -85,7 +86,7 @@ export interface MiddlewareFn<TAppContext extends Record<string, unknown> = AppC
     fn: (
       ctx: StandaloneMiddlewareContext<
         unknown,
-        unknown,
+        LayoutParams<Layout>,
         unknown,
         TAppContext,
         ResolveLayoutMiddlewaresState<Layout>,
@@ -120,7 +121,7 @@ export interface MiddlewareFn<TAppContext extends Record<string, unknown> = AppC
     fn: (
       ctx: StandaloneMiddlewareContext<
         unknown,
-        unknown,
+        LayoutParams<Layouts[number]>,
         unknown,
         TAppContext,
         ResolveLayoutsState<Layouts>,
@@ -149,7 +150,7 @@ export interface MiddlewareFn<TAppContext extends Record<string, unknown> = AppC
     layout: Layout,
   ): MiddlewareUnitBuilder<
     unknown,
-    unknown,
+    LayoutParams<Layout>,
     unknown,
     {},
     Layout,
@@ -169,7 +170,7 @@ export interface MiddlewareFn<TAppContext extends Record<string, unknown> = AppC
     layouts: Layouts,
   ): MiddlewareUnitBuilder<
     unknown,
-    unknown,
+    LayoutParams<Layouts[number]>,
     unknown,
     {},
     Layouts,

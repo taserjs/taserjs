@@ -99,7 +99,7 @@ const FLOW_STEPS: FlowStep[] = [
     ],
     codeSnippet: {
       filename: "src/routes/admin/$.ts",
-      code: `export default t.layout("/admin/$").use(async (ctx, next) => {\n  const session = await verifyAuth(ctx.req);\n  return next({ user: session.user }); // Merges into ctx.state\n});`,
+      code: `export default t.layout("/admin/*").use(async (ctx, next) => {\n  const session = await verifyAuth(ctx.req);\n  return next({ user: session.user }); // Merges into ctx.state\n});`,
     },
   },
   {

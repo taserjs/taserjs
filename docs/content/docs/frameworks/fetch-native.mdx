@@ -146,7 +146,7 @@ import { secureHeaders } from "hono/secure-headers";
 // Wrap any Web Standard middleware seamlessly using honoMw()
 const securityHeadersMiddleware = middleware(honoMw(secureHeaders()));
 
-export default t.layout("/$").use(securityHeadersMiddleware);
+export default t.layout("/*").use(securityHeadersMiddleware);
 ```
 
 ---

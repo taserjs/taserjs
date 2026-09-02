@@ -84,7 +84,7 @@ describe("scaffoldProject", () => {
       const rootLayout = await readFile(path.join(dir, "src/routes/$.ts"), "utf8");
       expect(rootLayout).toContain("cors");
       expect(rootLayout).toContain("@taserjs/router");
-      expect(rootLayout).toContain("export default t.layout('/$')");
+      expect(rootLayout).toContain("export default t.layout('/*')");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

@@ -42,10 +42,9 @@ export default ${factoryCall}.handler((_ctx) => {
 }
 
 export function layoutScaffoldSource(layoutId: string, _entry?: string): string {
-  const mountPath = layoutId === "/$" ? "/$" : layoutId;
   return `import { t } from '@taserjs/router';
 
-export default t.layout('${mountPath}').use((_ctx, next) => next());
+export default t.layout('${layoutId}').use((_ctx, next) => next());
 `;
 }
 

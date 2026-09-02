@@ -260,7 +260,7 @@ import { secureHeaders } from "@taserjs/router/secure-headers";
 import { t } from "@taserjs/router";
 
 export default t
-  .layout("/$")
+  .layout("/*")
   .use(secureHeaders())
   .use(bodyLimit({ maxSize: 1_000_000 }));
 ```
@@ -462,17 +462,17 @@ To co-locate utility files, helper functions, schemas, or test fixtures directly
 | File Path in `src/routes/`     | HTTP Method | Resolved API URL      | Layout Inheritance | Description                                     |
 | :----------------------------- | :---------- | :-------------------- | :----------------- | :---------------------------------------------- |
 | `$.ts`                         | N/A         | Global                | Root               | Root application layout                         |
-| `index.get.ts`                 | `GET`       | `/`                   | `/$`               | Root index route                                |
-| `posts.ts`                     | N/A         | `/posts`              | `/$`               | Scoped layout for posts                         |
-| `posts.index.get.ts`           | `GET`       | `/posts`              | `/$` → `posts`     | Flat posts index                                |
-| `posts.$id.get.ts`             | `GET`       | `/posts/:id`          | `/$` → `posts`     | Flat parameterized route                        |
-| `tasks/$id.complete.patch.ts`  | `PATCH`     | `/tasks/:id/complete` | `/$` → `tasks`     | Mixed folder + dot nested route                 |
-| `posts_.$id.edit.get.ts`       | `GET`       | `/posts/:id/edit`     | `/$`               | **Breakout route**: skips `posts.ts` layout     |
-| `tasks/$id_.complete.patch.ts` | `PATCH`     | `/tasks/:id/complete` | `/$` → `tasks`     | **Breakout route**: skips `tasks/$id.ts` layout |
-| `files.$.get.ts`               | `GET`       | `/files/*`            | `/$`               | Wildcard splat handler                          |
-| `_auth.ts`                     | N/A         | Scoped                | `/$`               | Pathless auth layout                            |
-| `_auth.settings.get.ts`        | `GET`       | `/settings`           | `/$` → `_auth`     | Pathless scoped route                           |
-| `sitemap[.]xml.get.ts`         | `GET`       | `/sitemap.xml`        | `/$`               | Bracket-escaped literal dot                     |
+| `index.get.ts`                 | `GET`       | `/`                   | `/*`               | Root index route                                |
+| `posts.ts`                     | N/A         | `/posts`              | `/*`               | Scoped layout for posts                         |
+| `posts.index.get.ts`           | `GET`       | `/posts`              | `/*` → `/posts`    | Flat posts index                                |
+| `posts.$id.get.ts`             | `GET`       | `/posts/:id`          | `/*` → `/posts`    | Flat parameterized route                        |
+| `tasks/$id.complete.patch.ts`  | `PATCH`     | `/tasks/:id/complete` | `/*` → `/tasks`    | Mixed folder + dot nested route                 |
+| `posts_.$id.edit.get.ts`       | `GET`       | `/posts/:id/edit`     | `/*`               | **Breakout route**: skips `posts.ts` layout     |
+| `tasks/$id_.complete.patch.ts` | `PATCH`     | `/tasks/:id/complete` | `/*` → `/tasks`    | **Breakout route**: skips `tasks/$id.ts` layout |
+| `files.$.get.ts`               | `GET`       | `/files/*`            | `/*`               | Wildcard splat handler                          |
+| `_auth.ts`                     | N/A         | Scoped                | `/*`               | Pathless auth layout                            |
+| `_auth.settings.get.ts`        | `GET`       | `/settings`           | `/*` → `/_auth`    | Pathless scoped route                           |
+| `sitemap[.]xml.get.ts`         | `GET`       | `/sitemap.xml`        | `/*`               | Bracket-escaped literal dot                     |
 | `-helpers.ts`                  | N/A         | N/A                   | N/A                | Ignored file                                    |
 
 ---

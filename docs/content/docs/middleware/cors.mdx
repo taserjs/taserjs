@@ -19,7 +19,7 @@ Attach CORS to your root layout (`src/routes/$.ts`) to enable cross-origin reque
 import { cors } from "@taserjs/router/cors";
 import { t } from "@taserjs/router";
 
-export default t.layout("/$").use(
+export default t.layout("/*").use(
   cors({
     origin: ["https://example.com", "https://app.example.com"],
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -41,7 +41,7 @@ If your application supports multiple dynamic domains or customer vanity subdoma
 import { cors } from "@taserjs/router/cors";
 import { t } from "@taserjs/router";
 
-export default t.layout("/$").use(
+export default t.layout("/*").use(
   cors({
     origin: (origin) => {
       // Allow localhost in development:

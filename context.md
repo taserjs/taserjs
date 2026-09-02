@@ -118,7 +118,7 @@ Non-verb files (e.g. `src/routes/$.ts` for root, `src/routes/admin.ts` for `/adm
 ```ts
 import { t } from "@taserjs/router";
 
-export default t.layout("admin").use(async (ctx, next) => {
+export default t.layout("/admin").use(async (ctx, next) => {
   const token = ctx.headers.get("authorization");
   if (!token) return ctx.reply.text("Unauthorized", { status: 401 });
   return next({ user: { id: "123", role: "admin" } });
@@ -191,13 +191,13 @@ The generator produces a flattened, type-safe runtime manifest `routeManifest`:
 ```ts
 export const routeManifest = {
   layouts: {
-    "/$": RootSplatLayoutImport,
-    "admin": AdminLayoutImport,
+    "/*": RootSplatLayoutImport,
+    "/admin": AdminLayoutImport,
   },
   routes: {
     "/users": {
       GET: {
-        layouts: ["/$"],
+        layouts: ["/*"],
         route: UsersGetRouteImport,
       },
     },

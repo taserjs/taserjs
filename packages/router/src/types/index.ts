@@ -111,7 +111,9 @@ type ParseParamsFromSegments<S extends string> = S extends `${infer Segment}/${i
 
 export type PathParams<Path extends string> = Path extends `/${infer Rest}`
   ? ParseParamsFromSegments<Rest>
-  : {};
+  : ParseParamsFromSegments<Path>;
+
+export type LayoutParams<Layout extends string> = PathParams<Layout>;
 
 export type ResolveParams<TPathParams, TSchemaParams> =
   TSchemaParams extends Record<string, unknown>
@@ -517,7 +519,12 @@ export type MiddlewareChainContext<
     readonly headers: TaserHeaders;
     readonly cookies: TaserCookieJar;
     query: Simplify<MergePart<TQuery, MiddlewareChainField<Layout, Acc, "query">>>;
-    params: Simplify<MergePart<TParams, MiddlewareChainField<Layout, Acc, "params">>>;
+    params: Simplify<
+      ResolveParams<
+        LayoutParams<Layout>,
+        Simplify<MergePart<TParams, MiddlewareChainField<Layout, Acc, "params">>>
+      >
+    >;
     body: Simplify<MergePart<TBody, MiddlewareChainField<Layout, Acc, "body">>>;
     state: Simplify<MiddlewareChainField<Layout, Acc, "state">>;
   }
@@ -562,7 +569,12 @@ export type MiddlewareBuilder<
           readonly headers: TaserHeaders;
           readonly cookies: TaserCookieJar;
           query: Simplify<MergePart<unknown, MiddlewareChainField<Layout, Acc, "query">>>;
-          params: Simplify<MergePart<unknown, MiddlewareChainField<Layout, Acc, "params">>>;
+          params: Simplify<
+            ResolveParams<
+              LayoutParams<Layout>,
+              Simplify<MergePart<unknown, MiddlewareChainField<Layout, Acc, "params">>>
+            >
+          >;
           body: Simplify<MergePart<unknown, MiddlewareChainField<Layout, Acc, "body">>>;
           state: Simplify<MiddlewareChainField<Layout, Acc, "state">>;
         }
