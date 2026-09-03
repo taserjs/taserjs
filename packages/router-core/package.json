@@ -39,7 +39,7 @@
     "build": "vite build && publint --strict",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "benchmark:runtime": "tsx benchmarks/runtime-hot-path.js",
+    "bench": "vitest bench --run",
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {

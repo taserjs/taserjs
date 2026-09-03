@@ -8,6 +8,10 @@ const config = defineConfig({
     environment: "node",
     globals: true,
     watch: false,
+    benchmark: {
+      compare: `benchmarks/results/bench.json`,
+      outputJson: `benchmarks/results/${Date.now()}.json`,
+    },
   },
 });
 
