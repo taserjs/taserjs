@@ -6,7 +6,7 @@ This guide details how to consume TaserJS backend APIs in frontend or client app
 
 ## 1. Initializing the Client
 
-`@taserjs/router-client` creates a type-safe proxy client derived directly from your server's `RouteManifest`:
+`@taserjs/router-client` creates a type-safe proxy client derived directly from your server's `RouteManifest` or `typeof app`:
 
 ```ts
 // src/client.ts
@@ -26,7 +26,7 @@ export const client = createClient<RouteManifest>({
 
 ## 2. Calling API Endpoints
 
-The proxy client exposes methods matching your route verbs (`$get`, `$post`, `$put`, `$patch`, `$delete`):
+The proxy client exposes methods matching your route verbs (`$get`, `$post`, `$put`, `$patch`, `$delete`, `$options`, `$head`, `$query`):
 
 ### Static Endpoints & Query Parameters
 
@@ -35,12 +35,12 @@ The proxy client exposes methods matching your route verbs (`$get`, `$post`, `$p
 const res = await client.products.$get({
   query: { category: "electronics", limit: 10 },
 });
-const data = await res.json(); // Fully typed from server .returns[200] schema
+const data = await res.json(); // Auto-inferred from handler reply helpers (json(), ok(), etc.)
 ```
 
 ### Dynamic Path Parameters
 
-Path parameters prefixed with `$` on the server are accessed via `_param` or `param` in the client:
+Path parameters on the server (`:id`) are accessed via `_id` and the `param` argument:
 
 ```ts
 // GET /users/:id -> GET /users/usr_123
@@ -86,16 +86,43 @@ const res = await client.$get();
 
 ## 3. End-to-End Type Safety
 
-When routes define return contracts via `.returns({ 200: schema, 404: errorSchema })`, the response `.json()` return value is automatically typed:
+`@taserjs/router-client` infers `await res.json()` types automatically — **`.returns()` is not required**. The client resolves success payload types using this precedence:
+
+1. **Default (no `.returns()`)**: Unions successful `ReplyOf<Status, Body>` types (`200`–`226`) from handler reply helpers (`json()`, `ok()`, `created()`, etc.).
+2. **With `.returns({ 200: schema })`**: Uses the `200` schema output type (overrides handler inference).
+3. **Fallback**: `unknown` if neither source is available.
+
+```ts
+// Server route without .returns() — client still gets full typing:
+export default t.get("/users").handler(async () => {
+  return json({ users: [{ id: "1", name: "Alice" }] });
+});
+
+const res = await client.users.$get();
+const data = await res.json();
+// data: { users: { id: string; name: string }[] }
+```
+
+### Handling Responses
+
+Check `res.ok` or `res.status` at runtime; `json()` is typed for success payloads only (not narrowed per status):
 
 ```ts
 const res = await client.users._id.$get({ param: { id: "123" } });
 
-if (res.status === 200) {
-  const user = await res.json(); // Type: { id: string, name: string, email: string }
+if (res.ok) {
+  const user = await res.json(); // Typed success payload
   console.log(user.name);
-} else if (res.status === 404) {
-  const error = await res.json(); // Type: { message: string }
-  console.error(error.message);
+} else {
+  console.error("Request failed with status:", res.status);
 }
+```
+
+Use `InferResponseType` and `InferRequestType` to extract types from client methods:
+
+```ts
+import type { InferRequestType, InferResponseType } from "@taserjs/router-client";
+
+type UserInput = InferRequestType<typeof client.users._id.$get>;
+type UserData = InferResponseType<typeof client.users._id.$get>;
 ```

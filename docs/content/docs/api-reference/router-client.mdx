@@ -6,8 +6,9 @@ icon: WandSparkles
 
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
+import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-client` package provides an end-to-end typed client proxy SDK.
+The `@taserjs/router-client` package provides a lightweight, zero-codegen typed proxy client that infers routes, parameter inputs, and response return shapes directly from your backend router definitions.
 
 ---
 
@@ -15,7 +16,7 @@ The `@taserjs/router-client` package provides an end-to-end typed client proxy S
 
 ### `createClient<TApp>(options)`
 
-Creates an auto-completing typed proxy client. Pass your server's `App` type or `RouteManifest` as `TApp` to infer all available endpoints, parameters, query schemas, and return contracts:
+Creates an auto-completing typed proxy client. Pass your server's `RouteManifest` or `typeof app` as `TApp` to infer all available endpoints, parameters, query schemas, and return contracts:
 
 ```ts
 function createClient<TApp = never>(options: CreateClientOptions): Client<TApp>;
@@ -33,7 +34,7 @@ function createClient<TApp = never>(options: CreateClientOptions): Client<TApp>;
     headers: {
       description:
         "Static header dictionary or async resolver function for dynamic Authorization headers.",
-      type: "Record<string, string> | (() => Promise<Record<string, string>>)",
+      type: "Record<string, string> | (() => Record<string, string> | Promise<Record<string, string>>)",
     },
     fetch: {
       description: "Custom fetch function (defaults to globalThis.fetch).",
@@ -45,21 +46,63 @@ function createClient<TApp = never>(options: CreateClientOptions): Client<TApp>;
 
 ---
 
-### `formBody(fields)`
+### `formBody(fields, options?)`
 
-Encodes fields and file attachments into a `FormData` multipart payload:
+Encodes fields and file attachments into a `FormData` multipart payload tagged for TypeScript body inference:
 
 ```ts
-function formBody(fields: Record<string, FormBodyField>): FormBody;
+function formBody<T extends Record<string, FormBodyField>>(
+  value: T,
+  options?: FormBodySerializeOptions,
+): FormBody<T>;
 ```
 
-#### Field Types
+#### Field Types (`FormBodyField`)
 
 <TypeTable
   type={{
     "fields[key]": {
-      description: "Primitives (string, number, boolean) or binary attachments (Blob, File).",
-      type: "string | number | boolean | Blob | File | null | undefined",
+      description:
+        "Primitives (string, number, boolean, bigint), Date objects, binary attachments (Blob, File), arrays, or nested objects.",
+      type: "string | number | boolean | bigint | Date | Blob | File | null | undefined | FormBodyField[] | Record<string, FormBodyField>",
+    },
+    options: {
+      description: "Optional serialization settings passed to object-to-formdata.",
+      type: "FormBodySerializeOptions",
+    },
+  }}
+/>
+
+---
+
+## Per-Request Options (`ClientRequestOptions`)
+
+Every client method takes an optional second argument for request-specific configuration:
+
+```ts
+export type ClientRequestOptions = {
+  headers?:
+    Record<string, string> | (() => Record<string, string> | Promise<Record<string, string>>);
+  fetch?: typeof fetch;
+  init?: RequestInit;
+};
+```
+
+<TypeTable
+  type={{
+    headers: {
+      description:
+        "Additional headers or async header resolver merged with client baseUrl headers.",
+      type: "Record<string, string> | (() => Record<string, string> | Promise<Record<string, string>>)",
+    },
+    fetch: {
+      description: "Custom fetch implementation for this specific request invocation.",
+      type: "typeof fetch",
+    },
+    init: {
+      description:
+        "Standard RequestInit configuration options (credentials, signal, cache, mode, etc.).",
+      type: "RequestInit",
     },
   }}
 />
@@ -74,38 +117,75 @@ The client exposes methods named with `$<method>`:
   type={{
     $get: {
       description: "Performs a GET request with optional query and path parameters.",
-      type: "(input?: { query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse>",
+      type: "(input?: { query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse<TJson>>",
     },
     $post: {
       description: "Performs a POST request with body, query, and path parameters.",
-      type: "(input?: { body?: unknown; query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse>",
+      type: "(input?: { body?: unknown; query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse<TJson>>",
     },
     $put: {
       description: "Performs a PUT request with body, query, and path parameters.",
-      type: "(input?: { body?: unknown; query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse>",
+      type: "(input?: { body?: unknown; query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse<TJson>>",
     },
     $patch: {
       description: "Performs a PATCH request with body, query, and path parameters.",
-      type: "(input?: { body?: unknown; query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse>",
+      type: "(input?: { body?: unknown; query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse<TJson>>",
     },
     $delete: {
       description: "Performs a DELETE request with query and path parameters.",
-      type: "(input?: { query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse>",
+      type: "(input?: { query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse<TJson>>",
     },
     $options: {
       description: "Performs an OPTIONS request.",
-      type: "(input?: { query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse>",
+      type: "(input?: { query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse<TJson>>",
     },
     $head: {
       description: "Performs a HEAD request.",
-      type: "(input?: { query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse>",
+      type: "(input?: { query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse<TJson>>",
+    },
+    $query: {
+      description: "Performs a QUERY-method HTTP request.",
+      type: "(input?: { body?: unknown; query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse<TJson>>",
     },
   }}
 />
 
 ---
 
-## TypeScript Types Reference
+## Path Segment Conventions
+
+URL paths are accessed through property chaining on the client:
+
+- **Dynamic Parameters (`:id`)**: Property is prefixed with `_` (e.g. `api.users._id.$get({ param: { id: "123" } })`).
+- **Wildcards (`*`)**: Property is `_splat` (e.g. `api.assets._splat.$get({ param: { _splat: "image.png" } })`).
+- **Leading Dots (`.well-known`)**: Property starts with `$` (e.g. `api.$well_known.jwks.$get()`).
+- **Hyphens (`user-profiles`)**: Replaced with underscores in property names (e.g. `api.user_profiles.$get()`).
+- **Root Route (`/`)**: Method called directly on client instance (e.g. `api.$get()`).
+- **Literal Index (`/index`)**: Property `index` (e.g. `api.index.$get()`).
+
+---
+
+## Response & Type Inference
+
+Every client endpoint returns a `ClientResponse<TJson>`, which extends Web `Response` with a typed `json()` method:
+
+```ts
+export type ClientResponse<TJson = unknown> = Omit<Response, "json"> & {
+  json(): Promise<TJson>;
+};
+```
+
+### Type Resolution Precedence
+
+`TJson` for `await res.json()` is resolved automatically — **`.returns()` is not required**:
+
+1. **Handler inference (default)**: When `.returns()` is omitted, `TJson` is the union of successful `ReplyOf<Status, Body>` types (`200`–`226`) from handler reply helpers (`json()`, `ok()`, `created()`, etc.).
+2. **`returns[200]` override**: If the route declares `.returns({ 200: schema })`, `TJson` uses that schema's output type instead of handler inference.
+3. **Fallback**: `unknown` if neither source is available.
+
+---
+
+## Exported TypeScript Types & Constants
 
 ```ts
 import type {
@@ -114,7 +194,14 @@ import type {
   ClientRequestOptions,
   ClientResponse,
   FormBody,
+  FormBodyField,
+  FormBodyInput,
+  HttpMethodName,
   InferRequestType,
   InferResponseType,
+  OpenQuery,
+  QueryWithOpen,
 } from "@taserjs/router-client";
+
+import { METHOD_MAP, CLIENT_METHODS, createClient, formBody } from "@taserjs/router-client";
 ```

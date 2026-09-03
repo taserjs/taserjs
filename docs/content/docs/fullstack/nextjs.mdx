@@ -26,7 +26,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
   />
   <Card
     title="Compile-Time Return Contracts"
-    description="Enforce status-discriminated return shapes with `.returns()`. Eliminate response drift across server and client."
+    description="Enforce compile-time return shapes with `.returns()`. Eliminate response drift across server and client."
   />
   <Card
     title="Universal Client SDK"
@@ -382,14 +382,14 @@ export function UserList() {
 
 When pairing Taser with Next.js App Router, understanding the division of responsibilities ensures clean system design:
 
-| Responsibility         | Next.js App Router (RSC & Pages)                                 | Taser Subsystem (`src/server/`)                                   |
-| :--------------------- | :--------------------------------------------------------------- | :---------------------------------------------------------------- |
-| **Primary Focus**      | Server-rendered UI, HTML streaming, metadata, layout composition | Structured REST API, JSON endpoints, binary streams, webhooks     |
-| **Execution Context**  | React Server Components & Client Components (`src/app/**/*.tsx`) | Type-safe route handlers (`src/server/routes/**/*.ts`)            |
-| **Consumers**          | Web browser page visits                                          | Mobile apps, SPA client hooks, webhooks, external developer APIs  |
-| **State & Middleware** | Next.js Edge middleware (`middleware.ts`)                        | Directory layout middleware pipelines (`src/server/routes/$.ts`)  |
-| **Validation**         | Manual or form-action validation                                 | Standard Schema validation (Zod, ArkType, Valibot)                |
-| **Response Safety**    | React component props                                            | Compile-time `.returns()` contracts & status discriminated unions |
+| Responsibility         | Next.js App Router (RSC & Pages)                                 | Taser Subsystem (`src/server/`)                                  |
+| :--------------------- | :--------------------------------------------------------------- | :--------------------------------------------------------------- |
+| **Primary Focus**      | Server-rendered UI, HTML streaming, metadata, layout composition | Structured REST API, JSON endpoints, binary streams, webhooks    |
+| **Execution Context**  | React Server Components & Client Components (`src/app/**/*.tsx`) | Type-safe route handlers (`src/server/routes/**/*.ts`)           |
+| **Consumers**          | Web browser page visits                                          | Mobile apps, SPA client hooks, webhooks, external developer APIs |
+| **State & Middleware** | Next.js Edge middleware (`middleware.ts`)                        | Directory layout middleware pipelines (`src/server/routes/$.ts`) |
+| **Validation**         | Manual or form-action validation                                 | Standard Schema validation (Zod, ArkType, Valibot)               |
+| **Response Safety**    | React component props                                            | Compile-time `.returns()` contracts & typed success responses    |
 
 ---
 

@@ -60,7 +60,7 @@ export default PUT.handler(async (ctx) => {
 - **`.body(schema)`**: Parses and validates incoming JSON request bodies.
 - **`.body("form", schema)`**: Parses and validates incoming `multipart/form-data` payloads.
 - **Body Optimization**: When `.body()` is omitted, request body reading and stream parsing is completely skipped.
-- **`.returns({ [status]: schema })`**: Documents and validates response payloads per status code, providing end-to-end typing for `@taserjs/router-client`.
+- **`.returns({ [status]: schema })`** (optional): Documents and validates response payloads per status code on the server. `@taserjs/router-client` auto-infers success `json()` types from handler reply helpers by default; when `returns[200]` is defined, that schema type takes precedence over handler inference.
 
 ---
 

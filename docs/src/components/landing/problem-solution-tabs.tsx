@@ -153,25 +153,25 @@ const data = await res.json();
 // ⚠️ 'data' is any. No autocomplete, no URL check,
 // no query param validation, and no refactor safety!`,
     solutionTitle: "End-to-End Typed Client",
-    solutionBadge: "Auto-Completed SDK",
+    solutionBadge: "Type-Inferred SDK",
     solutionFilename: "frontend/client.ts",
     solutionCode: `import { createClient } from "@taserjs/router-client";
-import type { App } from "../server/entry.js";
+import type { RouteManifest } from "../.taser/types/routes.js";
 
-// End-to-end typed client derived directly from your server App
-const api = createClient<App>({ baseUrl: "https://api.example.com" });
+// End-to-end typed client derived directly from your server RouteManifest
+const api = createClient<RouteManifest>({ baseUrl: "https://api.example.com" });
 
 // ✓ Full autocomplete for routes, query, params, and response:
 const res = await api.admin.reports.$get({
   query: { limit: 10 },
 });
 
-if (res.status === 200) {
+if (res.ok) {
   const data = await res.json();
   // ✓ data.reports is 100% typed with zero manual casting!
 }`,
     takeaway:
-      "Export your router types and call your backend with an auto-generated client that guarantees 1:1 parity with your server.",
+      "Export your router types and call your backend with a typed client proxy that guarantees 1:1 parity with your server.",
   },
 ];
 

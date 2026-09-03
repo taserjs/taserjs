@@ -9,9 +9,9 @@
 - **Deterministic File-Based Routing**: Route endpoints are defined by HTTP verb files (`.get.ts`, `.post.ts`, `.put.ts`, `.delete.ts`, etc.). Layout and middleware definitions are defined hierarchically using non-verb files (e.g. `src/routes/$.ts` or `src/routes/admin.ts`).
 - **Cascading Strongly-Typed Context**: Middleware passes state down the pipeline via `next({ key: value })`, automatically merged and typed on downstream handlers in `ctx.state` with zero runtime overhead and no manual type assertions (`req.user as User`).
 - **Standard Schema First**: Natively supports any validator implementing the `@standard-schema/spec` (Zod, ArkType, Valibot, Typia, etc.).
-- **Compile-Time Return Contracts**: `.returns({ 200: UserSchema, 401: ErrorSchema })` verifies that handler returns adhere to schemas at compile time and runtime.
+- **Compile-Time Return Contracts** (optional): `.returns({ 200: UserSchema, 401: ErrorSchema })` verifies handler returns against schemas at compile time and enables runtime response validation.
 - **Framework & Runtime Agnostic**: Runs standalone on Node.js, Bun, Cloudflare Workers, or mounts directly onto Hono, Express, Fastify, Nitro, and Next.js.
-- **Zero-Drift RPC Client**: Generates an end-to-end typed client SDK (`@taserjs/router-client`) from router declarations.
+- **Zero-Drift Typed Client**: `@taserjs/router-client` infers end-to-end types from route handlers automatically; optional `.returns()` schemas override success payload inference when defined.
 
 ---
 
@@ -217,18 +217,22 @@ At runtime, requests flow through an onion middleware pipeline:
 
 ### 3.5 RPC Client (`@taserjs/router-client`)
 
-The client builds an end-to-end type-safe proxy directly from your server's `App` type or `RouteManifest`:
+The client builds a zero-codegen typed proxy from your server's `RouteManifest` or `typeof app`. Success `json()` types are auto-inferred from handler `ReplyOf` returns by default; optional `.returns({ 200: schema })` overrides inference when present.
 
 ```ts
 import { createClient } from "@taserjs/router-client";
-import type { App } from "../server/entry.js";
+import type { RouteManifest } from "../.taser/types/routes.js";
 
-const client = createClient<App>({ baseUrl: "http://localhost:3000" });
+const client = createClient<RouteManifest>({ baseUrl: "http://localhost:3000" });
 
 const res = await client.users._id.$get({
-  param: { id: 1 },
+  param: { id: "usr_123" },
   query: { includePosts: true },
 });
+
+if (res.ok) {
+  const data = await res.json(); // Typed from handler or returns[200] schema
+}
 ```
 
 ---

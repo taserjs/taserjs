@@ -106,76 +106,71 @@ export default createTaserApp({
 
 ---
 
-## Automatic Client SDK Typing & Discriminated Unions
+## Client SDK Success Response Typing
 
-When you define `.returns()` on a route, `@taserjs/router-client` automatically compiles a **discriminated union type** keyed on `status`. This guarantees that your frontend code cannot access success fields on error responses or vice versa.
+`@taserjs/router-client` types `await res.json()` automatically from your route handlers — **you do not need `.returns()` for client type safety**. By default, the client unions successful `ReplyOf` payload types (`200`–`226`) from reply helpers like `json()`, `ok()`, and `created()`.
 
-### Status-Based Narrowing
+Use `.returns()` when you want compile-time server-side contract enforcement, runtime response validation in dev/staging, or to override client inference with an explicit `200` schema type.
+
+| Server setup                   | Client `await res.json()` type                       |
+| :----------------------------- | :--------------------------------------------------- |
+| Handler only (no `.returns()`) | Auto-inferred from handler `ReplyOf` success returns |
+| `.returns({ 200: Schema })`    | Schema output type for `200` (takes precedence)      |
+
+See the [Typed Client Guide](/docs/client#response-typing--handling) for path conventions (`_id`, `param`) and per-request options.
+
+### Status Handling with Typed Success Payloads
+
+Call parameterized endpoints using property chains like `_id` and the `param` argument:
 
 ```ts title="src/components/user-profile.tsx"
 import { api } from "@/lib/api";
 
 export async function loadUserProfile(userId: string) {
-  const res = await api.users[":id"].$get({
-    params: { id: userId },
+  const res = await api.users._id.$get({
+    param: { id: userId },
   });
 
-  // TypeScript narrows res based on res.status:
   if (res.status === 200) {
+    // res.json() typed from handler or returns[200] schema
     const profile = await res.json();
-    // ✅ Autocomplete available:
-    // profile: { id: string; username: string; email: string; avatarUrl: string | null }
     console.log("Welcome back,", profile.username);
     return profile;
   }
 
   if (res.status === 404) {
-    const error = await res.json();
-    // ✅ Autocomplete available:
-    // error: { message: string }
-    console.error("User missing:", error.message);
+    console.error("User missing");
     return null;
   }
 
   if (res.status === 401) {
-    // 🔒 Handled specifically for unauthenticated state
     window.location.href = "/login";
     return null;
   }
 
-  // ❌ Compile-time error if attempting:
-  // profile.username without status check
+  return null;
 }
 ```
 
-### Exhaustive Pattern Matching
+### Explicit Status Branching
 
-Using an exhaustive `switch` statement ensures every status code declared in `.returns()` is explicitly handled:
+You can branch on standard HTTP status codes or `res.ok`:
 
 ```ts title="src/lib/fetcher.ts"
 import { api } from "@/lib/api";
 
-export async function fetchAccount() {
-  const res = await api.profile.$get();
+export async function fetchProfile(userId: string) {
+  const res = await api.users._id.$get({
+    param: { id: userId },
+  });
 
-  switch (res.status) {
-    case 200: {
-      const data = await res.json();
-      return { success: true as const, data };
-    }
-    case 401: {
-      const err = await res.json();
-      return { success: false as const, error: "Unauthorized: " + err.message };
-    }
-    case 404: {
-      return { success: false as const, error: "Account not found" };
-    }
-    default: {
-      // TypeScript guarantees exhaustive coverage
-      const _exhaustiveCheck: never = res;
-      throw new Error(`Unhandled status code: ${_exhaustiveCheck}`);
-    }
+  if (!res.ok) {
+    throw new Error(`Request failed with status ${res.status}`);
   }
+
+  // Typed success payload (handler inference or returns[200])
+  const data = await res.json();
+  return data;
 }
 ```
 
@@ -193,8 +188,8 @@ export function useProfile(userId: string) {
   return useQuery({
     queryKey: ["profile", userId],
     queryFn: async () => {
-      const res = await api.users[":id"].$get({
-        params: { id: userId },
+      const res = await api.users._id.$get({
+        param: { id: userId },
       });
 
       if (res.status === 200) {

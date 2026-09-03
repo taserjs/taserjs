@@ -337,8 +337,9 @@ import { api } from "./lib/api";
 
 const selectedFile = fileInput.files[0];
 
-// Automatically sets multipart/form-data boundary headers:
-const response = await api.users.$id({ id: "user_123" }).avatar.$post({
+// The client sends multipart/form-data with automatically managed boundary headers:
+const response = await api.users._id.avatar.$post({
+  param: { id: "user_123" },
   body: formBody({
     caption: "My new profile picture",
     avatar: selectedFile,

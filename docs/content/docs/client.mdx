@@ -9,7 +9,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-client` package generates an auto-completing, type-safe API client directly from your server's router type definition.
+The `@taserjs/router-client` package provides a lightweight, zero-codegen proxy client that infers end-to-end type safety directly from your server's router type definition (`RouteManifest` or `typeof app`).
 
 ---
 
@@ -18,19 +18,39 @@ The `@taserjs/router-client` package generates an auto-completing, type-safe API
 Install the client package in your project:
 
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
-  <Tab value="pnpm">```bash pnpm add @taserjs/router-client ```</Tab>
-  <Tab value="npm">```bash npm install @taserjs/router-client ```</Tab>
-  <Tab value="bun">```bash bun add @taserjs/router-client ```</Tab>
-  <Tab value="yarn">```bash yarn add @taserjs/router-client ```</Tab>
+  <Tab value="pnpm">
+```bash 
+pnpm add @taserjs/router-client
+```
+
+  </Tab>
+  <Tab value="npm">
+```bash 
+npm install @taserjs/router-client 
+```
+  </Tab>
+  <Tab value="bun">
+```bash 
+bun add @taserjs/router-client 
+```
+  </Tab>
+  <Tab value="yarn">
+```bash 
+yarn add @taserjs/router-client 
+```
+  </Tab>
 </Tabs>
 
-Initialize the client with your backend `baseUrl` and your server app/manifest type:
+Initialize the client with your backend `baseUrl` and your server app or manifest type:
 
 ```ts title="src/lib/api.ts"
 import { createClient } from "@taserjs/router-client";
-import type { App } from "../server/entry.js"; // or type { RouteManifest } from "../.taser/types/routes.js"
+import type { RouteManifest } from "../.taser/types/routes.js";
+// Or when using virtual modules / fullstack adapters:
+// import type { routeManifest } from "#taserjs/virtual/manifest";
+// import type { app } from "@/.taser/entry";
 
-export const api = createClient<App>({
+export const api = createClient<RouteManifest>({
   baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api",
   headers: async () => {
     const token = localStorage.getItem("auth_token");
@@ -40,16 +60,28 @@ export const api = createClient<App>({
 ```
 
 <Callout type="info" title="Explicit End-to-End Type Safety">
-  By passing your server's `App` type (or `RouteManifest`) as a generic to `createClient<App>()`,
-  the client automatically infers all available routes, methods, input schemas, and return contracts.
-  This allows multiple microservices in the same monorepo to maintain independent, collision-free client SDKs.
+  By passing your server's `RouteManifest` or `typeof app` type as a generic to `createClient<TApp>()`,
+  the client automatically infers all available routes, methods, input schemas, and return contracts without generating static client source files.
 </Callout>
 
 ---
 
-## Calling API Routes
+## Path Segment Conventions
 
-The client uses nested proxy property access mirroring your URL paths:
+The client uses nested proxy property access mirroring your URL paths. Certain URL conventions are translated into valid JavaScript property names:
+
+| URL Pattern         | Client Property Path          | Parameter Passing                                                 |
+| :------------------ | :---------------------------- | :---------------------------------------------------------------- |
+| `/`                 | `api.$get()`                  | `api.$get()`                                                      |
+| `/products`         | `api.products.$get()`         | `api.products.$get()`                                             |
+| `/users/:id`        | `api.users._id.$get()`        | `api.users._id.$get({ param: { id: "123" } })`                    |
+| `/files/*`          | `api.files._splat.$get()`     | `api.files._splat.$get({ param: { _splat: "docs/readme.txt" } })` |
+| `/.well-known/jwks` | `api.$well_known.jwks.$get()` | `api.$well_known.jwks.$get()`                                     |
+| `/user-profiles`    | `api.user_profiles.$get()`    | `api.user_profiles.$get()`                                        |
+
+---
+
+## Calling API Routes
 
 ### GET Request with Query Parameters
 
@@ -62,9 +94,9 @@ const response = await api.products.$get({
   },
 });
 
-if (response.status === 200) {
+if (response.ok) {
   const data = await response.json();
-  // data is 100% typed from the server's .returns({ 200: ... }) schema!
+  // Auto-inferred from handler reply helpers or returns[200] schema
   console.log(data.products);
 }
 ```
@@ -78,7 +110,11 @@ For parameterized routes like `src/routes/users/$id.get.ts`:
 const response = await api.users._id.$get({
   param: { id: "user_456" },
 });
-const user = await response.json();
+
+if (response.ok) {
+  const user = await response.json();
+  console.log(user.name);
+}
 ```
 
 ### POST Request with JSON Body
@@ -95,6 +131,54 @@ const response = await api.posts.$post({
 });
 
 const createdPost = await response.json();
+```
+
+### Per-Request Options
+
+Pass a second argument to any HTTP method to configure request-level options like one-off headers, a custom `fetch` implementation, or standard `RequestInit` settings:
+
+```ts
+const response = await api.posts.$post(
+  {
+    body: { title: "Draft Post" },
+  },
+  {
+    headers: { "X-Idempotency-Key": "req_abc123" },
+    init: { cache: "no-store" },
+  },
+);
+```
+
+---
+
+## Response Typing & Handling
+
+Every client method returns a `Promise<ClientResponse<TJson>>`, which wraps the standard Web `Response` object:
+
+- `res.status` and `res.ok` reflect runtime HTTP status codes.
+- `res.json()` returns `Promise<TJson>` with success payload types inferred automatically — **`.returns()` is optional**.
+
+<Callout type="info" title=".returns() Is Optional for Client Typing">
+  By default, `TJson` is inferred from handler reply helpers (`json()`, `ok()`, `created()`, etc.) as the union of successful `ReplyOf` payload types (`200`–`226`). Add `.returns({ 200: schema })` only when you want server-side contract enforcement, runtime response validation, or to override client inference with an explicit schema type.
+</Callout>
+
+### Type Resolution Precedence
+
+1. **Handler inference (default)**: When `.returns()` is omitted, `TJson` unions successful `ReplyOf<Status, Body>` types from the route handler.
+2. **`returns[200]` override**: When `.returns({ 200: schema })` is defined, `TJson` uses that schema's output type.
+3. **Fallback**: `unknown` if neither source is available.
+
+```ts
+const response = await api.users._id.$get({
+  param: { id: "user_123" },
+});
+
+if (response.ok) {
+  const data = await response.json(); // Typed from handler or returns[200]
+  console.log(data.email);
+} else {
+  console.error("Request failed with status:", response.status);
+}
 ```
 
 ---
@@ -126,7 +210,27 @@ const response = await api.users._id.avatar.$post({
 
 ---
 
-## Configuration Options
+## Inferring Request & Response Types
+
+Extract TypeScript types from client endpoint methods using helper generics:
+
+```ts
+import type { InferRequestType, InferResponseType } from "@taserjs/router-client";
+import type { api } from "@/lib/api";
+
+// Infer input arguments for an endpoint:
+type UserGetInput = InferRequestType<typeof api.users._id.$get>;
+// { param: { id: string }; query?: ... }
+
+// Infer successful JSON payload:
+type UserData = InferResponseType<typeof api.users._id.$get>;
+```
+
+---
+
+## Configuration Reference
+
+### Client Initialization Options (`CreateClientOptions`)
 
 <TypeTable
   type={{
@@ -138,12 +242,32 @@ const response = await api.users._id.avatar.$post({
     },
     headers: {
       description: "Static header dictionary or async function resolving authentication tokens.",
-      type: "Record<string, string> | (() => Promise<Record<string, string>>)",
+      type: "Record<string, string> | (() => Record<string, string> | Promise<Record<string, string>>)",
     },
     fetch: {
       description: "Custom fetch implementation (useful for testing or custom caching).",
       type: "typeof fetch",
       default: "globalThis.fetch",
+    },
+  }}
+/>
+
+### Per-Request Options (`ClientRequestOptions`)
+
+<TypeTable
+  type={{
+    headers: {
+      description:
+        "Additional headers or async header resolver merged with client baseUrl headers.",
+      type: "Record<string, string> | (() => Record<string, string> | Promise<Record<string, string>>)",
+    },
+    fetch: {
+      description: "Custom fetch implementation for this specific request.",
+      type: "typeof fetch",
+    },
+    init: {
+      description: "Standard RequestInit configuration options (credentials, signal, cache, etc.).",
+      type: "RequestInit",
     },
   }}
 />

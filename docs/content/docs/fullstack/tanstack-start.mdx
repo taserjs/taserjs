@@ -22,7 +22,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
   />
   <Card
     title="Compile-Time Return Contracts"
-    description="Enforce strict status-discriminated returns with `.returns()`. Zero runtime response drift across client and server."
+    description="Enforce compile-time return contracts with `.returns()`. Zero response drift between server and client."
   />
   <Card
     title="Native Vite & Nitro Synergy"
@@ -299,7 +299,7 @@ export const Route = createFileRoute("/users")({
       throw new Error("Failed to load user directory");
     }
 
-    // res.json() is strictly typed from your .returns() contract
+    // res.json() typed from handler reply helpers or optional .returns() contract
     const data = await res.json();
     return { users: data.users };
   },
@@ -362,7 +362,7 @@ TanStack Start provides `createServerFn` for server RPC, while Taser provides fu
 | **Directory Middleware**    | Middleware composed inline per function               | Scoped directory layouts with cascading typed state               |
 | **Clients & Consumers**     | TanStack Router loaders, forms, and client components | Web browsers, mobile apps (iOS/Android), webhooks, 3rd-party devs |
 | **OpenAPI / Documentation** | Internal to application                               | Easily documented with standard HTTP methods and JSON payloads    |
-| **Response Guarantees**     | TypeScript return types of function                   | Compile-time `.returns()` contracts & status-discriminated unions |
+| **Response Guarantees**     | TypeScript return types of function                   | Compile-time `.returns()` contracts & typed success payloads      |
 
 ---
 
@@ -382,6 +382,6 @@ TanStack Start provides `createServerFn` for server RPC, while Taser provides fu
   <Card
     title="Typed Client SDK"
     href="/docs/client"
-    description="Explore @taserjs/router-client features, error narrowing, and file uploads."
+    description="Explore @taserjs/router-client features, response typing, and file uploads."
   />
 </Cards>
