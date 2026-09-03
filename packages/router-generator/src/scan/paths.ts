@@ -1,6 +1,7 @@
 import { basename } from "node:path";
 import picomatch from "picomatch";
-import { DEFAULT_IGNORE, HTTP_VERBS, ROUTE_VERB_PATTERN } from "../constants.js";
+import { isHttpMethod } from "@taserjs/router-utils/http";
+import { DEFAULT_IGNORE, ROUTE_VERB_PATTERN } from "../constants.js";
 import { resolveImportExtension, type ExtensionOption } from "../config.js";
 import { ScanError } from "../support/errors.js";
 import { toPosixPath } from "../support/paths.js";
@@ -74,7 +75,7 @@ export function getMethodFromRouteFile(filePath: string): RouteFileMethod {
 }
 
 export function isHttpVerb(method: string): method is HttpVerb {
-  return (HTTP_VERBS as readonly string[]).includes(method);
+  return isHttpMethod(method);
 }
 
 export function routePathWithoutVerb(routeRel: string): string {

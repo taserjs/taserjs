@@ -1,22 +1,12 @@
-import { CLIENT_METHODS } from "../constants/methods.js";
+import type { ClientMethodKey } from "@taserjs/router-utils";
+import { CLIENT_METHODS, CLIENT_TO_HTTP } from "../constants/methods.js";
 
 export function isClientMethod(key: string): boolean {
   return CLIENT_METHODS.has(key);
 }
 
-const CLIENT_TO_HTTP: Record<string, string> = {
-  $get: "GET",
-  $post: "POST",
-  $put: "PUT",
-  $patch: "PATCH",
-  $delete: "DELETE",
-  $options: "OPTIONS",
-  $head: "HEAD",
-  $query: "QUERY",
-};
-
 export function clientMethodToHttp(method: string): string {
-  return CLIENT_TO_HTTP[method] ?? method.slice(1).toUpperCase();
+  return CLIENT_TO_HTTP[method as ClientMethodKey] ?? method.slice(1).toUpperCase();
 }
 
 export function decodeClientSegment(segment: string): string {

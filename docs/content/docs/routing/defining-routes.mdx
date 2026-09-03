@@ -24,6 +24,7 @@ t.patch(path);
 t.delete(path);
 t.options(path);
 t.head(path);
+t.query(path);
 t.any(path, methods);
 t.all(path);
 ```
@@ -117,7 +118,7 @@ Any path parameter not explicitly mentioned in the `.params()` schema retains it
 
 ## Defining a POST Route
 
-POST, PUT, and PATCH routes accept `.body()`, `.query()`, and `.params()` schemas:
+POST, PUT, PATCH, and QUERY routes accept `.body()`, `.query()`, and `.params()` schemas:
 
 ```ts title="src/routes/articles.post.ts"
 import { created } from "@taserjs/router/reply";

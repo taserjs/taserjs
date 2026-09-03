@@ -150,6 +150,21 @@ For simple unvalidated middlewares, short function signatures `middleware((ctx, 
       description: "Registers a global handler for unmatched routes (404 Not Found).",
       type: "(handler: (ctx: Context) => Response) => this",
     },
+    create: {
+      description: "Compiles the route manifest into a runnable TaserApp instance.",
+      type: "(manifest: RouteManifest, runtimeOptions?: { basePath?: string }) => TaserApp",
+    },
+  }}
+/>
+
+---
+
+## `t` Route Builders (`t.<verb>`)
+
+Imported as `import { t } from "@taserjs/router"`. `t` provides builder factory functions for defining file-based route endpoints and layouts.
+
+<TypeTable
+  type={{
     get: {
       description: "Creates a GET route builder.",
       type: "(path: string) => RouteBuilder",
@@ -178,9 +193,13 @@ For simple unvalidated middlewares, short function signatures `middleware((ctx, 
       description: "Creates a HEAD route builder.",
       type: "(path: string) => RouteBuilder",
     },
+    query: {
+      description: "Creates a QUERY route builder.",
+      type: "(path: string) => RouteBuilder",
+    },
     any: {
       description: "Creates a route builder matching an explicit array of HTTP methods.",
-      type: "(path: string, methods: string[]) => RouteBuilder",
+      type: "(path: string, methods: readonly HttpMethod[]) => RouteBuilder",
     },
     all: {
       description: "Creates a catch-all route builder matching all HTTP verbs.",
@@ -188,19 +207,13 @@ For simple unvalidated middlewares, short function signatures `middleware((ctx, 
     },
     layout: {
       description: "Creates a layout middleware builder for root or scoped route directories.",
-      type: "(layoutId: string) => MiddlewareBuilder",
+      type: "(layoutId: string) => LayoutBuilder",
     },
     middleware: {
-      description: "Creates a standalone middleware builder that automatically inherits the router's context.",
-      type: "(layoutId?: string) => MiddlewareBuilder",
+      description: "Namespace reference to the middleware() function.",
+      type: "MiddlewareFn",
     },
-
-    create: {
-      description: "Compiles the route manifest into a runnable TaserApp instance.",
-      type: "(manifest: RouteManifest) => TaserApp",
-    },
-
-}}
+  }}
 />
 
 ---

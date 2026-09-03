@@ -1,9 +1,4 @@
-export {
-  InvalidMountPatternError,
-  resolveMountBase,
-  composeBasePath,
-  normalizeScope,
-} from "./mount/index.js";
+export { composeBasePath, normalizeScope } from "./mount/index.js";
 export { isPromise } from "./async/is-promise.js";
 
 export type { StatusCode, SuccessStatusCode } from "./http/status.js";
@@ -19,6 +14,7 @@ export {
 } from "./http/methods.js";
 export { normalizeOnError } from "./http/on-error.js";
 export type { OnErrorHandlerLike, OnErrorInput } from "./http/on-error.js";
+export { extractPathname } from "./http/url.js";
 
 export {
   hasInputSchemas,

@@ -117,10 +117,11 @@ Non-verb files (e.g. `src/routes/$.ts` for root, `src/routes/admin.ts` for `/adm
 
 ```ts
 import { t } from "@taserjs/router";
+import { text } from "@taserjs/router/reply";
 
 export default t.layout("/admin").use(async (ctx, next) => {
   const token = ctx.headers.get("authorization");
-  if (!token) return ctx.reply.text("Unauthorized", { status: 401 });
+  if (!token) return text("Unauthorized", { status: 401 });
   return next({ user: { id: "123", role: "admin" } });
 });
 ```

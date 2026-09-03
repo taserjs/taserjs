@@ -1,4 +1,6 @@
-import { normalizeScope } from "@taserjs/router-utils";
+import { extractPathname, normalizeScope } from "@taserjs/router-utils";
+
+export { extractPathname };
 
 export interface TaserRoutesApp {
   fetch(req: Request): Promise<Response | undefined> | Response | undefined;
@@ -9,17 +11,6 @@ export interface ComposedHandlerOptions {
   hostServer?: unknown;
   scope?: string | undefined;
   fallbackTo404?: boolean | undefined;
-}
-
-export function extractPathname(url: string): string {
-  const queryIdx = url.indexOf("?");
-  const path = queryIdx === -1 ? url : url.slice(0, queryIdx);
-  const protoIdx = path.indexOf("://");
-  if (protoIdx === -1) {
-    return path.startsWith("/") ? path : `/${path}`;
-  }
-  const slashIdx = path.indexOf("/", protoIdx + 3);
-  return slashIdx === -1 ? "/" : path.slice(slashIdx);
 }
 
 export function matchesScope(pathname: string, normalizedScope: string): boolean {

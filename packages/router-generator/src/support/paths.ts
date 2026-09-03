@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 export function toPosixPath(filePath: string): string {
   return sep === "\\" ? filePath.replaceAll("\\", "/") : filePath;
@@ -33,15 +33,6 @@ export function createAliasImportRewriter(
     }
     return ensureRelativePrefix(rel);
   };
-}
-
-export function routesImportPrefix(routesDir: string, outputFile: string): string {
-  const outputDir = dirname(outputFile);
-  const relativeRoutes = toPosixPath(relative(outputDir, routesDir));
-  if (relativeRoutes === "") {
-    return ".";
-  }
-  return ensureRelativePrefix(relativeRoutes);
 }
 
 const COMMON_JS_EXTS = [".ts", ".js", ".tsx", ".jsx", ".mts", ".mjs"];

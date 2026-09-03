@@ -17,8 +17,8 @@ Taser adopts modern **TanStack Router-style file routing conventions** tailored 
 
 Under your `src/routes/` directory, files are classified into two distinct types:
 
-1. **Route Files**: Filenames containing an HTTP verb before `.ts` (such as `users.get.ts`, `posts.post.ts`, `items.$id.delete.ts`, `tasks/$id.complete.patch.ts`). Route files export a default route definition created with `t.get()`, `t.post()`, `get()`, `post()`, etc.
-2. **Layout Files**: Filenames ending in `.ts` without an HTTP verb (such as `$.ts`, `admin.ts`, `_auth.ts`, `tasks/$id.ts`). Layout files export a default middleware pipeline created with `t.layout()` or `layout()`.
+1. **Route Files**: Filenames containing an HTTP verb before `.ts` (such as `users.get.ts`, `posts.post.ts`, `items.$id.delete.ts`, `tasks/$id.complete.patch.ts`). Route files export a default route definition created with `t.get()`, `t.post()`, etc.
+2. **Layout Files**: Filenames ending in `.ts` without an HTTP verb (such as `$.ts`, `admin.ts`, `_auth.ts`, `tasks/$id.ts`). Layout files export a default middleware pipeline created with `t.layout()`.
 
 ---
 
@@ -26,15 +26,18 @@ Under your `src/routes/` directory, files are classified into two distinct types
 
 Taser determines the HTTP verb from the final extension segment before `.ts`:
 
-| File Name                     | HTTP Method | Endpoint URL |
-| :---------------------------- | :---------- | :----------- |
-| `src/routes/users.get.ts`     | `GET`       | `/users`     |
-| `src/routes/users.post.ts`    | `POST`      | `/users`     |
-| `src/routes/users.put.ts`     | `PUT`       | `/users`     |
-| `src/routes/users.patch.ts`   | `PATCH`     | `/users`     |
-| `src/routes/users.delete.ts`  | `DELETE`    | `/users`     |
-| `src/routes/users.options.ts` | `OPTIONS`   | `/users`     |
-| `src/routes/users.head.ts`    | `HEAD`      | `/users`     |
+| File Name                     | HTTP Method            | Endpoint URL |
+| :---------------------------- | :--------------------- | :----------- |
+| `src/routes/users.get.ts`     | `GET`                  | `/users`     |
+| `src/routes/users.post.ts`    | `POST`                 | `/users`     |
+| `src/routes/users.put.ts`     | `PUT`                  | `/users`     |
+| `src/routes/users.patch.ts`   | `PATCH`                | `/users`     |
+| `src/routes/users.delete.ts`  | `DELETE`               | `/users`     |
+| `src/routes/users.options.ts` | `OPTIONS`              | `/users`     |
+| `src/routes/users.head.ts`    | `HEAD`                 | `/users`     |
+| `src/routes/users.query.ts`   | `QUERY`                | `/users`     |
+| `src/routes/users.any.ts`     | `ANY` (multi-method)   | `/users`     |
+| `src/routes/users.all.ts`     | `ALL` (catch-all verb) | `/users`     |
 
 ---
 

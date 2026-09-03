@@ -75,9 +75,7 @@ function isTFactoryCall(node: OxcNode, member: string): boolean {
 }
 
 function isFactoryCall(node: OxcNode, member: string): boolean {
-  if (isTFactoryCall(node, member)) return true;
-  const standaloneName = member === "delete" ? "del" : member;
-  return isIdentifier(node, standaloneName);
+  return isTFactoryCall(node, member);
 }
 
 function hasExportDefault(program: OxcNode): boolean {

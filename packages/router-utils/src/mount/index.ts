@@ -1,29 +1,3 @@
-const UNIVERSAL_MOUNT_PATTERN = /^(\/.*)?\/\*$/;
-
-export class InvalidMountPatternError extends Error {
-  constructor(pattern: string) {
-    super(`Invalid mount pattern "${pattern}". Use wildcard forms only: "/*" or "/prefix/*".`);
-    this.name = "InvalidMountPatternError";
-  }
-}
-
-function normalizeMountPath(mountPath: string): string {
-  if (mountPath === "/" || !mountPath.endsWith("/")) {
-    return mountPath;
-  }
-  return mountPath.slice(0, -1);
-}
-
-export function resolveMountBase(pattern: string): string {
-  if (!UNIVERSAL_MOUNT_PATTERN.test(pattern)) {
-    throw new InvalidMountPatternError(pattern);
-  }
-
-  const wildcardIndex = pattern.lastIndexOf("/*");
-  const base = pattern.slice(0, wildcardIndex);
-  return base === "" ? "/" : normalizeMountPath(base);
-}
-
 export function composeBasePath(first?: string, second?: string): string {
   const cleanFirst = (first || "").replace(/\/+$/, "").replace(/^\/+/, "");
   const cleanSecond = (second || "").replace(/\/+$/, "").replace(/^\/+/, "");

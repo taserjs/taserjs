@@ -1,7 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 
-import { DEFAULT_ENTRY } from "../constants.js";
 import { ScanError } from "../support/errors.js";
 import { toPosixPath } from "../support/paths.js";
 import type { RouteFileMethod } from "../types.js";
@@ -23,11 +22,7 @@ export function fileNeedsScaffold(source: string, _kind: "route" | "layout"): bo
   return !DEFAULT_EXPORT_PATTERN.test(source);
 }
 
-export function routeScaffoldSource(
-  urlPath: string,
-  method: RouteFileMethod,
-  _entry?: string,
-): string {
+export function routeScaffoldSource(urlPath: string, method: RouteFileMethod): string {
   const factoryName = createRouteFactoryName(method);
   const factoryCall =
     method === "ANY" ? `${factoryName}('${urlPath}', ['GET'])` : `${factoryName}('${urlPath}')`;
@@ -41,7 +36,7 @@ export default ${factoryCall}.handler((_ctx) => {
 `;
 }
 
-export function layoutScaffoldSource(layoutId: string, _entry?: string): string {
+export function layoutScaffoldSource(layoutId: string): string {
   return `import { t } from '@taserjs/router';
 
 export default t.layout('${layoutId}').use((_ctx, next) => next());
@@ -92,18 +87,16 @@ export async function scaffoldRouteFile(
     return "skipped";
   }
 
-  const entry = options.entry || DEFAULT_ENTRY;
-
   if (kind === "layout") {
     const layoutId = layoutIdFromPath(normalizeRouteRel(relativePath));
-    await writeFile(absolutePath, layoutScaffoldSource(layoutId, entry), "utf8");
+    await writeFile(absolutePath, layoutScaffoldSource(layoutId), "utf8");
     return "written";
   }
 
   const routeRel = normalizeRouteRel(relativePath);
   const method = getMethodFromRouteFile(routeRel);
   const urlPath = buildUrlPath(routeRel);
-  await writeFile(absolutePath, routeScaffoldSource(urlPath, method, entry), "utf8");
+  await writeFile(absolutePath, routeScaffoldSource(urlPath, method), "utf8");
   return "written";
 }
 

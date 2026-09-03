@@ -1,5 +1,6 @@
 import type { LayoutId, MiddlewareBuilder } from "../types/index.js";
 import type { MiddlewareDefinition } from "../types/units.js";
+import { normalizeMiddlewareDefinition } from "./normalize.js";
 
 class MiddlewareBuilderImpl<Layout extends LayoutId> {
   readonly layout: Layout;
@@ -10,13 +11,7 @@ class MiddlewareBuilderImpl<Layout extends LayoutId> {
   }
 
   use(definition: MiddlewareDefinition | ((ctx: any, next: any) => any)): this {
-    if (typeof definition === "function") {
-      this.middlewares.push({ handler: definition as any });
-    } else if (typeof (definition as any)?.toUnit === "function") {
-      this.middlewares.push((definition as any).toUnit());
-    } else {
-      this.middlewares.push(definition);
-    }
+    this.middlewares.push(normalizeMiddlewareDefinition(definition));
     return this;
   }
 }

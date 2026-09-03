@@ -17,8 +17,9 @@ import type {
 } from "../types/index.js";
 import type { HttpMethod, MiddlewareDefinition } from "../types/units.js";
 import { pickDefinedSchemas, type SchemaValidators } from "../define/validators.js";
+import { normalizeMiddlewareDefinition } from "./normalize.js";
 
-function buildEffectiveReturns(args: {
+function buildRouteReturnsWith422(args: {
   middlewareReturns: ReturnsMap;
   routeReturns: ReturnsMap;
   schemas: {
@@ -94,13 +95,7 @@ class RouteBuilderImpl {
   }
 
   use(definition: MiddlewareDefinition | ((ctx: any, next: any) => any)): this {
-    if (typeof definition === "function") {
-      this.middlewares.push({ handler: definition as any });
-    } else if (typeof (definition as any)?.toUnit === "function") {
-      this.middlewares.push((definition as any).toUnit());
-    } else {
-      this.middlewares.push(definition);
-    }
+    this.middlewares.push(normalizeMiddlewareDefinition(definition));
     return this;
   }
 
@@ -108,7 +103,7 @@ class RouteBuilderImpl {
     const routeSchemas = pickDefinedSchemas(this.validators);
     const base = buildRouteBase(this.path, this.method, this.methods, this.middlewares);
 
-    const returns = buildEffectiveReturns({
+    const returns = buildRouteReturnsWith422({
       middlewareReturns: collectReturnsFromDefinitions(this.middlewares),
       routeReturns: this.routeReturns,
       schemas: {

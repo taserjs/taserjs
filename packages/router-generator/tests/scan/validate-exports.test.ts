@@ -61,7 +61,7 @@ export default layoutChain.use((_ctx, next) => next())
     expect(analyzeLayoutFileSource(source, "todo.ts").errors).toEqual([]);
   });
 
-  it("accepts standalone builder functions", () => {
+  it("rejects standalone builder functions without t prefix", () => {
     const routeSource = `import { get } from '@taserjs/router'
 export default get('/hello').handler(() => {})
 `;
@@ -69,7 +69,9 @@ export default get('/hello').handler(() => {})
 export default layout('account').use((_ctx, next) => next())
 `;
 
-    expect(analyzeRouteFileSource(routeSource, "hello.get.ts", "GET").errors).toEqual([]);
-    expect(analyzeLayoutFileSource(layoutSource, "account.ts").errors).toEqual([]);
+    expect(
+      analyzeRouteFileSource(routeSource, "hello.get.ts", "GET").errors.length,
+    ).toBeGreaterThan(0);
+    expect(analyzeLayoutFileSource(layoutSource, "account.ts").errors.length).toBeGreaterThan(0);
   });
 });
