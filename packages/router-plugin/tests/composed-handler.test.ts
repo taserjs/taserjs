@@ -7,7 +7,7 @@ import {
   normalizeScope,
   resolveHostFetch,
 } from "../src/runtime/index.js";
-import { getComposedAppCode } from "../src/index.js";
+import { getComposedAppCode } from "../src/core/compose.js";
 
 describe("runtime createComposedHandler", () => {
   it("extracts pathname accurately without URL allocations", () => {
@@ -146,6 +146,8 @@ describe("getComposedAppCode without host", () => {
   it("emits code delegating to createComposedHandler without hostServer", () => {
     const code = getComposedAppCode({ scope: "/" });
     expect(code).not.toContain("hostServer");
-    expect(code).toContain('import { createComposedHandler } from "@taserjs/router-plugin/runtime"');
+    expect(code).toContain(
+      'import { createComposedHandler } from "@taserjs/router-plugin/runtime"',
+    );
   });
 });

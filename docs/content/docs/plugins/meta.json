@@ -1,4 +1,4 @@
 {
   "title": "Plugins & Compilers",
-  "pages": ["vite", "next", "nitro"]
+  "pages": ["vite", "next", "nitro", "bundlers"]
 }

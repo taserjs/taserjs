@@ -4,10 +4,10 @@ import { tmpdir } from "node:os";
 
 import { describe, expect, it } from "vitest";
 
-import { emitRouteManifestSource } from "../src/index.js";
+import { emitManifestSource } from "../src/codegen/emit.js";
 import { buildTestModel, testEmitOptions } from "./helpers/test-config.js";
 
-describe("emitRouteManifestSource snapshot", () => {
+describe("emitManifestSource standalone-manifest snapshot", () => {
   it("matches golden manifest output", async () => {
     const fixtureRoot = mkdtempSync(join(tmpdir(), "taser-snapshot-"));
     const routesDir = join(fixtureRoot, "routes");
@@ -32,7 +32,7 @@ describe("emitRouteManifestSource snapshot", () => {
     );
 
     const model = await buildTestModel(routesDir, outputFile);
-    const source = emitRouteManifestSource(model, testEmitOptions)
+    const source = emitManifestSource(model, { ...testEmitOptions, kind: "standalone-manifest" })
       .replaceAll(fixtureRoot.replace(/\\/g, "/"), "<fixture>")
       .replaceAll(fixtureRoot.replace(/\//g, "\\"), "<fixture>");
 
@@ -43,7 +43,7 @@ describe("emitRouteManifestSource snapshot", () => {
   });
 });
 
-describe("emitRouteManifestSource", () => {
+describe("emitManifestSource standalone-manifest", () => {
   it("emits unified routeManifest with layouts and routes trees", async () => {
     const routesDir = mkdtempSync(join(tmpdir(), "taser-manifest-"));
     const outputFile = join(routesDir, "..", "routeManifest.gen.ts");
@@ -62,7 +62,7 @@ describe("emitRouteManifestSource", () => {
     );
 
     const model = await buildTestModel(routesDir, outputFile);
-    const source = emitRouteManifestSource(model, testEmitOptions);
+    const source = emitManifestSource(model, { ...testEmitOptions, kind: "standalone-manifest" });
 
     expect(source).toContain("export const routeManifest =");
     expect(source).toContain("layouts:");

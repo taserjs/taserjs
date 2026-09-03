@@ -3,22 +3,15 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "pathe";
 import {
   createAliasImportRewriter,
+  emitManifestSource,
   emitVirtualEntrySource,
-  emitVirtualManifestSource,
   ensureRelativePrefix,
   ROUTES_ALIAS_ID,
 } from "@taserjs/router-generator";
 import { getComposedAppCode } from "./compose.js";
 import type { TaserVirtualContext } from "./types.js";
 
-import {
-  DISK_ARTIFACT_DIR,
-  DISK_MANIFEST_PATH,
-  DISK_ENTRY_PATH,
-  DISK_APP_PATH,
-} from "./constants.js";
-
-export { DISK_ARTIFACT_DIR, DISK_MANIFEST_PATH, DISK_ENTRY_PATH, DISK_APP_PATH };
+import { DISK_ARTIFACT_DIR } from "./constants.js";
 
 export type WriteDiskArtifactsOptions = {
   outDir?: string | undefined;
@@ -63,7 +56,8 @@ export async function writeDiskArtifacts(
     stripImportExtension: true,
   });
 
-  const manifestCode = emitVirtualManifestSource(model, {
+  const manifestCode = emitManifestSource(model, {
+    kind: "virtual",
     header: ctx.formatting.header,
     quotes: ctx.formatting.quotes,
     rewriteImportPath,

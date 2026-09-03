@@ -17,8 +17,10 @@ describe("package dependencies", () => {
     expect(dependencies).not.toHaveProperty("hono");
   });
 
-  it("only depends on object-to-formdata at runtime", () => {
+  it("only depends on lightweight runtime packages", () => {
     const dependencies = packageJson.dependencies ?? {};
-    expect(Object.keys(dependencies)).toEqual(["object-to-formdata"]);
+    expect(Object.keys(dependencies).sort()).toEqual(
+      ["@taserjs/router-utils", "object-to-formdata"].sort(),
+    );
   });
 });

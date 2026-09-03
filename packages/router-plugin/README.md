@@ -2,11 +2,22 @@
 
 File-system routing and framework adapters for Taser apps.
 
-| Import                         | Purpose                                                                                |
-| ------------------------------ | -------------------------------------------------------------------------------------- |
-| `@taserjs/router-plugin/vite`  | Vite plugin (`taser()`) — standalone srvx serving or chained with `nitro/vite`         |
-| `@taserjs/router-plugin/next`  | Next.js App Router adapter (`withTaser`) — materializes generated modules to `.taser/` |
-| `@taserjs/router-plugin/nitro` | Standalone Nitro module for `nitro.config.ts`                                          |
+## Public API
+
+Import from a **subpath** — the package root (`@taserjs/router-plugin`) is internal and not part of the supported API.
+
+| Import                            | Purpose                                                                                |
+| --------------------------------- | -------------------------------------------------------------------------------------- |
+| `@taserjs/router-plugin/vite`     | Vite plugin (`taser()`) — standalone srvx serving or chained with `nitro/vite`         |
+| `@taserjs/router-plugin/next`     | Next.js App Router adapter (`withTaser`) — materializes generated modules to `.taser/` |
+| `@taserjs/router-plugin/nitro`    | Standalone Nitro module for `nitro.config.ts`                                          |
+| `@taserjs/router-plugin/webpack`  | Webpack plugin (`taser()`)                                                             |
+| `@taserjs/router-plugin/rspack`   | Rspack plugin (`taser()`)                                                              |
+| `@taserjs/router-plugin/rollup`   | Rollup plugin (`taser()`)                                                              |
+| `@taserjs/router-plugin/rolldown` | Rolldown plugin (`taser()`)                                                            |
+| `@taserjs/router-plugin/esbuild`  | Esbuild plugin (`taser()`)                                                             |
+
+`@taserjs/router-plugin/runtime` is used only by generated app code (`.taser/app.ts`, virtual modules) — not for direct application imports.
 
 ## Installation
 
@@ -122,11 +133,10 @@ separately. Unspecified options fall back to their defaults.
 
 ### Vite (`/vite`)
 
-| Option       | Type      | Default             | Description                                                               |
-| ------------ | --------- | ------------------- | ------------------------------------------------------------------------- |
-| `server`     | `boolean` | `true`              | Built-in dev serving + production entry in standalone mode.               |
-| `port`       | `number`  | `$PORT` \|\| `3000` | Standalone dev/prod port.                                                 |
-| `standalone` | `boolean` | `true`              | When using Nitro, replace its engine instead of registering as a handler. |
+| Option       | Type      | Default | Description                                                               |
+| ------------ | --------- | ------- | ------------------------------------------------------------------------- |
+| `server`     | `boolean` | `true`  | Built-in dev serving + production entry in standalone mode.               |
+| `standalone` | `boolean` | `true`  | When using Nitro, replace its engine instead of registering as a handler. |
 
 ### Next (`/next`)
 

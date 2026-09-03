@@ -1,0 +1,102 @@
+---
+title: Bundler Adapters
+description: "Use Taser with Webpack, Rspack, Rollup, Rolldown, or Esbuild via @taserjs/router-plugin subpath exports."
+icon: Package
+---
+
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+
+Taser ships the same unplugin implementation for several bundlers. Each adapter exposes a `taser()` plugin factory with the same options as the [Vite plugin](/docs/plugins/vite).
+
+<Callout type="info">
+  For new projects, prefer [Vite](/docs/plugins/vite) or [Vite + Nitro](/docs/plugins/nitro).
+  Bundler adapters are for custom build pipelines that do not use Vite.
+</Callout>
+
+---
+
+## Installation
+
+```bash
+pnpm add @taserjs/router @taserjs/router-plugin
+```
+
+Install the bundler you use as a dev dependency (`webpack`, `@rspack/core`, `rollup`, `rolldown`, or `esbuild`).
+
+---
+
+## Usage
+
+<Tabs items={["Webpack", "Rspack", "Rollup", "Rolldown", "Esbuild"]}>
+  <Tab value="Webpack">
+    ```ts title="webpack.config.ts"
+    import { taser } from "@taserjs/router-plugin/webpack";
+
+    export default {
+      plugins: [taser()],
+    };
+    ```
+
+  </Tab>
+  <Tab value="Rspack">
+    ```ts title="rspack.config.ts"
+    import { taser } from "@taserjs/router-plugin/rspack";
+
+    export default {
+      plugins: [taser()],
+    };
+    ```
+
+  </Tab>
+  <Tab value="Rollup">
+    ```ts title="rollup.config.ts"
+    import { taser } from "@taserjs/router-plugin/rollup";
+
+    export default {
+      plugins: [taser()],
+    };
+    ```
+
+  </Tab>
+  <Tab value="Rolldown">
+    ```ts title="rolldown.config.ts"
+    import { taser } from "@taserjs/router-plugin/rolldown";
+
+    export default {
+      plugins: [taser()],
+    };
+    ```
+
+  </Tab>
+  <Tab value="Esbuild">
+    ```ts title="esbuild.config.ts"
+    import { taser } from "@taserjs/router-plugin/esbuild";
+    import * as esbuild from "esbuild";
+
+    await esbuild.build({
+      plugins: [taser()],
+      // ...
+    });
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+## Options
+
+Bundler plugins accept the same shared configuration as Vite (`routesDir`, `entry` / `entryPath`, `serverEntry` / `serverEntryPath`, `basePath`, `ignore`, and formatting options). See the [router-plugin API reference](/docs/api-reference/router-plugin).
+
+---
+
+## Subpath reference
+
+| Import                            | Bundler  |
+| :-------------------------------- | :------- |
+| `@taserjs/router-plugin/webpack`  | Webpack  |
+| `@taserjs/router-plugin/rspack`   | Rspack   |
+| `@taserjs/router-plugin/rollup`   | Rollup   |
+| `@taserjs/router-plugin/rolldown` | Rolldown |
+| `@taserjs/router-plugin/esbuild`  | Esbuild  |

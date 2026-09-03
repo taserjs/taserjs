@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 
 import {
-  emitRouteManifestSource,
+  emitManifestSource,
   buildGeneratedModelFromScan,
   scanRouteFiles,
   walkRouteFiles,
@@ -54,7 +54,7 @@ export default t.all('/order').handler(() => json({ ok: true }))
     expect(byMethod.QUERY).toContain("All");
     expect(entries).toHaveLength(8);
 
-    const source = emitRouteManifestSource(model, testEmitOptions);
+    const source = emitManifestSource(model, { ...testEmitOptions, kind: "standalone-manifest" });
     expect(source).toContain("GET:");
     expect(source).toContain("OPTIONS:");
     expect(source).toContain("POST:");

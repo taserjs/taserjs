@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { getComposedAppCode } from "../src/index.js";
+import { getComposedAppCode } from "../src/core/compose.js";
 
 describe("getComposedAppCode host contract", () => {
   it("emits no host code without a server entry", () => {
     const code = getComposedAppCode({ scope: "/" });
     expect(code).not.toContain("hostServer");
-    expect(code).toContain('import { createComposedHandler } from "@taserjs/router-plugin/runtime"');
+    expect(code).toContain(
+      'import { createComposedHandler } from "@taserjs/router-plugin/runtime"',
+    );
   });
 
   it("installs srvx FastResponse in standalone mode", () => {
@@ -24,7 +26,9 @@ describe("getComposedAppCode host contract", () => {
   it("delegates to createComposedHandler with hostServer when serverEntrySpecifier is given", () => {
     const code = getComposedAppCode({ serverEntrySpecifier: "#taserjs/server-entry" });
     expect(code).toContain('import * as hostServer from "#taserjs/server-entry"');
-    expect(code).toContain('import { createComposedHandler } from "@taserjs/router-plugin/runtime"');
+    expect(code).toContain(
+      'import { createComposedHandler } from "@taserjs/router-plugin/runtime"',
+    );
     expect(code).toContain("hostServer,");
   });
 });

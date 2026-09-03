@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { toNodeHandler } from "srvx/node";
+import { normalizeScope } from "@taserjs/router-utils";
 import type { ViteDevServer } from "vite";
 import { VIRTUAL_APP_ID } from "./constants.js";
 
@@ -53,12 +54,7 @@ export function createViteDevMiddleware(
   _rootDir: string,
   options: ViteDevMiddlewareOptions = {},
 ): (req: IncomingMessage, res: ServerResponse, next: ConnectNext) => Promise<void> {
-  const normalizedBasePath =
-    options.basePath && options.basePath !== "/"
-      ? options.basePath.startsWith("/")
-        ? options.basePath.replace(/\/+$/, "")
-        : `/${options.basePath.replace(/\/+$/, "")}`
-      : undefined;
+  const normalizedBasePath = normalizeScope(options.basePath);
 
   return async (req: IncomingMessage, res: ServerResponse, next: ConnectNext): Promise<void> => {
     const url = req.url;
@@ -70,18 +66,21 @@ export function createViteDevMiddleware(
       if (!cachedNodeHandler) {
         const mod = (await server.ssrLoadModule(VIRTUAL_APP_ID)) as Record<string, unknown>;
 
-        const app = (mod.taserApp ?? mod.default ?? mod) as
-          | { fetch?: (req: Request) => Promise<Response> }
-          | ((req: Request) => Promise<Response>)
-          | undefined;
-
         const fetchHandler =
           typeof mod.handler === "function"
             ? (mod.handler as (req: Request) => Promise<Response>)
-            : typeof app === "object" && typeof app?.fetch === "function"
-              ? app.fetch.bind(app)
-              : typeof app === "function"
-                ? app
+            : typeof mod.taserApp === "object" &&
+                mod.taserApp !== null &&
+                typeof (mod.taserApp as { fetch?: unknown }).fetch === "function"
+              ? ((mod.taserApp as { fetch: (req: Request) => Promise<Response> }).fetch.bind(
+                  mod.taserApp,
+                ) as (req: Request) => Promise<Response>)
+              : typeof mod.default === "object" &&
+                  mod.default !== null &&
+                  typeof (mod.default as { fetch?: unknown }).fetch === "function"
+                ? ((mod.default as { fetch: (req: Request) => Promise<Response> }).fetch.bind(
+                    mod.default,
+                  ) as (req: Request) => Promise<Response>)
                 : undefined;
 
         if (!fetchHandler) {

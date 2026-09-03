@@ -429,6 +429,9 @@ importers:
 
   packages/router-client:
     dependencies:
+      '@taserjs/router-utils':
+        specifier: workspace:*
+        version: link:../router-utils
       object-to-formdata:
         specifier: ^5.0.0
         version: 5.0.0

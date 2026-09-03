@@ -2,11 +2,9 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { promises as fsp } from "node:fs";
 import { join } from "pathe";
 import { tmpdir } from "node:os";
-import {
-  createTaserVirtualContext,
-  getComposedAppCode,
-  SERVER_ENTRY_ALIAS_ID,
-} from "../src/index.js";
+import { createTaserVirtualContext } from "../src/core/context.js";
+import { getComposedAppCode } from "../src/core/compose.js";
+import { SERVER_ENTRY_ALIAS_ID } from "../src/core/constants.js";
 
 /**
  * Hygiene invariant (issue 06 / H3): emitted artifacts must never embed

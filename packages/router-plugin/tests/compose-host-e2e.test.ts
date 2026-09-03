@@ -4,7 +4,7 @@ import { join } from "pathe";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 
-import { getComposedAppCode } from "../src/index.js";
+import { getComposedAppCode } from "../src/core/compose.js";
 
 /**
  * Loads the REAL generated compose output with its virtual specifiers rewired

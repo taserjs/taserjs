@@ -24,9 +24,9 @@ taserjs/
 │   ├── router-core/       # Runtime onion execution pipeline, context, headers, cookies, layers, Hono adapter
 │   ├── router-utils/      # Standard Schema validation, reply helpers (json, text, html), status codes, manifest helpers
 │   ├── router-generator/  # Route scanner, AST parser, watcher, type generator (.taser/types/routes.d.ts), scaffolder
-│   ├── router-plugin/     # Unplugin multi-bundler plugin (Vite, Nitro, Next.js, Rollup, Webpack, Rspack, Esbuild)
+│   ├── router-plugin/     # Vite/Next/Nitro adapters + optional bundler plugins (Webpack, Rspack, Rollup, Rolldown, Esbuild)
 │   ├── router-client/     # Lightweight typed RPC client proxy
-│   ├── router-cli/        # Command-line interface (taser dev, taser build, taser generate, taser scaffold)
+│   ├── router-cli/        # Command-line interface (`taser generate` only; dev/build via Vite + taser() plugin)
 │   └── create-taserjs/    # CLI starter template generator
 ├── docs/                  # Next.js 16 + Turbopack documentation application
 └── examples/              # Integration examples (basic-app, bun-app, hono-app, manual-app, next-app, start-app)

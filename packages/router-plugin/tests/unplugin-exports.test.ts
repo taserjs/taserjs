@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { taserUnplugin, unplugin } from "../src/index.js";
+import { taserUnplugin } from "../src/core/unplugin.js";
 import vitePlugin from "../src/vite.js";
 import webpackPlugin from "../src/webpack.js";
 import rspackPlugin from "../src/rspack.js";
@@ -13,7 +13,7 @@ function getSinglePlugin(plugin: unknown): Record<string, any> {
 }
 
 describe("unplugin multi-bundler exports", () => {
-  it("exports universal unplugin factory from root", () => {
+  it("exports universal unplugin factory from core", () => {
     expect(typeof taserUnplugin).toBe("object");
     expect(typeof taserUnplugin.vite).toBe("function");
     expect(typeof taserUnplugin.webpack).toBe("function");
@@ -21,7 +21,6 @@ describe("unplugin multi-bundler exports", () => {
     expect(typeof taserUnplugin.rollup).toBe("function");
     expect(typeof taserUnplugin.rolldown).toBe("function");
     expect(typeof taserUnplugin.esbuild).toBe("function");
-    expect(unplugin).toBe(taserUnplugin);
   });
 
   it("exports specialized vite plugin", () => {

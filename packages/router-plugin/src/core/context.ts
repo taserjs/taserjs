@@ -2,8 +2,8 @@ import { existsSync } from "node:fs";
 import { isAbsolute, join, resolve } from "pathe";
 import {
   AnalysisCache,
+  emitManifestSource,
   emitVirtualEntrySource,
-  emitVirtualManifestSource,
   resolveRoutesDir,
   resolveServerDir,
   resolveServerEntry,
@@ -79,7 +79,8 @@ export function createTaserVirtualContext(options: TaserPluginOptions = {}): Tas
     if (!manifestCodePromise) {
       manifestCodePromise = (async () => {
         const model = await getModel();
-        return emitVirtualManifestSource(model, {
+        return emitManifestSource(model, {
+          kind: "virtual",
           header: resolved.formatting.header,
           quotes: resolved.formatting.quotes,
         });

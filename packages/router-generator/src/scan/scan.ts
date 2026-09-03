@@ -606,56 +606,6 @@ export async function scanRouteFiles(
   return finalizeScanResult({ layouts, routes });
 }
 
-export async function scanSingleRouteFile(
-  routesDir: string,
-  routesImportBase: string,
-  absolutePath: string,
-  options: ScanOptions = {},
-): Promise<{ kind: "route"; entry: RouteEntry } | { kind: "layout"; entry: LayoutFile } | null> {
-  const extension = options.extension ?? true;
-  const rawRel = toPosixPath(relative(routesDir, absolutePath));
-  assertPhysicalRouteFile(rawRel);
-
-  if (isRouteFile(rawRel)) {
-    const method = getMethodFromRouteFile(normalizeRouteRel(rawRel));
-    const errors: ScanError[] = [];
-    let methods: RouteEntry["methods"] | undefined;
-
-    const source = await readFile(absolutePath, "utf8").catch(() => undefined);
-    if (source !== undefined) {
-      const analyzed = analyzeRouteFileSource(source, rawRel, method);
-      errors.push(...analyzed.errors);
-      methods = analyzed.methods;
-    }
-
-    const entry = parseRouteEntry(rawRel, routesImportBase, extension, methods);
-
-    for (const invalid of collectInvalidRouteParams(entry.routeRel)) {
-      errors.push(
-        new ScanError(formatInvalidParamMessage(invalid.paramName, invalid.filePath), rawRel),
-      );
-    }
-
-    if (errors.length > 0) {
-      throw new ScanErrorCollection(errors);
-    }
-
-    return { kind: "route", entry };
-  }
-
-  if (isLayoutFile(rawRel)) {
-    const entry = parseLayoutEntry(rawRel, routesImportBase, extension);
-    const source = await readFile(absolutePath, "utf8");
-    const analyzed = analyzeLayoutFileSource(source, rawRel);
-    if (analyzed.errors.length > 0) {
-      throw new ScanErrorCollection(analyzed.errors);
-    }
-    return { kind: "layout", entry };
-  }
-
-  return null;
-}
-
 function resolveRouteLayouts(routeRel: string, layouts: LayoutFile[]): string[] {
   return routeLayoutChain(routePathWithoutVerb(routeRel), layouts);
 }

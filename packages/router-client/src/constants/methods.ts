@@ -1,13 +1,6 @@
-export const METHOD_MAP = {
-  GET: "$get",
-  POST: "$post",
-  PUT: "$put",
-  PATCH: "$patch",
-  DELETE: "$delete",
-  OPTIONS: "$options",
-  HEAD: "$head",
-  QUERY: "$query",
-} as const;
+import { CLIENT_METHOD_MAP } from "@taserjs/router-utils";
+
+export const METHOD_MAP = CLIENT_METHOD_MAP;
 
 export type HttpMethodName = keyof typeof METHOD_MAP;
 

@@ -48,3 +48,11 @@ export function composeBasePath(first?: string, second?: string): string {
   }
   return "";
 }
+
+/** Normalizes a URL scope prefix for dispatch (strips trailing slashes; `/` becomes undefined). */
+export function normalizeScope(scope: string | undefined): string | undefined {
+  if (!scope || scope === "/") {
+    return undefined;
+  }
+  return scope.startsWith("/") ? scope.replace(/\/+$/, "") : `/${scope.replace(/\/+$/, "")}`;
+}

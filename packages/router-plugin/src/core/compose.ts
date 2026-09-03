@@ -1,4 +1,5 @@
 import { VIRTUAL_ENTRY_ID } from "./constants.js";
+import { normalizeScope } from "@taserjs/router-utils";
 
 export type ComposedAppOptions = {
   serverEntrySpecifier?: string | undefined;
@@ -13,12 +14,7 @@ export function getComposedAppCode(options: ComposedAppOptions = {}): string {
   const rawScope = options.scope;
   const isHosted = options.composeStyle === "hosted";
 
-  const normalizedScope =
-    rawScope && rawScope !== "/"
-      ? rawScope.startsWith("/")
-        ? rawScope.replace(/\/+$/, "")
-        : `/${rawScope.replace(/\/+$/, "")}`
-      : undefined;
+  const normalizedScope = normalizeScope(rawScope);
 
   const imports = [
     `import taserRoutesApp from "${entrySpecifier}";`,
@@ -40,6 +36,7 @@ globalThis.Response = FastResponse;`;
   const nitroInterop = isHosted
     ? ""
     : `
+// Nitro standalone mode replaces the engine via #nitro/virtual/app; these satisfy Nitro's app contract.
 export function createNitroApp() {
   return {
     fetch: handler,

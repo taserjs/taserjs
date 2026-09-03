@@ -9,6 +9,7 @@ import {
   SERVER_ENTRY_ALIAS_ID,
   VIRTUAL_MANIFEST_ID,
   VIRTUAL_ENTRY_ID,
+  VIRTUAL_APP_ID,
 } from "./core/constants.js";
 import { createTaserVirtualContext, watchAndSyncRoutes } from "./core/context.js";
 import { getComposedAppCode } from "./core/compose.js";
@@ -22,10 +23,10 @@ export function buildNitroRoutingVirtualSource(): string {
   ].join("\n");
 }
 
-export function buildNitroHandlerVirtualSource(entrySpecifier = VIRTUAL_ENTRY_ID): string {
+export function buildNitroModuleHandlerSource(): string {
   return [
-    `import app from "${entrySpecifier}";`,
-    "export default (event) => app.fetch(event instanceof Request ? event : event.req);",
+    `import { handler } from "${VIRTUAL_APP_ID}";`,
+    "export default (event) => handler(event instanceof Request ? event : event.req);",
   ].join("\n");
 }
 
@@ -112,8 +113,13 @@ async function applyTaserNitro(nitro: Nitro, options: TaserNitroOptions): Promis
       effectiveScope && effectiveScope !== "/" ? `${effectiveScope.replace(/\/+$/, "")}/**` : "/**";
 
     const VIRTUAL_NITRO_HANDLER_ID = "#taserjs/virtual/nitro-handler";
-    nitro.options.virtual[VIRTUAL_NITRO_HANDLER_ID] = () =>
-      buildNitroHandlerVirtualSource(VIRTUAL_ENTRY_ID);
+    const composedAppOptions = {
+      ...(ctx.serverEntryPath ? { serverEntrySpecifier: SERVER_ENTRY_ALIAS_ID } : {}),
+      scope: effectiveScope,
+    };
+
+    nitro.options.virtual[VIRTUAL_APP_ID] = () => getComposedAppCode(composedAppOptions);
+    nitro.options.virtual[VIRTUAL_NITRO_HANDLER_ID] = () => buildNitroModuleHandlerSource();
 
     nitro.options.handlers.unshift({
       route: routePattern,

@@ -3,7 +3,9 @@ import { promises as fsp } from "node:fs";
 import { join } from "pathe";
 import { tmpdir } from "node:os";
 
-import { createTaserVirtualContext, writeDiskArtifacts, DISK_ARTIFACT_DIR } from "../src/index.js";
+import { createTaserVirtualContext } from "../src/core/context.js";
+import { writeDiskArtifacts } from "../src/core/emitter.js";
+import { DISK_ARTIFACT_DIR } from "../src/core/constants.js";
 
 async function setupFixture(): Promise<string> {
   const testDir = await fsp.mkdtemp(join(tmpdir(), "taser-disk-emitter-"));

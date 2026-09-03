@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { promises as fsp } from "node:fs";
 import { join } from "pathe";
 import { tmpdir } from "node:os";
-import { createTaserVirtualContext } from "../src/index.js";
+import { createTaserVirtualContext } from "../src/core/context.js";
 import { scaffoldRouteFile } from "@taserjs/router-generator";
 import { setupTaserNitro } from "../src/nitro.js";
 import type { Nitro } from "nitro/types";
@@ -168,6 +168,11 @@ export default t.get("/").handler(() => text("hello"));
       lazy: false,
       handler: "#taserjs/virtual/nitro-handler",
     });
+    expect(mockNitro.options.virtual["#taserjs/virtual/app"]).toBeDefined();
+    const nitroHandlerSource = await mockNitro.options.virtual["#taserjs/virtual/nitro-handler"]();
+    expect(nitroHandlerSource).toContain('import { handler } from "#taserjs/virtual/app"');
+    const composedAppSource = await mockNitro.options.virtual["#taserjs/virtual/app"]();
+    expect(composedAppSource).toContain("createComposedHandler");
   });
 
   it("ignores duplicate taser setup registrations", async () => {

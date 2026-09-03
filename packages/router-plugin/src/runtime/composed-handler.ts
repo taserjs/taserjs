@@ -1,12 +1,4 @@
-export type HostExport =
-  | {
-      fetch?: (req: Request) => Promise<Response | undefined> | Response | undefined;
-      default?: unknown;
-      [key: string]: unknown;
-    }
-  | ((...args: any[]) => any)
-  | null
-  | undefined;
+import { normalizeScope } from "@taserjs/router-utils";
 
 export interface TaserRoutesApp {
   fetch(req: Request): Promise<Response | undefined> | Response | undefined;
@@ -28,13 +20,6 @@ export function extractPathname(url: string): string {
   }
   const slashIdx = path.indexOf("/", protoIdx + 3);
   return slashIdx === -1 ? "/" : path.slice(slashIdx);
-}
-
-export function normalizeScope(scope: string | undefined): string | undefined {
-  if (!scope || scope === "/") {
-    return undefined;
-  }
-  return scope.startsWith("/") ? scope.replace(/\/+$/, "") : `/${scope.replace(/\/+$/, "")}`;
 }
 
 export function matchesScope(pathname: string, normalizedScope: string): boolean {

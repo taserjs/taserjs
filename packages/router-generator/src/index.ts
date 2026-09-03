@@ -89,7 +89,6 @@ export {
 export {
   walkRouteFiles,
   scanRouteFiles,
-  scanSingleRouteFile,
   scanAndBuildModel,
   buildGeneratedModelFromScan,
   analyzeRouteFileSource,
@@ -122,9 +121,6 @@ export {
 
 export {
   emitManifestSource,
-  emitVirtualManifestSource,
-  emitRouteManifestSource,
-  emitTypeDeclarationsSource,
   type EmitManifestOptions,
   type EmitManifestSourceOptions,
   type ManifestEmitKind,
