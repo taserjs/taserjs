@@ -85,7 +85,8 @@ export function isLayoutFile(routeRel: string): boolean {
   if (isRouteFile(routeRel)) {
     return false;
   }
-  const base = routeRel.replace(/\\/g, "/").split("/").pop() ?? routeRel;
+  const lastSlash = Math.max(routeRel.lastIndexOf("/"), routeRel.lastIndexOf("\\"));
+  const base = lastSlash === -1 ? routeRel : routeRel.slice(lastSlash + 1);
   return base.endsWith(".ts");
 }
 
@@ -100,9 +101,16 @@ export function classifyRouteFile(relativePath: string): RouteFileKind | null {
 export function splitSegments(pathStr: string): string[] {
   const rawParts = pathStr.split("/");
   const segments: string[] = [];
-  for (const part of rawParts) {
+  for (let i = 0; i < rawParts.length; i++) {
+    const part = rawParts[i]!;
     if (part === "") continue;
-    for (const sub of part.split(SPLIT_DOT_REGEX)) {
+    if (part.indexOf(".") === -1) {
+      segments.push(part);
+      continue;
+    }
+    const subs = part.split(SPLIT_DOT_REGEX);
+    for (let j = 0; j < subs.length; j++) {
+      const sub = subs[j]!;
       if (sub !== "") segments.push(sub);
     }
   }
@@ -194,27 +202,33 @@ export function layoutIdFromPath(relativePath: string): string {
   return `/${mapped.join("/")}`;
 }
 
+const pascalCache = new Map<string, string>();
+
 export function segmentToPascal(segment: string): string {
+  const cached = pascalCache.get(segment);
+  if (cached !== undefined) {
+    return cached;
+  }
   const clean = segment.replace(/\[(.*?)\]/g, "$1");
+  let result: string;
   if (clean === "index") {
-    return "Index";
-  }
-  if (clean === "*") {
-    return "Splat";
-  }
-  if (clean.startsWith(":") || clean.startsWith("$")) {
+    result = "Index";
+  } else if (clean === "*") {
+    result = "Splat";
+  } else if (clean.startsWith(":") || clean.startsWith("$")) {
     const paramName = clean.slice(1);
-    return paramName === "" ? "Param" : paramName.charAt(0).toUpperCase() + paramName.slice(1);
-  }
-  if (clean.startsWith("_")) {
-    return clean.slice(1).charAt(0).toUpperCase() + clean.slice(2);
-  }
-  if (clean.endsWith("_")) {
+    result = paramName === "" ? "Param" : paramName.charAt(0).toUpperCase() + paramName.slice(1);
+  } else if (clean.startsWith("_")) {
+    result = clean.slice(1).charAt(0).toUpperCase() + clean.slice(2);
+  } else if (clean.endsWith("_")) {
     const base = clean.slice(0, -1);
-    return base.charAt(0).toUpperCase() + base.slice(1);
+    result = base.charAt(0).toUpperCase() + base.slice(1);
+  } else {
+    const sanitized = clean.replace(/[^a-zA-Z0-9_]/g, "");
+    result = sanitized.charAt(0).toUpperCase() + sanitized.slice(1);
   }
-  const sanitized = clean.replace(/[^a-zA-Z0-9_]/g, "");
-  return sanitized.charAt(0).toUpperCase() + sanitized.slice(1);
+  pascalCache.set(segment, result);
+  return result;
 }
 
 export function layoutImportName(layoutId: string): string {

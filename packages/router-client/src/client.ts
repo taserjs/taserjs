@@ -87,33 +87,10 @@ export function createClient<TApp = never>(options: CreateClientOptions): Client
     : options.baseUrl;
   const clientOptions: CreateClientOptions =
     normalizedBaseUrl === options.baseUrl ? options : { ...options, baseUrl: normalizedBaseUrl };
-  const proxyCache = new Map<string, unknown>();
-
-  function createProxy(path: string[]): unknown {
-    const key = path.join(".");
-    const cached = proxyCache.get(key);
-    if (cached) {
-      return cached;
-    }
-
-    const proxy: unknown = new Proxy(() => {}, {
-      get(_target, prop) {
-        if (typeof prop !== "string" || prop === "then") {
-          return undefined;
-        }
-        return createProxy([...path, prop]);
-      },
-      apply(_target, _thisArg, args) {
-        return callback({ path, args });
-      },
-    });
-    proxyCache.set(key, proxy);
-    return proxy;
-  }
 
   function callback(opts: CallbackOptions): unknown {
-    const parts = [...opts.path];
-    const methodKey = parts.at(-1);
+    const parts = opts.path;
+    const methodKey = parts[parts.length - 1];
 
     if (!methodKey || !isClientMethod(methodKey)) {
       throw new Error(`Invalid client method path: ${parts.join(".")}`);
@@ -121,6 +98,27 @@ export function createClient<TApp = never>(options: CreateClientOptions): Client
 
     const segments = parts.slice(0, -1);
     return executeRequest(clientOptions, segments, methodKey, opts.args);
+  }
+
+  function createProxy(path: string[]): unknown {
+    const childCache = new Map<string, unknown>();
+
+    return new Proxy(() => {}, {
+      get(_target, prop) {
+        if (typeof prop !== "string" || prop === "then") {
+          return undefined;
+        }
+        let child = childCache.get(prop);
+        if (child === undefined) {
+          child = createProxy([...path, prop]);
+          childCache.set(prop, child);
+        }
+        return child;
+      },
+      apply(_target, _thisArg, args) {
+        return callback({ path, args });
+      },
+    });
   }
 
   return createProxy([]) as Client<TApp>;

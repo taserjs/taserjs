@@ -18,19 +18,6 @@ import type {
 import type { HttpMethod, MiddlewareDefinition } from "../types/units.js";
 import { pickDefinedSchemas, type SchemaValidators } from "../define/validators.js";
 
-function toUtilsMap(map: ReturnsMap | undefined): Record<number, StandardSchemaV1> {
-  if (!map) {
-    return {};
-  }
-  const out: Record<number, StandardSchemaV1> = {};
-  for (const [key, schema] of Object.entries(map)) {
-    if (schema !== undefined) {
-      out[Number(key)] = schema;
-    }
-  }
-  return out;
-}
-
 function buildEffectiveReturns(args: {
   middlewareReturns: ReturnsMap;
   routeReturns: ReturnsMap;
@@ -42,8 +29,8 @@ function buildEffectiveReturns(args: {
   };
 }): Record<number, StandardSchemaV1> | undefined {
   const merged = mergeReturnsMaps(
-    toUtilsMap(args.middlewareReturns),
-    toUtilsMap(args.routeReturns),
+    args.middlewareReturns as Record<number, StandardSchemaV1>,
+    args.routeReturns as Record<number, StandardSchemaV1>,
   );
   const with422 = withAuto422(merged, hasInputSchemas(args.schemas));
   return Object.keys(with422).length > 0 ? with422 : undefined;
@@ -63,76 +50,93 @@ function buildRouteBase(
   };
 }
 
+class RouteBuilderImpl {
+  readonly path: string;
+  readonly method: HttpMethod | "ANY" | "ALL";
+  readonly methods: readonly HttpMethod[] | undefined;
+  private readonly middlewares: MiddlewareDefinition[] = [];
+  private readonly routeReturns: Record<number, StandardSchemaV1> = {};
+  private readonly validators: SchemaValidators = {};
+  private bodyMode: BodyMode | undefined;
+
+  constructor(path: string, method: HttpMethod | "ANY" | "ALL", methods?: readonly HttpMethod[]) {
+    this.path = path;
+    this.method = method;
+    this.methods = methods;
+  }
+
+  query(schema: Schema<unknown>): this {
+    this.validators.query = schema;
+    return this;
+  }
+
+  params(schema: Schema<unknown>): this {
+    this.validators.params = schema;
+    return this;
+  }
+
+  body(modeOrSchema: BodyMode | Schema<unknown>, schema?: Schema<unknown>): this {
+    if (typeof modeOrSchema === "string") {
+      this.bodyMode = modeOrSchema as BodyMode;
+      if (schema !== undefined) {
+        this.validators.body = schema;
+      }
+    } else {
+      this.bodyMode = "json";
+      this.validators.body = modeOrSchema;
+    }
+    return this;
+  }
+
+  returns(map: ReturnsMap): this {
+    Object.assign(this.routeReturns, map);
+    return this;
+  }
+
+  use(definition: MiddlewareDefinition | ((ctx: any, next: any) => any)): this {
+    if (typeof definition === "function") {
+      this.middlewares.push({ handler: definition as any });
+    } else if (typeof (definition as any)?.toUnit === "function") {
+      this.middlewares.push((definition as any).toUnit());
+    } else {
+      this.middlewares.push(definition);
+    }
+    return this;
+  }
+
+  handler(fn: (ctx: unknown) => Response | Promise<Response>) {
+    const routeSchemas = pickDefinedSchemas(this.validators);
+    const base = buildRouteBase(this.path, this.method, this.methods, this.middlewares);
+
+    const returns = buildEffectiveReturns({
+      middlewareReturns: collectReturnsFromDefinitions(this.middlewares),
+      routeReturns: this.routeReturns,
+      schemas: {
+        ...this.validators,
+        middlewares: this.middlewares,
+      },
+    });
+
+    return {
+      ...base,
+      handler: fn,
+      ...routeSchemas,
+      ...(this.bodyMode ? { bodyMode: this.bodyMode } : {}),
+      ...(returns ? { returns } : {}),
+    };
+  }
+}
+
 /** Shared internal builder — not part of the public `@taserjs/router` API. */
 export function createRouteBuilder(
   path: string,
   method: HttpMethod | "ANY" | "ALL",
   methods?: readonly HttpMethod[],
 ): RouteBuilder<RoutePath, Method, readonly [], ValidatorParts> {
-  const middlewares: MiddlewareDefinition[] = [];
-  let routeReturns: Record<number, StandardSchemaV1> = {};
-  const validators: SchemaValidators = {};
-  let bodyMode: BodyMode | undefined;
-
-  const builder = {
-    path,
-    method,
-    query(schema: Schema<unknown>) {
-      validators.query = schema;
-      return builder;
-    },
-    params(schema: Schema<unknown>) {
-      validators.params = schema;
-      return builder;
-    },
-    body(modeOrSchema: BodyMode | Schema<unknown>, schema?: Schema<unknown>) {
-      if (typeof modeOrSchema === "string") {
-        bodyMode = modeOrSchema as BodyMode;
-        if (schema !== undefined) {
-          validators.body = schema;
-        }
-      } else {
-        bodyMode = "json";
-        validators.body = modeOrSchema;
-      }
-      return builder;
-    },
-    returns(map: ReturnsMap) {
-      routeReturns = { ...routeReturns, ...toUtilsMap(map) };
-      return builder;
-    },
-    use(definition: MiddlewareDefinition | ((ctx: any, next: any) => any)) {
-      if (typeof definition === "function") {
-        middlewares.push({ handler: definition as any });
-      } else if (typeof (definition as any)?.toUnit === "function") {
-        middlewares.push((definition as any).toUnit());
-      } else {
-        middlewares.push(definition);
-      }
-      return builder;
-    },
-    handler(fn: (ctx: unknown) => Response | Promise<Response>) {
-      const routeSchemas = pickDefinedSchemas(validators);
-      const base = buildRouteBase(path, method, methods, middlewares);
-
-      const returns = buildEffectiveReturns({
-        middlewareReturns: collectReturnsFromDefinitions(middlewares),
-        routeReturns,
-        schemas: {
-          ...validators,
-          middlewares,
-        },
-      });
-
-      return {
-        ...base,
-        handler: fn,
-        ...routeSchemas,
-        ...(bodyMode ? { bodyMode } : {}),
-        ...(returns ? { returns } : {}),
-      };
-    },
-  };
-
-  return builder as unknown as RouteBuilder<RoutePath, Method, readonly [], ValidatorParts>;
+  return new RouteBuilderImpl(path, method, methods) as unknown as RouteBuilder<
+    RoutePath,
+    Method,
+    readonly [],
+    ValidatorParts
+  >;
 }

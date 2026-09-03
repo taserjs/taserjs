@@ -8,10 +8,10 @@ export class InvalidMountPatternError extends Error {
 }
 
 function normalizeMountPath(mountPath: string): string {
-  if (mountPath === "/") {
-    return "/";
+  if (mountPath === "/" || !mountPath.endsWith("/")) {
+    return mountPath;
   }
-  return mountPath.replace(/\/$/, "");
+  return mountPath.slice(0, -1);
 }
 
 export function resolveMountBase(pattern: string): string {

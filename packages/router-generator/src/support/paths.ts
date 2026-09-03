@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 export function toPosixPath(filePath: string): string {
-  return filePath.split(sep).join("/");
+  return sep === "\\" ? filePath.replaceAll("\\", "/") : filePath;
 }
 
 export function ensureRelativePrefix(path: string): string {

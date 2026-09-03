@@ -46,7 +46,13 @@ export function mergeHeaders(
   }
 
   // Plain object Record<string, string>
-  const hasContentType = Object.keys(rawHeaders).some((k) => k.toLowerCase() === "content-type");
+  let hasContentType = false;
+  for (const k in rawHeaders) {
+    if (k.toLowerCase() === "content-type") {
+      hasContentType = true;
+      break;
+    }
+  }
   const headers =
     hasContentType || !defaultContentType
       ? { ...rawHeaders }
@@ -103,7 +109,11 @@ export function classifyBody(body: unknown): BodyKind {
     return "string";
   }
 
-  if (Buffer.isBuffer(body) || body instanceof Uint8Array || body instanceof ArrayBuffer) {
+  if (
+    (typeof Buffer !== "undefined" && Buffer.isBuffer(body)) ||
+    body instanceof Uint8Array ||
+    body instanceof ArrayBuffer
+  ) {
     return "bytes";
   }
 
