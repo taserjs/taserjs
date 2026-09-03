@@ -108,6 +108,16 @@
         "default": "./dist/cjs/nitro.cjs"
       }
     },
+    "./runtime": {
+      "import": {
+        "types": "./dist/esm/runtime/index.d.ts",
+        "default": "./dist/esm/runtime/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/runtime/index.d.cts",
+        "default": "./dist/cjs/runtime/index.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {

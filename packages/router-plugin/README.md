@@ -174,7 +174,6 @@ An explicit form is also accepted:
 
 ```ts
 export default { fetch: handler }; // fetch function
-export default { node: handler }; // raw (req, res) function or pre-converted
 ```
 
 Notes:

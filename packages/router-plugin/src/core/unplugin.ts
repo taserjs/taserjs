@@ -17,7 +17,7 @@ import {
 } from "./constants.js";
 import { createTaserVirtualContext, watchAndSyncRoutes } from "./context.js";
 import { getComposedAppCode, getServeShimCode } from "./compose.js";
-import { createViteDevMiddleware } from "./dev-server.js";
+import { createViteDevMiddleware, invalidateDevServerCache } from "./dev-server.js";
 import { setupTaserNitro } from "../nitro.js";
 import type { TaserPluginOptions, TaserVirtualContext } from "./types.js";
 
@@ -38,6 +38,7 @@ function detectNitro(config: unknown): boolean {
 }
 
 function invalidateModules(server: ViteDevServer) {
+  invalidateDevServerCache();
   const ids = [
     RESOLVED_VIRTUAL_MANIFEST_ID,
     VIRTUAL_MANIFEST_ID,
@@ -151,14 +152,21 @@ export const unpluginFactory = (options: TaserPluginOptions = {}) => {
           ctx = undefined;
         }
         mode = detectNitro(config) ? "nitro" : "standalone";
-        if (mode === "nitro" || !serveEnabled || env.command !== "build") {
+        if (mode === "nitro" || env.command !== "build") {
           return;
         }
         return {
-          build: {
-            ssr: serveShimPath,
-            rollupOptions: { output: { entryFileNames: "[name].mjs" } },
+          ssr: {
+            noExternal: ["@taserjs/router-plugin"],
           },
+          ...(serveEnabled
+            ? {
+                build: {
+                  ssr: serveShimPath,
+                  rollupOptions: { output: { entryFileNames: "[name].mjs" } },
+                },
+              }
+            : {}),
         };
       },
       configResolved(resolvedConfig: {
@@ -176,11 +184,15 @@ export const unpluginFactory = (options: TaserPluginOptions = {}) => {
         });
       },
       configureServer(server: ViteDevServer) {
+        const activeCtx = getContext();
         if (serveEnabled) {
-          server.middlewares.use(createViteDevMiddleware(server, rootDir));
+          server.middlewares.use(
+            createViteDevMiddleware(server, rootDir, {
+              basePath: activeCtx?.basePath,
+            }),
+          );
         }
 
-        const activeCtx = getContext();
         if (activeCtx) {
           const watcherHandle = watchAndSyncRoutes(activeCtx, () => {
             invalidateModules(server);

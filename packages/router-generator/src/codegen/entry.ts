@@ -7,18 +7,18 @@ export type EmitVirtualEntryOptions = {
 };
 
 export function emitVirtualEntrySource(options: EmitVirtualEntryOptions): string {
-  const createArgsItems = ["routeManifest"];
-  if (options.basePath && options.basePath !== "/" && options.basePath !== "") {
-    createArgsItems.push(`{ basePath: "${options.basePath}" }`);
-  }
-  const createArgs = createArgsItems.join(", ");
-
   const manifestImportPath = options.manifestImportPath ?? VIRTUAL_MANIFEST_ID;
+  const configArg =
+    options.basePath && options.basePath !== "/" && options.basePath !== ""
+      ? `, { basePath: "${options.basePath}" }`
+      : "";
 
-  return `import taser from "${options.taserAppImportPath}";
-import { routeManifest } from "${manifestImportPath}";
-
-export const app = taser.create(${createArgs});
-export default app;
-`;
+  return [
+    `import taser from "${options.taserAppImportPath}";`,
+    `import { routeManifest } from "${manifestImportPath}";`,
+    "",
+    `export const app = taser.create(routeManifest${configArg});`,
+    "export default app;",
+    "",
+  ].join("\n");
 }

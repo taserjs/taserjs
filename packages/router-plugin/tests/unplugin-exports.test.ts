@@ -31,6 +31,15 @@ describe("unplugin multi-bundler exports", () => {
     expect(typeof plugin.resolveId).toBe("function");
     expect(typeof plugin.load).toBe("function");
     expect(typeof plugin.buildStart).toBe("function");
+
+    // Standalone build config includes ssr.noExternal
+    const buildConfig = plugin.config({}, { command: "build" });
+    expect(buildConfig?.ssr?.noExternal).toContain("@taserjs/router-plugin");
+    expect(buildConfig?.build?.ssr).toBeDefined();
+
+    // Nitro config skips standalone build overrides
+    const nitroConfig = plugin.config({ nitro: {} }, { command: "build" });
+    expect(nitroConfig).toBeUndefined();
   });
 
   it("exports specialized webpack plugin", () => {

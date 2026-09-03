@@ -13,6 +13,7 @@ export default defineConfig({
       "src/esbuild.ts",
       "src/next.ts",
       "src/nitro.ts",
+      "src/runtime/index.ts",
     ],
     srcDir: "src",
   }),

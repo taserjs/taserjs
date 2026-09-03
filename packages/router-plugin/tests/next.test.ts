@@ -223,7 +223,7 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
     const { entryContent, appContent } = await waitForFiles();
     expect(entryContent).toContain('basePath: "/api"');
     expect(entryContent).not.toContain('basePath: "/site/api"');
-    expect(appContent).toContain('const __scope = "/api";');
+    expect(appContent).toContain('scope: "/api"');
   });
 
   it("runs generation outside the dev phase without registering a watcher", async () => {

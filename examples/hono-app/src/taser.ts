@@ -3,4 +3,4 @@ import { context } from "./context.js";
 
 export default createTaserApp({
   response: { validate: true },
-}).context(context);
+});

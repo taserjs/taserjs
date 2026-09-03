@@ -2,6 +2,10 @@ import { Hono } from "hono";
 
 const app = new Hono();
 
+app.get("/hono", (c) => {
+  return c.json({ framework: "hono", status: "ok" });
+});
+
 app.get("/host", (c) => {
   return c.text("Hello from Hono host!");
 });
