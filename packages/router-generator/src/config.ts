@@ -33,15 +33,23 @@ export const DEFAULT_FORMATTING: ResolvedFormattingOptions = {
   extension: true,
 };
 
-export const taserConfigSchema = z.object({
-  routesDir: z.string().optional(),
-  entry: z.string().default(DEFAULT_ENTRY),
-  serverDir: z.string().optional(),
-  serverEntry: z.string().optional(),
-  basePath: z.string().optional(),
-  ignore: z.array(z.string()).default([...DEFAULT_IGNORE]),
-  formatting: formattingSchema.default(DEFAULT_FORMATTING),
-});
+export const taserConfigSchema = z
+  .object({
+    routesDir: z.string().optional(),
+    entry: z.string().default(DEFAULT_ENTRY),
+    entryPath: z.string().optional(),
+    serverDir: z.string().optional(),
+    serverEntry: z.string().optional(),
+    serverEntryPath: z.string().optional(),
+    basePath: z.string().optional(),
+    ignore: z.array(z.string()).default([...DEFAULT_IGNORE]),
+    formatting: formattingSchema.default(DEFAULT_FORMATTING),
+  })
+  .transform((config) => ({
+    ...config,
+    entry: config.entryPath ?? config.entry,
+    serverEntry: config.serverEntryPath ?? config.serverEntry,
+  }));
 
 export type TaserConfig = z.input<typeof taserConfigSchema>;
 export type ResolvedTaserConfig = z.infer<typeof taserConfigSchema>;

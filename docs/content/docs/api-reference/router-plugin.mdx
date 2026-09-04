@@ -14,11 +14,21 @@ The `@taserjs/router-plugin` package provides framework adapters, virtual module
 
 ## Exports Overview
 
-| Subpath Export                 | Description                                       | Target Framework       |
-| :----------------------------- | :------------------------------------------------ | :--------------------- |
-| `@taserjs/router-plugin/vite`  | Vite compiler plugin with virtual routing and HMR | Vite, TanStack Start   |
-| `@taserjs/router-plugin/next`  | Next.js curried configuration wrapper             | Next.js App Router     |
-| `@taserjs/router-plugin/nitro` | Nitro server engine module                        | Standalone Nitro, Nuxt |
+| Subpath Export                    | Description                                       | Target Framework       |
+| :-------------------------------- | :------------------------------------------------ | :--------------------- |
+| `@taserjs/router-plugin/vite`     | Vite compiler plugin with virtual routing and HMR | Vite, TanStack Start   |
+| `@taserjs/router-plugin/next`     | Next.js curried configuration wrapper             | Next.js App Router     |
+| `@taserjs/router-plugin/nitro`    | Nitro server engine module                        | Standalone Nitro, Nuxt |
+| `@taserjs/router-plugin/webpack`  | Webpack plugin                                    | Webpack                |
+| `@taserjs/router-plugin/rspack`   | Rspack plugin                                     | Rspack                 |
+| `@taserjs/router-plugin/rollup`   | Rollup plugin                                     | Rollup                 |
+| `@taserjs/router-plugin/rolldown` | Rolldown plugin                                   | Rolldown               |
+| `@taserjs/router-plugin/esbuild`  | Esbuild plugin                                    | Esbuild                |
+
+<Callout type="info">
+  The package root (`@taserjs/router-plugin`) is not part of the public API.
+  `@taserjs/router-plugin/runtime` is reserved for generated app code.
+</Callout>
 
 ---
 
@@ -47,13 +57,23 @@ export default defineConfig({
       default: "'src/routes'",
     },
     entryPath: {
-      description: "Path to the taser router instance definition file.",
+      description: "Path to the taser router instance definition file. Alias for `entry`.",
+      type: "string",
+      default: "'src/taser.ts'",
+    },
+    entry: {
+      description: "Alias for `entryPath`.",
       type: "string",
       default: "'src/taser.ts'",
     },
     serverEntryPath: {
       description:
-        "Path to optional host server entry (e.g. 'src/server.ts' or 'src/server.node.ts').",
+        "Path to optional host server entry (e.g. 'src/server.ts' or 'src/server.node.ts'). Alias for `serverEntry`.",
+      type: "string",
+      default: "undefined",
+    },
+    serverEntry: {
+      description: "Alias for `serverEntryPath`.",
       type: "string",
       default: "undefined",
     },
@@ -157,12 +177,23 @@ export default defineConfig({
       default: "'src/routes'",
     },
     entryPath: {
-      description: "Path to the taser router instance definition file.",
+      description: "Path to the taser router instance definition file. Alias for `entry`.",
+      type: "string",
+      default: "'src/taser.ts'",
+    },
+    entry: {
+      description: "Alias for `entryPath`.",
       type: "string",
       default: "'src/taser.ts'",
     },
     serverEntryPath: {
-      description: "Path to optional host server entry (e.g. 'src/server.ts').",
+      description:
+        "Path to optional host server entry (e.g. 'src/server.ts'). Alias for `serverEntry`.",
+      type: "string",
+      default: "undefined",
+    },
+    serverEntry: {
+      description: "Alias for `serverEntryPath`.",
       type: "string",
       default: "undefined",
     },

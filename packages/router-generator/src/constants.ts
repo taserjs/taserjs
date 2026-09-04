@@ -1,6 +1,10 @@
+import { HTTP_METHODS } from "@taserjs/router-utils/http";
+
 export { HTTP_VERBS, HTTP_METHODS } from "@taserjs/router-utils/http";
 
-export const ROUTE_VERB_PATTERN = /\.(get|post|put|delete|patch|options|head|query|any|all)\.ts$/i;
+const ROUTE_VERB_NAMES = [...HTTP_METHODS.map((method) => method.toLowerCase()), "any", "all"];
+
+export const ROUTE_VERB_PATTERN = new RegExp(`\\.(${ROUTE_VERB_NAMES.join("|")})\\.ts$`, "i");
 
 export const DEFAULT_MANIFEST_HEADER = [
   "/* eslint-disable */",

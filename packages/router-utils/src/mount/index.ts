@@ -1,29 +1,3 @@
-const UNIVERSAL_MOUNT_PATTERN = /^(\/.*)?\/\*$/;
-
-export class InvalidMountPatternError extends Error {
-  constructor(pattern: string) {
-    super(`Invalid mount pattern "${pattern}". Use wildcard forms only: "/*" or "/prefix/*".`);
-    this.name = "InvalidMountPatternError";
-  }
-}
-
-function normalizeMountPath(mountPath: string): string {
-  if (mountPath === "/") {
-    return "/";
-  }
-  return mountPath.replace(/\/$/, "");
-}
-
-export function resolveMountBase(pattern: string): string {
-  if (!UNIVERSAL_MOUNT_PATTERN.test(pattern)) {
-    throw new InvalidMountPatternError(pattern);
-  }
-
-  const wildcardIndex = pattern.lastIndexOf("/*");
-  const base = pattern.slice(0, wildcardIndex);
-  return base === "" ? "/" : normalizeMountPath(base);
-}
-
 export function composeBasePath(first?: string, second?: string): string {
   const cleanFirst = (first || "").replace(/\/+$/, "").replace(/^\/+/, "");
   const cleanSecond = (second || "").replace(/\/+$/, "").replace(/^\/+/, "");
@@ -47,4 +21,12 @@ export function composeBasePath(first?: string, second?: string): string {
     return "/" + cleanSecond;
   }
   return "";
+}
+
+/** Normalizes a URL scope prefix for dispatch (strips trailing slashes; `/` becomes undefined). */
+export function normalizeScope(scope: string | undefined): string | undefined {
+  if (!scope || scope === "/") {
+    return undefined;
+  }
+  return scope.startsWith("/") ? scope.replace(/\/+$/, "") : `/${scope.replace(/\/+$/, "")}`;
 }

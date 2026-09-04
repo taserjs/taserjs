@@ -1,48 +1,49 @@
-import type { AppContext, LayoutBuilder } from "../types/index.js";
-import {
-  createAllRoute,
-  createAnyRoute,
-  createDeleteRoute,
-  createGetRoute,
-  createHeadRoute,
-  createOptionsRoute,
-  createPatchRoute,
-  createPostRoute,
-  createPutRoute,
-  createQueryRoute,
-  type CreateAllRoute,
-  type CreateAnyRoute,
-  type CreateWithBodyRoute,
-  type CreateWithoutBodyRoute,
-} from "./factories.js";
+import type { AppContext, LayoutBuilder, RouteBuilder, RoutePath } from "../types/index.js";
+import type { HttpMethod } from "../types/units.js";
+import { createRouteBuilder } from "./route.js";
 import { createMiddleware } from "./middleware.js";
 import { middleware as createMiddlewareFn, type MiddlewareFn } from "../define/middleware.js";
 
-export const get: CreateWithoutBodyRoute<"GET", AppContext> =
-  createGetRoute as CreateWithoutBodyRoute<"GET", AppContext>;
-export const post: CreateWithBodyRoute<"POST", AppContext> = createPostRoute as CreateWithBodyRoute<
-  "POST",
-  AppContext
->;
-export const put: CreateWithBodyRoute<"PUT", AppContext> = createPutRoute as CreateWithBodyRoute<
-  "PUT",
-  AppContext
->;
-export const patch: CreateWithBodyRoute<"PATCH", AppContext> =
-  createPatchRoute as CreateWithBodyRoute<"PATCH", AppContext>;
-export const del: CreateWithoutBodyRoute<"DELETE", AppContext> =
-  createDeleteRoute as CreateWithoutBodyRoute<"DELETE", AppContext>;
-export const options: CreateWithoutBodyRoute<"OPTIONS", AppContext> =
-  createOptionsRoute as CreateWithoutBodyRoute<"OPTIONS", AppContext>;
-export const head: CreateWithoutBodyRoute<"HEAD", AppContext> =
-  createHeadRoute as CreateWithoutBodyRoute<"HEAD", AppContext>;
-export const query: CreateWithBodyRoute<"QUERY", AppContext> =
-  createQueryRoute as CreateWithBodyRoute<"QUERY", AppContext>;
-export const any: CreateAnyRoute<AppContext> = createAnyRoute as CreateAnyRoute<AppContext>;
-export const all: CreateAllRoute<AppContext> = createAllRoute as CreateAllRoute<AppContext>;
+export type CreateWithoutBodyRoute<
+  M extends "GET" | "DELETE" | "OPTIONS" | "HEAD",
+  TAppContext extends Record<string, unknown> = AppContext,
+> = <const Path extends RoutePath>(
+  path: Path,
+) => RouteBuilder<Path, M, readonly [], {}, {}, TAppContext>;
 
-export const layout: LayoutBuilder<AppContext> = createMiddleware as LayoutBuilder<AppContext>;
-export const middleware: MiddlewareFn<AppContext> = createMiddlewareFn as MiddlewareFn<AppContext>;
+export type CreateWithBodyRoute<
+  M extends "POST" | "PUT" | "PATCH" | "QUERY",
+  TAppContext extends Record<string, unknown> = AppContext,
+> = <const Path extends RoutePath>(
+  path: Path,
+) => RouteBuilder<Path, M, readonly [], {}, {}, TAppContext>;
+
+export type CreateAnyRoute<TAppContext extends Record<string, unknown> = AppContext> = <
+  const Path extends RoutePath,
+  const Methods extends readonly HttpMethod[],
+>(
+  path: Path,
+  methods: Methods,
+) => RouteBuilder<Path, Methods[number], readonly [], {}, {}, TAppContext>;
+
+export type CreateAllRoute<TAppContext extends Record<string, unknown> = AppContext> = <
+  const Path extends RoutePath,
+>(
+  path: Path,
+) => RouteBuilder<Path, HttpMethod, readonly [], {}, {}, TAppContext>;
+
+function createWithoutBodyRoute<M extends "GET" | "DELETE" | "OPTIONS" | "HEAD">(
+  method: M,
+): CreateWithoutBodyRoute<M> {
+  return ((path: string) =>
+    createRouteBuilder(path, method)) as unknown as CreateWithoutBodyRoute<M>;
+}
+
+function createWithBodyRoute<M extends "POST" | "PUT" | "PATCH" | "QUERY">(
+  method: M,
+): CreateWithBodyRoute<M> {
+  return ((path: string) => createRouteBuilder(path, method)) as unknown as CreateWithBodyRoute<M>;
+}
 
 export type TaserNamespace<TAppContext extends Record<string, unknown> = AppContext> = {
   readonly get: CreateWithoutBodyRoute<"GET", TAppContext>;
@@ -59,17 +60,20 @@ export type TaserNamespace<TAppContext extends Record<string, unknown> = AppCont
   readonly middleware: MiddlewareFn<TAppContext>;
 };
 
+export const middleware: MiddlewareFn<AppContext> = createMiddlewareFn as MiddlewareFn<AppContext>;
+
 export const t: TaserNamespace<AppContext> = {
-  get,
-  post,
-  put,
-  patch,
-  delete: del,
-  options,
-  head,
-  query,
-  any,
-  all,
-  layout,
+  get: createWithoutBodyRoute("GET"),
+  post: createWithBodyRoute("POST"),
+  put: createWithBodyRoute("PUT"),
+  patch: createWithBodyRoute("PATCH"),
+  delete: createWithoutBodyRoute("DELETE"),
+  options: createWithoutBodyRoute("OPTIONS"),
+  head: createWithoutBodyRoute("HEAD"),
+  query: createWithBodyRoute("QUERY"),
+  any: ((path: string, methods: readonly HttpMethod[]) =>
+    createRouteBuilder(path, "ANY", methods)) as unknown as CreateAnyRoute<AppContext>,
+  all: ((path: string) => createRouteBuilder(path, "ALL")) as unknown as CreateAllRoute<AppContext>,
+  layout: createMiddleware as LayoutBuilder<AppContext>,
   middleware,
 };

@@ -7,10 +7,10 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ENTRY,
   scanAndBuildModel,
-  emitVirtualManifestSource,
   scaffoldRouteFile,
   scaffoldRouteFileAtPath,
 } from "../../src/index.js";
+import { emitManifestSource } from "../../src/codegen/emit.js";
 
 const scaffoldOptions = { entry: DEFAULT_ENTRY };
 
@@ -111,7 +111,7 @@ describe("scaffold integration", () => {
 
     const model = await scanAndBuildModel({ routesDir });
 
-    const manifest = emitVirtualManifestSource(model);
+    const manifest = emitManifestSource(model, { kind: "virtual" });
     expect(manifest).toContain("/hello");
     expect(readFileSync(routePath, "utf8")).toContain("t.get('/hello')");
   });

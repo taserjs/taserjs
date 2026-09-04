@@ -17,6 +17,7 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "clean": "turbo run clean",
+    "bench": "pnpm --filter @taserjs/router-core bench",
     "docs:dev": "turbo run dev --filter=docs",
     "docs:build": "turbo run build --filter=docs",
     "changeset": "changeset",
@@ -30,7 +31,6 @@
     "oxfmt": "^0.63.0",
     "oxlint": "^1.78.0",
     "rimraf": "^6.0.1",
-    "tsx": "^4.23.1",
     "turbo": "^2.10.7",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"

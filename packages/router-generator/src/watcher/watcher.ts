@@ -1,7 +1,7 @@
 import { relative } from "node:path";
 import { watch } from "chokidar";
 
-import { DEFAULT_ENTRY, DEFAULT_IGNORE } from "../constants.js";
+import { DEFAULT_IGNORE } from "../constants.js";
 import { shouldIgnoreRoutePath } from "../scan/paths.js";
 import { toPosixPath } from "../support/paths.js";
 import { scaffoldRouteFile } from "../scaffold/scaffold.js";
@@ -30,7 +30,6 @@ export function watchRoutes(
 ): { close: () => Promise<void> } {
   const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
   const ignore = options.ignore ?? DEFAULT_IGNORE;
-  const entry = options.entry ?? DEFAULT_ENTRY;
   const autoScaffold = options.autoScaffold ?? true;
   const pending = new Map<string, RouteChangeEvent>();
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -59,7 +58,6 @@ export function watchRoutes(
         additions.map(async (absolutePath) => {
           try {
             await scaffoldRouteFile(options.routesDir, absolutePath, {
-              entry,
               ignore,
             });
           } catch (error) {

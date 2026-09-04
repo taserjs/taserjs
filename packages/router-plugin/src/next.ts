@@ -17,7 +17,8 @@
  */
 import type { NextConfig } from "next";
 import { createTaserVirtualContext, watchAndSyncRoutes } from "./core/context.js";
-import { DISK_ARTIFACT_DIR, writeDiskArtifacts } from "./core/emitter.js";
+import { DISK_ARTIFACT_DIR } from "./core/constants.js";
+import { writeDiskArtifacts } from "./core/emitter.js";
 import type { TaserConfig, WatcherOptions } from "./core/types.js";
 
 export type TaserNextConfig = NextConfig & {

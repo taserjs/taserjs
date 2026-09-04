@@ -9,9 +9,26 @@ import {
   SERVER_ENTRY_ALIAS_ID,
   VIRTUAL_MANIFEST_ID,
   VIRTUAL_ENTRY_ID,
+  VIRTUAL_APP_ID,
 } from "./core/constants.js";
 import { createTaserVirtualContext, watchAndSyncRoutes } from "./core/context.js";
 import { getComposedAppCode } from "./core/compose.js";
+
+export function buildNitroRoutingVirtualSource(): string {
+  return [
+    "export const findRouteRules = () => ({});",
+    "export const findRoute = () => undefined;",
+    "export const globalMiddleware = [];",
+    "export const findRoutedMiddleware = () => [];",
+  ].join("\n");
+}
+
+export function buildNitroModuleHandlerSource(): string {
+  return [
+    `import { handler } from "${VIRTUAL_APP_ID}";`,
+    "export default (event) => handler(event instanceof Request ? event : event.req);",
+  ].join("\n");
+}
 
 export type TaserNitroOptions = TaserPluginOptions & {
   standalone?: boolean | undefined;
@@ -90,17 +107,19 @@ async function applyTaserNitro(nitro: Nitro, options: TaserNitroOptions): Promis
         ...(ctx.serverEntryPath ? { serverEntrySpecifier: SERVER_ENTRY_ALIAS_ID } : {}),
         scope: effectiveScope,
       });
-    nitro.options.virtual["#nitro/virtual/routing"] = () =>
-      "export const findRouteRules = () => ({}); export const findRoute = () => undefined; export const globalMiddleware = []; export const findRoutedMiddleware = () => [];";
+    nitro.options.virtual["#nitro/virtual/routing"] = () => buildNitroRoutingVirtualSource();
   } else {
     const routePattern =
       effectiveScope && effectiveScope !== "/" ? `${effectiveScope.replace(/\/+$/, "")}/**` : "/**";
 
     const VIRTUAL_NITRO_HANDLER_ID = "#taserjs/virtual/nitro-handler";
-    nitro.options.virtual[VIRTUAL_NITRO_HANDLER_ID] = () =>
-      `import app from "${VIRTUAL_ENTRY_ID}";
-export default (event) => app.fetch(event instanceof Request ? event : event.req);
-`;
+    const composedAppOptions = {
+      ...(ctx.serverEntryPath ? { serverEntrySpecifier: SERVER_ENTRY_ALIAS_ID } : {}),
+      scope: effectiveScope,
+    };
+
+    nitro.options.virtual[VIRTUAL_APP_ID] = () => getComposedAppCode(composedAppOptions);
+    nitro.options.virtual[VIRTUAL_NITRO_HANDLER_ID] = () => buildNitroModuleHandlerSource();
 
     nitro.options.handlers.unshift({
       route: routePattern,

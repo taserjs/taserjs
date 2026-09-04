@@ -1,11 +1,12 @@
-import { CLIENT_METHODS } from "../constants/methods.js";
+import type { ClientMethodKey } from "@taserjs/router-utils";
+import { CLIENT_METHODS, CLIENT_TO_HTTP } from "../constants/methods.js";
 
 export function isClientMethod(key: string): boolean {
   return CLIENT_METHODS.has(key);
 }
 
 export function clientMethodToHttp(method: string): string {
-  return method.slice(1).toUpperCase();
+  return CLIENT_TO_HTTP[method as ClientMethodKey] ?? method.slice(1).toUpperCase();
 }
 
 export function decodeClientSegment(segment: string): string {
@@ -62,12 +63,14 @@ export function buildSearchParams(query: Record<string, unknown> | undefined): s
   }
 
   const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(query)) {
+  for (const key in query) {
+    const value = query[key];
     if (value === undefined || value === null) {
       continue;
     }
     if (Array.isArray(value)) {
-      for (const item of value) {
+      for (let i = 0; i < value.length; i++) {
+        const item = value[i];
         if (typeof item === "string" || typeof item === "number" || typeof item === "boolean") {
           params.append(key, String(item));
         }

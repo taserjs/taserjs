@@ -24,9 +24,9 @@ taserjs/
 │   ├── router-core/       # Runtime onion execution pipeline, context, headers, cookies, layers, Hono adapter
 │   ├── router-utils/      # Standard Schema validation, reply helpers (json, text, html), status codes, manifest helpers
 │   ├── router-generator/  # Route scanner, AST parser, watcher, type generator (.taser/types/routes.d.ts), scaffolder
-│   ├── router-plugin/     # Unplugin multi-bundler plugin (Vite, Nitro, Next.js, Rollup, Webpack, Rspack, Esbuild)
+│   ├── router-plugin/     # Vite/Next/Nitro adapters + optional bundler plugins (Webpack, Rspack, Rollup, Rolldown, Esbuild)
 │   ├── router-client/     # Lightweight typed RPC client proxy
-│   ├── router-cli/        # Command-line interface (taser dev, taser build, taser generate, taser scaffold)
+│   ├── router-cli/        # Command-line interface (`taser generate` only; dev/build via Vite + taser() plugin)
 │   └── create-taserjs/    # CLI starter template generator
 ├── docs/                  # Next.js 16 + Turbopack documentation application
 └── examples/              # Integration examples (basic-app, bun-app, hono-app, manual-app, next-app, start-app)
@@ -117,10 +117,11 @@ Non-verb files (e.g. `src/routes/$.ts` for root, `src/routes/admin.ts` for `/adm
 
 ```ts
 import { t } from "@taserjs/router";
+import { text } from "@taserjs/router/reply";
 
 export default t.layout("/admin").use(async (ctx, next) => {
   const token = ctx.headers.get("authorization");
-  if (!token) return ctx.reply.text("Unauthorized", { status: 401 });
+  if (!token) return text("Unauthorized", { status: 401 });
   return next({ user: { id: "123", role: "admin" } });
 });
 ```

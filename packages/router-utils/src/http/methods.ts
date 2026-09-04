@@ -15,10 +15,13 @@ export type HttpMethod = (typeof HTTP_METHODS)[number];
 export type HttpVerb = HttpMethod;
 export type HttpMethodLower = Lowercase<HttpMethod>;
 
-export const HTTP_METHOD_SET = new Set<string>(HTTP_METHODS);
+export const HTTP_METHOD_SET = new Set<string>([
+  ...HTTP_METHODS,
+  ...HTTP_METHODS.map((m) => m.toLowerCase()),
+]);
 
 export function isHttpMethod(method: string): method is HttpMethod {
-  return HTTP_METHOD_SET.has(method.toUpperCase());
+  return HTTP_METHOD_SET.has(method) || HTTP_METHOD_SET.has(method.toUpperCase());
 }
 
 export const CLIENT_METHOD_MAP = {

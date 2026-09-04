@@ -101,66 +101,98 @@ export function splitCookieRuntimeConfig(config?: CookieRuntimeConfig): {
   return { ...(secret !== undefined ? { secret } : {}), defaults: defaults as CookieDefaults };
 }
 
+class TaserCookieJarImpl implements TaserCookieJar {
+  private readonly pending: string[] = [];
+  private parsed: Record<string, string> | undefined;
+
+  constructor(
+    private readonly cookieHeader: string | null,
+    private readonly defaultSecret?: string | BufferSource,
+    private readonly cookieDefaults: CookieDefaults = {},
+  ) {}
+
+  private getParsed(): Record<string, string> {
+    if (this.parsed === undefined) {
+      this.parsed = this.cookieHeader ? parse(this.cookieHeader) : {};
+    }
+    return this.parsed;
+  }
+
+  get(name: string, prefix?: CookiePrefixOptions): string | undefined {
+    const key = resolveCookieName(name, prefix);
+    return this.getParsed()[key];
+  }
+
+  getAll(): Record<string, string> {
+    return { ...this.getParsed() };
+  }
+
+  async getSigned(
+    name: string,
+    secret?: string | BufferSource,
+    prefix?: CookiePrefixOptions,
+  ): Promise<string | false | undefined> {
+    if (!this.cookieHeader) {
+      return undefined;
+    }
+    const key = resolveCookieName(name, prefix);
+    const resolved = requireSecret(secret ?? this.defaultSecret, "getSigned");
+    const signed = await parseSigned(this.cookieHeader, resolved, key);
+    return signed[key];
+  }
+
+  set(name: string, value: string, options: TaserCookieOptions = {}): void {
+    const finalName = resolveCookieName(name, options.prefix);
+    this.pending.push(
+      serialize(finalName, value, buildSerializeOptions(options, this.cookieDefaults)),
+    );
+  }
+
+  async setSigned(
+    name: string,
+    value: string,
+    secret?: string | BufferSource,
+    options: TaserCookieOptions = {},
+  ): Promise<void> {
+    const resolved = requireSecret(secret ?? this.defaultSecret, "setSigned");
+    const finalName = resolveCookieName(name, options.prefix);
+    this.pending.push(
+      await serializeSigned(
+        finalName,
+        value,
+        resolved,
+        buildSerializeOptions(options, this.cookieDefaults),
+      ),
+    );
+  }
+
+  delete(name: string, options: TaserCookieOptions = {}): string | undefined {
+    const key = resolveCookieName(name, options.prefix);
+    const previous = this.getParsed()[key];
+    this.set(name, "", { ...options, maxAge: 0 });
+    return previous;
+  }
+
+  applyTo(response: Response): Response {
+    if (this.pending.length === 0) {
+      return response;
+    }
+    const headers = new Headers(response.headers);
+    for (const cookie of this.pending) {
+      headers.append("Set-Cookie", cookie);
+    }
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+}
+
 export function createTaserCookieJar(
   cookieHeader: string | null,
   defaultSecret?: string | BufferSource,
   cookieDefaults: CookieDefaults = {},
 ): TaserCookieJar {
-  const pending: string[] = [];
-  const parsed = cookieHeader ? parse(cookieHeader) : {};
-
-  return {
-    get(name, prefix) {
-      const key = resolveCookieName(name, prefix);
-      return parsed[key];
-    },
-    getAll() {
-      return { ...parsed };
-    },
-    async getSigned(name, secret, prefix) {
-      if (!cookieHeader) {
-        return undefined;
-      }
-      const key = resolveCookieName(name, prefix);
-      const resolved = requireSecret(secret ?? defaultSecret, "getSigned");
-      const signed = await parseSigned(cookieHeader, resolved, key);
-      return signed[key];
-    },
-    set(name, value, options = {}) {
-      const finalName = resolveCookieName(name, options.prefix);
-      pending.push(serialize(finalName, value, buildSerializeOptions(options, cookieDefaults)));
-    },
-    async setSigned(name, value, secret, options = {}) {
-      const resolved = requireSecret(secret ?? defaultSecret, "setSigned");
-      const finalName = resolveCookieName(name, options.prefix);
-      pending.push(
-        await serializeSigned(
-          finalName,
-          value,
-          resolved,
-          buildSerializeOptions(options, cookieDefaults),
-        ),
-      );
-    },
-    delete(name, options = {}) {
-      const key = resolveCookieName(name, options.prefix);
-      const previous = parsed[key];
-      this.set(name, "", { ...options, maxAge: 0 });
-      return previous;
-    },
-    applyTo(response) {
-      if (pending.length === 0) {
-        return response;
-      }
-      const headers = new Headers(response.headers);
-      for (const cookie of pending) {
-        headers.append("Set-Cookie", cookie);
-      }
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers,
-      });
-    },
-  };
+  return new TaserCookieJarImpl(cookieHeader, defaultSecret, cookieDefaults);
 }

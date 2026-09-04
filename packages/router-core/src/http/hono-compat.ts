@@ -62,6 +62,8 @@ export function createCompatHonoContext(ctx: PipelineContext): Context {
     },
   } as unknown as Context;
 
+  (c as unknown as Record<symbol, unknown>)[DIRTY_HEADERS] = false;
+
   return c;
 }
 

@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   emitManifestSource,
-  emitRouteManifestSource,
   emitTypeDeclarationsSource,
   emitVirtualManifestSource,
 } from "../src/codegen/emit.js";
@@ -38,11 +37,12 @@ describe("emitManifestSource", () => {
     );
   });
 
-  it("matches emitRouteManifestSource for standalone-manifest kind", async () => {
+  it("emits standalone-manifest kind", async () => {
     const model = await buildFixtureModel();
-    expect(emitManifestSource(model, { ...testEmitOptions, kind: "standalone-manifest" })).toBe(
-      emitRouteManifestSource(model, testEmitOptions),
-    );
+    const source = emitManifestSource(model, { ...testEmitOptions, kind: "standalone-manifest" });
+    expect(source).toContain("export const routeManifest =");
+    expect(source).toContain("layouts:");
+    expect(source).toContain("routes:");
   });
 
   it("defaults all kinds to double quotes when quotes is omitted", async () => {

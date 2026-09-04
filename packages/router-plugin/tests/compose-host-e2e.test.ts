@@ -4,7 +4,7 @@ import { join } from "pathe";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 
-import { getComposedAppCode } from "../src/index.js";
+import { getComposedAppCode } from "../src/core/compose.js";
 
 /**
  * Loads the REAL generated compose output with its virtual specifiers rewired
@@ -36,7 +36,10 @@ async function loadComposedApp(hostModuleSource: string | undefined) {
       ? getComposedAppCode({ scope: "/" })
       : getComposedAppCode({ serverEntrySpecifier: "./host.mjs", scope: "/" });
 
-  const code = raw.replace(`"#taserjs/virtual/entry"`, `"./entry.mjs"`);
+  const runtimeUrl = new URL("../src/runtime/index.ts", import.meta.url).href;
+  const code = raw
+    .replace(`"#taserjs/virtual/entry"`, `"./entry.mjs"`)
+    .replace(`"@taserjs/router-plugin/runtime"`, JSON.stringify(runtimeUrl));
   await fsp.writeFile(join(dir, "app.mjs"), code);
 
   const mod = (await import(pathToFileURL(join(dir, "app.mjs")).href)) as {
@@ -78,21 +81,6 @@ describe("composed app × host contract (evaluated)", () => {
     const res = await app.handler(get("/host-route"));
     expect(res?.status).toBe(200);
     expect(await res?.text()).toBe("from-host");
-  });
-
-  it("explicit { node } hosts answer taser misses", async () => {
-    app = await loadComposedApp(`
-export default {
-  node: (req, res) => {
-    res.statusCode = 200;
-    res.setHeader("content-type", "text/plain");
-    res.end("from-node-host");
-  },
-};
-`);
-    const res = await app.handler(get("/host-route"));
-    expect(res?.status).toBe(200);
-    expect(await res?.text()).toBe("from-node-host");
   });
 
   it("bare node-style functions are auto-wrapped (heuristic)", async () => {

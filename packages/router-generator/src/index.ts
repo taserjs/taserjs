@@ -54,7 +54,6 @@ export {
   resolveServerDir,
   resolveRoutesDir,
   resolveServerEntry,
-  routesImportPrefix,
   type AliasImportRewriterOptions,
 } from "./support/paths.js";
 
@@ -89,7 +88,6 @@ export {
 export {
   walkRouteFiles,
   scanRouteFiles,
-  scanSingleRouteFile,
   scanAndBuildModel,
   buildGeneratedModelFromScan,
   analyzeRouteFileSource,
@@ -122,9 +120,6 @@ export {
 
 export {
   emitManifestSource,
-  emitVirtualManifestSource,
-  emitRouteManifestSource,
-  emitTypeDeclarationsSource,
   type EmitManifestOptions,
   type EmitManifestSourceOptions,
   type ManifestEmitKind,

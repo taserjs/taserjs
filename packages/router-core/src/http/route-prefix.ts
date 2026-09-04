@@ -1,8 +1,8 @@
 export function normalizeRoutePrefix(prefix: string): string {
-  if (prefix === "" || prefix === "/") {
-    return "/";
+  if (prefix === "" || prefix === "/" || !prefix.endsWith("/")) {
+    return prefix || "/";
   }
-  return prefix.replace(/\/$/, "");
+  return prefix.slice(0, -1);
 }
 
 export function joinRoutePrefix(prefix: string, path: string): string {

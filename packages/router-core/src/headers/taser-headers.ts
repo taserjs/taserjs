@@ -5,17 +5,22 @@ export type TaserHeaders = {
   getAll(): Record<string, string>;
 };
 
+class TaserHeadersImpl implements TaserHeaders {
+  constructor(private readonly headers: Headers) {}
+
+  get(name: RequestHeader | (string & {})): string | undefined {
+    return this.headers.get(name) ?? undefined;
+  }
+
+  getAll(): Record<string, string> {
+    const record: Record<string, string> = Object.create(null);
+    this.headers.forEach((value, key) => {
+      record[key] = value;
+    });
+    return record;
+  }
+}
+
 export function createTaserHeaders(headers: Headers): TaserHeaders {
-  return {
-    get(name) {
-      return headers.get(name) ?? undefined;
-    },
-    getAll() {
-      const record: Record<string, string> = Object.create(null);
-      headers.forEach((value, key) => {
-        record[key] = value;
-      });
-      return record;
-    },
-  };
+  return new TaserHeadersImpl(headers);
 }

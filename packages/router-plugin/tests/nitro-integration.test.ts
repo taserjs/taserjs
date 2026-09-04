@@ -7,6 +7,7 @@ import { taser as taserNitro } from "../src/nitro.js";
 
 const routerEntryPath = join(process.cwd(), "../router/dist/esm/index.js");
 const routerReplyPath = join(process.cwd(), "../router/dist/esm/reply.js");
+const routerPluginRuntimePath = join(process.cwd(), "src/runtime/index.ts");
 
 describe("nitro-integration (Nitro Only Mode)", () => {
   let testDir: string;
@@ -62,6 +63,7 @@ export default t.get("/hello").handler(() => json({ message: "hello from nitro o
       alias: {
         "@taserjs/router/reply": routerReplyPath,
         "@taserjs/router": routerEntryPath,
+        "@taserjs/router-plugin/runtime": routerPluginRuntimePath,
       },
       output: {
         dir: join(testDir, ".output"),
@@ -125,6 +127,7 @@ export default t.get("/users").handler(() => json({ users: ["alice", "bob"] }));
       alias: {
         "@taserjs/router/reply": routerReplyPath,
         "@taserjs/router": routerEntryPath,
+        "@taserjs/router-plugin/runtime": routerPluginRuntimePath,
       },
       output: {
         dir: join(testDir, ".output"),

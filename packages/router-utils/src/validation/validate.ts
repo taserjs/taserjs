@@ -56,11 +56,13 @@ export function mergeReturnsMaps(
   ...maps: Array<ReturnsMap | Record<number, StandardSchemaV1> | undefined | null>
 ): Record<number, StandardSchemaV1> {
   const result: Record<number, StandardSchemaV1> = {};
-  for (const map of maps) {
+  for (let i = 0; i < maps.length; i++) {
+    const map = maps[i];
     if (!map) {
       continue;
     }
-    for (const [key, schema] of Object.entries(map)) {
+    for (const key in map) {
+      const schema = map[key as unknown as number];
       if (schema !== undefined) {
         result[Number(key)] = schema;
       }
@@ -135,11 +137,7 @@ export function validateReply(
   returnsMap: Record<number, StandardSchemaV1> | undefined | null,
   options: ValidateReplyOptions,
 ): Promise<Response> | Response {
-  if (!returnsMap || Object.keys(returnsMap).length === 0) {
-    return result;
-  }
-
-  if (!(result instanceof Response)) {
+  if (!returnsMap || !(result instanceof Response)) {
     return result;
   }
 

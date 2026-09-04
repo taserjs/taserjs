@@ -1,8 +1,6 @@
 import { createReadStream } from "node:fs";
 import { lookup } from "mrmime";
-
-const APPLICATION_OCTET_STREAM = "application/octet-stream";
-const STATUS_OK = 200;
+import { APPLICATION_OCTET_STREAM, STATUS_OK } from "../http/constants.js";
 
 import {
   mergeHeaders,

@@ -75,15 +75,46 @@ export function middlewareToLayer(definition: MiddlewareDefinition): PipelineLay
     definition.params !== undefined ||
     definition.body !== undefined;
 
+  if (!hasSchemas && !definition.handler) {
+    return {
+      run(_ctx, next) {
+        return next();
+      },
+    };
+  }
+
+  if (!hasSchemas && definition.handler) {
+    const handler = definition.handler;
+    return {
+      async run(ctx, next) {
+        let nextCalled = false;
+        const trackedNext: PipelineNext = (args) => {
+          nextCalled = true;
+          return next(args);
+        };
+
+        const out = await handler(ctx, trackedNext);
+        if ((out === undefined || out === null) && !nextCalled) {
+          return next();
+        }
+        return out;
+      },
+    };
+  }
+
+  if (hasSchemas && !definition.handler) {
+    return {
+      async run(ctx, next) {
+        await applyValidators(ctx, definition);
+        return next();
+      },
+    };
+  }
+
+  const handler = definition.handler!;
   return {
     async run(ctx, next) {
-      if (hasSchemas) {
-        await applyValidators(ctx, definition);
-      }
-
-      if (!definition.handler) {
-        return next();
-      }
+      await applyValidators(ctx, definition);
 
       let nextCalled = false;
       const trackedNext: PipelineNext = (args) => {
@@ -91,7 +122,7 @@ export function middlewareToLayer(definition: MiddlewareDefinition): PipelineLay
         return next(args);
       };
 
-      const out = await definition.handler(ctx, trackedNext);
+      const out = await handler(ctx, trackedNext);
       if ((out === undefined || out === null) && !nextCalled) {
         return next();
       }
@@ -122,12 +153,26 @@ export function buildPipelineLayers(
       continue;
     }
     for (const definition of getMiddlewares(layout)) {
-      layers.push(middlewareToLayer(definition));
+      if (
+        definition.handler ||
+        definition.query !== undefined ||
+        definition.params !== undefined ||
+        definition.body !== undefined
+      ) {
+        layers.push(middlewareToLayer(definition));
+      }
     }
   }
 
   for (const definition of route.middlewares ?? []) {
-    layers.push(middlewareToLayer(definition));
+    if (
+      definition.handler ||
+      definition.query !== undefined ||
+      definition.params !== undefined ||
+      definition.body !== undefined
+    ) {
+      layers.push(middlewareToLayer(definition));
+    }
   }
 
   if (route.query !== undefined || route.params !== undefined || route.body !== undefined) {

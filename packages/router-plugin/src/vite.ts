@@ -1,7 +1,6 @@
 import { taserUnplugin } from "./core/unplugin.js";
 
 export const taser = taserUnplugin.vite;
-export const taserVite = taser;
 export default taser;
 
 export * from "./core/types.js";
