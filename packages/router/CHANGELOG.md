@@ -1,5 +1,14 @@
 # @taserjs/router
 
+## 0.1.10
+
+### Patch Changes
+
+- d35ce2f: feat: Performance improment and minor fixes
+- Updated dependencies [d35ce2f]
+  - @taserjs/router-core@0.1.10
+  - @taserjs/router-utils@0.1.10
+
 ## 0.1.9
 
 ### Patch Changes
