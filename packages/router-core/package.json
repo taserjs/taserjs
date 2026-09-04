@@ -50,7 +50,6 @@
   "devDependencies": {
     "@tanstack/vite-config": "^0.6.0",
     "publint": "^0.3.22",
-    "tsx": "^4.23.1",
     "vite": "^8.1.5",
     "vitest": "^4.1.10",
     "zod": "^4.4.3"
