@@ -1,5 +1,5 @@
 import { flattenPlugins } from "@taserjs/router-generator";
-import type { ConfigResolver, ConfigProviderResult } from "./types.js";
+import type { ConfigResolver, ConfigProviderResult, MaybeTaserPlugin } from "./types.js";
 import { findExistingConfigFiles } from "./utils.js";
 
 const NITRO_CONFIG_FILES = [
@@ -8,11 +8,6 @@ const NITRO_CONFIG_FILES = [
   "nitro.config.js",
   "nitro.config.mjs",
 ] as const;
-
-type MaybeTaserPlugin = {
-  name?: string;
-  __taserOptions?: Record<string, unknown>;
-};
 
 export const resolveNitroConfig: ConfigResolver = async (
   rootDir,
@@ -35,11 +30,9 @@ export const resolveNitroConfig: ConfigResolver = async (
         if (typeof rawConfig === "function") {
           rawConfig = await (rawConfig as Function)();
         }
-        const configObj = rawConfig as
-          | { modules?: unknown[]; ignore?: string[]; baseURL?: string }
-          | undefined;
+        const configObj = rawConfig as { modules?: unknown[]; ignore?: string[] } | undefined;
         const modules = flattenPlugins(
-          ((configObj?.modules as readonly unknown[] | undefined) ?? []).flat(),
+          (configObj?.modules as readonly unknown[] | undefined) ?? [],
         );
         const taserMod = modules.find((m) => (m as MaybeTaserPlugin)?.name === "taser") as
           | MaybeTaserPlugin

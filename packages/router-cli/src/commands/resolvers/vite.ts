@@ -1,5 +1,5 @@
 import { flattenPlugins } from "@taserjs/router-generator";
-import type { ConfigResolver, ConfigProviderResult } from "./types.js";
+import type { ConfigResolver, ConfigProviderResult, MaybeTaserPlugin } from "./types.js";
 import { findExistingConfigFiles } from "./utils.js";
 
 const VITE_CONFIG_FILES = [
@@ -8,11 +8,6 @@ const VITE_CONFIG_FILES = [
   "vite.config.js",
   "vite.config.mjs",
 ] as const;
-
-type MaybeTaserPlugin = {
-  name?: string;
-  __taserOptions?: Record<string, unknown>;
-};
 
 export const resolveViteConfig: ConfigResolver = async (
   rootDir,
@@ -37,7 +32,7 @@ export const resolveViteConfig: ConfigResolver = async (
         }
         const configObj = rawConfig as { plugins?: unknown } | undefined;
         const plugins = flattenPlugins(
-          ((configObj?.plugins as readonly unknown[] | undefined) ?? []).flat(),
+          (configObj?.plugins as readonly unknown[] | undefined) ?? [],
         );
         const taserPlugin = plugins.find(
           (plugin) => (plugin as MaybeTaserPlugin)?.name === "taser",

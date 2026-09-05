@@ -6,6 +6,11 @@ export type ConfigProviderResult = {
   frameworkOptions?: Record<string, unknown>;
 };
 
+export type MaybeTaserPlugin = {
+  name?: string;
+  __taserOptions?: Record<string, unknown>;
+};
+
 export type ConfigResolver = (
   rootDir: string,
   jiti: Jiti,

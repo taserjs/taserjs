@@ -102,24 +102,22 @@ function finalize(
   rootDir: string,
   frameworkOptions?: Record<string, unknown>,
 ): ResolvedGenerateConfig {
+  const rawIgnore = Array.isArray(raw.ignore) ? (raw.ignore as string[]) : [];
+  const frameworkIgnore = Array.isArray(frameworkOptions?.ignore)
+    ? (frameworkOptions.ignore as string[])
+    : [];
+  const mergedIgnore = Array.from(new Set([...rawIgnore, ...frameworkIgnore, ...DEFAULT_IGNORE]));
+
   const taser = taserConfigSchema.parse({
     ...raw,
-    ...(frameworkOptions?.ignore ? { ignore: frameworkOptions.ignore } : {}),
+    ignore: mergedIgnore,
   });
-  const ignore = Array.from(
-    new Set([
-      ...(((frameworkOptions?.ignore as string[]) ??
-        (raw.ignore as string[]) ??
-        taser.ignore ??
-        []) as string[]),
-      ...DEFAULT_IGNORE,
-    ]),
-  );
+
   return {
     taser,
-    routesDir: (raw.routesDir as string | undefined) ?? taser.routesDir,
-    basePath: (raw.basePath as string | undefined) ?? taser.basePath,
-    ignore,
+    routesDir: taser.routesDir,
+    basePath: taser.basePath,
+    ignore: taser.ignore,
     source,
     rootDir,
   };
