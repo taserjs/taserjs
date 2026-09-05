@@ -40,4 +40,3 @@ const nextConfig: NextConfig = {
 };
 
 export default withMDX(nextConfig);
-

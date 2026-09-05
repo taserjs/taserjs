@@ -88,12 +88,16 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
     "Step-by-step guide to installing and configuring Taser.js with Vite, Next.js, Nitro, and host pass-through dispatching (Web Standard, Express, Fastify).",
   "getting-started/core-concepts":
     "Master Taser.js architecture: four pillars, request lifecycle sequence, context injection, and compiler-enforced return contracts.",
+  "getting-started/migration":
+    "Incrementally migrate existing Express or Fastify APIs to Taser.js with zero downtime using the host pass-through architecture.",
   "plugins/vite":
     "Integrate Taser.js into Vite with virtual route modules, ambient type generation, instant HMR, and standalone deployment.",
   "plugins/next":
     "Configure the @taserjs/router-plugin/next bundler plugin for Next.js App Router compilation, options, and disk artifacts.",
   "plugins/nitro":
     "Deploy Taser.js across edge, serverless, and multi-cloud runtimes using the @taserjs/router-plugin/nitro module.",
+  "plugins/bundlers":
+    "Use Taser.js with Webpack, Rspack, Rollup, Rolldown, or Esbuild via @taserjs/router-plugin subpath exports.",
   "fullstack/tanstack-start":
     "Build fullstack React applications with TanStack Start and Taser.js. Type-safe data fetching in TanStack Router loaders and React Query.",
   "fullstack/nextjs":
@@ -158,9 +162,11 @@ export const docsImageAlts: Record<string, string> = {
   "getting-started": "Taser.js Docs: Getting Started with Type-Safe API Routing",
   "getting-started/manual-installation": "Taser.js Docs: Manual Installation Guide",
   "getting-started/core-concepts": "Taser.js Docs: Core Concepts and Architecture",
+  "getting-started/migration": "Taser.js Docs: Migration Guide",
   "plugins/vite": "Taser.js Docs: Vite Plugin Integration",
   "plugins/next": "Taser.js Docs: Next.js Plugin Configuration",
   "plugins/nitro": "Taser.js Docs: Nitro Server Engine Module",
+  "plugins/bundlers": "Taser.js Docs: Bundler Adapters",
   "fullstack/tanstack-start": "Taser.js Docs: TanStack Start Fullstack Integration",
   "fullstack/nextjs": "Taser.js Docs: Next.js App Router Fullstack Integration",
   "frameworks/standalone": "Taser.js Docs: Standalone API Architecture",

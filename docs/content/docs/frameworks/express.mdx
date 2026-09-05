@@ -111,11 +111,21 @@ When migrating a large Express codebase to Taser.js:
 3. Incrementally port controllers into verb files inside `src/routes/`.
 4. Keep complex legacy routes in `src/server.node.ts` until ready to migrate.
 
+<Callout type="info" title="Full Express Migration Guide">
+  For a comprehensive walkthrough of controller conversions, middleware mapping, and known
+  limitations, read the dedicated [Migration Guide](/docs/getting-started/migration).
+</Callout>
+
 ---
 
 ## Next Steps
 
 <Cards>
+  <Card
+    title="Migration Guide"
+    href="/docs/getting-started/migration"
+    description="Step-by-step guide to migrating Express routes and middleware to Taser.js."
+  />
   <Card
     title="Defining Routes"
     href="/docs/routing/defining-routes"

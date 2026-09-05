@@ -5,5 +5,7 @@ type LogoProps = {
 };
 
 export function Logo({ className }: LogoProps) {
-  return <span role="img" aria-label="Taser.js" className={cn("landing-logo", className ?? "h-7")} />;
+  return (
+    <span role="img" aria-label="Taser.js" className={cn("landing-logo", className ?? "h-7")} />
+  );
 }

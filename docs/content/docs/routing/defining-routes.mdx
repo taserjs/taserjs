@@ -29,6 +29,61 @@ t.any(path, methods);
 t.all(path);
 ```
 
+<Callout type="warn" title="Filesystem Path vs. Builder Path String">
+  The **filesystem location** (`src/routes/...`) is the sole runtime source of truth for routing,
+  HTTP dispatch, and cascading middleware pipelines. The path string passed to builder methods (e.g.
+  `t.get("/articles")`, `t.layout("/admin/*")`) is used exclusively for **TypeScript compile-time
+  type inference** (typing `ctx.params`) and type checking against ambient project routes
+  (`RoutePath`).
+</Callout>
+
+### Path String vs. File Location Matrix
+
+| Dimension            | Filesystem Location (`src/routes/...`)                   | Builder Path String (`t.get(...)`, `t.layout(...)`) |
+| :------------------- | :------------------------------------------------------- | :-------------------------------------------------- |
+| **Runtime Routing**  | **Source of truth**: determines URL matching and routing | Ignored at runtime (does not affect dispatch)       |
+| **HTTP Dispatch**    | Extracted from filename suffix (`.get.ts`)               | Must match factory method (`t.get`) during AST scan |
+| **Type Inference**   | Emits ambient `RoutePath` union                          | Infers `ctx.params` shape via `PathParams<Path>`    |
+| **Validation Layer** | Build-time duplicate route checks                        | TypeScript compiler (`tsc`) via ambient `RoutePath` |
+
+### Compile-Time vs. Build-Time Validation
+
+- **Build-Time AST Scanning**: The router generator verifies that the factory method matches the file verb (e.g. `users.get.ts` must call `t.get(...)`). It does not reject mismatches between the path argument and the file's derived URL.
+- **Compile-Time Type Checking**: Ambient types emitted by `@taserjs/router-cli` or Vite augment `RouterRegister.RoutePath`. Passing an unknown or misspelled route path causes TypeScript (`tsc`) to report a compile error:
+
+```text
+Type '"/artikles"' is not assignable to type 'RoutePath'.
+```
+
+- **Mismatched Path String Drift**: If you provide a path string that exists elsewhere in your project (e.g. calling `t.get("/users/:id")` inside `src/routes/articles.get.ts`), runtime routing still dispatches strictly to `/articles`, but `ctx.params` will drift to reflect `{ id: string }` instead of `{}`.
+
+#### Before / After: Aligning Route Path Strings
+
+```ts title="src/routes/articles.get.ts (Before - Path Mismatch)"
+import { json } from "@taserjs/router/reply";
+import { t } from "@taserjs/router";
+
+// ❌ TypeScript error: Type '"/artikles"' is not assignable to type 'RoutePath'.
+// ⚠️ Even if ignored, runtime endpoint remains /articles, while type inference breaks.
+const GET = t.get("/artikles");
+
+export default GET.handler((ctx) => {
+  return json({ ok: true });
+});
+```
+
+```ts title="src/routes/articles.get.ts (After - Aligned Path String)"
+import { json } from "@taserjs/router/reply";
+import { t } from "@taserjs/router";
+
+// ✅ Correct: Path string matches the filesystem-derived endpoint /articles
+const GET = t.get("/articles");
+
+export default GET.handler((ctx) => {
+  return json({ ok: true });
+});
+```
+
 ### Fluent Chaining Methods
 
 Each builder method returns a `RouteBuilder` that supports fluent method chaining:

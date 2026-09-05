@@ -1,4 +1,4 @@
 {
   "title": "Getting Started",
-  "pages": ["index", "manual-installation", "core-concepts"]
+  "pages": ["index", "manual-installation", "core-concepts", "migration"]
 }

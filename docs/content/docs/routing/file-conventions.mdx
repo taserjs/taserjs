@@ -20,6 +20,30 @@ Under your `src/routes/` directory, files are classified into two distinct types
 1. **Route Files**: Filenames containing an HTTP verb before `.ts` (such as `users.get.ts`, `posts.post.ts`, `items.$id.delete.ts`, `tasks/$id.complete.patch.ts`). Route files export a default route definition created with `t.get()`, `t.post()`, etc.
 2. **Layout Files**: Filenames ending in `.ts` without an HTTP verb (such as `$.ts`, `admin.ts`, `_auth.ts`, `tasks/$id.ts`). Layout files export a default middleware pipeline created with `t.layout()`.
 
+<Callout type="warn" title="Filesystem Path vs. Builder Path String">
+  The **filesystem location** is the sole runtime source of truth for URL endpoints and cascading
+  middleware trees. The path string in `t.get("/users")` or `t.layout("/admin/*")` exists purely for
+  TypeScript compile-time type inference (populating `ctx.params`) and compile-time validation
+  against the project's ambient `RoutePath` union.
+</Callout>
+
+### Source of Truth Comparison
+
+| Aspect                   | Filesystem Path (`src/routes/...`)                      | Builder String (`t.get("/path")`, `t.layout("/*")`)                        |
+| :----------------------- | :------------------------------------------------------ | :------------------------------------------------------------------------- |
+| **URL Determination**    | **Sole source of truth** for URL matching               | No runtime impact on request routing                                       |
+| **AST Scan Validation**  | Enforces valid file conventions and factory verb parity | Scanned for factory name (`t.get`, `t.layout`), not path identity          |
+| **TypeScript Typecheck** | Emits ambient `RoutePath` / `LayoutId` types            | Validated by `tsc` against ambient `RoutePath`; types `ctx.params`         |
+| **Mismatch Consequence** | Determines where requests actually route                | `tsc` compile error if invalid; param type drift if matching another route |
+
+#### Route Path String Mismatch Error
+
+If the path string in a route builder does not match any valid route path in the emitted ambient union, TypeScript flags the mismatch during `tsc`:
+
+```text
+Type '"/usr/profile"' is not assignable to type 'RoutePath'.
+```
+
 ---
 
 ## HTTP Method Suffixes
@@ -177,6 +201,26 @@ An `index` segment targets the root of its parent route without appending `/inde
   </Folder>
 </Files>
 
+### Index Routes vs. Dynamic Parameter Routes (`$param`)
+
+| Pattern                         | Notation          | Example File                             | Resolved URL     | Recommended Use Case                                                                                                            |
+| :------------------------------ | :---------------- | :--------------------------------------- | :--------------- | :------------------------------------------------------------------------------------------------------------------------------ |
+| **Direct Param Route**          | Flat or Directory | `posts.$id.get.ts` or `posts/$id.get.ts` | `GET /posts/:id` | **Standard**: Standalone endpoint for a single parameter leaf.                                                                  |
+| **Directory Index Param Route** | Directory         | `posts/$id/index.get.ts`                 | `GET /posts/:id` | **Grouping**: Co-locating root parameter handler with nested sub-routes (`posts/$id/comments.get.ts`, `posts/$id/edit.put.ts`). |
+| **Redundant Flat Index**        | Flat Dot          | `posts.$id.index.get.ts`                 | `GET /posts/:id` | **Discouraged**: Redundant syntax in flat dot notation; prefer `posts.$id.get.ts`.                                              |
+
+### Collision & Duplicate Route Rules
+
+Both `posts.$id.get.ts` and `posts.$id.index.get.ts` (as well as `posts/$id/index.get.ts`) evaluate to the exact same route: `GET /posts/:id`.
+
+If both files exist simultaneously within the same routes directory, Taser.js **halts the build immediately** during the route scan phase with a `ScanErrorCollection`:
+
+```text
+ScanError: Duplicate route for GET /posts/:id (posts.$id.get.ts and posts.$id.index.get.ts)
+```
+
+Route collisions are **never silently overwritten** and do not result in last-write-wins or undefined behavior. You must remove one of the duplicate route files to resolve the build error.
+
 ---
 
 ## Dynamic Path Parameters (`$param`)
@@ -220,6 +264,15 @@ export default t
     return json({ taskId: ctx.params.id, completed: true });
   });
 ```
+
+<Callout type="info" title="Layout Inheritance Note">
+  In the example above, `src/routes/tasks/$id.complete.patch.ts` is the **standard
+  layout-inheriting** route for `PATCH /tasks/:id/complete`. If a layout file
+  `src/routes/tasks/$id.ts` exists, this route automatically inherits that layout's middleware chain
+  (`$.ts` → `tasks/$id.ts`). See [Layout Breakout
+  Routes](#layout-breakout-routes-trailing-underscore-segment_) for the alternative syntax that
+  skips this layout.
+</Callout>
 
 ---
 
@@ -397,6 +450,26 @@ By adding a trailing underscore to `posts_` or `$id_`, the route keeps the URL s
     tasks/$id.ts)* |
   </Tab>
 </Tabs>
+
+### Breakout Route vs. Base Route Alternatives
+
+The base route `tasks/$id.complete.patch.ts` and the breakout route `tasks/$id_.complete.patch.ts` resolve to the **identical endpoint URL** (`PATCH /tasks/:id/complete`). They are **mutually exclusive architectural alternatives** for the same URL:
+
+| Route Configuration             | File Location                  | Resolved Endpoint           | Middleware Chain        | Purpose                                                                                |
+| :------------------------------ | :----------------------------- | :-------------------------- | :---------------------- | :------------------------------------------------------------------------------------- |
+| **Standard Route (Inheriting)** | `tasks/$id.complete.patch.ts`  | `PATCH /tasks/:id/complete` | `$.ts` → `tasks/$id.ts` | Runs the `$id.ts` layout checks (e.g. verifying task ownership or existence).          |
+| **Breakout Route (Skipping)**   | `tasks/$id_.complete.patch.ts` | `PATCH /tasks/:id/complete` | `$.ts` only             | Bypasses the `tasks/$id.ts` layout checks while retaining the identical URL structure. |
+
+<Callout type="warn" title="Breakout Route Collision Rule">
+  These two files **cannot coexist** in the same routes tree. If both `tasks/$id.complete.patch.ts` and `tasks/$id_.complete.patch.ts` are present simultaneously, Taser.js halts compilation with a build error during route scanning:
+
+```text
+ScanError: Duplicate route for PATCH /tasks/:id/complete (tasks/$id.complete.patch.ts and tasks/$id_.complete.patch.ts)
+```
+
+Taser.js enforces strict uniqueness per `[URL + HTTP Method]`. Collisions always result in a **build-time error**, never a silent override or last-write-wins.
+
+</Callout>
 
 <Callout type="info" title="Underscore Convention Rules">
   - **Leading underscore (`_auth`)**: Pathless layout / group (adds middleware, removes segment from

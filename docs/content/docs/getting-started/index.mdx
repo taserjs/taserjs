@@ -104,12 +104,122 @@ Before creating a project, make sure your development environment meets these re
     | `--framework` | Host server framework | `none`, `hono`, `express`, `fastify` | `none` |
     | `--preset`, `-p` | Deployment preset (Nitro target or `none`) | `none`, `node-server`, `node-cluster`, `bun`, `deno-server`, `deno-deploy`, `cloudflare-module`, `vercel`, `aws-lambda`, `netlify` | `node-server` |
     | `--runtime` | Explicit runtime override (for self-hosted presets) | `node`, `bun`, `deno` | Implied by preset |
-    | `--db` | Database ODM and optional driver (`odm:driver`) | `drizzle`, `prisma`, `kysely` with `:sqlite`, `:postgres`, `:mysql` (e.g. `drizzle:postgres`) | None (driver defaults to `sqlite`) |
+    | `--db` | Database ODM and optional driver (`odm:driver`) | `drizzle`, `prisma`, `kysely` (optionally `:postgres`, `:sqlite`, `:mysql`) | None (omitted = no database) |
     | `--validator` | Schema validation library | `zod`, `arktype`, `valibot` | None |
     | `--logger` | Structured logger integration | `pino`, `winston` | None |
     | `-y`, `--yes` | Non-interactive mode using defaults for omitted flags | `boolean` | `false` |
     | `--noInstall` | Skip automatic package installation | `boolean` | `false` |
-    | `--json` | Output result as JSON (prints capability catalog when no name) | `boolean` | `false` |
+    | `--json` (with name) | Output scaffold result metadata as JSON | `boolean` | `false` |
+    | `--json` (without name) | Output capability catalog as JSON | `boolean` | `false` |
+
+    #### Database Flag (`--db`) Semantics
+
+    The `--db` flag controls database ORM and driver installation. The behavior depends on whether the flag is omitted, passed without a driver suffix, or passed with a full `odm:driver` specification:
+
+    | Invocation Syntax | ODM Configured | Driver Configured | Scaffolding Behavior |
+    | :--- | :--- | :--- | :--- |
+    | **Omitted entirely** | *None* | *None* | No database packages, schemas, or connection clients are installed or generated. |
+    | `--db drizzle` | `drizzle` | `sqlite` *(default)* | Defaults driver to `sqlite`. Generates SQLite schema and client files. |
+    | `--db prisma` | `prisma` | `sqlite` *(default)* | Defaults driver to `sqlite`. Generates SQLite Prisma schema. |
+    | `--db kysely` | `kysely` | `sqlite` *(default)* | Defaults driver to `sqlite`. Generates SQLite Kysely database client. |
+    | `--db drizzle:postgres` | `drizzle` | `postgres` | Installs PostgreSQL driver (`pg`) and generates PostgreSQL Drizzle schema. |
+    | `--db drizzle:mysql` | `drizzle` | `mysql` | Installs MySQL driver (`mysql2`) and generates MySQL Drizzle schema. |
+
+    When `--db` is omitted, the scaffolded project does not include database dependencies or config files. When a database ODM is provided without a colon and driver suffix (for example, `--db drizzle`), create-taserjs automatically selects `sqlite` as the default driver.
+
+    #### JSON Flag (`--json`) Output Schemas
+
+    The `--json` flag operates in two distinct modes depending on whether a project name is supplied:
+
+    | Mode | Command Example | Output Purpose | Output Destination |
+    | :--- | :--- | :--- | :--- |
+    | **Scaffold Metadata** | `pnpm create taserjs@latest my-api --json -y` | Emits resolved project configuration metadata | `stdout` |
+    | **Capability Catalog** | `pnpm create taserjs@latest --json` | Emits available frameworks, presets, runtimes, and add-ons | `stdout` |
+
+    ##### 1. Scaffold Result Metadata (`--json` with Project Name)
+
+    When a project name is provided, `--json` suppresses terminal animations and prints the scaffolded project configuration as JSON:
+
+    ```bash
+    pnpm create taserjs@latest my-api \
+      --framework none \
+      --preset node-server \
+      --db drizzle:postgres \
+      --validator zod \
+      --logger pino \
+      --json -y
+    ```
+
+    ```json title="Output (Scaffold Metadata JSON)"
+    {
+      "projectName": "my-api",
+      "targetDir": "/path/to/my-api",
+      "framework": "none",
+      "preset": "node-server",
+      "db": "drizzle",
+      "driver": "postgres",
+      "logger": "pino",
+      "validator": "zod"
+    }
+    ```
+
+    ##### 2. Capability Catalog (`--json` without Project Name)
+
+    When invoked without a project name, `--json` outputs the machine-readable capabilities catalog describing all supported frameworks, deployment presets, runtime environments, databases, loggers, and validators:
+
+    ```bash
+    pnpm create taserjs@latest --json
+    ```
+
+    ```json title="Output (Capabilities Catalog JSON)"
+    {
+      "frameworks": [
+        "none",
+        "hono",
+        "express",
+        "fastify"
+      ],
+      "deployTargets": [
+        "none",
+        "node-server",
+        "node-cluster",
+        "bun",
+        "deno-server",
+        "deno-deploy",
+        "cloudflare-module",
+        "vercel",
+        "aws-lambda",
+        "netlify"
+      ],
+      "runtimes": [
+        "node",
+        "bun",
+        "deno"
+      ],
+      "db": {
+        "odms": [
+          "drizzle",
+          "prisma",
+          "kysely"
+        ],
+        "drivers": [
+          "sqlite",
+          "postgres",
+          "mysql"
+        ],
+        "defaultDriver": "sqlite"
+      },
+      "loggers": [
+        "pino",
+        "winston"
+      ],
+      "validators": [
+        "zod",
+        "arktype",
+        "valibot"
+      ]
+    }
+    ```
 
   </Step>
 
@@ -243,6 +353,11 @@ Now that your project is running, explore these guides to build out your applica
     title="Manual Installation"
     href="/docs/getting-started/manual-installation"
     description="Learn how to install Taser.js step by step into an existing project."
+  />
+  <Card
+    title="Migration Guide"
+    href="/docs/getting-started/migration"
+    description="Migrate existing Express or Fastify applications with zero downtime."
   />
   <Card
     title="Core Concepts"

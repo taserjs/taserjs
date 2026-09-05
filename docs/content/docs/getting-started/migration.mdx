@@ -1,0 +1,363 @@
+---
+title: Migration Guide
+description: "Incrementally migrate existing Express or Fastify APIs to Taser.js with zero downtime using the host pass-through architecture."
+icon: ArrowLeftRight
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+
+Taser.js is engineered for **incremental, zero-downtime adoption**. Using the **Host Pass-Through Architecture**, you do not need to rewrite your application all at once. Your existing Express or Fastify server continues running legacy controllers and middlewares, while all newly migrated routes benefit from Taser's filesystem routing, type inference, and response contracts.
+
+---
+
+## Migration Architecture
+
+When embedded inside an existing Express or Fastify project, Taser.js sits in front of your legacy server:
+
+```
+[Incoming HTTP Request]
+           │
+           ▼
+┌──────────────────────────────────────┐
+│  Taser.js File Routes (src/routes/)  │
+└──────────────────────────────────────┘
+           │
+      Route Match?
+     ├── YES ──► [Execute Taser.js Handler & Middleware]
+     │
+     └── NO  ──► ┌──────────────────────────────────────┐
+                 │ Host Application (src/server.node.ts)│
+                 │ Express / Fastify Routes & Plugins   │
+                 └──────────────────────────────────────┘
+                               │
+                          Route Match?
+                         ├── YES ──► [Execute Legacy Controller]
+                         └── NO  ──► [Return 404 Not Found]
+```
+
+1. **Taser.js Evaluates First**: Requests matching files in `src/routes/` are processed with full type safety.
+2. **Host Server Fallback**: Any unmatched route immediately falls through to your existing Express or Fastify application.
+3. **404 Handling**: If neither Taser.js nor your host application handles the URL, a standard 404 response is returned.
+
+---
+
+## Concept Translation Reference
+
+Use this literal lookup table to translate familiar Express and Fastify paradigms into their Taser.js equivalents:
+
+| Architectural Concept  | Express                           | Fastify                                               | Taser.js Equivalent                                                         |
+| :--------------------- | :-------------------------------- | :---------------------------------------------------- | :-------------------------------------------------------------------------- |
+| **Route Declaration**  | `app.get("/users/:id", fn)`       | `fastify.get("/users/:id", fn)`                       | File: `src/routes/users/$id.get.ts`<br/>Builder: `t.get("/users/:id")`      |
+| **Path Parameters**    | `req.params.id`                   | `request.params.id`                                   | `ctx.params.id`<br/>(inferred as string or validated via `.params(schema)`) |
+| **Query Parameters**   | `req.query.page`                  | `request.query.page`                                  | `ctx.query.page`<br/>(validated and coerced via `.query(schema)`)           |
+| **Request Payload**    | `req.body`                        | `request.body`                                        | `ctx.body`<br/>(validated via `.body(schema)`)                              |
+| **JSON Response**      | `res.json(data)`                  | `reply.send(data)`                                    | `return json(data)` from `@taserjs/router/reply`                            |
+| **HTTP Status Code**   | `res.status(201).json(data)`      | `reply.code(201).send(data)`                          | `return created(data)` or `return reply.status(201).json(data)`             |
+| **Error Handling**     | `res.status(404).json({ error })` | `reply.code(404).send({ error })`                     | `return notFound({ error })` or `return badRequest(...)`                    |
+| **Request Headers**    | `req.headers["authorization"]`    | `request.headers["authorization"]`                    | `ctx.headers.get("authorization")`                                          |
+| **Cookie Jar**         | `req.cookies["token"]`            | `request.cookies["token"]`                            | `ctx.cookies.get("token")`                                                  |
+| **Middleware Context** | `req.user = user`                 | `request.user = user`                                 | `return next({ user })` (merges into `ctx.state`)                           |
+| **Global Middleware**  | `app.use(cors())`                 | `fastify.register(cors)`                              | Root layout: `src/routes/$.ts`                                              |
+| **Scoped Middleware**  | `app.use("/admin", authMw)`       | `fastify.register(adminRoutes, { prefix: "/admin" })` | Folder layout: `src/routes/admin.ts`                                        |
+
+---
+
+## Route File Conversion
+
+### Express to Taser.js
+
+The following example demonstrates converting an existing Express controller file with route-level parameter validation into a Taser.js file-based route:
+
+<Tabs items={["Before (Express)", "After (Taser.js)"]}>
+  <Tab value="Before (Express)">
+    ```ts title="legacy/routes/users.ts"
+    import { Router, Request, Response } from "express";
+    import { z } from "zod";
+    import { db } from "../database";
+
+    const router = Router();
+
+    const paramsSchema = z.object({
+      id: z.string().uuid(),
+    });
+
+    router.get("/users/:id", async (req: Request, res: Response) => {
+      const parsed = paramsSchema.safeParse(req.params);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.issues });
+      }
+
+      const user = await db.users.findUnique({ where: { id: parsed.data.id } });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      return res.json(user);
+    });
+
+    export default router;
+    ```
+
+  </Tab>
+  <Tab value="After (Taser.js)">
+    ```ts title="src/routes/users/$id.get.ts"
+    import { json, notFound } from "@taserjs/router/reply";
+    import { z } from "zod";
+    import { t } from "@taserjs/router";
+
+    export default t
+      .get("/users/:id")
+      .params(z.object({ id: z.string().uuid() }))
+      .handler(async (ctx) => {
+        // ctx.params.id is strictly validated as a UUID string
+        const user = await ctx.db.users.findUnique({ where: { id: ctx.params.id } });
+        if (!user) {
+          return notFound({ message: "User not found" });
+        }
+
+        return json(user);
+      });
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+### Fastify to Taser.js
+
+The following example demonstrates converting an existing Fastify endpoint with JSON body and URL param validation:
+
+<Tabs items={["Before (Fastify)", "After (Taser.js)"]}>
+  <Tab value="Before (Fastify)">
+    ```ts title="legacy/routes/items.ts"
+    import { FastifyPluginAsync } from "fastify";
+    import { z } from "zod";
+
+    const itemRoutes: FastifyPluginAsync = async (fastify) => {
+      fastify.post(
+        "/items/:id",
+        {
+          schema: {
+            params: {
+              type: "object",
+              properties: { id: { type: "string" } },
+              required: ["id"],
+            },
+            body: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                price: { type: "number" },
+              },
+              required: ["title", "price"],
+            },
+          },
+        },
+        async (request, reply) => {
+          const { id } = request.params as { id: string };
+          const { title, price } = request.body as { title: string; price: number };
+
+          const createdItem = await fastify.db.saveItem({ id, title, price });
+          return reply.code(201).send(createdItem);
+        },
+      );
+    };
+
+    export default itemRoutes;
+    ```
+
+  </Tab>
+  <Tab value="After (Taser.js)">
+    ```ts title="src/routes/items/$id.post.ts"
+    import { created } from "@taserjs/router/reply";
+    import { z } from "zod";
+    import { t } from "@taserjs/router";
+
+    export default t
+      .post("/items/:id")
+      .params(z.object({ id: z.string() }))
+      .body(
+        z.object({ title: z.string(), price: z.number().positive() }),
+      )
+      .handler(async (ctx) => {
+        // ctx.params.id and ctx.body are fully typed and validated
+        const createdItem = await ctx.db.saveItem({
+          id: ctx.params.id,
+          title: ctx.body.title,
+          price: ctx.body.price,
+        });
+
+        return created(createdItem);
+      });
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+## Mapping Middleware to Layout Files
+
+In Express and Fastify, middlewares are attached imperatively via `.use()` or router scopes. In Taser.js, middleware pipelines are organized declaratively via **layout files** that mirror your route hierarchy:
+
+| Scope                 | Legacy Pattern                       | Taser.js Layout File           | Execution Order                                |
+| :-------------------- | :----------------------------------- | :----------------------------- | :--------------------------------------------- |
+| **Root (Global)**     | `app.use(authMiddleware)`            | `src/routes/$.ts`              | Runs before every route in the project         |
+| **Route Group**       | `app.use("/admin", adminAuth)`       | `src/routes/admin.ts`          | Runs before any route under `/admin/*`         |
+| **Dynamic Parameter** | `app.use("/orgs/:orgId", verifyOrg)` | `src/routes/orgs/$orgId.ts`    | Runs before any route under `/orgs/:orgId/*`   |
+| **Pathless Group**    | Custom sub-router grouping           | `src/routes/_authenticated.ts` | Scopes middleware without adding a URL segment |
+
+### Before / After: Converting Authentication Middleware
+
+In legacy Express, middleware typically mutates the `req` object (`req.user = user`), which lacks end-to-end type safety:
+
+<Tabs items={["Before (Express Middleware)", "After (Taser.js Layout)"]}>
+  <Tab value="Before (Express Middleware)">
+    ```ts title="legacy/middleware/auth.ts"
+    import { Request, Response, NextFunction } from "express";
+
+    // Requires declaration merging to patch Express.Request
+    declare global {
+      namespace Express {
+        interface Request {
+          user?: { id: string; role: string };
+        }
+      }
+    }
+
+    export async function requireAuth(req: Request, res: Response, next: NextFunction) {
+      const token = req.headers.authorization?.replace("Bearer ", "");
+      if (!token) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const user = await verifyToken(token);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      req.user = user;
+      next();
+    }
+    ```
+
+  </Tab>
+  <Tab value="After (Taser.js Layout)">
+    ```ts title="src/routes/admin.ts"
+    import { unauthorized } from "@taserjs/router/reply";
+    import { t } from "@taserjs/router";
+    import { verifyToken } from "../lib/auth";
+
+    export default t.layout("/admin/*").use(async (ctx, next) => {
+      const authHeader = ctx.headers.get("authorization");
+      const token = authHeader?.replace("Bearer ", "");
+
+      if (!token) {
+        return unauthorized({ error: "Unauthorized" });
+      }
+
+      const user = await verifyToken(token);
+      if (!user) {
+        return unauthorized({ error: "Invalid token" });
+      }
+
+      // Injects strictly typed user into ctx.state for all child routes under /admin/*
+      return next({ user });
+    });
+    ```
+
+  </Tab>
+</Tabs>
+
+Any child route inside `src/routes/admin/...` automatically receives `ctx.state.user` with full TypeScript inference and zero manual type assertion.
+
+---
+
+## Configuring Host Pass-Through (`src/server.node.ts`)
+
+To enable seamless coexistence between Taser.js and your legacy server, configure `src/server.node.ts`:
+
+<Tabs items={["Express Host App", "Fastify Host App"]}>
+  <Tab value="Express Host App">
+    ```ts title="src/server.node.ts"
+    import express from "express";
+    import legacyRoutes from "../legacy/routes/index.js";
+
+    const app = express();
+
+    // Standard Express middlewares:
+    app.use(express.json());
+
+    // Mount un-migrated legacy Express routes:
+    app.use("/api/legacy", legacyRoutes);
+
+    // Export the Express application instance as the default export
+    export default app;
+    ```
+
+  </Tab>
+  <Tab value="Fastify Host App">
+    ```ts title="src/server.node.ts"
+    import Fastify from "fastify";
+    import legacyPlugin from "../legacy/plugins/index.js";
+
+    const app = Fastify({ logger: true });
+
+    // Mount un-migrated legacy Fastify plugins & routes:
+    await app.register(legacyPlugin, { prefix: "/api/legacy" });
+
+    // Ensure Fastify plugins are loaded before export:
+    await app.ready();
+
+    // Export Fastify's routing handler as default export
+    export default app.routing;
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+## Known Limitations & Manual Steps
+
+Certain patterns common in legacy Node.js frameworks cannot be migrated automatically and require intentional restructuring:
+
+| Legacy Pattern                                               | Why It Cannot Be Automated                                                                                                                           | Recommended Migration Strategy                                                                                          |
+| :----------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| **Callback-Style Middleware `(req, res, next)`**             | Taser.js uses Web Standard Promise-based `(ctx, next) => Promise<Response>` architecture; Express callbacks calling `res.end()` bypass the pipeline. | Convert to async functions returning `next({ ... })`, or adapt Hono/Web middleware using `honoMw()`.                    |
+| **Imperative Route Loops (`routes.forEach(...)`)**           | Taser.js discovers routes statically at build time from the filesystem.                                                                              | Create explicit `.ts` files per route (or use `@taserjs/router-cli generate` to scaffold empty route files).            |
+| **Raw Node Stream Piping (`stream.pipe(res)`)**              | Node.js `WritableStream` (`res`) is absent in Web Standard environments.                                                                             | Return a Web Standard `Response` using `stream()`, `file()`, or `buffer()` helpers from `@taserjs/router/reply/stream`. |
+| **Arbitrary Mutating Property Assignment (`req.foo = bar`)** | Mutating global request objects breaks compile-time type safety.                                                                                     | Return state updates via `return next({ foo: bar })` in layout middleware, exposing them on `ctx.state`.                |
+| **WebSocket & HTTP Upgrade Handlers**                        | Taser.js file routes handle standard HTTP request/response lifecycles.                                                                               | Keep WebSocket upgrade hooks (`server.on("upgrade", ...)`) inside `src/server.node.ts` or deployment presets.           |
+| **Direct Socket Access (`req.socket`)**                      | Web Standard `Request` abstracts away raw TCP sockets for multi-runtime edge compatibility.                                                          | Extract IP address, TLS info, or socket metadata inside `src/context.ts` or custom middleware adapters.                 |
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Express Adapter"
+    href="/docs/frameworks/express"
+    description="Detailed setup guide for running Taser.js with an Express host application."
+  />
+  <Card
+    title="Fastify Adapter"
+    href="/docs/frameworks/fastify"
+    description="Detailed setup guide for running Taser.js with a Fastify host application."
+  />
+  <Card
+    title="File Conventions"
+    href="/docs/routing/file-conventions"
+    description="Explore flat routes, nested directories, and layout breakouts."
+  />
+  <Card
+    title="Defining Routes"
+    href="/docs/routing/defining-routes"
+    description="Learn fluent route builders, validation schemas, and response contracts."
+  />
+</Cards>
