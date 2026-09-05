@@ -8,17 +8,12 @@
     "dev": "next dev",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
-    "types:check": "pnpm run typecheck",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "types:check": "pnpm run typecheck"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@fuma-translate/react": "^1.0.2",
     "@fumadocs/base-ui": "^16.14.4",
-    "@opennextjs/cloudflare": "^1.20.2",
     "class-variance-authority": "^0.7.1",
     "cnfast": "^0.1.0",
     "framer-motion": "^13.1.0",
@@ -39,7 +34,6 @@
     "@types/react-dom": "^19.2.4",
     "postcss": "^8.5.25",
     "tailwindcss": "^4.3.3",
-    "typescript": "^6.0.3",
-    "wrangler": "^4.122.0"
+    "typescript": "^6.0.3"
   }
 }

@@ -2,6 +2,7 @@ import { getPageImageUrl, source } from "@/lib/source";
 import { notFound } from "next/navigation";
 import { OpenGraphImage } from "@/lib/og.image";
 
+export const runtime = "nodejs";
 export const revalidate = false;
 
 export async function GET(_req: Request, { params }: RouteContext<"/og/docs/[...slug]">) {
