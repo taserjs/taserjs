@@ -152,7 +152,7 @@ export function watchAndSyncRoutes(
       try {
         await ctx.writeTypes();
       } catch (error) {
-        console.warn("[taser] failed to sync ambient types:", error);
+        console.warn("[taserjs] failed to sync ambient types:", error);
       }
       await onUpdate?.();
     },

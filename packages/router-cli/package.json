@@ -1,7 +1,7 @@
 {
   "name": "@taserjs/router-cli",
   "version": "0.1.10",
-  "description": "CLI for Taser route manifest generation",
+  "description": "CLI for Taser.js route manifest generation",
   "license": "ISC",
   "repository": {
     "type": "git",

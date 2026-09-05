@@ -44,7 +44,7 @@ const FLOW_STEPS: FlowStep[] = [
     icon: Globe,
     tone: "blue",
     description:
-      "The incoming HTTP request is received by the platform runtime and dispatched into Taser's radix tree via a Web Standard Request object.",
+      "The incoming HTTP request is received by the platform runtime and dispatched into Taser.js's radix tree via a Web Standard Request object.",
     details: [
       { label: "Dispatch Mechanism", value: "Web Standard Request / Response interface" },
       {
@@ -58,7 +58,7 @@ const FLOW_STEPS: FlowStep[] = [
     ],
     codeSnippet: {
       filename: "server.ts",
-      code: `// Taser receives Web Standard Request\nconst response = await taserApp.fetch(request);`,
+      code: `// Taser.js receives Web Standard Request\nconst response = await taserApp.fetch(request);`,
     },
   },
   {
@@ -69,7 +69,7 @@ const FLOW_STEPS: FlowStep[] = [
     icon: Database,
     tone: "indigo",
     description:
-      "Taser merges boot singletons (database connection pools, Redis clients) and computes request metadata (unique requestId, timing headers) with full static typing.",
+      "Taser.js merges boot singletons (database connection pools, Redis clients) and computes request metadata (unique requestId, timing headers) with full static typing.",
     details: [
       { label: "Boot Scope", value: "Evaluated once on server start (singletons)" },
       { label: "Request Scope", value: "Evaluated per incoming request (headers, IDs)" },
@@ -244,7 +244,7 @@ export function RequestFlowDiagram() {
           </div>
           <div>
             <h4 className="text-sm font-semibold text-fd-foreground">
-              Taser Request Execution Pipeline
+              Taser.js Request Execution Pipeline
             </h4>
             <p className="text-xs text-fd-muted-foreground">
               Click any stage to inspect lifecycle execution, data flow, and type inference

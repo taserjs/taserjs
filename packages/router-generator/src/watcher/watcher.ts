@@ -61,7 +61,7 @@ export function watchRoutes(
               ignore,
             });
           } catch (error) {
-            console.warn(`[taser] failed to scaffold ${absolutePath}:`, error);
+            console.warn(`[taserjs] failed to scaffold ${absolutePath}:`, error);
           }
         }),
       );
@@ -74,7 +74,7 @@ export function watchRoutes(
     try {
       await onChange(batch);
     } catch (error) {
-      console.warn("[taser] route watcher change callback failed:", error);
+      console.warn("[taserjs] route watcher change callback failed:", error);
     }
   };
 

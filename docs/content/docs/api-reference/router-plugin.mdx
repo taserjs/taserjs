@@ -47,7 +47,7 @@ export default defineConfig({
 <TypeTable
   type={{
     basePath: {
-      description: "Root URL prefix Taser routes dispatch under.",
+      description: "Root URL prefix Taser.js routes dispatch under.",
       type: "string",
       default: "'/'",
     },
@@ -85,7 +85,7 @@ export default defineConfig({
     },
     standalone: {
       description:
-        "When using Nitro, whether Taser replaces Nitro's app pipeline (zero h3/rou3) or registers as a standard Nitro handler.",
+        "When using Nitro, whether Taser.js replaces Nitro's app pipeline (zero h3/rou3) or registers as a standard Nitro handler.",
       type: "boolean",
       default: "true",
     },
@@ -128,7 +128,7 @@ export default withTaser(nextConfig);
       default: "'src/taser.ts'",
     },
     basePath: {
-      description: "URL prefix Taser dispatches under.",
+      description: "URL prefix Taser.js dispatches under.",
       type: "string",
       default: "'/'",
     },
@@ -168,12 +168,12 @@ export default defineConfig({
   type={{
     standalone: {
       description:
-        "When true, Taser acts as the standalone app runner with zero overhead. When false, mounts as a sub-handler in Nitro.",
+        "When true, Taser.js acts as the standalone app runner with zero overhead. When false, mounts as a sub-handler in Nitro.",
       type: "boolean",
       default: "true",
     },
     basePath: {
-      description: "Root URL prefix Taser routes dispatch under.",
+      description: "Root URL prefix Taser.js routes dispatch under.",
       type: "string",
       default: "'/'",
     },

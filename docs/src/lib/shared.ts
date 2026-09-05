@@ -1,4 +1,4 @@
-export const appName = "Taser";
+export const appName = "Taser.js";
 export const docsRoute = "/docs";
 export const docsImageRoute = "/og/docs";
 export const docsContentRoute = "/llms.mdx/docs";

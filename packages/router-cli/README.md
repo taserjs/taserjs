@@ -1,6 +1,6 @@
 # @taserjs/router-cli
 
-CLI for Taser route manifest generation
+CLI for Taser.js route manifest generation
 
 ## Installation
 

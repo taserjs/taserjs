@@ -26,7 +26,7 @@ export function OpenGraphTemplate({ title, description, assets }: OpenGraphTempl
           <div className="og-hud-header">
             <div className="og-hud-brand">
               <span className="og-hud-bolt">⚡</span>
-              <span className="og-hud-label">TASER // TYPE-SAFE REST ROUTER</span>
+              <span className="og-hud-label">TASER.JS // TYPE-SAFE REST ROUTER</span>
             </div>
             <div className="og-hud-badge">
               <span className="og-hud-dot" />
@@ -62,7 +62,7 @@ export function OpenGraphTemplate({ title, description, assets }: OpenGraphTempl
 
           {/* HUD Footer */}
           <div className="og-footer">
-            <img className="og-logo" src={logoUrl} alt="Taser Logo" />
+            <img className="og-logo" src={logoUrl} alt="Taser.js Logo" />
             <div className="og-url-box">
               <span className="og-url">https://taserjs.dev</span>
               <span className="og-cursor">&gt;_</span>

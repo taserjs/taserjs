@@ -5,7 +5,7 @@ import type { NextFn } from "../types/units.js";
 
 /**
  * Adapts a standard Web / Hono-compatible middleware function `(c, next) => ...`
- * into a Taser-compatible middleware handler function `(ctx, next) => Promise<Response>`.
+ * into a Taser.js-compatible middleware handler function `(ctx, next) => Promise<Response>`.
  *
  * @example
  * ```ts

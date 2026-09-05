@@ -1,6 +1,6 @@
 ---
 title: Standalone API
-description: "Build standalone, zero-host HTTP APIs with pure Taser, Vite, and Nitro. Maximum throughput, zero boilerplate, and web-standard Request/Response execution."
+description: "Build standalone, zero-host HTTP APIs with pure Taser.js, Vite, and Nitro. Maximum throughput, zero boilerplate, and web-standard Request/Response execution."
 icon: Box
 ---
 
@@ -9,9 +9,9 @@ import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-The **Standalone** architecture is the default and recommended way to build backend services with Taser. In this mode, you do not need Express, Fastify, or any other host web framework.
+The **Standalone** architecture is the default and recommended way to build backend services with Taser.js. In this mode, you do not need Express, Fastify, or any other host web framework.
 
-Taser handles request dispatching, middleware pipelines, input validation, and responses directly using high-performance web standards.
+Taser.js handles request dispatching, middleware pipelines, input validation, and responses directly using high-performance web standards.
 
 ---
 
@@ -20,7 +20,7 @@ Taser handles request dispatching, middleware pipelines, input validation, and r
 <Cards>
   <Card
     title="Zero Host Overhead"
-    description="Eliminates intermediate framework wrappers. Requests pass directly into Taser's compiled radix tree."
+    description="Eliminates intermediate framework wrappers. Requests pass directly into Taser.js's compiled radix tree."
   />
   <Card
     title="Web Standards First"
@@ -75,7 +75,7 @@ Taser handles request dispatching, middleware pipelines, input validation, and r
     pnpm dev
     ```
 
-    Taser starts on `http://localhost:3000`.
+    Taser.js starts on `http://localhost:3000`.
 
   </Step>
 
@@ -86,7 +86,7 @@ Taser handles request dispatching, middleware pipelines, input validation, and r
     pnpm build
     ```
 
-    Depending on your deployment mode, Taser packages your output into `.output/` (with Nitro presets) or `dist/` (with standalone Vite).
+    Depending on your deployment mode, Taser.js packages your output into `.output/` (with Nitro presets) or `dist/` (with standalone Vite).
 
   </Step>
 </Steps>

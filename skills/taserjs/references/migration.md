@@ -1,6 +1,6 @@
-# TaserJS Migration Playbook: Adopting Taser in Any Project
+# Taser.js Migration Playbook: Adopting Taser.js in Any Project
 
-This playbook equips agents to assess any existing codebase (Express, Hono, Next.js, Fastify, or vanilla Node) and incrementally introduce or fully migrate to TaserJS with zero downtime.
+This playbook equips agents to assess any existing codebase (Express, Hono, Next.js, Fastify, or vanilla Node) and incrementally introduce or fully migrate to Taser.js with zero downtime.
 
 > For complete framework configuration templates, see [references/integrations.md](integrations.md).
 
@@ -15,7 +15,7 @@ Before modifying files, inspect the project environment:
    - `hono` / `elysia` -> Web Standard host pass-through (`src/server.ts`)
    - `next` -> Next.js App Router plugin (`@taserjs/router-plugin/next`)
    - `@tanstack/react-start` -> TanStack Start Vite integration
-   - Pure API / Greenfield -> Standalone Taser with Vite/Nitro
+   - Pure API / Greenfield -> Standalone Taser.js with Vite/Nitro
 2. **TypeScript**: Check `tsconfig.json`. Ensure `"moduleResolution": "bundler"` (or `"node16"` / `"nodenext"`) and path aliases.
 3. **Package Manager**: Identify whether the project uses `pnpm`, `npm`, `yarn`, or `bun`.
 
@@ -25,7 +25,7 @@ Before modifying files, inspect the project environment:
 
 ### A. Migrating an Express Application (Zero Downtime)
 
-Express projects use the **Host Pass-Through Architecture**. All existing routes, middleware, and sessions remain active while you write new endpoints in Taser.
+Express projects use the **Host Pass-Through Architecture**. All existing routes, middleware, and sessions remain active while you write new endpoints in Taser.js.
 
 1. **Install Dependencies**:
    ```bash
@@ -38,30 +38,30 @@ Express projects use the **Host Pass-Through Architecture**. All existing routes
    Add `taser()` plugin from `@taserjs/router-plugin/vite`.
 4. **Create Root Layout & First Route**:
    - Create `src/routes/$.ts` (Root layout)
-   - Create `src/routes/health.get.ts` (New Taser route)
+   - Create `src/routes/health.get.ts` (New Taser.js route)
 5. **Verify**:
-   - `GET /health` is handled by Taser.
+   - `GET /health` is handled by Taser.js.
    - Legacy routes (e.g. `GET /legacy/status`) fall through to Express.
 
 ### B. Migrating a Hono / Web Standard Application
 
 1. Export your existing Hono application in `src/server.ts`.
-2. Add new Taser routes in `src/routes/`.
+2. Add new Taser.js routes in `src/routes/`.
 3. Unmatched requests automatically fall through to your Hono instance.
 
 ### C. Migrating inside Next.js App Router
 
 1. Follow the Next.js setup in [references/integrations.md#1-nextjs-app-router-integration](integrations.md#1-nextjs-app-router-integration).
-2. Incrementally move Route Handlers (`app/api/users/route.ts`) to Taser route files (`src/server/routes/users.get.ts` and `src/server/routes/users.post.ts`).
+2. Incrementally move Route Handlers (`app/api/users/route.ts`) to Taser.js route files (`src/server/routes/users.get.ts` and `src/server/routes/users.post.ts`).
 3. Delete legacy `app/api/.../route.ts` files once migrated.
 
 ---
 
 ## 3. Converting Route Handlers: Step-by-Step
 
-### Express / Hono -> Taser Handler Conversion Pattern
+### Express / Hono -> Taser.js Handler Conversion Pattern
 
-| Concept              | Express / Hono                               | TaserJS                                                                             |
+| Concept              | Express / Hono                               | Taser.js                                                                            |
 | :------------------- | :------------------------------------------- | :---------------------------------------------------------------------------------- |
 | **Path Params**      | `req.params.id` / `c.req.param("id")`        | `ctx.params.id` (inferred as string by default, or validated via `.params(schema)`) |
 | **Query Params**     | `req.query.page` / `c.req.query("page")`     | `ctx.query.page` (via `.query(schema)`)                                             |
@@ -83,7 +83,7 @@ app.get("/users/:id", async (req, res) => {
 });
 ```
 
-#### After (Taser `src/routes/users/$id.get.ts`):
+#### After (Taser.js `src/routes/users/$id.get.ts`):
 
 ```ts
 // src/routes/users/$id.get.ts
@@ -112,5 +112,5 @@ After making edits, the agent MUST run the following steps to verify the setup:
    - Ensure 0 errors across routes, layouts, and context.
 3. **Endpoint Smoke Test**:
    - Start the server (`pnpm dev`).
-   - `curl -i http://localhost:3000/<route>` to verify the Taser handler (prepend the configured `basePath`, e.g. `/api/<route>` when `basePath: "/api"`).
+   - `curl -i http://localhost:3000/<route>` to verify the Taser.js handler (prepend the configured `basePath`, e.g. `/api/<route>` when `basePath: "/api"`).
    - `curl -i http://localhost:3000/<legacy-route>` to verify the host pass-through fallback.

@@ -2,5 +2,5 @@ import { t } from "@taserjs/router";
 import { json } from "@taserjs/router/reply";
 
 export default t.get("/").handler((_ctx) => {
-  return json({ message: "Hello, Taser!" });
+  return json({ message: "Hello, Taser.js!" });
 });

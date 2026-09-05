@@ -1,11 +1,11 @@
-# Basic Taser Application
+# Basic Taser.js Application
 
-A reference test application demonstrating Taser's new Nitro-based architecture.
+A reference test application demonstrating Taser.js's new Nitro-based architecture.
 
 ## Structure
 
 - `src/context.ts`: Context definition with per-request ID.
-- `src/taser.ts`: Taser application initialization with response validation.
+- `src/taser.ts`: Taser.js application initialization with response validation.
 - `src/routes/`:
   - `$.ts`: Root splat layout applying CORS middleware.
   - `index.get.ts`: Welcome endpoint returning JSON status (`GET /`).

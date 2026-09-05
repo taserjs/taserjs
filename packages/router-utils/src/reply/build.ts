@@ -81,11 +81,11 @@ export function toWebReadableStream(body: ReadableStream): ReadableStream {
       return nodeStreamConverter(body);
     }
     throw new TypeError(
-      "[taser] Node.js streams in replies require importing '@taserjs/router-utils/stream' " +
+      "[taserjs] Node.js streams in replies require importing '@taserjs/router-utils/stream' " +
         "(registers the converter) or passing Readable.toWeb(stream) instead.",
     );
   }
-  throw new TypeError("[taser] Unsupported stream body: expected a ReadableStream");
+  throw new TypeError("[taserjs] Unsupported stream body: expected a ReadableStream");
 }
 
 type NodeStreamConverter = (stream: unknown) => ReadableStream;

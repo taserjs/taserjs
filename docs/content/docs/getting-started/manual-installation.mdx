@@ -1,6 +1,6 @@
 ---
 title: Manual Installation
-description: "Step-by-step guide to installing and configuring Taser manually with Vite, Nitro deployment presets, Next.js, and host pass-through dispatching."
+description: "Step-by-step guide to installing and configuring Taser.js manually with Vite, Nitro deployment presets, Next.js, and host pass-through dispatching."
 icon: Wrench
 ---
 
@@ -11,13 +11,13 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 
 If you have an existing project or prefer configuring dependencies manually without the `create-taserjs` wizard, this guide provides complete step-by-step instructions.
 
-Taser is **Vite-native** by design. You can run Taser as a standalone server, pair it with **Nitro** for multi-cloud deployment presets, or enable **Host Pass-Through** to dispatch alongside existing frameworks.
+Taser.js is **Vite-native** by design. You can run Taser.js as a standalone server, pair it with **Nitro** for multi-cloud deployment presets, or enable **Host Pass-Through** to dispatch alongside existing frameworks.
 
 ---
 
 ## 1. Core Installation (Vite-Native Backend)
 
-At its foundation, Taser operates as a Vite compiler plugin (`@taserjs/router-plugin/vite`). It turns your `src/routes/` directory into virtual modules with instant Hot Module Replacement (HMR) and ambient TypeScript generation.
+At its foundation, Taser.js operates as a Vite compiler plugin (`@taserjs/router-plugin/vite`). It turns your `src/routes/` directory into virtual modules with instant Hot Module Replacement (HMR) and ambient TypeScript generation.
 
 <Steps>
   <Step>
@@ -153,7 +153,7 @@ At its foundation, Taser operates as a Vite compiler plugin (`@taserjs/router-pl
     import { t } from "@taserjs/router";
 
     export default t.get("/").handler((ctx) => {
-      return json({ message: "Welcome to Taser!", requestId: ctx.requestId });
+      return json({ message: "Welcome to Taser.js!", requestId: ctx.requestId });
     });
     ```
 
@@ -170,7 +170,7 @@ At its foundation, Taser operates as a Vite compiler plugin (`@taserjs/router-pl
 
 ## 2. Adding Nitro for Multi-Cloud Deployment Presets
 
-**Nitro** acts as the production deployment platform for Taser. By adding `nitro()` to your `vite.config.ts`, you can compile your Vite-native Taser application to Cloudflare Workers, Vercel, AWS Lambda, Bun, Deno, Netlify, or containerized Node servers with zero code changes.
+**Nitro** acts as the production deployment platform for Taser.js. By adding `nitro()` to your `vite.config.ts`, you can compile your Vite-native Taser.js application to Cloudflare Workers, Vercel, AWS Lambda, Bun, Deno, Netlify, or containerized Node servers with zero code changes.
 
 <Steps>
   <Step>
@@ -249,11 +249,11 @@ At its foundation, Taser operates as a Vite compiler plugin (`@taserjs/router-pl
   with **both Vite Standalone and Vite + Nitro**.
 </Callout>
 
-If you have existing controllers or routes in a Web Standard framework (Hono, Elysia, HatTip, or custom fetch handlers) or a Node.js framework (Express, Fastify), you can keep them running alongside Taser:
+If you have existing controllers or routes in a Web Standard framework (Hono, Elysia, HatTip, or custom fetch handlers) or a Node.js framework (Express, Fastify), you can keep them running alongside Taser.js:
 
-1. **Taser First**: Inbound requests are checked against `src/routes/`.
-2. **Host Pass-Through**: If no Taser file route matches, the request falls through directly to your exported host application.
-3. **404 Handling**: If neither Taser nor the host handles the request, Taser returns a standard 404 response.
+1. **Taser.js First**: Inbound requests are checked against `src/routes/`.
+2. **Host Pass-Through**: If no Taser.js file route matches, the request falls through directly to your exported host application.
+3. **404 Handling**: If neither Taser.js nor the host handles the request, Taser.js returns a standard 404 response.
 
 <Tabs items={["Web Standard (Fetch-Native)", "Express (Node.js)", "Fastify (Node.js)"]}>
   <Tab value="Web Standard (Fetch-Native)">
@@ -324,12 +324,12 @@ If you have existing controllers or routes in a Web Standard framework (Hono, El
   <Card
     title="TanStack Start"
     href="/docs/fullstack/tanstack-start"
-    description="Embed Taser REST endpoints inside TanStack Start fullstack apps."
+    description="Embed Taser.js REST endpoints inside TanStack Start fullstack apps."
   />
   <Card
     title="Next.js App Router"
     href="/docs/fullstack/nextjs"
-    description="Deep dive into embedding Taser inside Next.js App Router."
+    description="Deep dive into embedding Taser.js inside Next.js App Router."
   />
   <Card
     title="Deployment Presets"

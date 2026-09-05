@@ -3,9 +3,9 @@ import { llms } from "fumadocs-core/source";
 
 export const revalidate = false;
 
-const LLM_SUMMARY_HEADER = `# TaserJS API Router Quick Reference
+const LLM_SUMMARY_HEADER = `# Taser.js API Router Quick Reference
 
-> Taser is a type-safe, file-based REST API router for TypeScript supporting Vite Standalone, Nitro Multi-Cloud, Next.js App Router, and Host Pass-Through (Express, Fastify, Hono, Web Standard).
+> Taser.js is a type-safe, file-based REST API router for TypeScript supporting Vite Standalone, Nitro Multi-Cloud, Next.js App Router, and Host Pass-Through (Express, Fastify, Hono, Web Standard).
 
 ## Core File Naming Conventions
 - Root Route: \`src/routes/index.get.ts\` -> GET /

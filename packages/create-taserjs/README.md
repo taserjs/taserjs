@@ -1,6 +1,6 @@
 # create-taserjs
 
-Official scaffolding CLI for [Taser](https://taserjs.dev) REST API projects.
+Official scaffolding CLI for [Taser.js](https://taserjs.dev) REST API projects.
 
 ## Quick Start
 
@@ -58,4 +58,4 @@ npx create-taserjs --json
 
 ## License
 
-ISC — Copyright (c) 2026, Kazi Ahmed & Taser contributors.
+ISC — Copyright (c) 2026, Kazi Ahmed & Taser.js contributors.

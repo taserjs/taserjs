@@ -12,10 +12,10 @@ function Home() {
 
   return (
     <div style={{ padding: "1rem", fontFamily: "sans-serif" }}>
-      <h3>TanStack Start + Taser</h3>
+      <h3>TanStack Start + Taser.js</h3>
       <ul>
         <li>This page is SSR'd by TanStack Start.</li>
-        {data && <li>Data from taser: {data.greeting}</li>}
+        {data && <li>Data from Taser.js: {data.greeting}</li>}
       </ul>
     </div>
   );

@@ -1,6 +1,6 @@
-# TaserJS File-Based Routing
+# Taser.js File-Based Routing
 
-This guide details route file naming rules, parameter extraction, route groups, splats, and breakout conventions in TaserJS.
+This guide details route file naming rules, parameter extraction, route groups, splats, and breakout conventions in Taser.js.
 
 ---
 

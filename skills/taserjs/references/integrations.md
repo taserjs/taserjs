@@ -1,8 +1,8 @@
-# TaserJS Fullstack & Framework Integrations
+# Taser.js Fullstack & Framework Integrations
 
-This guide details how to integrate TaserJS into fullstack frameworks (Next.js, TanStack Start) and host servers (Express, Hono, Fastify).
+This guide details how to integrate Taser.js into fullstack frameworks (Next.js, TanStack Start) and host servers (Express, Hono, Fastify).
 
-> For migration assessments and converting legacy route handlers to TaserJS, see [references/migration.md](migration.md).
+> For migration assessments and converting legacy route handlers to Taser.js, see [references/migration.md](migration.md).
 
 ---
 
@@ -31,8 +31,8 @@ const nextConfig: NextConfig = {
 };
 
 const withTaser = createTaser({
-  serverDir: "src/server", // Directory containing Taser routes & config
-  basePath: "/api", // URL prefix dispatched to Taser
+  serverDir: "src/server", // Directory containing Taser.js routes & config
+  basePath: "/api", // URL prefix dispatched to Taser.js
 });
 
 export default withTaser(nextConfig);
@@ -99,7 +99,7 @@ Define REST endpoints inside `src/server/routes/`:
 
 ## 2. TanStack Start Integration
 
-Run a dedicated Taser REST API subsystem alongside TanStack Router UI pages.
+Run a dedicated Taser.js REST API subsystem alongside TanStack Router UI pages.
 
 ### 1. Install Dependencies
 
@@ -122,9 +122,9 @@ import { taser } from "@taserjs/router-plugin/vite";
 export default defineConfig({
   plugins: [
     taser({
-      serverDir: "src/server", // Houses Taser context & routes
-      basePath: "/api", // URL prefix dispatched to Taser
-      server: false, // Let TanStack Start manage the outer HTTP host; Taser handles /api routes only
+      serverDir: "src/server", // Houses Taser.js context & routes
+      basePath: "/api", // URL prefix dispatched to Taser.js
+      server: false, // Let TanStack Start manage the outer HTTP host; Taser.js handles /api routes only
     }),
     tanstackStart(),
     viteReact(),
@@ -194,10 +194,10 @@ Add routes to `src/server/routes/` (e.g. `src/server/routes/products.get.ts` -> 
 
 ## 3. Host Pass-Through Architecture
 
-Taser co-exists with existing host servers via zero-downtime pass-through:
+Taser.js co-exists with existing host servers via zero-downtime pass-through:
 
 ```text
-[Incoming Request] -> [Taser Routes Check] -> [Host App Fallback] -> [404 Finalizer]
+[Incoming Request] -> [Taser.js Routes Check] -> [Host App Fallback] -> [404 Finalizer]
 ```
 
 ### Web Standard Hosts (Hono, Elysia)
@@ -232,5 +232,5 @@ app.get("/legacy-express", (req, res) => {
 export default app;
 ```
 
-- Requests matching `src/routes/*` run through Taser with zero overhead.
+- Requests matching `src/routes/*` run through Taser.js with zero overhead.
 - Unmatched requests fall through to Express/Hono with existing middleware and session state preserved.

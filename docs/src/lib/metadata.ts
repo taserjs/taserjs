@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const siteConfig = {
-  name: "Taser",
+  name: "Taser.js",
   url: "https://taserjs.dev",
   locale: "en_US",
   twitterSite: "@taserjs",
@@ -13,7 +13,7 @@ const OG_IMAGE_HEIGHT = 630;
 
 export const defaultOgImage = {
   url: "/og/pages/home/image.webp",
-  alt: "Taser: Type-Safe File-Based Routing for REST APIs",
+  alt: "Taser.js: Type-Safe File-Based Routing for REST APIs",
   width: OG_IMAGE_WIDTH,
   height: OG_IMAGE_HEIGHT,
   type: "image/webp",
@@ -70,14 +70,14 @@ export function createPageMetadata(opts: {
 }
 
 export const homeMetadata = createPageMetadata({
-  title: "Taser: Type-Safe File-Based Routing for REST APIs",
+  title: "Taser.js: Type-Safe File-Based Routing for REST APIs",
   description:
     "File-based routing for TypeScript REST APIs. Compose scoped directory middleware with full type inference, enforce compile-time return contracts, and eliminate type assertions forever.",
   openGraphDescription:
     "Define schemas once. Let types cascade through directory middleware, handlers, compile-time return checks, and your typed client with zero type casting.",
   path: "/",
   image: "/og/pages/home/image.webp",
-  imageAlt: "Taser: Type-Safe File-Based Routing for REST APIs",
+  imageAlt: "Taser.js: Type-Safe File-Based Routing for REST APIs",
 });
 
 export const docsOpenGraphDescriptions: Record<string, string> = {
@@ -85,27 +85,27 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
   "getting-started":
     "Scaffold a production-ready typed API in seconds using create-taserjs with zero-config TypeScript, watch mode, and database presets.",
   "getting-started/manual-installation":
-    "Step-by-step guide to installing and configuring Taser with Vite, Next.js, Nitro, and host pass-through dispatching (Web Standard, Express, Fastify).",
+    "Step-by-step guide to installing and configuring Taser.js with Vite, Next.js, Nitro, and host pass-through dispatching (Web Standard, Express, Fastify).",
   "getting-started/core-concepts":
-    "Master Taser architecture: four pillars, request lifecycle sequence, context injection, and compiler-enforced return contracts.",
+    "Master Taser.js architecture: four pillars, request lifecycle sequence, context injection, and compiler-enforced return contracts.",
   "plugins/vite":
-    "Integrate Taser into Vite with virtual route modules, ambient type generation, instant HMR, and standalone deployment.",
+    "Integrate Taser.js into Vite with virtual route modules, ambient type generation, instant HMR, and standalone deployment.",
   "plugins/next":
     "Configure the @taserjs/router-plugin/next bundler plugin for Next.js App Router compilation, options, and disk artifacts.",
   "plugins/nitro":
-    "Deploy Taser across edge, serverless, and multi-cloud runtimes using the @taserjs/router-plugin/nitro module.",
+    "Deploy Taser.js across edge, serverless, and multi-cloud runtimes using the @taserjs/router-plugin/nitro module.",
   "fullstack/tanstack-start":
-    "Build fullstack React applications with TanStack Start and Taser. Type-safe data fetching in TanStack Router loaders and React Query.",
+    "Build fullstack React applications with TanStack Start and Taser.js. Type-safe data fetching in TanStack Router loaders and React Query.",
   "fullstack/nextjs":
-    "Build fullstack Next.js 15+ App Router applications with a dedicated Taser REST API subsystem. Type-safe data fetching in RSC, Server Actions, and client hooks.",
+    "Build fullstack Next.js 15+ App Router applications with a dedicated Taser.js REST API subsystem. Type-safe data fetching in RSC, Server Actions, and client hooks.",
   "frameworks/standalone":
-    "Build standalone, zero-host HTTP APIs with pure Taser, Vite, and Nitro. Maximum throughput with web standards.",
+    "Build standalone, zero-host HTTP APIs with pure Taser.js, Vite, and Nitro. Maximum throughput with web standards.",
   "frameworks/fetch-native":
-    "Run Taser alongside any Web Standard or Fetch-native host framework (Hono, Elysia, HatTip, or Web Fetch) using host pass-through.",
+    "Run Taser.js alongside any Web Standard or Fetch-native host framework (Hono, Elysia, HatTip, or Web Fetch) using host pass-through.",
   "frameworks/express":
-    "Add Taser file-based routing to an Express application with seamless host pass-through dispatching.",
+    "Add Taser.js file-based routing to an Express application with seamless host pass-through dispatching.",
   "frameworks/fastify":
-    "Pair Taser file routing with Fastify plugins and hooks using the host pass-through architecture.",
+    "Pair Taser.js file routing with Fastify plugins and hooks using the host pass-through architecture.",
   "routing/file-conventions":
     "HTTP method suffixes, index routes, dynamic parameters ($id), splat catch-alls ($), and pathless layouts explained.",
   "routing/defining-routes":
@@ -139,7 +139,7 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
   "middleware/security-and-utilities":
     "Add security headers, CSRF protection, compression, and request body size limiters using built-in utilities.",
   deployments:
-    "Deploy Taser APIs to Cloudflare Workers, Vercel, AWS Lambda, Node.js, Bun, Deno, and Netlify using Nitro presets.",
+    "Deploy Taser.js APIs to Cloudflare Workers, Vercel, AWS Lambda, Node.js, Bun, Deno, and Netlify using Nitro presets.",
   client:
     "Auto-completing, end-to-end typed proxy client generated from your server router type with zero runtime drift.",
   cli: "Generate ambient TypeScript definitions and scaffold empty route files with @taserjs/router-cli.",
@@ -154,42 +154,42 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
 };
 
 export const docsImageAlts: Record<string, string> = {
-  "": "Taser Docs: Introduction to Type-Safe REST API Routing",
-  "getting-started": "Taser Docs: Getting Started with Type-Safe API Routing",
-  "getting-started/manual-installation": "Taser Docs: Manual Installation Guide",
-  "getting-started/core-concepts": "Taser Docs: Core Concepts and Architecture",
-  "plugins/vite": "Taser Docs: Vite Plugin Integration",
-  "plugins/next": "Taser Docs: Next.js Plugin Configuration",
-  "plugins/nitro": "Taser Docs: Nitro Server Engine Module",
-  "fullstack/tanstack-start": "Taser Docs: TanStack Start Fullstack Integration",
-  "fullstack/nextjs": "Taser Docs: Next.js App Router Fullstack Integration",
-  "frameworks/standalone": "Taser Docs: Standalone API Architecture",
-  "frameworks/fetch-native": "Taser Docs: Web Standard & Fetch Frameworks Host Pass-Through",
-  "frameworks/express": "Taser Docs: Express Host Pass-Through",
-  "frameworks/fastify": "Taser Docs: Fastify Host Pass-Through",
-  "routing/file-conventions": "Taser Docs: File Conventions and Routing Rules",
-  "routing/defining-routes": "Taser Docs: Defining Routes and Schemas",
-  "routing/layouts-and-middleware": "Taser Docs: Cascading Layouts and Middleware",
-  "routing/refactoring-handlers": "Taser Docs: Refactoring Route Handlers",
-  "routing/context-and-state": "Taser Docs: Application Context and State",
-  "validation/standard-schema": "Taser Docs: Standard Schema Runtime Validation",
-  "validation/middleware-validation": "Taser Docs: Middleware and Header Validation",
-  "validation/handling-errors": "Taser Docs: Validation Error Handling",
-  "responses/reply-helpers": "Taser Docs: Status Reply Helpers",
-  "responses/cookies": "Taser Docs: Cookie and Signed Cookie Management",
-  "responses/response-contracts": "Taser Docs: Compile-Time Response Contracts",
-  "responses/streaming-and-files": "Taser Docs: Streaming and File Responses",
-  "responses/error-handling": "Taser Docs: Global Error Handling",
-  "middleware/cors": "Taser Docs: CORS Middleware Configuration",
-  "middleware/jwt-and-jwk": "Taser Docs: JWT and JWKS Authentication",
-  "middleware/security-and-utilities": "Taser Docs: Security Headers and Utilities",
-  deployments: "Taser Docs: Nitro Deployment Presets",
-  client: "Taser Docs: Typed Client SDK",
-  cli: "Taser Docs: CLI Tooling and Codegen",
-  "api-reference/router": "Taser Docs: @taserjs/router API Reference",
-  "api-reference/router-plugin": "Taser Docs: @taserjs/router-plugin API Reference",
-  "api-reference/router-client": "Taser Docs: @taserjs/router-client API Reference",
-  "api-reference/router-cli": "Taser Docs: @taserjs/router-cli API Reference",
+  "": "Taser.js Docs: Introduction to Type-Safe REST API Routing",
+  "getting-started": "Taser.js Docs: Getting Started with Type-Safe API Routing",
+  "getting-started/manual-installation": "Taser.js Docs: Manual Installation Guide",
+  "getting-started/core-concepts": "Taser.js Docs: Core Concepts and Architecture",
+  "plugins/vite": "Taser.js Docs: Vite Plugin Integration",
+  "plugins/next": "Taser.js Docs: Next.js Plugin Configuration",
+  "plugins/nitro": "Taser.js Docs: Nitro Server Engine Module",
+  "fullstack/tanstack-start": "Taser.js Docs: TanStack Start Fullstack Integration",
+  "fullstack/nextjs": "Taser.js Docs: Next.js App Router Fullstack Integration",
+  "frameworks/standalone": "Taser.js Docs: Standalone API Architecture",
+  "frameworks/fetch-native": "Taser.js Docs: Web Standard & Fetch Frameworks Host Pass-Through",
+  "frameworks/express": "Taser.js Docs: Express Host Pass-Through",
+  "frameworks/fastify": "Taser.js Docs: Fastify Host Pass-Through",
+  "routing/file-conventions": "Taser.js Docs: File Conventions and Routing Rules",
+  "routing/defining-routes": "Taser.js Docs: Defining Routes and Schemas",
+  "routing/layouts-and-middleware": "Taser.js Docs: Cascading Layouts and Middleware",
+  "routing/refactoring-handlers": "Taser.js Docs: Refactoring Route Handlers",
+  "routing/context-and-state": "Taser.js Docs: Application Context and State",
+  "validation/standard-schema": "Taser.js Docs: Standard Schema Runtime Validation",
+  "validation/middleware-validation": "Taser.js Docs: Middleware and Header Validation",
+  "validation/handling-errors": "Taser.js Docs: Validation Error Handling",
+  "responses/reply-helpers": "Taser.js Docs: Status Reply Helpers",
+  "responses/cookies": "Taser.js Docs: Cookie and Signed Cookie Management",
+  "responses/response-contracts": "Taser.js Docs: Compile-Time Response Contracts",
+  "responses/streaming-and-files": "Taser.js Docs: Streaming and File Responses",
+  "responses/error-handling": "Taser.js Docs: Global Error Handling",
+  "middleware/cors": "Taser.js Docs: CORS Middleware Configuration",
+  "middleware/jwt-and-jwk": "Taser.js Docs: JWT and JWKS Authentication",
+  "middleware/security-and-utilities": "Taser.js Docs: Security Headers and Utilities",
+  deployments: "Taser.js Docs: Nitro Deployment Presets",
+  client: "Taser.js Docs: Typed Client SDK",
+  cli: "Taser.js Docs: CLI Tooling and Codegen",
+  "api-reference/router": "Taser.js Docs: @taserjs/router API Reference",
+  "api-reference/router-plugin": "Taser.js Docs: @taserjs/router-plugin API Reference",
+  "api-reference/router-client": "Taser.js Docs: @taserjs/router-client API Reference",
+  "api-reference/router-cli": "Taser.js Docs: @taserjs/router-cli API Reference",
 };
 
 export function createDocsPageMetadata(opts: {
@@ -198,10 +198,10 @@ export function createDocsPageMetadata(opts: {
   slugKey: string;
   image: string;
 }): Metadata {
-  const pageTitle = `${opts.title} | Taser Docs`;
+  const pageTitle = `${opts.title} | Taser.js Docs`;
   const path = opts.slugKey ? `/docs/${opts.slugKey}` : "/docs";
   const ogDesc = docsOpenGraphDescriptions[opts.slugKey] || opts.description;
-  const imgAlt = docsImageAlts[opts.slugKey] || `Taser Docs: ${opts.title}`;
+  const imgAlt = docsImageAlts[opts.slugKey] || `Taser.js Docs: ${opts.title}`;
 
   return createPageMetadata({
     title: pageTitle,

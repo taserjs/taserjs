@@ -16,7 +16,7 @@ export async function runGenerate(argv: Record<string, any>): Promise<void> {
   const appConfig = await resolveAppConfig(rootDir);
   const explicitRoutes = (argv.routesDir || argv.routes) as string | undefined;
 
-  console.log(`[taser] generate · config source: ${appConfig.source}`);
+  console.log(`[taserjs] generate · config source: ${appConfig.source}`);
 
   const resolved = taserConfigSchema.parse({
     ...appConfig.taser,

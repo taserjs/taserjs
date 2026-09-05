@@ -8,9 +8,9 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
-**Taser** is a modern, type-safe, file-based router designed for scalable Node.js and edge HTTP services. It bridges the gap between clean filesystem architecture and strict type safety.
+**Taser.js** is a modern, type-safe, file-based router designed for scalable Node.js and edge HTTP services. It bridges the gap between clean filesystem architecture and strict type safety.
 
-Traditional Node.js routing forces you to write manual route registries, perform unsafe type assertions on `req.user`, and maintain separate client types that drift over time. Taser solves these challenges by treating the filesystem as the source of truth, cascading middleware state through directory layouts, and generating a 100% typed client SDK.
+Traditional Node.js routing forces you to write manual route registries, perform unsafe type assertions on `req.user`, and maintain separate client types that drift over time. Taser.js solves these challenges by treating the filesystem as the source of truth, cascading middleware state through directory layouts, and generating a 100% typed client SDK.
 
 ```ts title="src/routes/users/$id.get.ts"
 import { json, notFound } from "@taserjs/router/reply";
@@ -42,7 +42,7 @@ export default GET.handler(async (ctx) => {
 
 ---
 
-## Why Taser?
+## Why Taser.js?
 
 <Cards>
   <Card
@@ -73,14 +73,14 @@ export default GET.handler(async (ctx) => {
 
 ---
 
-## How Taser Works
+## How Taser.js Works
 
-Taser operates around a deterministic, fully type-safe request lifecycle:
+Taser.js operates around a deterministic, fully type-safe request lifecycle:
 
 <RequestFlowDiagram />
 
 <Callout type="info" title="Vite-Powered Virtual Modules">
-  Taser integrates with Vite via `@taserjs/router-plugin/vite`. Routes are loaded virtually during
+  Taser.js integrates with Vite via `@taserjs/router-plugin/vite`. Routes are loaded virtually during
   development with instant HMR and bundled into optimized production artifacts via Nitro deployment
   presets.
 </Callout>
@@ -91,7 +91,7 @@ Taser operates around a deterministic, fully type-safe request lifecycle:
 
 Get up and running in seconds using the official scaffolding CLI. Customize your stack across five modular dimensions:
 
-- **Host Framework**: Standalone Taser (`none`), `hono`, `express`, or `fastify`.
+- **Host Framework**: Standalone Taser.js (`none`), `hono`, `express`, or `fastify`.
 - **Deployment Preset**: `node-server`, `node-cluster`, `bun`, `deno-server`, `deno-deploy`, `cloudflare-module`, `vercel`, `aws-lambda`, `netlify`, or standalone Vite (`none`).
 - **Runtime Override**: Explicit `node` or `bun` execution target for self-hosted presets.
 - **Database & Driver**: Drizzle, Prisma, or Kysely with SQLite, PostgreSQL, or MySQL drivers (`--db <odm>:<driver>`).
@@ -135,7 +135,7 @@ Explore the documentation to start building or migrating your existing server:
   <Card
     title="Manual Installation"
     href="/docs/getting-started/manual-installation"
-    description="Configure Taser with Vite, Nitro deployment presets, Next.js, or host frameworks."
+    description="Configure Taser.js with Vite, Nitro deployment presets, Next.js, or host frameworks."
   />
   <Card
     title="File-Based Routing"

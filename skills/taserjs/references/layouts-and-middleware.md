@@ -1,6 +1,6 @@
-# TaserJS Layouts & Middleware
+# Taser.js Layouts & Middleware
 
-This guide covers canonical layout identifiers, middleware types, cascading state injection, and response transformation in TaserJS.
+This guide covers canonical layout identifiers, middleware types, cascading state injection, and response transformation in Taser.js.
 
 ---
 
@@ -124,7 +124,7 @@ export default t.layout("/admin").use(async (ctx, next) => {
 
 ## 4. Onion Architecture & Modifying Responses
 
-In TaserJS, middleware wraps downstream execution in an onion model:
+In Taser.js, middleware wraps downstream execution in an onion model:
 
 1. Logic before `await next()` executes on the way in.
 2. `const res = await next({ ... })` executes downstream handlers and returns the standard fetch `Response`.

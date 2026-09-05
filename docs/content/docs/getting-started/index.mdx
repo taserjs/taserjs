@@ -1,6 +1,6 @@
 ---
 title: Quickstart
-description: "Create and run a new TaserJS project in under a minute with create-taserjs. Choose your favorite server adapter, schema validator, ORM, and logger."
+description: "Create and run a new Taser.js project in under a minute with create-taserjs. Choose your favorite server adapter, schema validator, ORM, and logger."
 icon: Zap
 ---
 
@@ -10,7 +10,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Files, Folder, File } from "@/components/files";
 
-The quickest way to get started with Taser is using the official `create-taserjs` scaffolding tool. It generates a pre-configured, production-ready project with TypeScript, hot-reloading, route watching, and your choice of tools.
+The quickest way to get started with Taser.js is using the official `create-taserjs` scaffolding tool. It generates a pre-configured, production-ready project with TypeScript, hot-reloading, route watching, and your choice of tools.
 
 ---
 
@@ -64,7 +64,7 @@ Before creating a project, make sure your development environment meets these re
 
     1. **Project Name**: Enter a directory name (for example, `my-taser-api`).
     2. **Host Framework**:
-       - **None (Standalone)**: Pure Taser with high-performance virtual routing and zero host overhead (default).
+       - **None (Standalone)**: Pure Taser.js with high-performance virtual routing and zero host overhead (default).
        - **Hono**: Lightweight web standard framework for Node, Bun, Deno, and edge runtimes.
        - **Express**: Battle-tested Node.js web framework with pass-through routing.
        - **Fastify**: High-throughput Node.js framework with pass-through routing.
@@ -158,7 +158,7 @@ Before creating a project, make sure your development environment meets these re
 
 ## Project Structure Overview
 
-A freshly scaffolded Taser project contains a clean, modern layout:
+A freshly scaffolded Taser.js project contains a clean, modern layout:
 
 <Files>
   <Folder name="my-taser-api" defaultOpen>
@@ -204,7 +204,7 @@ import { t } from "@taserjs/router";
 
 export default t.get("/hello").handler(() => {
   return json({
-    message: "Hello from Taser!",
+    message: "Hello from Taser.js!",
     timestamp: new Date().toISOString(),
   });
 });
@@ -222,7 +222,7 @@ Response:
 
 ```json
 {
-  "message": "Hello from Taser!",
+  "message": "Hello from Taser.js!",
   "timestamp": "2026-08-25T00:00:00.000Z"
 }
 ```
@@ -242,7 +242,7 @@ Now that your project is running, explore these guides to build out your applica
   <Card
     title="Manual Installation"
     href="/docs/getting-started/manual-installation"
-    description="Learn how to install Taser step by step into an existing project."
+    description="Learn how to install Taser.js step by step into an existing project."
   />
   <Card
     title="Core Concepts"

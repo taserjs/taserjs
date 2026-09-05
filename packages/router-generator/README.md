@@ -1,6 +1,6 @@
 # @taserjs/router-generator
 
-Route manifest code generation for Taser
+Route manifest code generation for Taser.js
 
 ## Installation
 

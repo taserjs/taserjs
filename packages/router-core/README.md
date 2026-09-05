@@ -1,6 +1,6 @@
 # @taserjs/router-core
 
-Taser Hono-backed Request/Response runtime pipeline
+Taser.js Hono-backed Request/Response runtime pipeline
 
 ## Installation
 

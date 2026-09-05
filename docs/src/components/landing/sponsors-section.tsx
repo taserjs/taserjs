@@ -28,7 +28,7 @@ export function SponsorsSection() {
                 Backed by the community. <SectionAccent>Built for everyone</SectionAccent>.
               </span>
             }
-            description="Taser is 100% open source. Sponsoring funds continuous performance optimizations, runtime adapter development, codegen tooling, and long-term maintenance."
+            description="Taser.js is 100% open source. Sponsoring funds continuous performance optimizations, runtime adapter development, codegen tooling, and long-term maintenance."
           />
         </motion.div>
 
@@ -45,7 +45,7 @@ export function SponsorsSection() {
               <div className="mb-3 flex size-10 items-center justify-center rounded-lg border border-fd-border bg-fd-muted text-landing-accent">
                 <Heart className="size-5" aria-hidden />
               </div>
-              <h3 className="text-xl font-semibold tracking-tight">Sponsor Taser Development</h3>
+              <h3 className="text-xl font-semibold tracking-tight">Sponsor Taser.js Development</h3>
               <p className="mt-2 text-sm text-fd-muted-foreground">
                 Support sustainable open source tooling. Contributions directly support new runtime
                 adapters, compiler features, instant watch-mode codegen, and Standard Schema

@@ -1,13 +1,13 @@
 ---
 title: Core Concepts
-description: "Master TaserJS architecture: four core pillars, request lifecycle flow, context injection, cascading middleware, and compiler-enforced return contracts."
+description: "Master Taser.js architecture: four core pillars, request lifecycle flow, context injection, cascading middleware, and compiler-enforced return contracts."
 icon: Cpu
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-Taser is designed to eliminate the ambiguity and unsafe typecasting common in Node.js backend development. To get the most out of Taser, it helps to understand its four architectural pillars.
+Taser.js is designed to eliminate the ambiguity and unsafe typecasting common in Node.js backend development. To get the most out of Taser.js, it helps to understand its four architectural pillars.
 
 ---
 
@@ -40,7 +40,7 @@ Taser is designed to eliminate the ambiguity and unsafe typecasting common in No
 
 ## The Request Lifecycle
 
-Every HTTP request handled by Taser flows through a deterministic, type-safe pipeline:
+Every HTTP request handled by Taser.js flows through a deterministic, type-safe pipeline:
 
 <RequestFlowDiagram />
 
@@ -50,14 +50,14 @@ When an incoming request reaches your application (Vite Standalone, Nitro preset
 
 ### 2. Context Initialization
 
-Taser evaluates the application context configured in `src/context.ts`:
+Taser.js evaluates the application context configured in `src/context.ts`:
 
 - **Boot Context**: Singletons created once at application startup (database connections, Redis clients, external API clients).
 - **Request Context**: Properties created per request (unique `requestId`, incoming timestamp, user agent).
 
 ### 3. Cascading Middleware Execution
 
-Taser runs layout middleware from outermost to innermost:
+Taser.js runs layout middleware from outermost to innermost:
 
 - Root layout (`src/routes/$.ts`)
 - Parent directory layouts (for example, `src/routes/admin.ts`)
@@ -67,7 +67,7 @@ Any state returned by middleware (such as `next({ user: currentUser })`) merges 
 
 ### 4. Input Validation
 
-Before the route handler executes, Taser validates `params`, `query`, `headers`, and `body` against their schemas. If validation fails, a `ValidationError` is raised and caught by `.onError()`.
+Before the route handler executes, Taser.js validates `params`, `query`, `headers`, and `body` against their schemas. If validation fails, a `ValidationError` is raised and caught by `.onError()`.
 
 ### 5. Handler Execution
 
@@ -75,7 +75,7 @@ The route handler receives a fully typed context object containing all validated
 
 ### 6. Response Contract Verification
 
-At compile time, TypeScript checks that the value returned from `json()` satisfies the schema declared in `.returns()`. If runtime response validation is enabled, Taser also verifies outgoing payloads in development.
+At compile time, TypeScript checks that the value returned from `json()` satisfies the schema declared in `.returns()`. If runtime response validation is enabled, Taser.js also verifies outgoing payloads in development.
 
 ---
 
@@ -224,7 +224,7 @@ export default t.layout("/admin/*").use(async (ctx, next) => {
 
 <Callout type="tip" title="No Global Interface Merging">
   Unlike traditional Express where you must declare global `Express.Request` namespace overrides,
-  Taser infers middleware types through lexical scope and folder hierarchies.
+  Taser.js infers middleware types through lexical scope and folder hierarchies.
 </Callout>
 
 ---

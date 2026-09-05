@@ -64,7 +64,7 @@ export default POST.handler(async (ctx) => {
   return json({ created: true, by: user.id });
 });`,
     takeaway:
-      "In Taser, middleware return state flows directly into ctx.state with zero typecasting or Express global interface hacks.",
+      "In Taser.js, middleware return state flows directly into ctx.state with zero typecasting or Express global interface hacks.",
   },
   {
     id: "discovery",
@@ -134,7 +134,7 @@ adminRouter.get("/reports/:id", getReportHandler);
     return json({ reports: data.items, total: data.count });
   });`,
     takeaway:
-      "Taser catches response schema breakages at compile time before your code ever deploys to staging or production.",
+      "Taser.js catches response schema breakages at compile time before your code ever deploys to staging or production.",
   },
   {
     id: "client",
@@ -191,7 +191,7 @@ export function ProblemSolutionTabs() {
               Why traditional Node.js routing <SectionAccent>breaks at scale</SectionAccent>
             </>
           }
-          description="Traditional routers force trade-offs between clean folder structures and real type safety. Taser eliminates the type assertion trap and guarantees runtime correctness from middleware to client."
+          description="Traditional routers force trade-offs between clean folder structures and real type safety. Taser.js eliminates the type assertion trap and guarantees runtime correctness from middleware to client."
         />
 
         {/* Tab Switcher */}
@@ -251,7 +251,7 @@ export function ProblemSolutionTabs() {
 
           {/* Taser Card (The Solution) */}
           <WindowFrame
-            title="Taser Router"
+            title="Taser.js Router"
             tone="emerald"
             badge={
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">

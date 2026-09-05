@@ -166,7 +166,7 @@ export function RouterComparison() {
             )}
           >
             <Server className="size-3.5 text-orange-500" />
-            Taser Router
+            Taser.js Router
           </button>
         </div>
       </div>
@@ -267,7 +267,7 @@ export function RouterComparison() {
 
         {/* Taser Window */}
         <WindowFrame
-          title="Taser Router"
+          title="Taser.js Router"
           tone="orange"
           badge={
             <span className="inline-flex items-center gap-1 rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-0.5 text-[11px] font-medium text-orange-600 dark:text-orange-400">
@@ -372,7 +372,7 @@ export function RouterComparison() {
               </h4>
             </div>
             <p className="max-w-2xl text-sm leading-relaxed text-fd-muted-foreground">
-              In Taser Router, files are treated differently depending on their suffix:
+              In Taser.js Router, files are treated differently depending on their suffix:
             </p>
           </div>
         </div>

@@ -1,5 +1,5 @@
 /**
- * Your own framework/server entry. Taser composes itself around the
+ * Your own framework/server entry. Taser.js composes itself around the
  * default export (any fetch-compatible instance): taser routes first,
  * your framework second, 404 last.
  *

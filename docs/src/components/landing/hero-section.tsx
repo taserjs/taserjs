@@ -44,7 +44,7 @@ export function HeroSection() {
               className="inline-flex items-center gap-2 rounded-xl border border-fd-border bg-fd-background/80 px-5 py-3 text-sm font-medium backdrop-blur-sm transition-all duration-300 hover:bg-fd-accent hover:-translate-y-0.5"
             >
               <Brain className="size-4 text-fd-muted-foreground" aria-hidden />
-              Why Taser?
+              Why Taser.js?
             </Link>
           </div>
         </div>

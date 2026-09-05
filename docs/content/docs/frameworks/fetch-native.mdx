@@ -1,6 +1,6 @@
 ---
 title: Native Fetch Frameworks
-description: "Run Taser alongside any Web Standard or Fetch-native host framework (Hono, Elysia, HatTip, or native Web Fetch handlers) using host pass-through dispatching."
+description: "Run Taser.js alongside any Web Standard or Fetch-native host framework (Hono, Elysia, HatTip, or native Web Fetch handlers) using host pass-through dispatching."
 icon: Zap
 ---
 
@@ -9,13 +9,13 @@ import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-Taser is built entirely on Web Standard `Request` and `Response` interfaces. Using the **Host Pass-Through Architecture**, you can pair Taser's file-based routing and cascading type safety with **any Web Standard / Fetch-native framework** or existing fetch handler.
+Taser.js is built entirely on Web Standard `Request` and `Response` interfaces. Using the **Host Pass-Through Architecture**, you can pair Taser.js's file-based routing and cascading type safety with **any Web Standard / Fetch-native framework** or existing fetch handler.
 
 ---
 
 ## Supported Fetch-Native Hosts
 
-Because Taser evaluates standard Web `Request` objects, any framework or library exposing a standard `.fetch(request)` interface or `{ fetch: (req: Request) => Response | Promise<Response> }` handler is supported out of the box:
+Because Taser.js evaluates standard Web `Request` objects, any framework or library exposing a standard `.fetch(request)` interface or `{ fetch: (req: Request) => Response | Promise<Response> }` handler is supported out of the box:
 
 - **Hono**: Ultra-fast web standard framework for Node, Bun, Deno, and Cloudflare.
 - **Elysia**: Ergonomic, type-safe web framework for Bun.
@@ -29,15 +29,15 @@ Because Taser evaluates standard Web `Request` objects, any framework or library
 
 When an incoming HTTP request reaches your server:
 
-1. **Taser Route Check**: If the URL matches a file route in `src/routes/`, Taser dispatches the request with complete compile-time type safety.
-2. **Host App Pass-Through**: If no Taser route matches, the request falls through directly to your exported application in `src/server.ts`.
-3. **404 Not Found**: If neither Taser nor the host framework handles the request, Taser returns a standard 404 response.
+1. **Taser.js Route Check**: If the URL matches a file route in `src/routes/`, Taser.js dispatches the request with complete compile-time type safety.
+2. **Host App Pass-Through**: If no Taser.js route matches, the request falls through directly to your exported application in `src/server.ts`.
+3. **404 Not Found**: If neither Taser.js nor the host framework handles the request, Taser.js returns a standard 404 response.
 
 ```
 [Incoming Request]
        │
        ▼
-[Taser File Routes] ── Match? ──► [Execute Taser Route Handler]
+[Taser.js File Routes] ── Match? ──► [Execute Taser.js Route Handler]
        │ (No match)
        ▼
 [Fetch Host App] ───── Match? ──► [Execute Host App (Hono / Elysia / Web Fetch)]
@@ -103,7 +103,7 @@ When an incoming HTTP request reaches your server:
   </Step>
 
   <Step>
-    ### 2. Add Taser Routes
+    ### 2. Add Taser.js Routes
 
     Create file-based routes inside `src/routes/`:
 
@@ -127,7 +127,7 @@ When an incoming HTTP request reaches your server:
     pnpm dev
     ```
 
-    - `GET http://localhost:3000/users` is dispatched through Taser file routing.
+    - `GET http://localhost:3000/users` is dispatched through Taser.js file routing.
     - `GET http://localhost:3000/host-info` is handled by your exported host application.
 
   </Step>
@@ -135,9 +135,9 @@ When an incoming HTTP request reaches your server:
 
 ---
 
-## Reusing Web Standard Middleware in Taser
+## Reusing Web Standard Middleware in Taser.js
 
-Using the `honoMw()` helper, you can adapt any native Web Standard and Fetch-native middleware function into Taser:
+Using the `honoMw()` helper, you can adapt any native Web Standard and Fetch-native middleware function into Taser.js:
 
 ```ts title="src/routes/$.ts"
 import { middleware, honoMw, t } from "@taserjs/router";

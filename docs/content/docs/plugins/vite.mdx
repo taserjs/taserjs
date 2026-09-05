@@ -1,6 +1,6 @@
 ---
 title: Vite Plugin
-description: "Integrate Taser with Vite using @taserjs/router-plugin/vite. Virtual route resolution, ambient type generation, instant HMR, and standalone builds."
+description: "Integrate Taser.js with Vite using @taserjs/router-plugin/vite. Virtual route resolution, ambient type generation, instant HMR, and standalone builds."
 icon: Zap
 ---
 
@@ -9,7 +9,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-plugin/vite` package connects Taser's file routing engine to Vite. It turns your `src/routes/` directory into virtual modules, generates TypeScript definitions on save, and runs a high-performance HTTP server during development and production.
+The `@taserjs/router-plugin/vite` package connects Taser.js's file routing engine to Vite. It turns your `src/routes/` directory into virtual modules, generates TypeScript definitions on save, and runs a high-performance HTTP server during development and production.
 
 ---
 
@@ -55,7 +55,7 @@ The Vite plugin supports two operational modes:
 
 ### 1. Standalone Mode (Default)
 
-When used without Nitro, Taser operates as a self-contained server application powered directly by Vite:
+When used without Nitro, Taser.js operates as a self-contained server application powered directly by Vite:
 
 - **Development**: Instant HMR and route discovery with zero rebuild steps.
 - **Production**: Compiles an optimized server bundle to `dist/`.
@@ -69,7 +69,7 @@ node dist/serve.mjs
 
 ### 2. Nitro Mode (Vite + Nitro)
 
-When paired with `nitro/vite`, Taser automatically attaches its Nitro module hook:
+When paired with `nitro/vite`, Taser.js automatically attaches its Nitro module hook:
 
 ```ts title="vite.config.ts"
 import { defineConfig } from "vite";
@@ -111,7 +111,7 @@ export default defineConfig({
   type={{
     basePath: {
       description:
-        "Root URL prefix Taser routes dispatch under (for example, '/api'). Defaults to '/'.",
+        "Root URL prefix Taser.js routes dispatch under (for example, '/api'). Defaults to '/'.",
       type: "string",
       default: "'/'",
     },
@@ -158,7 +158,7 @@ The Vite plugin exposes virtual modules that resolve routing logic without writi
 
 - `#taserjs/virtual/manifest`: Dynamically builds the static radix routing manifest tree.
 - `#taserjs/virtual/entry`: Assembles the root request handler wrapping context and routes.
-- `#taserjs/virtual/app`: Composes Taser with optional host framework pass-through and 404 handlers.
+- `#taserjs/virtual/app`: Composes Taser.js with optional host framework pass-through and 404 handlers.
 
 ---
 
@@ -188,17 +188,17 @@ To ensure your editor recognizes all route types, verify your `tsconfig.json` in
   <Card
     title="TanStack Start"
     href="/docs/fullstack/tanstack-start"
-    description="Integrate Taser with TanStack Start fullstack applications and React Query."
+    description="Integrate Taser.js with TanStack Start fullstack applications and React Query."
   />
   <Card
     title="Next.js Plugin"
     href="/docs/plugins/next"
-    description="Embed Taser directly inside Next.js App Router applications."
+    description="Embed Taser.js directly inside Next.js App Router applications."
   />
   <Card
     title="Nitro Module"
     href="/docs/plugins/nitro"
-    description="Learn how Taser pairs with Nitro for edge and multi-cloud deployments."
+    description="Learn how Taser.js pairs with Nitro for edge and multi-cloud deployments."
   />
   <Card
     title="Deployment Presets"

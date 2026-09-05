@@ -1,6 +1,6 @@
-# Taser Bun App
+# Taser.js Bun App
 
-A high-performance Taser application built for the **Bun** runtime using Nitro's native `bun` preset.
+A high-performance Taser.js application built for the **Bun** runtime using Nitro's native `bun` preset.
 
 ## Development
 

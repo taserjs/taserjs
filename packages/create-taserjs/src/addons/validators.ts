@@ -9,11 +9,11 @@ export const IMPORT_LINES: Record<ValidatorId, string> = {
 
 export const VALIDATION_BLOCK_TEMPLATE: Record<ValidatorId, string> = {
   zod: `
-  .query(z.object({ name: z.string().default('Taser') }))`,
+  .query(z.object({ name: z.string().default('Taser.js') }))`,
   arktype: `
-  .query(type({ 'name?': 'string = "Taser"' }))`,
+  .query(type({ 'name?': 'string = "Taser.js"' }))`,
   valibot: `
-  .query(v.object({ name: v.optional(v.string(), 'Taser') }))`,
+  .query(v.object({ name: v.optional(v.string(), 'Taser.js') }))`,
 };
 
 const ROUTE_TEMPLATE = (validator: ValidatorId) => `import { t } from '@taserjs/router'

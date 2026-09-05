@@ -7,7 +7,7 @@ import type { MiddlewareDefinition, PipelineContext, PipelineNext } from "../typ
 const DIRTY_HEADERS = Symbol.for("taser.hono.dirty_headers");
 
 /**
- * Lightweight Hono Context bridge for Taser middleware execution.
+ * Lightweight Hono Context bridge for Taser.js middleware execution.
  */
 export function createCompatHonoContext(ctx: PipelineContext): Context {
   const headers = new Headers();
@@ -68,7 +68,7 @@ export function createCompatHonoContext(ctx: PipelineContext): Context {
 }
 
 /**
- * Resolves the Hono Context from Taser's pipeline context.
+ * Resolves the Hono Context from Taser.js's pipeline context.
  * Returns existing Hono Context (if mounted in Hono) or creates a lightweight compat shim.
  */
 function resolveHonoContext(ctx: PipelineContext): Context {
@@ -81,7 +81,7 @@ function resolveHonoContext(ctx: PipelineContext): Context {
 }
 
 /**
- * Snapshots Hono context variables into the isolated Taser `ctx.var` bag.
+ * Snapshots Hono context variables into the isolated Taser.js `ctx.var` bag.
  */
 function syncHonoVarToCtx(c: Context, ctx: PipelineContext): void {
   ctx.var = { ...c.var };
@@ -125,7 +125,7 @@ function syncHonoHeadersToResponse(c: Context, response: Response): Response {
 }
 
 /**
- * Creates a Taser middleware handler that bridges a Hono middleware into the pipeline.
+ * Creates a Taser.js middleware handler that bridges a Hono middleware into the pipeline.
  * Used by `@taserjs/router`'s `middleware()` when passed a Hono middleware function.
  */
 export function createTaserCompatHandler(

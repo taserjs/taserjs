@@ -1,6 +1,6 @@
 # @taserjs/router-plugin
 
-File-system routing and framework adapters for Taser apps.
+File-system routing and framework adapters for Taser.js apps.
 
 ## Public API
 
@@ -50,7 +50,7 @@ Expected project shape:
 
 ```
 src/
-  taser.ts        # your Taser app instance
+  taser.ts        # your Taser.js app instance
   routes/         # file-system routes — see https://taserjs.dev/docs
   server.ts       # optional host app (see below)
 ```
@@ -60,7 +60,7 @@ vite          # dev
 vite build    # build (Nitro produces the deployable output)
 ```
 
-Running without the `nitro()` plugin enables **standalone mode**: Taser serves
+Running without the `nitro()` plugin enables **standalone mode**: Taser.js serves
 dev requests through its built-in srvx server and bundles a self-contained
 production entry you run directly.
 
@@ -75,7 +75,7 @@ export default withTaser({
 });
 ```
 
-Mount a catch-all route that forwards requests to Taser:
+Mount a catch-all route that forwards requests to Taser.js:
 
 ```ts
 // app/[[...slug]]/route.ts
@@ -106,9 +106,9 @@ export default defineNitroConfig({
 });
 ```
 
-By default (`standalone: true`) Taser replaces Nitro's routing engine entirely
+By default (`standalone: true`) Taser.js replaces Nitro's routing engine entirely
 while keeping Nitro's deploy targets. Set `standalone: false` to keep the full
-Nitro runtime (plugins, middleware, route rules) and register Taser as a
+Nitro runtime (plugins, middleware, route rules) and register Taser.js as a
 catch-all handler within it.
 
 ## Options
@@ -122,10 +122,10 @@ separately. Unspecified options fall back to their defaults.
 | ------------- | ---------------------- | ----------------- | --------------------------------------------------------------- |
 | `rootDir`     | `string`               | current directory | Project root used to resolve all other paths.                   |
 | `serverDir`   | `string`               | `"src"`           | Directory containing your app code.                             |
-| `entry`       | `string`               | `"taser.ts"`      | Taser app module, resolved relative to `serverDir`.             |
+| `entry`       | `string`               | `"taser.ts"`      | Taser.js app module, resolved relative to `serverDir`.          |
 | `routesDir`   | `string`               | `"routes"`        | Route files directory, resolved relative to `serverDir`.        |
 | `serverEntry` | `string`               | auto-detected     | Host app entry; defaults to `server.ts`, then `server.node.ts`. |
-| `basePath`    | `string`               | —                 | URL scope Taser dispatches under.                               |
+| `basePath`    | `string`               | —                 | URL scope Taser.js dispatches under.                            |
 | `ignore`      | `string[]`             | `["**/-*"]`       | Glob patterns for route files to skip.                          |
 | `quotes`      | `"single" \| "double"` | `"double"`        | Quote style of generated code.                                  |
 | `format`      | `boolean`              | `true`            | Format generated code.                                          |
@@ -152,14 +152,14 @@ separately. Unspecified options fall back to their defaults.
 | ------------ | --------- | ------- | -------------------------------------------------------------------------- |
 | `standalone` | `boolean` | `true`  | Replace Nitro's engine, or register as one handler inside it when `false`. |
 
-## Using Taser in an existing application
+## Using Taser.js in an existing application
 
-Taser can sit in front of an app you already have. Create a host entry at
+Taser.js can sit in front of an app you already have. Create a host entry at
 `src/server.ts` (fetch-style runtimes) or `src/server.node.ts`
 (Node-style frameworks) — it is picked up automatically, or point at it
 explicitly with the `serverEntry` option.
 
-Dispatch order: **your routes here → Taser routes first**; any request Taser
+Dispatch order: **your routes here → Taser.js routes first**; any request Taser.js
 does not claim falls through to your app; unmatched everywhere returns a 404.
 
 The default export may take any of these shapes:

@@ -1,6 +1,6 @@
 ---
 title: TanStack Start
-description: "Build fullstack React applications with TanStack Start and Taser. Type-safe data fetching in TanStack Router loaders, React Query, and multi-runtime Nitro deployment."
+description: "Build fullstack React applications with TanStack Start and Taser.js. Type-safe data fetching in TanStack Router loaders, React Query, and multi-runtime Nitro deployment."
 icon: Layers
 ---
 
@@ -13,7 +13,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 
 ---
 
-## Why Pair Taser with TanStack Start?
+## Why Pair Taser.js with TanStack Start?
 
 <Cards>
   <Card
@@ -91,8 +91,8 @@ yarn add -D @taserjs/router-plugin
     export default defineConfig({
       plugins: [
         taser({
-          serverDir: "src/server", // Directory hosting Taser context and routes
-          basePath: "/api",        // URL prefix dispatched to Taser
+          serverDir: "src/server", // Directory hosting Taser.js context and routes
+          basePath: "/api",        // URL prefix dispatched to Taser.js
           server: false,           // Host pass-through mode
         }),
         tanstackStart(),
@@ -121,9 +121,9 @@ yarn add -D @taserjs/router-plugin
   </Step>
 
   <Step>
-    ### 3. Create Taser Router Instance
+    ### 3. Create Taser.js Router Instance
 
-    Create `src/server/taser.ts` to initialize your Taser app builder:
+    Create `src/server/taser.ts` to initialize your Taser.js app builder:
 
     ```ts title="src/server/taser.ts"
     import { createTaserApp } from "@taserjs/router";
@@ -138,7 +138,7 @@ yarn add -D @taserjs/router-plugin
   <Step>
     ### 4. Create TanStack Start Catch-All Server Route
 
-    Create `src/routes/api/$.tsx`. This uses TanStack Router's server handlers to dispatch all `/api/*` requests directly to Taser's compiled virtual entry:
+    Create `src/routes/api/$.tsx`. This uses TanStack Router's server handlers to dispatch all `/api/*` requests directly to Taser.js's compiled virtual entry:
 
     ```tsx title="src/routes/api/$.tsx"
     import { createFileRoute } from "@tanstack/react-router";
@@ -212,7 +212,7 @@ yarn add -D @taserjs/router-plugin
 
 ## Project Structure Overview
 
-Here is the recommended layout for a TanStack Start project with Taser:
+Here is the recommended layout for a TanStack Start project with Taser.js:
 
 ````
 
@@ -223,10 +223,10 @@ my-tanstack-app/
 │ ├── routes/ # TanStack Router UI Routes & Pages
 │ │ ├── \_\_root.tsx # Root layout and HTML shell
 │ │ ├── index.tsx # Homepage UI route
-│ │ ├── users.tsx # Users page (consumes Taser API in loader)
+│ │ ├── users.tsx # Users page (consumes Taser.js API in loader)
 │ │ └── api/
 │ │ └── $.tsx # TanStack Start catch-all server handler
-│ └── server/ # Taser REST API Subsystem
+│ └── server/ # Taser.js REST API Subsystem
 │ ├── taser.ts # createTaserApp instance definition
 │ ├── context.ts # Boot and request context
 │ └── routes/ # File-based REST endpoints
@@ -326,7 +326,7 @@ function UsersPage() {
 
 ### With TanStack Query (`@tanstack/react-query`)
 
-Use Taser client calls directly inside `queryOptions` or `useQuery` hooks:
+Use Taser.js client calls directly inside `queryOptions` or `useQuery` hooks:
 
 ```tsx title="src/hooks/use-users.ts"
 import { useQuery } from "@tanstack/react-query";
@@ -351,11 +351,11 @@ export function useUsers(limit = 10) {
 
 ---
 
-## Architecture: TanStack `createServerFn` vs Taser REST
+## Architecture: TanStack `createServerFn` vs Taser.js REST
 
-TanStack Start provides `createServerFn` for server RPC, while Taser provides full file-based REST API routing. Here is how to choose between them:
+TanStack Start provides `createServerFn` for server RPC, while Taser.js provides full file-based REST API routing. Here is how to choose between them:
 
-| Requirement                 | TanStack Start `createServerFn`                       | Taser REST Subsystem (`src/server/`)                              |
+| Requirement                 | TanStack Start `createServerFn`                       | Taser.js REST Subsystem (`src/server/`)                           |
 | :-------------------------- | :---------------------------------------------------- | :---------------------------------------------------------------- |
 | **Primary Use Case**        | Colocated RPC tightly coupled to React UI components  | Structured, public, or versioned HTTP REST APIs                   |
 | **Routing Model**           | Hash/function-based RPC endpoint                      | TanStack Router-style file routing (`$id`, `$.ts`, `.get.ts`)     |
@@ -377,7 +377,7 @@ TanStack Start provides `createServerFn` for server RPC, while Taser provides fu
   <Card
     title="Next.js App Router"
     href="/docs/fullstack/nextjs"
-    description="Learn how to pair Taser with Next.js 15+ App Router applications."
+    description="Learn how to pair Taser.js with Next.js 15+ App Router applications."
   />
   <Card
     title="Typed Client SDK"

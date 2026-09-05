@@ -1,18 +1,18 @@
 ---
 name: taserjs
 description: >-
-  Builds and migrates type-safe REST APIs with Taser/TaserJS: file-based routing,
+  Builds and migrates type-safe REST APIs with Taser.js: file-based routing,
   layout middleware chains, Standard Schema validation, reply/stream helpers,
   and typed client RPC. Use when scaffolding, configuring, creating routes,
   refactoring middleware, integrating with Next.js/TanStack/Express/Fastify/Hono/Elysia,
-  or debugging Taser/TaserJS backends.
+  or debugging Taser.js backends.
 license: ISC
 compatibility: node >= 20
 ---
 
-# TaserJS Agent Skill
+# Taser.js Agent Skill
 
-TaserJS is a type-safe, file-based REST API framework for TypeScript. It runs standalone on Vite/Nitro or inside fullstack frameworks (Next.js, TanStack Start) and host servers (Express, Hono, Fastify).
+Taser.js is a type-safe, file-based REST API framework for TypeScript. It runs standalone on Vite/Nitro or inside fullstack frameworks (Next.js, TanStack Start) and host servers (Express, Hono, Fastify).
 
 ---
 
@@ -22,7 +22,7 @@ Follow this decision tree when handling user tasks:
 
 ```
 Task Type?
-├─ Create a new project or configure TaserJS?
+├─ Create a new project or configure Taser.js?
 │  └─► Read [references/setup.md](references/setup.md)
 │
 ├─ Add or modify route endpoints or file names?
@@ -43,7 +43,7 @@ Task Type?
 ├─ Integrate with Next.js, TanStack Start, Express, or Hono host?
 │  └─► Read [references/integrations.md](references/integrations.md)
 │
-└─ Migrate an existing codebase (Express, Hono, Fastify, Next.js) to TaserJS?
+└─ Migrate an existing codebase (Express, Hono, Fastify, Next.js) to Taser.js?
    └─► Read [references/migration.md](references/migration.md)
 ```
 
@@ -51,11 +51,11 @@ Task Type?
 
 ## Non-Negotiable Core Rules
 
-All coding agents MUST follow these principles when writing or editing TaserJS code:
+All coding agents MUST follow these principles when writing or editing Taser.js code:
 
 ### 1. Phased Route Builder Lifecycle
 
-Taser enforces a strict compile-time state machine:
+Taser.js enforces a strict compile-time state machine:
 
 ```text
 1. Middleware Phase       2. Contract / Schema Phase       3. Terminal Handler Phase
@@ -87,7 +87,7 @@ Taser enforces a strict compile-time state machine:
 
 ## Verification Checklist
 
-Always perform these verification steps after adding or modifying TaserJS code:
+Always perform these verification steps after adding or modifying Taser.js code:
 
 - [ ] **Generate Types**: Run `pnpm dev` or `pnpm build` (or `npx @taserjs/router-cli generate`) to emit `.taser/types/routes.d.ts`.
 - [ ] **Typecheck**: Run `pnpm typecheck` or `npx tsc --noEmit` to confirm 0 type errors across routes, layouts, and client calls.

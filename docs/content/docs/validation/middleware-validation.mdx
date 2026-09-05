@@ -7,7 +7,7 @@ icon: ListFilter
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-Validation in Taser is not limited to route handlers. Layout middleware can validate incoming request data and declare the exact shape of state it injects into child routes.
+Validation in Taser.js is not limited to route handlers. Layout middleware can validate incoming request data and declare the exact shape of state it injects into child routes.
 
 ---
 
@@ -90,7 +90,7 @@ export const pagination = middleware().query(
 );
 ```
 
-You can pass `pagination` directly to any layout or route with `.use(pagination)`. Taser automatically validates and coerces the query parameters, and downstream handlers receive strongly-typed `ctx.query.page` and `ctx.query.limit` without any boilerplate:
+You can pass `pagination` directly to any layout or route with `.use(pagination)`. Taser.js automatically validates and coerces the query parameters, and downstream handlers receive strongly-typed `ctx.query.page` and `ctx.query.limit` without any boilerplate:
 
 ```ts title="src/routes/posts.get.ts"
 import { json } from "@taserjs/router/reply";

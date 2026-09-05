@@ -1,6 +1,6 @@
 ---
 title: Next.js App Router
-description: "Build fullstack Next.js 15+ App Router applications with a dedicated Taser REST API subsystem. Type-safe data fetching in React Server Components, Server Actions, and Client Components."
+description: "Build fullstack Next.js 15+ App Router applications with a dedicated Taser.js REST API subsystem. Type-safe data fetching in React Server Components, Server Actions, and Client Components."
 icon: Layers
 ---
 
@@ -13,7 +13,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 
 ---
 
-## Why Pair Taser with Next.js?
+## Why Pair Taser.js with Next.js?
 
 <Cards>
   <Card
@@ -94,9 +94,9 @@ Install the necessary dependencies in your Next.js project:
     };
 
     const withTaser = createTaser({
-      serverDir: "src/server", // Directory hosting Taser server code & routes
+      serverDir: "src/server", // Directory hosting Taser.js server code & routes
       entry: "@/server/taser",  // Path alias to your router instance
-      basePath: "/api",        // URL prefix where Taser REST endpoints dispatch
+      basePath: "/api",        // URL prefix where Taser.js REST endpoints dispatch
     });
 
     export default withTaser(nextConfig);
@@ -166,7 +166,7 @@ Install the necessary dependencies in your Next.js project:
   <Step>
     ### 4. Create Catch-All Route Handler
 
-    Create `src/app/api/[[...slug]]/route.ts` (or `app/api/[[...slug]]/route.ts`). This forwards incoming Next.js API requests directly to Taser's compiled entry module:
+    Create `src/app/api/[[...slug]]/route.ts` (or `app/api/[[...slug]]/route.ts`). This forwards incoming Next.js API requests directly to Taser.js's compiled entry module:
 
     ```ts title="src/app/api/[[...slug]]/route.ts"
     import { app } from "@/.taser/entry";
@@ -249,7 +249,7 @@ Install the necessary dependencies in your Next.js project:
 
 ## Project Structure Overview
 
-Here is the recommended file layout for a fullstack Next.js App Router project with Taser:
+Here is the recommended file layout for a fullstack Next.js App Router project with Taser.js:
 
 ```
 my-next-app/
@@ -264,11 +264,11 @@ my-next-app/
 └── src/
     ├── app/                        # Next.js App Router (React UI & Pages)
     │   ├── layout.tsx              # Root HTML shell
-    │   ├── page.tsx                # RSC page fetching from Taser API
+    │   ├── page.tsx                # RSC page fetching from Taser.js API
     │   └── api/
     │       └── [[...slug]]/
     │           └── route.ts        # Catch-all route handler forwarding to app.fetch()
-    ├── server/                     # Taser REST API Subsystem
+    ├── server/                     # Taser.js REST API Subsystem
     │   ├── taser.ts                # createTaserApp instance definition
     │   ├── context.ts              # Boot and request context
     │   └── routes/                 # File-based REST endpoints
@@ -283,7 +283,7 @@ my-next-app/
 
 ### 1. React Server Components (RSC)
 
-Consume your Taser endpoints directly on the server inside React Server Components using your typed client:
+Consume your Taser.js endpoints directly on the server inside React Server Components using your typed client:
 
 ```tsx title="src/app/page.tsx"
 import { api } from "@/client";
@@ -345,7 +345,7 @@ export async function createUserAction(formData: FormData) {
 
 ### 3. Client Components & React Hooks
 
-Use Taser client calls with TanStack Query or SWR inside Client Components:
+Use Taser.js client calls with TanStack Query or SWR inside Client Components:
 
 ```tsx title="src/app/components/user-list.tsx"
 "use client";
@@ -378,11 +378,11 @@ export function UserList() {
 
 ---
 
-## Architecture: React Server Components (RSC) vs Taser API
+## Architecture: React Server Components (RSC) vs Taser.js API
 
-When pairing Taser with Next.js App Router, understanding the division of responsibilities ensures clean system design:
+When pairing Taser.js with Next.js App Router, understanding the division of responsibilities ensures clean system design:
 
-| Responsibility         | Next.js App Router (RSC & Pages)                                 | Taser Subsystem (`src/server/`)                                  |
+| Responsibility         | Next.js App Router (RSC & Pages)                                 | Taser.js Subsystem (`src/server/`)                               |
 | :--------------------- | :--------------------------------------------------------------- | :--------------------------------------------------------------- |
 | **Primary Focus**      | Server-rendered UI, HTML streaming, metadata, layout composition | Structured REST API, JSON endpoints, binary streams, webhooks    |
 | **Execution Context**  | React Server Components & Client Components (`src/app/**/*.tsx`) | Type-safe route handlers (`src/server/routes/**/*.ts`)           |
@@ -404,11 +404,11 @@ When pairing Taser with Next.js App Router, understanding the division of respon
   <Card
     title="TanStack Start"
     href="/docs/fullstack/tanstack-start"
-    description="Explore pairing Taser with TanStack Start fullstack applications."
+    description="Explore pairing Taser.js with TanStack Start fullstack applications."
   />
   <Card
     title="Typed Client SDK"
     href="/docs/client"
-    description="Call your Next.js Taser endpoints from React Server Components or client hooks."
+    description="Call your Next.js Taser.js endpoints from React Server Components or client hooks."
   />
 </Cards>

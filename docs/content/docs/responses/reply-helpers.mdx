@@ -8,7 +8,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
-Taser provides standalone reply helper functions and a unified `reply` object imported from `@taserjs/router/reply` to construct standardized, type-safe HTTP responses. Every helper returns a standard Web `Response` with its HTTP status code embedded into the TypeScript return type (`ReplyOf<Status, Body>`). Because each helper is an independent standalone function, only the helpers you use are bundled into your application.
+Taser.js provides standalone reply helper functions and a unified `reply` object imported from `@taserjs/router/reply` to construct standardized, type-safe HTTP responses. Every helper returns a standard Web `Response` with its HTTP status code embedded into the TypeScript return type (`ReplyOf<Status, Body>`). Because each helper is an independent standalone function, only the helpers you use are bundled into your application.
 
 ---
 
@@ -68,7 +68,7 @@ import { html } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
 export default t.get("/").handler(() => {
-  return html("<h1>Welcome to Taser!</h1>");
+  return html("<h1>Welcome to Taser.js!</h1>");
 });
 ```
 

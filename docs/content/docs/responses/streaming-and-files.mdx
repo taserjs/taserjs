@@ -7,7 +7,7 @@ icon: Binary
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-Taser includes first-class helpers for streaming responses, binary payloads, and secure file downloads without manual buffer management.
+Taser.js includes first-class helpers for streaming responses, binary payloads, and secure file downloads without manual buffer management.
 
 ---
 
@@ -35,7 +35,7 @@ export default t
 ```
 
 <Callout type="warn" title="Path Traversal Protection">
-  When `root` is specified, Taser validates that the resolved file path does not escape the boundary
+  When `root` is specified, Taser.js validates that the resolved file path does not escape the boundary
   directory, protecting your application against `../` directory traversal attacks.
 </Callout>
 

@@ -9,7 +9,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-plugin/next` package integrates Taser into Next.js 15+ App Router compilation. It handles disk artifact generation in `.taser/`, TypeScript ambient type generation, and Turbopack/Webpack extension aliases.
+The `@taserjs/router-plugin/next` package integrates Taser.js into Next.js 15+ App Router compilation. It handles disk artifact generation in `.taser/`, TypeScript ambient type generation, and Turbopack/Webpack extension aliases.
 
 <Callout type="info" title="Looking for the Fullstack Next.js Guide?">
   For the complete architectural guide, React Server Components (RSC) patterns, and Server Actions
@@ -68,9 +68,9 @@ const nextConfig: NextConfig = {
 };
 
 const withTaser = createTaser({
-  serverDir: "src/server", // Directory hosting Taser server code & routes
+  serverDir: "src/server", // Directory hosting Taser.js server code & routes
   entry: "@/server/taser", // Path alias or path to your router instance
-  basePath: "/api", // URL prefix where Taser routes dispatch
+  basePath: "/api", // URL prefix where Taser.js routes dispatch
 });
 
 export default withTaser(nextConfig);
@@ -121,7 +121,7 @@ const withTaser = createTaser({
       default: "'src/taser.ts'",
     },
     basePath: {
-      description: "URL prefix Taser dispatches under. Defaults to '/'.",
+      description: "URL prefix Taser.js dispatches under. Defaults to '/'.",
       type: "string",
       default: "'/'",
     },
@@ -166,16 +166,16 @@ Next.js does not support serving virtual modules dynamically in runtime handlers
   <Card
     title="Next.js App Router Guide"
     href="/docs/fullstack/nextjs"
-    description="Learn how to build fullstack applications with Next.js, RSC, and Taser."
+    description="Learn how to build fullstack applications with Next.js, RSC, and Taser.js."
   />
   <Card
     title="Vite Plugin"
     href="/docs/plugins/vite"
-    description="Explore Taser's Vite plugin for standalone and fullstack applications."
+    description="Explore Taser.js's Vite plugin for standalone and fullstack applications."
   />
   <Card
     title="Nitro Module"
     href="/docs/plugins/nitro"
-    description="Deploy Taser across edge, serverless, and multi-cloud runtimes."
+    description="Deploy Taser.js across edge, serverless, and multi-cloud runtimes."
   />
 </Cards>

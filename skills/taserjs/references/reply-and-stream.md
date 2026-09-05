@@ -1,4 +1,4 @@
-# TaserJS Reply & Stream Helpers
+# Taser.js Reply & Stream Helpers
 
 This guide details HTTP response reply helpers (`@taserjs/router/reply`) and streaming helpers (`@taserjs/router/stream`).
 

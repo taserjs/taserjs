@@ -1,9 +1,9 @@
 /**
- * Next.js App Router adapter for Taser.
+ * Next.js App Router adapter for Taser.js.
  *
  * Next cannot serve virtual modules, so this adapter materializes the same
  * generated sources the Vite plugin serves virtually into `.taser/` on disk
- * (see `emitter.ts`). The host app then mounts Taser through a catch-all
+ * (see `emitter.ts`). The host app then mounts Taser.js through a catch-all
  * route handler:
  *
  * ```ts
@@ -75,7 +75,7 @@ type MarkedConfig = TaserNextConfig & { [TASER_KEY]?: boolean };
 const appliedConfigs = new WeakSet<object>();
 
 function logError(message: string, error: unknown): void {
-  console.error(`[taser] ${message}:`, error);
+  console.error(`[taserjs] ${message}:`, error);
 }
 
 const DEFAULT_TURBO_EXTENSIONS = [".tsx", ".ts", ".jsx", ".js", ".mjs", ".json"];

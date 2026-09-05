@@ -1,6 +1,6 @@
 # @taserjs/router-client
 
-Type-safe HTTP client for Taser applications
+Type-safe HTTP client for Taser.js applications
 
 ## Installation
 

@@ -49,7 +49,7 @@ export function createComposedHandler(
   const { taserRoutesApp, hostServer, fallbackTo404 = true } = options;
   const normalizedScope = normalizeScope(options.scope);
 
-  // Fast-path: When there is no host server at all, only Taser handles requests
+  // Fast-path: When there is no host server at all, only Taser.js handles requests
   if (!hostServer) {
     if (!normalizedScope) {
       return async (req: Request): Promise<Response> => {
@@ -90,7 +90,7 @@ export function createComposedHandler(
     return cachedHostFetch;
   };
 
-  // Taser always takes priority over the host server
+  // Taser.js always takes priority over the host server
   return async (req: Request): Promise<Response> => {
     const pathname = extractPathname(req.url);
     const inScope = normalizedScope ? matchesScope(pathname, normalizedScope) : true;

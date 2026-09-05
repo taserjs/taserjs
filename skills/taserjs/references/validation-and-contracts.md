@@ -1,4 +1,4 @@
-# TaserJS Validation & Contracts
+# Taser.js Validation & Contracts
 
 This guide covers the phased route builder lifecycle, Standard Schema validation (Zod, Valibot, ArkType), and the structure of the request context object (`ctx`).
 
@@ -6,7 +6,7 @@ This guide covers the phased route builder lifecycle, Standard Schema validation
 
 ## 1. Phased Route Builder Lifecycle
 
-TaserJS enforces a strict compile-time state machine for route files:
+Taser.js enforces a strict compile-time state machine for route files:
 
 ```text
 1. Middleware Phase        2. Contract / Schema Phase        3. Terminal Handler Phase
@@ -23,7 +23,7 @@ TaserJS enforces a strict compile-time state machine for route files:
 
 ## 2. Standard Schema Validation
 
-TaserJS supports any validator conforming to the [Standard Schema](https://standardschema.dev/) specification (including Zod, Valibot, ArkType).
+Taser.js supports any validator conforming to the [Standard Schema](https://standardschema.dev/) specification (including Zod, Valibot, ArkType).
 
 ```ts
 // src/routes/users/$id.put.ts

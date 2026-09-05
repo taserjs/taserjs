@@ -1,6 +1,6 @@
 import type { Agent } from "package-manager-detector";
 
-/** Host framework layered on top of pure Taser pass-through dispatch. */
+/** Host framework layered on top of pure Taser.js pass-through dispatch. */
 export type Framework = "none" | "hono" | "express" | "fastify";
 
 export const FRAMEWORKS: readonly Framework[] = ["none", "hono", "express", "fastify"];
@@ -65,7 +65,7 @@ export type PackageGroups = {
 export type ScaffoldContext = {
   projectName: string;
   targetDir: string;
-  /** Host framework; "none" is pure Taser pass-through dispatch. Defaults to "none". */
+  /** Host framework; "none" is pure Taser.js pass-through dispatch. Defaults to "none". */
   framework?: Framework;
   /** Deployment target — a Nitro preset id. Defaults to "node-server". */
   preset?: DeployTarget;

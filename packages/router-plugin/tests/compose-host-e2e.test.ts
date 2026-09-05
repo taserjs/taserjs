@@ -114,7 +114,7 @@ export default function routing(req, res) {
   it("unrecognizable host exports degrade to the 404 fallthrough", async () => {
     app = await loadComposedApp(`
 // A bare Fastify instance (not the documented convention): not callable and
-// exposes no fetch/node — intentionally falls through to Taser's 404.
+// exposes no fetch/node — intentionally falls through to Taser.js's 404.
 const app = { ready: () => Promise.resolve(), routing: (req, res) => {} };
 export default app;
 `);

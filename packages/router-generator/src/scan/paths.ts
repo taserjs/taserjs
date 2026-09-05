@@ -56,7 +56,7 @@ export function assertPhysicalRouteFile(rawRel: string): void {
   const fileName = basename(rawRel);
   if (VIRTUAL_CONFIG_PATTERN.test(fileName)) {
     throw new ScanError(
-      "Virtual route config files are not supported. Taser uses filesystem routes only.",
+      "Virtual route config files are not supported. Taser.js uses filesystem routes only.",
       rawRel,
     );
   }

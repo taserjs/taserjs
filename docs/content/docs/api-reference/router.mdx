@@ -7,7 +7,7 @@ icon: Code
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-The `@taserjs/router` package is the core routing and context engine of the TaserJS ecosystem.
+The `@taserjs/router` package is the core routing and context engine of the Taser.js ecosystem.
 
 ---
 
@@ -108,7 +108,7 @@ const scopedMw = middleware("admin")
 
 ### `honoMw()`
 
-Adapts a Web Standard / Hono-compatible middleware function `(c, next) => ...` into a Taser-compatible middleware handler function `(ctx, next) => Promise<Response>`.
+Adapts a Web Standard / Hono-compatible middleware function `(c, next) => ...` into a Taser.js-compatible middleware handler function `(ctx, next) => Promise<Response>`.
 
 ```ts
 import { honoMw, middleware } from "@taserjs/router";

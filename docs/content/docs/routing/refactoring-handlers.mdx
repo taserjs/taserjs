@@ -1,6 +1,6 @@
 ---
 title: Extracting Helper Functions
-description: "Extract reusable route handlers and split large API endpoints into small, testable modules with Taser compile-time Context type inference."
+description: "Extract reusable route handlers and split large API endpoints into small, testable modules with Taser.js compile-time Context type inference."
 icon: Workflow
 ---
 
@@ -12,7 +12,7 @@ In production applications, route handlers can easily grow into monolithic block
 
 In traditional frameworks, breaking these monolithic handlers into smaller helper functions often forces developers to write verbose, manually duplicated TypeScript interfaces for the request context, params, and state.
 
-Taser makes decomposing handler logic **instant and 100% type-safe** via the route builder's `$Infer.Context` namespace.
+Taser.js makes decomposing handler logic **instant and 100% type-safe** via the route builder's `$Infer.Context` namespace.
 
 ---
 
@@ -309,7 +309,7 @@ For larger projects, you can organize helpers into dedicated service files:
 
 ## Why Infer from `GET`/`POST` Before `export default`?
 
-Taser's `export default` architecture intentionally separates route contract declaration from handler execution, eliminating circular type hazards by design:
+Taser.js's `export default` architecture intentionally separates route contract declaration from handler execution, eliminating circular type hazards by design:
 
 1. **Two-Phase Definition**:
 
@@ -348,7 +348,7 @@ Taser's `export default` architecture intentionally separates route contract dec
 
 ## Summary of Benefits
 
-| Feature         | Monolithic Handlers                   | Taser `$Infer.Context` Helpers                 |
+| Feature         | Monolithic Handlers                   | Taser.js `$Infer.Context` Helpers              |
 | :-------------- | :------------------------------------ | :--------------------------------------------- |
 | **Readability** | 100+ line functions mixing concerns   | 5 to 15 line orchestration handlers            |
 | **Type Safety** | Implicit types inside single scope    | Explicitly typed `ctx` across all functions    |

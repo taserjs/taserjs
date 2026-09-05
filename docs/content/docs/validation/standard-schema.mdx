@@ -8,7 +8,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
-Taser natively adheres to the **Standard Schema** specification (`@standard-schema/spec`). This means you have zero vendor lock-in. You can use **Zod**, **ArkType**, **Valibot**, or any other compliant validation library without adapters or wrappers.
+Taser.js natively adheres to the **Standard Schema** specification (`@standard-schema/spec`). This means you have zero vendor lock-in. You can use **Zod**, **ArkType**, **Valibot**, or any other compliant validation library without adapters or wrappers.
 
 ---
 
@@ -138,7 +138,7 @@ HTTP query parameters always arrive from the URL as strings. Use your schema lib
 
 ## Request Bodies & Body Modes (`.body`)
 
-Taser gives you fine-grained control over request body parsing and performance:
+Taser.js gives you fine-grained control over request body parsing and performance:
 
 - **Zero Overhead**: If a route does not call `.body()`, incoming body parsing is **completely skipped**.
 - **Default JSON Parsing**: Calling `.body(schema)` parses the body as JSON by default.
@@ -187,7 +187,7 @@ export default t
 
 ## Validating Multipart Form Data & File Uploads
 
-When handling file uploads or form data, pass `"form"` as the first argument to `.body()`. Taser automatically parses form fields and converts binary file uploads into standard JavaScript `File` objects.
+When handling file uploads or form data, pass `"form"` as the first argument to `.body()`. Taser.js automatically parses form fields and converts binary file uploads into standard JavaScript `File` objects.
 
 You can validate file presence, file size, and permitted MIME types using your schema validator:
 
@@ -351,7 +351,7 @@ const response = await api.users._id.avatar.$post({
 
 ## Schema Transformations and Inferred Types
 
-Taser respects schema transformations. If your schema takes a string and transforms it into a `Date` or trimmed string, `ctx` receives the transformed output type:
+Taser.js respects schema transformations. If your schema takes a string and transforms it into a `Date` or trimmed string, `ctx` receives the transformed output type:
 
 ```ts title="src/routes/events.post.ts"
 import { ok } from "@taserjs/router/reply";

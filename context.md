@@ -1,8 +1,8 @@
-# Taser Architecture & Codebase Context
+# Taser.js Architecture & Codebase Context
 
 ## 1. Overview & Purpose
 
-**Taser** is a type-safe, file-based routing framework for backend HTTP APIs in TypeScript. It brings the intuitive routing, layout hierarchies, and type inference model of modern frontend routers (like TanStack Router) to backend server runtimes.
+**Taser.js** is a type-safe, file-based routing framework for backend HTTP APIs in TypeScript. It brings the intuitive routing, layout hierarchies, and type inference model of modern frontend routers (like TanStack Router) to backend server runtimes.
 
 ### Key Philosophy
 
@@ -38,7 +38,7 @@ taserjs/
 
 ### 3.1 `src/taser.ts` & Ambient AppContext
 
-A Taser application initializes a root runtime via `createTaserApp` in `src/taser.ts` and exports it as `default`:
+A Taser.js application initializes a root runtime via `createTaserApp` in `src/taser.ts` and exports it as `default`:
 
 ```ts
 import { createContext, createTaserApp } from "@taserjs/router";

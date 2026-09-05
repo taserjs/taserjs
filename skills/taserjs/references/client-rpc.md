@@ -1,6 +1,6 @@
-# TaserJS Client RPC
+# Taser.js Client RPC
 
-This guide details how to consume TaserJS backend APIs in frontend or client applications using `@taserjs/router-client`.
+This guide details how to consume Taser.js backend APIs in frontend or client applications using `@taserjs/router-client`.
 
 ---
 

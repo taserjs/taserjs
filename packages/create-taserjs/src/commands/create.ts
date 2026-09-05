@@ -75,7 +75,7 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
     (await p.select({
       message: "Host framework",
       options: [
-        { value: "none", label: "None", hint: "Taser Fetch (default)" },
+        { value: "none", label: "None", hint: "Taser.js Fetch (default)" },
         { value: "hono", label: "Hono" },
         { value: "express", label: "Express" },
         { value: "fastify", label: "Fastify" },

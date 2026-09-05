@@ -1,7 +1,7 @@
 {
   "name": "@taserjs/router-client",
   "version": "0.1.10",
-  "description": "Type-safe HTTP client for Taser applications",
+  "description": "Type-safe HTTP client for Taser.js applications",
   "license": "ISC",
   "repository": {
     "type": "git",

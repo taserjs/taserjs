@@ -1,6 +1,6 @@
 ---
 title: Nitro Module
-description: "Deploy Taser across edge, serverless, and multi-cloud runtimes using the @taserjs/router-plugin/nitro module with automatic route registration."
+description: "Deploy Taser.js across edge, serverless, and multi-cloud runtimes using the @taserjs/router-plugin/nitro module with automatic route registration."
 icon: Workflow
 ---
 
@@ -9,13 +9,13 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-plugin/nitro` package connects Taser directly to the Nitro server engine. It allows you to package and deploy Taser APIs to any platform (Cloudflare Workers, Vercel, AWS Lambda, Bun, Deno, or standalone Node.js) with zero runtime overhead.
+The `@taserjs/router-plugin/nitro` package connects Taser.js directly to the Nitro server engine. It allows you to package and deploy Taser.js APIs to any platform (Cloudflare Workers, Vercel, AWS Lambda, Bun, Deno, or standalone Node.js) with zero runtime overhead.
 
 ---
 
 ## Setup & Usage
 
-You can use Taser with Nitro in two ways:
+You can use Taser.js with Nitro in two ways:
 
 ### 1. Via Vite (`vite.config.ts`)
 
@@ -55,7 +55,7 @@ The Nitro module supports two operational modes controlled by the `standalone` o
 
 ### 1. Standalone Mode (`standalone: true`, Default)
 
-In Standalone Mode, Taser replaces Nitro's internal router entirely. Requests are dispatched directly through Taser's radix tree with zero intermediate framework layers or overhead.
+In Standalone Mode, Taser.js replaces Nitro's internal router entirely. Requests are dispatched directly through Taser.js's radix tree with zero intermediate framework layers or overhead.
 
 ```ts title="nitro.config.ts"
 import { defineConfig } from "nitro/config";
@@ -72,7 +72,7 @@ export default defineConfig({
 
 ### 2. Fullstack / Module Mode (`standalone: false`)
 
-If you have an existing Nitro or Nuxt project with existing server handlers, setting `standalone: false` unshifts Taser onto Nitro's handler pipeline:
+If you have an existing Nitro or Nuxt project with existing server handlers, setting `standalone: false` unshifts Taser.js onto Nitro's handler pipeline:
 
 ```ts title="nitro.config.ts"
 import { defineConfig } from "nitro/config";
@@ -88,7 +88,7 @@ export default defineConfig({
 });
 ```
 
-In this mode, requests matching `/api/**` are handled by Taser, while other routes continue to execute through Nitro.
+In this mode, requests matching `/api/**` are handled by Taser.js, while other routes continue to execute through Nitro.
 
 ---
 
@@ -98,12 +98,12 @@ In this mode, requests matching `/api/**` are handled by Taser, while other rout
   type={{
     standalone: {
       description:
-        "When true, Taser acts as the standalone app runner with zero overhead. When false, mounts as a sub-handler in Nitro.",
+        "When true, Taser.js acts as the standalone app runner with zero overhead. When false, mounts as a sub-handler in Nitro.",
       type: "boolean",
       default: "true",
     },
     basePath: {
-      description: "Root URL prefix Taser routes dispatch under.",
+      description: "Root URL prefix Taser.js routes dispatch under.",
       type: "string",
       default: "'/'",
     },

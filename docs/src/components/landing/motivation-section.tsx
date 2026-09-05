@@ -16,7 +16,7 @@ export function MotivationSection() {
               Inspired by <SectionAccent>TanStack Router</SectionAccent>. Engineered for REST APIs.
             </>
           }
-          description="TanStack Router revolutionized client routing with file-system layouts and type inference. Taser brings that same intuition to backend HTTP servers: HTTP verb files for handlers, non-verb files for cascading directory middleware."
+          description="TanStack Router revolutionized client routing with file-system layouts and type inference. Taser.js brings that same intuition to backend HTTP servers: HTTP verb files for handlers, non-verb files for cascading directory middleware."
         />
 
         {/* Side-by-Side IDE Window Comparison */}

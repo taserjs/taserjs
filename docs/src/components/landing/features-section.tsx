@@ -66,7 +66,7 @@ export function FeaturesSection() {
               <SectionAccent>compromise on type safety</SectionAccent>
             </>
           }
-          description="Taser types the full request lifecycle from file route discovery down to typed client generation."
+          description="Taser.js types the full request lifecycle from file route discovery down to typed client generation."
         />
 
         <div className="landing-animate-in landing-delay-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

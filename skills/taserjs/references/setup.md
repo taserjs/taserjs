@@ -1,6 +1,6 @@
-# TaserJS Setup & Configuration
+# Taser.js Setup & Configuration
 
-This guide covers bootstrapping a new TaserJS project and configuring entry, context, and router instances in an existing project.
+This guide covers bootstrapping a new Taser.js project and configuring entry, context, and router instances in an existing project.
 
 ---
 
@@ -45,7 +45,7 @@ Available flags for `create-taserjs`:
 
 ---
 
-## 2. Adding TaserJS to an Existing Project
+## 2. Adding Taser.js to an Existing Project
 
 ### Manual Installation (Standalone Project)
 
@@ -109,7 +109,7 @@ export default createTaserApp({
 
 ### Context File (`src/context.ts` or `src/server/context.ts`)
 
-TaserJS uses `createContext` to manage application lifecycle singletons and request-scoped metadata:
+Taser.js uses `createContext` to manage application lifecycle singletons and request-scoped metadata:
 
 ```ts
 // src/context.ts

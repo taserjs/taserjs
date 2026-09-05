@@ -8,7 +8,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
-Taser includes a built-in cookie jar accessible via `ctx.cookies`. It handles cookie parsing, serializing, signing, and automatic `Set-Cookie` header accumulation on outgoing responses without requiring external cookie-parser middleware.
+Taser.js includes a built-in cookie jar accessible via `ctx.cookies`. It handles cookie parsing, serializing, signing, and automatic `Set-Cookie` header accumulation on outgoing responses without requiring external cookie-parser middleware.
 
 ---
 
@@ -35,7 +35,7 @@ export default t.get("/me").handler((ctx) => {
 
 ## Setting Cookies
 
-Use `ctx.cookies.set()` to set cookies. Taser automatically handles options and appends `Set-Cookie` headers to your response:
+Use `ctx.cookies.set()` to set cookies. Taser.js automatically handles options and appends `Set-Cookie` headers to your response:
 
 ```ts title="src/routes/preferences.post.ts"
 import { ok } from "@taserjs/router/reply";
@@ -149,7 +149,7 @@ export default t.post("/auth/logout").handler((ctx) => {
 
 ## Secure Cookie Prefixes (`__Secure-` and `__Host-`)
 
-Taser natively supports browser cookie prefixes for enhanced transport security:
+Taser.js natively supports browser cookie prefixes for enhanced transport security:
 
 - **`prefix: "secure"`**: Prepends `__Secure-` to the cookie name and enforces `secure: true`.
 - **`prefix: "host"`**: Prepends `__Host-` to the cookie name, enforces `secure: true`, `path: "/"`, and prohibits the `domain` attribute.

@@ -7,7 +7,7 @@ icon: TriangleAlert
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-When incoming request parameters, query strings, headers, or JSON bodies fail validation, Taser throws a `ValidationError`.
+When incoming request parameters, query strings, headers, or JSON bodies fail validation, Taser.js throws a `ValidationError`.
 
 ---
 
@@ -95,7 +95,7 @@ The client receives a clean, structured `422 Unprocessable Entity` response:
 
 ## Auto-Generated 422 Response Schemas
 
-When you attach input schemas (`query`, `params`, `body`) to a route, Taser automatically documents a `422` error contract for that endpoint. The typed client SDK also understands that the route can return `422` validation issues.
+When you attach input schemas (`query`, `params`, `body`) to a route, Taser.js automatically documents a `422` error contract for that endpoint. The typed client SDK also understands that the route can return `422` validation issues.
 
 ---
 

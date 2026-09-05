@@ -23,7 +23,7 @@ const authorPerson = {
 
 const publisherOrg = {
   "@type": "Organization" as const,
-  name: "TaserJS",
+  name: "Taser.js",
   url: siteConfig.url,
   logo: {
     "@type": "ImageObject" as const,
@@ -89,7 +89,7 @@ export function SoftwareApplicationJsonLd() {
   const schema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "Taser",
+    name: "Taser.js",
     applicationCategory: "DeveloperApplication",
     operatingSystem: "Cross-platform (Node.js, Cloudflare Workers, Vercel, Bun, Deno)",
     offers: {
@@ -118,7 +118,7 @@ export function WebSiteJsonLd() {
   const schema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "Taser",
+    name: "Taser.js",
     url: siteConfig.url,
     description: "Type-Safe File-Based Routing for REST APIs",
     publisher: publisherOrg,

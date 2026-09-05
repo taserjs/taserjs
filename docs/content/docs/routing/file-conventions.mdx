@@ -9,7 +9,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Files, Folder, File } from "@/components/files";
 
-Taser adopts modern **TanStack Router-style file routing conventions** tailored specifically for REST APIs. Your filesystem serves as the single source of truth for URL endpoints, HTTP methods, and cascading middleware pipelines.
+Taser.js adopts modern **TanStack Router-style file routing conventions** tailored specifically for REST APIs. Your filesystem serves as the single source of truth for URL endpoints, HTTP methods, and cascading middleware pipelines.
 
 ---
 
@@ -24,7 +24,7 @@ Under your `src/routes/` directory, files are classified into two distinct types
 
 ## HTTP Method Suffixes
 
-Taser determines the HTTP verb from the final extension segment before `.ts`:
+Taser.js determines the HTTP verb from the final extension segment before `.ts`:
 
 | File Name                     | HTTP Method            | Endpoint URL |
 | :---------------------------- | :--------------------- | :----------- |
@@ -43,7 +43,7 @@ Taser determines the HTTP verb from the final extension segment before `.ts`:
 
 ## Flat Routes, Directory Routes, and Mixed Notation
 
-Taser supports **nested directory structures**, **flat dot notation**, and **mixed folder + dot notation**. You can use whichever structure keeps your codebase cleanest:
+Taser.js supports **nested directory structures**, **flat dot notation**, and **mixed folder + dot notation**. You can use whichever structure keeps your codebase cleanest:
 
 <Tabs items={["Directory Folders", "Flat Dot Notation", "Mixed Folder + Dot Notation"]}>
   <Tab value="Directory Folders">

@@ -1,6 +1,6 @@
 ---
 title: Express Integration
-description: "Add Taser file-based routing to an Express application. Coexist with legacy controllers and middleware using the host pass-through architecture."
+description: "Add Taser.js file-based routing to an Express application. Coexist with legacy controllers and middleware using the host pass-through architecture."
 icon: Server
 ---
 
@@ -9,21 +9,21 @@ import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-Taser integrates with Express applications using the **Host Pass-Through Architecture**. You can keep your existing Express routes, controllers, and middleware active while writing all new endpoints with Taser's type-safe file conventions.
+Taser.js integrates with Express applications using the **Host Pass-Through Architecture**. You can keep your existing Express routes, controllers, and middleware active while writing all new endpoints with Taser.js's type-safe file conventions.
 
 ---
 
 ## How It Works
 
-1. **Taser First**: Taser evaluates requests against your `src/routes/` directory.
-2. **Express Fall-Through**: If no Taser route matches, the request automatically falls through to your Express application.
-3. **404 Handling**: If neither Taser nor Express handles the request, Taser returns a standard 404 response.
+1. **Taser.js First**: Taser.js evaluates requests against your `src/routes/` directory.
+2. **Express Fall-Through**: If no Taser.js route matches, the request automatically falls through to your Express application.
+3. **404 Handling**: If neither Taser.js nor Express handles the request, Taser.js returns a standard 404 response.
 
 ```
 [Incoming Request]
        │
        ▼
-[Taser File Routes] ── Match? ──► [Execute Taser Handler]
+[Taser.js File Routes] ── Match? ──► [Execute Taser.js Handler]
        │ (No match)
        ▼
 [Express Host App] ─── Match? ──► [Execute Express Route / Middleware]
@@ -70,7 +70,7 @@ Taser integrates with Express applications using the **Host Pass-Through Archite
   </Step>
 
   <Step>
-    ### 3. Add Taser Routes
+    ### 3. Add Taser.js Routes
 
     Create `src/routes/users.get.ts`:
 
@@ -94,7 +94,7 @@ Taser integrates with Express applications using the **Host Pass-Through Archite
     pnpm dev
     ```
 
-    - Requests to `/users` run through Taser with complete type safety.
+    - Requests to `/users` run through Taser.js with complete type safety.
     - Requests to `/express-legacy` execute your Express controller.
 
   </Step>
@@ -104,7 +104,7 @@ Taser integrates with Express applications using the **Host Pass-Through Archite
 
 ## Incremental Migration Strategy
 
-When migrating a large Express codebase to Taser:
+When migrating a large Express codebase to Taser.js:
 
 1. Move shared database pools and Redis clients into `src/context.ts`.
 2. Move authentication middleware into root layout `src/routes/$.ts`.

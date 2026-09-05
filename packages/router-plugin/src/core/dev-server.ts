@@ -46,7 +46,7 @@ function shouldSkipDevRequest(url: string, basePath?: string): boolean {
 }
 
 /**
- * Creates a Vite Connect middleware that loads and runs the Taser virtual app
+ * Creates a Vite Connect middleware that loads and runs the Taser.js virtual app
  * in SSR mode and handles HTTP requests via srvx.
  */
 export function createViteDevMiddleware(

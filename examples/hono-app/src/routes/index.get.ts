@@ -3,7 +3,7 @@ import { json } from "@taserjs/router/reply";
 
 export default t.get("/").handler((ctx) => {
   return json({
-    // message: "Hello from Taser root!",
+    // message: "Hello from Taser.js root!",
     // requestId: ctx.requestId,
     framework: "taser",
     status: "ok",

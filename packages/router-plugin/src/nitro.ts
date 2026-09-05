@@ -36,7 +36,7 @@ export type TaserNitroOptions = TaserPluginOptions & {
 };
 
 /**
- * Standalone Nitro Module for Taser.
+ * Standalone Nitro Module for Taser.js.
  *
  * Used directly in `nitro.config.ts` via `modules: [taser()]` or loaded
  * automatically by `nitro()` when chained in `vite.config.ts`.

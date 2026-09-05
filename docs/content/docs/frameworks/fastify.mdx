@@ -1,6 +1,6 @@
 ---
 title: Fastify Integration
-description: "Pair Taser file routing with Fastify. Coexist with Fastify plugins, hooks, and native route handlers using host pass-through architecture."
+description: "Pair Taser.js file routing with Fastify. Coexist with Fastify plugins, hooks, and native route handlers using host pass-through architecture."
 icon: Workflow
 ---
 
@@ -9,15 +9,15 @@ import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-Taser integrates with Fastify applications using the **Host Pass-Through Architecture**. You can run Fastify plugins, hooks, and legacy endpoints alongside Taser's file-based route tree.
+Taser.js integrates with Fastify applications using the **Host Pass-Through Architecture**. You can run Fastify plugins, hooks, and legacy endpoints alongside Taser.js's file-based route tree.
 
 ---
 
 ## How It Works
 
-1. **Taser First**: Taser evaluates requests against `src/routes/`.
+1. **Taser.js First**: Taser.js evaluates requests against `src/routes/`.
 2. **Fastify Fall-Through**: Unmatched requests fall through to Fastify's internal router.
-3. **404 Handling**: If neither handles the request, Taser returns 404 Not Found.
+3. **404 Handling**: If neither handles the request, Taser.js returns 404 Not Found.
 
 ---
 
@@ -57,7 +57,7 @@ Taser integrates with Fastify applications using the **Host Pass-Through Archite
   </Step>
 
   <Step>
-    ### 3. Add Taser Routes
+    ### 3. Add Taser.js Routes
 
     Create `src/routes/health.get.ts`:
 
@@ -97,6 +97,6 @@ Taser integrates with Fastify applications using the **Host Pass-Through Archite
   <Card
     title="Deployment Presets"
     href="/docs/deployments"
-    description="Deploy Fastify + Taser to Node server or containerized clusters."
+    description="Deploy Fastify + Taser.js to Node server or containerized clusters."
   />
 </Cards>

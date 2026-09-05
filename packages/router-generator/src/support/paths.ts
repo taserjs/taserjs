@@ -45,7 +45,7 @@ export function resolveServerDir(rootDir: string, serverDir?: string): string {
       return candidate;
     }
     throw new Error(
-      `[taser] Configured serverDir does not exist: "${candidate}". Please check your taser configuration.`,
+      `[taserjs] Configured serverDir does not exist: "${candidate}". Please check your taser configuration.`,
     );
   }
 
@@ -75,7 +75,7 @@ export function resolveServerEntry(
         return withExt;
       }
     }
-    throw new Error(`[taser] Configured serverEntry does not exist: "${candidate}".`);
+    throw new Error(`[taserjs] Configured serverEntry does not exist: "${candidate}".`);
   }
 
   const defaultNames = ["server.node.ts", "server.node.js", "server.ts", "server.js", "server.mjs"];

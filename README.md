@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://taserjs.dev">
-    <img src="https://raw.githubusercontent.com/taserjs/taserjs/refs/heads/main/docs/src/assets/logo.svg" alt="Taser" width="220" />
+    <img src="https://raw.githubusercontent.com/taserjs/taserjs/refs/heads/main/docs/src/assets/logo.svg" alt="Taser.js" width="220" />
   </a>
 </p>
 
@@ -36,11 +36,11 @@ All guides, routing patterns, middleware architecture, adapter tutorials, and AP
 
 <hr />
 
-## What is Taser?
+## What is Taser.js?
 
-Taser brings the intuition and ergonomics of **TanStack Router** to backend HTTP APIs.
+Taser.js brings the intuition and ergonomics of **TanStack Router** to backend HTTP APIs.
 
-Traditional Node.js routers force painful trade-offs between clean folder structures and real type safety. Taser eliminates the type assertion trap (`req.user as User`) with deterministic file-based routing, cascading middleware context, compile-time return contracts, and an auto-generated client SDK.
+Traditional Node.js routers force painful trade-offs between clean folder structures and real type safety. Taser.js eliminates the type assertion trap (`req.user as User`) with deterministic file-based routing, cascading middleware context, compile-time return contracts, and an auto-generated client SDK.
 
 ### Core Highlights
 
@@ -93,7 +93,7 @@ pnpm create taserjs@latest my-api \
     </td>
     <td>
       <strong>Kazi Ahmed</strong><br />
-      <em>Creator and Maintainer of Taser</em><br /><br />
+      <em>Creator and Maintainer of Taser.js</em><br /><br />
       <a href="https://github.com/tzsk">GitHub (@tzsk)</a> &nbsp;•&nbsp;
       <a href="https://x.com/KaziAhmedDev">X (@KaziAhmedDev)</a> &nbsp;•&nbsp;
       <a href="https://github.com/sponsors/tzsk">Sponsor on GitHub</a>
@@ -114,4 +114,4 @@ pnpm create taserjs@latest my-api \
 
 ## License
 
-[ISC](LICENSE) — Copyright (c) 2026, [Kazi Ahmed](https://github.com/tzsk) & Taser contributors.
+[ISC](LICENSE) — Copyright (c) 2026, [Kazi Ahmed](https://github.com/tzsk) & Taser.js contributors.

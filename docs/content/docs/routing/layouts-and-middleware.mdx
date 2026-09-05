@@ -9,7 +9,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Files, Folder, File } from "@/components/files";
 
-Layout files in Taser allow you to organize cross-cutting concerns (authentication, CORS, rate limiting, logging) and inject typed state into child routes without repeating code in every handler.
+Layout files in Taser.js allow you to organize cross-cutting concerns (authentication, CORS, rate limiting, logging) and inject typed state into child routes without repeating code in every handler.
 
 ---
 
@@ -85,7 +85,7 @@ Nested directory index files (e.g. `src/routes/admin/index.ts`) similarly mount 
 
 ## Nested Layout Hierarchy & Execution Order
 
-Taser executes layouts in a predictable cascading sequence from outermost to innermost:
+Taser.js executes layouts in a predictable cascading sequence from outermost to innermost:
 
 <Files>
   <Folder name="src/routes" defaultOpen>
@@ -380,7 +380,7 @@ t.get("/protected")
 
 ## Phased Route Builder Lifecycle
 
-Route definitions in Taser follow a strict phased lifecycle:
+Route definitions in Taser.js follow a strict phased lifecycle:
 
 1. **Middleware Phase** (`.use(...)`) — Chained at the beginning of the route.
 2. **Contract / Schema Phase** (`.query()`, `.params()`, `.body()`, `.returns()`) — Once schemas or return maps are declared, `.use()` is locked out to maintain deterministic execution order.

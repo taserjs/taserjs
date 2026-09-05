@@ -98,7 +98,7 @@ export function parsePresetFlag(value: string): { preset: string; warning?: stri
     }
     return {
       preset: value,
-      warning: `"${value}" is not a curated Taser deploy target; passing it through to Nitro as-is.`,
+      warning: `"${value}" is not a curated Taser.js deploy target; passing it through to Nitro as-is.`,
     };
   }
   return { preset: value };

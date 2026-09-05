@@ -9,7 +9,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 
 In standard backend frameworks, `res.json(data)` is unchecked. If a database query changes or a field name is renamed, backend responses drift silently, breaking frontend consumers in production.
 
-Taser solves this by letting you define **Response Contracts** with `.returns()`.
+Taser.js solves this by letting you define **Response Contracts** with `.returns()`.
 
 ---
 
@@ -81,7 +81,7 @@ This ensures you can refactor database models and backend services with total co
 
 ## Runtime Response Validation
 
-In addition to compile-time verification, Taser can validate outgoing response payloads at runtime.
+In addition to compile-time verification, Taser.js can validate outgoing response payloads at runtime.
 
 You can configure response validation behavior in `src/taser.ts`:
 

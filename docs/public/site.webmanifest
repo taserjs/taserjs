@@ -1,6 +1,6 @@
 {
-  "name": "Taser",
-  "short_name": "Taser",
+  "name": "Taser.js",
+  "short_name": "Taser.js",
   "description": "Type-Safe File-Based Routing for REST APIs",
   "icons": [
     {
