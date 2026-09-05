@@ -1,5 +1,13 @@
 # @taserjs/router-plugin
 
+## 0.1.11
+
+### Patch Changes
+
+- 74158cb: fix: Standalone mode and nextjs webpack plugin
+- @taserjs/router-generator@0.1.11
+  - @taserjs/router-utils@0.1.11
+
 ## 0.1.10
 
 ### Patch Changes

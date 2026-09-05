@@ -1,6 +1,6 @@
 {
   "name": "@taserjs/router-generator",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Route manifest code generation for Taser.js",
   "license": "ISC",
   "repository": {
