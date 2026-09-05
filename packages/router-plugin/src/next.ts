@@ -23,6 +23,8 @@ import type { TaserConfig, WatcherOptions } from "./core/types.js";
 
 export type TaserNextConfig = NextConfig & {
   __taserRouterPlugin?: boolean;
+  __taserReady?: Promise<void>;
+  __taserCloseWatcher?: () => Promise<void>;
   turbopack?: {
     resolveExtensions?: string[];
     [key: string]: unknown;
@@ -165,23 +167,39 @@ function applyTaserNext(
 
   const existingWebpack = nextConfig.webpack;
 
-  const wrappedWebpack: NonNullable<NextConfig["webpack"]> = async (config, context) => {
-    await ready;
-    const next =
-      typeof existingWebpack === "function" ? await existingWebpack(config, context) : config;
+  const wrappedWebpack: NonNullable<NextConfig["webpack"]> = (config, context) => {
+    const next = typeof existingWebpack === "function" ? existingWebpack(config, context) : config;
 
-    const webpackConfig = (next ?? {}) as {
-      resolve?: { extensionAlias?: Record<string, string[]> };
+    const applyWebpackConfig = (webpackConfig: any) => {
+      const cfg = webpackConfig ?? {};
+      cfg.resolve = cfg.resolve ?? {};
+      const userJsAlias = cfg.resolve.extensionAlias?.[".js"] ?? [];
+      cfg.resolve.extensionAlias = {
+        ...cfg.resolve.extensionAlias,
+        ".js": [...new Set([".ts", ".tsx", ".js", ...userJsAlias])],
+      };
+
+      cfg.plugins = cfg.plugins ?? [];
+      cfg.plugins.push({
+        name: "TaserPlugin",
+        apply(compiler: any) {
+          compiler.hooks?.beforeRun?.tapPromise?.("TaserPlugin", async () => {
+            await ready;
+          });
+          compiler.hooks?.watchRun?.tapPromise?.("TaserPlugin", async () => {
+            await ready;
+          });
+        },
+      });
+
+      return cfg;
     };
 
-    webpackConfig.resolve = webpackConfig.resolve ?? {};
-    const userJsAlias = webpackConfig.resolve.extensionAlias?.[".js"] ?? [];
-    webpackConfig.resolve.extensionAlias = {
-      ...webpackConfig.resolve.extensionAlias,
-      ".js": [...new Set([".ts", ".tsx", ".js", ...userJsAlias])],
-    };
+    if (next && typeof (next as any).then === "function") {
+      return (next as Promise<any>).then(applyWebpackConfig);
+    }
 
-    return webpackConfig;
+    return applyWebpackConfig(next);
   };
 
   const result = {
@@ -191,6 +209,18 @@ function applyTaserNext(
 
   Object.defineProperty(result, TASER_KEY, {
     get: () => true,
+    enumerable: false,
+    configurable: true,
+  });
+
+  Object.defineProperty(result, "__taserReady", {
+    get: () => ready,
+    enumerable: false,
+    configurable: true,
+  });
+
+  Object.defineProperty(result, "__taserCloseWatcher", {
+    get: () => () => closeWatcher?.(),
     enumerable: false,
     configurable: true,
   });

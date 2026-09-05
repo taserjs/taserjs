@@ -26,6 +26,7 @@ export type TaserPluginOptions = TaserConfig & {
   server?: boolean | undefined;
   rootDir?: string | undefined;
   watcher?: WatcherOptions | undefined;
+  standalone?: boolean | undefined;
 };
 
 export type TaserVirtualContext = {

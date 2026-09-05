@@ -8,14 +8,14 @@ This guide covers canonical layout identifiers, middleware types, cascading stat
 
 Layouts are non-verb files located in the `src/routes/` directory. All layout identifiers strictly use leading slashes `/` and route-style path syntax (`/*`, `/:id`):
 
-| File Location             | Canonical Layout ID | Declaration                             |
-| :------------------------ | :------------------ | :-------------------------------------- |
-| `src/routes/$.ts`         | `"/*"`              | `export default t.layout("/*")`         |
-| `src/routes/index.ts`     | `"/index"`          | `export default t.layout("/index")`     |
-| `src/routes/admin.ts`     | `"/admin"`          | `export default t.layout("/admin")`     |
-| `src/routes/admin/$.ts`   | `"/admin/*"`        | `export default t.layout("/admin/*")`   |
-| `src/routes/tasks/$id.ts` | `"/tasks/:id"`      | `export default t.layout("/tasks/:id")` |
-| `src/routes/_auth/$.ts`   | `"/_auth/*"`        | `export default t.layout("/_auth/*")`   |
+| File Location             | Canonical Layout ID | Declaration                             | Note                                     |
+| :------------------------ | :------------------ | :-------------------------------------- | :--------------------------------------- |
+| `src/routes/$.ts`         | `"/*"`              | `export default t.layout("/*")`         | Applies to all routes in the application |
+| `src/routes/index.ts`     | `"/index"`          | `export default t.layout("/index")`     | Applies to `/` path only                 |
+| `src/routes/admin.ts`     | `"/admin"`          | `export default t.layout("/admin")`     | Applies to `/admin` path only            |
+| `src/routes/admin/$.ts`   | `"/admin/*"`        | `export default t.layout("/admin/*")`   | Applies to all routes under `/admin`     |
+| `src/routes/tasks/$id.ts` | `"/tasks/:id"`      | `export default t.layout("/tasks/:id")` | Applies to specific task route           |
+| `src/routes/_auth/$.ts`   | `"/_auth/*"`        | `export default t.layout("/_auth/*")`   | Applies to all routes under `/_auth`     |
 
 ---
 
@@ -148,17 +148,24 @@ In TaserJS, middleware wraps downstream execution in an onion model:
 
 ```ts
 import { ValidationError } from "@taserjs/router";
-import { badRequest, internalServerError } from "@taserjs/router/reply";
+import { unprocessableEntity, internalServerError } from "@taserjs/router/reply";
 
 .use(async (ctx, next) => {
   try {
     return await next();
   } catch (error) {
     if (error instanceof ValidationError) {
-      return badRequest({ message: error.issues });
+      return unprocessableEntity({ errors: error.issues });
     }
     console.error("Unhandled error caught in middleware:", error);
     return internalServerError({ message: "An unexpected error occurred" });
   }
 })
 ```
+
+## 5. Best Practices
+
+- **Use layouts for shared logic**: Place authentication, authorization, and common state injection in layouts to avoid repetition across routes.
+- **Compose with single-concern middleware**: Chain focused middleware in layouts rather than combining unrelated logic in one unit.
+- **Keep middleware focused**: Each middleware should do one thing (logging, validation, authentication).
+- **Leverage cascading state**: Pass data via `ctx.state` and `return next({ ... })` instead of globals or bloated context.

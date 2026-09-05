@@ -112,5 +112,5 @@ After making edits, the agent MUST run the following steps to verify the setup:
    - Ensure 0 errors across routes, layouts, and context.
 3. **Endpoint Smoke Test**:
    - Start the server (`pnpm dev`).
-   - `curl -i http://localhost:3000/api/<route>` to verify the Taser handler (if configured with /api prefix otherwise, `http://localhost:3000/<route>`).
+   - `curl -i http://localhost:3000/<route>` to verify the Taser handler (prepend the configured `basePath`, e.g. `/api/<route>` when `basePath: "/api"`).
    - `curl -i http://localhost:3000/<legacy-route>` to verify the host pass-through fallback.

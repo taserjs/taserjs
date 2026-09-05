@@ -31,8 +31,7 @@ Routes are defined as files inside `src/routes/` (or the configured `serverDir/r
 ### Dynamic Parameters (`$param`)
 
 - A dollar sign followed by a name indicates a path parameter: `$id` -> `:id`, `$slug` -> `:slug`.
-- In handler functions, path parameters are accessible via `ctx.params.id`. It is default to be a string.
-- Type refinement is applied with `.params(schema)`.
+- In handler functions, path parameters are accessible via `ctx.params.id`. They default to `string` unless refined with `.params(schema)`.
 
 ### Wildcards / Splats (`$`)
 
@@ -66,8 +65,8 @@ Routes are defined as files inside `src/routes/` (or the configured `serverDir/r
 ## 3. Route Structuring Guidelines
 
 - **Nested Directories vs Flat Dot Notation**:
-  - Prefer flat dot notation (e.g. `users.$id.posts.get.ts`) when a sub-tree contains fewer than 3 files.
   - Prefer nested directory structures (e.g. `src/routes/users/$id/posts.get.ts`) when logical grouping is needed or when building larger modules with dedicated layouts and helpers.
+  - Only reach for dot notation (e.g. `users.$id.posts.get.ts`) when a sub-tree contains fewer than 3 files.
 - **Route Definition Pattern**:
   ```ts
   // src/routes/users/$id.get.ts
@@ -75,14 +74,19 @@ Routes are defined as files inside `src/routes/` (or the configured `serverDir/r
   import { t } from "@taserjs/router";
   import { z } from "zod";
 
-  const GET = t
+  export default t
     .get("/users/:id")
     .params(z.object({ id: z.string().uuid() }))
-    .query(z.object({ includePosts: z.coerce.boolean().default(false) }));
-
-  export default GET.handler(async (ctx) => {
-    const user = await ctx.db.getUser(ctx.params.id);
-    if (!user) return notFound({ message: "User not found" });
-    return json(user);
-  });
+    .query(z.object({ includePosts: z.coerce.boolean().default(false) }))
+    .handler(async (ctx) => {
+      const user = await ctx.db.getUser(ctx.params.id);
+      if (!user) return notFound({ message: "User not found" });
+      return json(user);
+    });
   ```
+
+## 4. Best Practices
+
+- **Keep routes focused**: A route file should contain only the logic for its endpoint.
+- **Extract shared logic**: Use layouts and middleware for authentication, validation, and other cross-route concerns — not inline boilerplate in every route file.
+- **Route-specific preprocessing**: Chain middleware in the route file only when the logic applies to that route alone.

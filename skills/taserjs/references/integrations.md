@@ -124,7 +124,7 @@ export default defineConfig({
     taser({
       serverDir: "src/server", // Houses Taser context & routes
       basePath: "/api", // URL prefix dispatched to Taser
-      server: false, // Let the host server handle serving the app
+      server: false, // Let TanStack Start manage the outer HTTP host; Taser handles /api routes only
     }),
     tanstackStart(),
     viteReact(),
@@ -174,7 +174,13 @@ const handle = async ({ request }: { request: Request }) => app.fetch(request);
 export const Route = createFileRoute("/api/$")({
   server: {
     handlers: {
-      ANY: handle,
+      GET: handle,
+      POST: handle,
+      PUT: handle,
+      DELETE: handle,
+      PATCH: handle,
+      OPTIONS: handle,
+      HEAD: handle,
     },
   },
 });

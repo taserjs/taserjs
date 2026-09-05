@@ -86,11 +86,11 @@ const res = await client.$get();
 
 ## 3. End-to-End Type Safety
 
-`@taserjs/router-client` infers `await res.json()` types automatically — **`.returns()` is not required**. The client resolves success payload types using this precedence:
+`@taserjs/router-client` infers `await res.json()` types automatically — **`.returns()` is not required**. Type resolution precedence:
 
-1. **Default (no `.returns()`)**: Unions successful `ReplyOf<Status, Body>` types (`200`–`226`) from handler reply helpers (`json()`, `ok()`, `created()`, etc.).
+1. **Default (no `.returns()`)**: Unions successful reply-helper payloads (`json()`, `ok()`, `created()`, etc.) for status codes `200`–`226`.
 2. **With `.returns({ 200: schema })`**: Uses the `200` schema output type (overrides handler inference).
-3. **Fallback**: `unknown` if neither source is available.
+3. **Fallback**: `unknown` when neither source is available.
 
 ```ts
 // Server route without .returns() — client still gets full typing:
@@ -105,7 +105,7 @@ const data = await res.json();
 
 ### Handling Responses
 
-Check `res.ok` or `res.status` at runtime; `json()` is typed for success payloads only (not narrowed per status):
+Check `res.ok` or `res.status` at runtime. `res.json()` is typed for the success payload only — it is not narrowed per status code:
 
 ```ts
 const res = await client.users._id.$get({ param: { id: "123" } });

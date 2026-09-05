@@ -33,16 +33,15 @@ Available flags for `create-taserjs`:
 - `--runtime`: Runtime override for self-hosted targets (`node`, `bun`, `deno`).
 - `--db`: Database ODM and driver using `odm:driver` syntax (ODMs: `drizzle`, `prisma`, `kysely`; drivers: `sqlite`, `postgres`, `mysql`, e.g. `drizzle:postgres`).
 - `--validator`: Schema validation library (`zod`, `arktype`, `valibot`).
-- `--logger`: Structured logger integration (`pino`, `winston` or `none`).
+- `--logger`: Structured logger integration (`pino`, `winston`). Omit to scaffold without a logger addon.
 - `-y`, `--yes`: Skip interactive prompts and accept defaults for omitted options.
 - `--json`: Output result as machine-readable JSON (or dumps capabilities catalog when invoked without a project name).
 
 ### B. Fullstack Frameworks (Next.js or TanStack Start)
 
-1. Scaffold the parent application using the framework's official CLI:
-   - Next.js: `pnpm create next-app`
-   - TanStack Start: `pnpm create @tanstack/start`
-2. Follow the detailed framework setup in [references/integrations.md](integrations.md).
+1. Scaffold with the [Better T Stack CLI](https://www.better-t-stack.dev/docs/cli/agent-workflows) to generate a Next.js or TanStack Start app first.
+
+2. Follow the manual setup guide for next steps [references/integrations.md](integrations.md).
 
 ---
 

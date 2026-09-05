@@ -6,6 +6,7 @@ import type { NextConfig } from "next";
 import createTaser, { type NextConfigFn } from "../src/next.js";
 
 const ORIGINAL_PHASE = process.env.NEXT_PHASE;
+const ORIGINAL_POLLING = process.env.CHOKIDAR_USEPOLLING;
 
 type WebpackConfigContext = Parameters<NonNullable<NextConfig["webpack"]>>[1];
 
@@ -28,7 +29,8 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
 
   beforeEach(async () => {
     delete process.env.NEXT_PHASE;
-    testDir = await fsp.mkdtemp(join(tmpdir(), "taser-next-test-"));
+    process.env.CHOKIDAR_USEPOLLING = "1";
+    testDir = await fsp.realpath(await fsp.mkdtemp(join(tmpdir(), "taser-next-test-")));
   });
 
   afterEach(async () => {
@@ -36,6 +38,11 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
       delete process.env.NEXT_PHASE;
     } else {
       process.env.NEXT_PHASE = ORIGINAL_PHASE;
+    }
+    if (ORIGINAL_POLLING === undefined) {
+      delete process.env.CHOKIDAR_USEPOLLING;
+    } else {
+      process.env.CHOKIDAR_USEPOLLING = ORIGINAL_POLLING;
     }
     vi.restoreAllMocks();
     if (testDir) {
@@ -146,7 +153,7 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
     expect(config.experimental?.turbo?.resolveExtensions).toContain(".custom2");
   });
 
-  it("wraps an existing webpack callback and safely merges extension aliasing", async () => {
+  it("wraps an existing webpack callback and safely merges extension aliasing", () => {
     const webpack = vi.fn((config: unknown) => config);
     const withTaserCustom = createTaser({ rootDir: testDir });
     const config = withTaserCustom({
@@ -154,19 +161,39 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
     });
     expect(config.webpack).not.toBe(webpack);
 
-    const result = (await config.webpack?.(
+    const rawResult = config.webpack?.(
       { resolve: { alias: {} } },
       mockWebpackContext({ dir: testDir }),
-    )) as {
+    );
+
+    expect(rawResult).toBeDefined();
+    expect(typeof (rawResult as any)?.then).not.toBe("function");
+
+    const result = rawResult as {
       resolve: { extensionAlias?: Record<string, string[]>; alias?: Record<string, string> };
+      plugins?: any[];
     };
 
     expect(webpack).toHaveBeenCalledTimes(1);
     expect(result.resolve.alias).toEqual({});
     expect(result.resolve.extensionAlias?.[".js"]).toEqual([".ts", ".tsx", ".js"]);
+
+    const taserPlugin = result.plugins?.find((p: any) => p.name === "TaserPlugin");
+    expect(taserPlugin).toBeDefined();
+    expect(typeof taserPlugin.apply).toBe("function");
+
+    const tapPromise = vi.fn();
+    taserPlugin.apply({
+      hooks: {
+        beforeRun: { tapPromise },
+        watchRun: { tapPromise },
+      },
+    });
+    expect(tapPromise).toHaveBeenCalledTimes(2);
+    expect(tapPromise).toHaveBeenCalledWith("TaserPlugin", expect.any(Function));
   });
 
-  it("does not clobber user extensionAlias entries during webpack merge", async () => {
+  it("does not clobber user extensionAlias entries during webpack merge", () => {
     const withTaserCustom = createTaser({ rootDir: testDir });
     const config = withTaserCustom({
       webpack: (config: unknown) =>
@@ -176,7 +203,7 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
         }) as unknown,
     });
 
-    const result = (await config.webpack?.({}, mockWebpackContext({ dir: testDir }))) as {
+    const result = config.webpack?.({}, mockWebpackContext({ dir: testDir })) as {
       resolve: { extensionAlias: Record<string, string[]> };
     };
     expect(result.resolve.extensionAlias[".js"]).toEqual([".ts", ".tsx", ".js", ".mjs"]);
@@ -232,7 +259,8 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
 
     const withTaserCustom = createTaser({ rootDir: "/nonexistent-taser-root-xyz" });
     const config = withTaserCustom({});
-    await config.webpack?.({}, mockWebpackContext());
+    config.webpack?.({}, mockWebpackContext());
+    await config.__taserReady;
 
     expect(error).toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();
@@ -256,40 +284,46 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
 
     // Invoke in dev phase ("phase-development-server")
     const configFn = withTaserCustom(() => ({}));
-    await (configFn as NextConfigFn)("phase-development-server", { defaultConfig: {} });
+    const devConfig = await (configFn as NextConfigFn)("phase-development-server", {
+      defaultConfig: {},
+    });
 
-    // Allow watcher to finish initial scan
-    await new Promise((r) => setTimeout(r, 200));
+    try {
+      // Allow watcher to finish initial scan
+      await new Promise((r) => setTimeout(r, 200));
 
-    const newRouteFile = join(routesDir, "users.get.ts");
-    await fsp.writeFile(newRouteFile, "", "utf8");
+      const newRouteFile = join(routesDir, "users.get.ts");
+      await fsp.writeFile(newRouteFile, "", "utf8");
 
-    const manifestFile = join(testDir, ".taser", "manifest.ts");
+      const manifestFile = join(testDir, ".taser", "manifest.ts");
 
-    const waitForScaffoldAndManifest = async (
-      attempts = 0,
-    ): Promise<{ content: string; manifest: string }> => {
-      try {
-        const [content, manifest] = await Promise.all([
-          fsp.readFile(newRouteFile, "utf8"),
-          fsp.readFile(manifestFile, "utf8"),
-        ]);
-        if (content.length > 0 && manifest.includes("users")) {
-          return { content, manifest };
+      const waitForScaffoldAndManifest = async (
+        attempts = 0,
+      ): Promise<{ content: string; manifest: string }> => {
+        try {
+          const [content, manifest] = await Promise.all([
+            fsp.readFile(newRouteFile, "utf8"),
+            fsp.readFile(manifestFile, "utf8"),
+          ]);
+          if (content.length > 0 && manifest.includes("users")) {
+            return { content, manifest };
+          }
+          throw new Error("Not ready yet");
+        } catch (err) {
+          if (attempts >= 40) {
+            throw err;
+          }
+          await new Promise((r) => setTimeout(r, 50));
+          return waitForScaffoldAndManifest(attempts + 1);
         }
-        throw new Error("Not ready yet");
-      } catch (err) {
-        if (attempts >= 40) {
-          throw err;
-        }
-        await new Promise((r) => setTimeout(r, 50));
-        return waitForScaffoldAndManifest(attempts + 1);
-      }
-    };
+      };
 
-    const { content, manifest } = await waitForScaffoldAndManifest();
-    expect(content).toContain("export default");
-    expect(content).toContain("t.get('/users')");
-    expect(manifest).toContain("users.get");
+      const { content, manifest } = await waitForScaffoldAndManifest();
+      expect(content).toContain("export default");
+      expect(content).toContain("t.get('/users')");
+      expect(manifest).toContain("users.get");
+    } finally {
+      await devConfig.__taserCloseWatcher?.();
+    }
   });
 });

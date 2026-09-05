@@ -39,6 +39,11 @@ describe("unplugin multi-bundler exports", () => {
     // Nitro config skips standalone build overrides
     const nitroConfig = plugin.config({ nitro: {} }, { command: "build" });
     expect(nitroConfig).toBeUndefined();
+
+    // Accepts standalone option and passes to nitro hook
+    const pluginWithStandalone = getSinglePlugin(vitePlugin({ standalone: false }));
+    expect(pluginWithStandalone.name).toBe("taser");
+    expect(typeof pluginWithStandalone.nitro?.setup).toBe("function");
   });
 
   it("exports specialized webpack plugin", () => {

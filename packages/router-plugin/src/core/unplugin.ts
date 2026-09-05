@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "pathe";
-import { createUnplugin, type UnpluginInstance } from "unplugin";
+import { createUnplugin, type UnpluginFactory } from "unplugin";
 import type { ViteDevServer } from "vite";
 import { flattenPlugins } from "@taserjs/router-generator";
 
@@ -20,6 +20,7 @@ import { getComposedAppCode, getServeShimCode } from "./compose.js";
 import { createViteDevMiddleware, invalidateDevServerCache } from "./dev-server.js";
 import { setupTaserNitro } from "../nitro.js";
 import type { TaserPluginOptions, TaserVirtualContext } from "./types.js";
+import type { Nitro } from "nitro/types";
 
 const SERVE_SHIM_PATH = ".taser/serve.mjs";
 
@@ -67,7 +68,7 @@ function invalidateModules(server: ViteDevServer) {
   }
 }
 
-export const unpluginFactory = (options: TaserPluginOptions = {}) => {
+export const unpluginFactory: UnpluginFactory<TaserPluginOptions | undefined> = (options = {}) => {
   const serveEnabled = options.server !== false;
   let mode: "nitro" | "standalone" = "standalone";
   let rootDir = resolve(options.rootDir || process.cwd());
@@ -94,7 +95,7 @@ export const unpluginFactory = (options: TaserPluginOptions = {}) => {
       }
     },
 
-    resolveId(id: string) {
+    resolveId(id) {
       if (id === VIRTUAL_MANIFEST_ID) return RESOLVED_VIRTUAL_MANIFEST_ID;
       if (id === VIRTUAL_ENTRY_ID) return RESOLVED_VIRTUAL_ENTRY_ID;
       if (id === VIRTUAL_APP_ID) return RESOLVED_VIRTUAL_APP_ID;
@@ -114,7 +115,7 @@ export const unpluginFactory = (options: TaserPluginOptions = {}) => {
       return null;
     },
 
-    async load(id: string) {
+    async load(id) {
       if (id === RESOLVED_VIRTUAL_MANIFEST_ID || id === VIRTUAL_MANIFEST_ID) {
         const activeCtx = getContext();
         return await activeCtx.getManifestCode();
@@ -133,19 +134,37 @@ export const unpluginFactory = (options: TaserPluginOptions = {}) => {
       return null;
     },
 
-    watchChange(_id: string) {
+    watchChange() {
       if (ctx) {
         ctx.invalidate();
       }
+    },
+
+    webpack(compiler) {
+      const ensureTypes = async () => {
+        const activeCtx = getContext();
+        await activeCtx.writeTypes();
+      };
+      compiler.hooks?.beforeRun?.tapPromise?.("taser", ensureTypes);
+      compiler.hooks?.watchRun?.tapPromise?.("taser", ensureTypes);
+    },
+
+    rspack(compiler) {
+      const ensureTypes = async () => {
+        const activeCtx = getContext();
+        await activeCtx.writeTypes();
+      };
+      compiler.hooks?.beforeRun?.tapPromise?.("taser", ensureTypes);
+      compiler.hooks?.watchRun?.tapPromise?.("taser", ensureTypes);
     },
 
     vite: {
       __taserOptions: options,
       nitro: {
         name: "taser",
-        setup: (nitro: Parameters<typeof setupTaserNitro>[0]) => setupTaserNitro(nitro, options),
+        setup: (nitro: Nitro) => setupTaserNitro(nitro, options),
       },
-      config(config: { root?: string }, env: { command?: string }) {
+      config(config, env) {
         if (config?.root) {
           rootDir = resolve(options.rootDir || config.root);
           serveShimPath = resolve(rootDir, SERVE_SHIM_PATH);
@@ -169,11 +188,7 @@ export const unpluginFactory = (options: TaserPluginOptions = {}) => {
             : {}),
         };
       },
-      configResolved(resolvedConfig: {
-        root?: string;
-        plugins?: readonly unknown[];
-        nitro?: unknown;
-      }) {
+      configResolved(resolvedConfig) {
         mode = detectNitro(resolvedConfig) ? "nitro" : "standalone";
         rootDir = resolve(options.rootDir || resolvedConfig.root || process.cwd());
         serveShimPath = resolve(rootDir, SERVE_SHIM_PATH);
@@ -183,7 +198,7 @@ export const unpluginFactory = (options: TaserPluginOptions = {}) => {
           rootDir,
         });
       },
-      configureServer(server: ViteDevServer) {
+      configureServer(server) {
         const activeCtx = getContext();
         if (serveEnabled) {
           server.middlewares.use(
@@ -208,5 +223,4 @@ export const unpluginFactory = (options: TaserPluginOptions = {}) => {
   };
 };
 
-export const taserUnplugin: UnpluginInstance<TaserPluginOptions | undefined, boolean> =
-  createUnplugin(unpluginFactory);
+export const taserUnplugin = createUnplugin(unpluginFactory);

@@ -76,6 +76,7 @@ Taser enforces a strict compile-time state machine:
 - Initialized via `createContext({ boot: ..., request: ... })`.
 - **Anti-Pattern**: Do NOT overwrite boot context keys inside request context.
 - **Anti-Pattern**: Do NOT bloat context with utilities that can be imported directly into routes or middleware files.
+- **Anti-Pattern**: Do not put heavy work in `request` context — it runs on every request. Reserve it for lightweight per-request metadata (request ID, timestamps, tracing). Use `boot` for expensive singletons (DB pools, SDK clients).
 
 ### 4. Onion Architecture for Responses
 

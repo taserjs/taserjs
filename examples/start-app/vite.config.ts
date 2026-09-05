@@ -10,9 +10,10 @@ export default defineConfig({
       serverDir: "src/server",
       basePath: "/api",
       server: false,
+      standalone: false,
     }),
     tanstackStart(),
     viteReact(),
-    // nitro(),
+    nitro(),
   ],
 });

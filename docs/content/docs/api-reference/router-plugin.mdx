@@ -83,6 +83,12 @@ export default defineConfig({
       type: "boolean",
       default: "true",
     },
+    standalone: {
+      description:
+        "When using Nitro, whether Taser replaces Nitro's app pipeline (zero h3/rou3) or registers as a standard Nitro handler.",
+      type: "boolean",
+      default: "true",
+    },
     ignore: {
       description: "Glob patterns of files inside routesDir to exclude from routing.",
       type: "string[]",
