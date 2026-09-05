@@ -121,3 +121,31 @@ export function resolveRoutesDir(rootDir: string, serverDir: string, routesDir?:
   }
   return serverRoutes;
 }
+
+export function resolveTaserEntryPath(
+  rootDir: string,
+  serverDir: string,
+  entry?: string,
+): string | undefined {
+  const resolvedRoot = resolve(rootDir || process.cwd());
+
+  if (entry && !entry.startsWith("#")) {
+    const candidate = isAbsolute(entry) ? entry : resolve(serverDir, entry);
+    if (existsSync(candidate)) return resolve(candidate);
+    const rootCandidate = resolve(resolvedRoot, entry);
+    if (existsSync(rootCandidate)) return resolve(rootCandidate);
+  }
+  const defaultCandidate = join(serverDir, "taser.ts");
+  if (existsSync(defaultCandidate)) {
+    return resolve(defaultCandidate);
+  }
+  const rootSrcCandidate = join(resolvedRoot, "src", "taser.ts");
+  if (existsSync(rootSrcCandidate)) {
+    return resolve(rootSrcCandidate);
+  }
+  const rootCandidate = join(resolvedRoot, "taser.ts");
+  if (existsSync(rootCandidate)) {
+    return resolve(rootCandidate);
+  }
+  return undefined;
+}

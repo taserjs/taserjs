@@ -28,25 +28,32 @@ The `@taserjs/router-cli` package provides command-line utilities to generate am
 
 ## `taser generate`
 
-The `generate` command scans your routes directory, detects configuration from `vite.config.ts` or `nitro.config.ts`, scaffolds boilerplate for any blank route files, and writes ambient TypeScript types to `.taser/types/routes.d.ts`.
+The `generate` command scans your routes directory, detects configuration from `vite.config.ts`, `nitro.config.ts`, or `next.config.ts`, scaffolds starter boilerplate with file-synced route path strings for blank route files, and writes ambient TypeScript types to `.taser/types/routes.d.ts`.
+
+### Invocation Syntax
+
+The CLI binary name is `taser`. Depending on your setup:
+
+- **Installed as a Dev Dependency**: Run directly in your terminal via `pnpm taser generate`, `bun taser generate`, or reference it inside `package.json` scripts simply as `taser generate`.
+- **On-Demand / One-Off**: Use `npx @taserjs/router-cli generate` to invoke the CLI without a global or local installation.
 
 ```bash
-npx taser generate [options]
+# In package.json scripts (when installed as a dev dependency)
+taser generate [options]
+
+# On-demand via npx
+npx @taserjs/router-cli generate [options]
 ```
 
 ### CLI Options
 
 <TypeTable
   type={{
-    "--dir": {
-      description: "Project root directory.",
+    "--config": {
+      description:
+        "Path to specific config file (alias: -c; vite.config, nitro.config, or next.config). When omitted, searches the current directory for supported config files.",
       type: "string",
-      default: "process.cwd()",
-    },
-    "--routesDir": {
-      description: "Routes directory path (alias: --routes, overrides detected config).",
-      type: "string",
-      default: "Auto-detected from vite.config.ts / nitro.config.ts",
+      default: "Searches current directory",
     },
   }}
 />
@@ -55,8 +62,8 @@ npx taser generate [options]
 
 ## How It Works
 
-1. **Config Resolution**: Automatically reads your `vite.config.ts` or `nitro.config.ts` using `jiti` to determine your routes directory, server directory, and alias paths.
-2. **Automatic Route Scaffolding**: If any new route or layout file is empty (such as after `touch src/routes/admin/users.get.ts`), the CLI automatically populates it with starter boilerplate:
+1. **Config Resolution**: Automatically inspects your configuration via `--config` or by searching the current directory for `vite.config.ts`, `nitro.config.ts`, or `next.config.ts` using `jiti`. Configuration is required.
+2. **Automatic Route Scaffolding & Path Sync**: If any new route or layout file is empty (such as after `touch src/routes/admin/users.get.ts`), the CLI automatically populates it with starter boilerplate containing the exact filesystem-derived path string (`t.get("/admin/users")`). Populated files are preserved and never overwritten.
 
    ```ts title="src/routes/admin/users.get.ts"
    import { json } from "@taserjs/router/reply";
@@ -70,13 +77,21 @@ npx taser generate [options]
    });
    ```
 
-3. **Ambient Type Generation**: Emits `.taser/types/routes.d.ts` containing the global router type and route definitions, enabling full IDE autocomplete even when the Vite dev server is not active.
+3. **Ambient Type Generation**: Emits `.taser/types/routes.d.ts` containing the global router type and route definitions, enabling full IDE autocomplete and static typechecking even when the dev server is not active.
 
 ---
 
-## CI / CD and Typecheck Integration
+## Build vs. Standalone Typecheck Workflows
 
-Because Vite manages hot module reloading and virtual modules during development (`vite dev`), `taser generate` is primarily used in **CI/CD pipelines** and **standalone typecheck scripts** before running `tsc`:
+Understanding when route generation happens automatically versus when to run `taser generate`:
+
+### Standard Production Builds
+
+When building with Vite (`vite build`) or Next.js (`next build`), the Taser bundler plugin automatically runs route scanning, generates the internal route manifest, and emits ambient types during the build compilation process. You **do not** need to run `taser generate` prior to running `vite build` or `next build`.
+
+### Standalone Typecheck & CI Scripts
+
+If your CI pipeline or local quality checks run standalone TypeScript typechecking (`tsc --noEmit`) outside of a full bundler build, TypeScript needs `.taser/types/routes.d.ts` to exist ahead of time. In this setup, install `@taserjs/router-cli` as a dev dependency and prefix `tsc` with `taser generate`:
 
 ```json title="package.json"
 {
@@ -87,6 +102,12 @@ Because Vite manages hot module reloading and virtual modules during development
   }
 }
 ```
+
+<Callout type="info" title="Non-Bundler Setups">
+  In non-bundler setups (such as standalone Node.js, Fastify, or Express runtimes that don't invoke
+  Vite during build or dev), install `@taserjs/router-cli` as a dev dependency and use `taser
+  generate` in your build or watcher scripts to ensure `.taser/types/routes.d.ts` stays in sync.
+</Callout>
 
 ---
 

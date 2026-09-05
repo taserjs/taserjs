@@ -20,11 +20,13 @@ Under your `src/routes/` directory, files are classified into two distinct types
 1. **Route Files**: Filenames containing an HTTP verb before `.ts` (such as `users.get.ts`, `posts.post.ts`, `items.$id.delete.ts`, `tasks/$id.complete.patch.ts`). Route files export a default route definition created with `t.get()`, `t.post()`, etc.
 2. **Layout Files**: Filenames ending in `.ts` without an HTTP verb (such as `$.ts`, `admin.ts`, `_auth.ts`, `tasks/$id.ts`). Layout files export a default middleware pipeline created with `t.layout()`.
 
-<Callout type="warn" title="Filesystem Path vs. Builder Path String">
-  The **filesystem location** is the sole runtime source of truth for URL endpoints and cascading
-  middleware trees. The path string in `t.get("/users")` or `t.layout("/admin/*")` exists purely for
-  TypeScript compile-time type inference (populating `ctx.params`) and compile-time validation
-  against the project's ambient `RoutePath` union.
+<Callout type="info" title="Route Path Strings Are Generated, Not Authored">
+  The path string passed to `t.get()`, `t.post()`, `t.layout()`, etc. is generated automatically by the dev watcher (`vite dev`, `next dev`), standard production builds (`vite build`, `next build`), or `@taserjs/router-cli` when route files are first created (e.g. via `touch src/routes/...`). You do not need to author this string by hand.
+
+**Scaffolding & Mismatch Behavior**: Blank files are automatically populated with starter boilerplate and the matching path string, but existing, populated files are never overwritten. If you rename a route file or edit its path string to an invalid path, your code is preserved; instead, TypeScript flags the mismatch at compile time (`Type '"..."' is not assignable to type 'RoutePath'`).
+
+**Production Builds vs. Standalone Typechecking**: Standard builds (`vite build`, `next build`) automatically scan routes, generate the manifest, and emit ambient types during compilation—no separate CLI command is required in build pipelines. If your setup runs standalone typechecks (`tsc --noEmit`) in CI or pre-commit hooks outside of a bundler build, install `@taserjs/router-cli` as a dev dependency and add `"typecheck": "taser generate && tsc --noEmit"` to your `package.json` (or invoke on-demand via `npx @taserjs/router-cli generate`).
+
 </Callout>
 
 ### Source of Truth Comparison

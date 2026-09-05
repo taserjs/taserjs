@@ -1,29 +1,25 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
 import {
   walkRouteFiles,
   scaffoldRouteFile,
   scanAndBuildModel,
   writeTaserTypes,
-  taserConfigSchema,
   resolveServerDir,
   resolveRoutesDir,
+  resolveTaserEntryPath,
 } from "@taserjs/router-generator";
 import { resolveAppConfig } from "./resolve-app-config.js";
 
-export async function runGenerate(argv: Record<string, any>): Promise<void> {
-  const rootDir = resolve((argv.dir as string) || process.cwd());
-  const appConfig = await resolveAppConfig(rootDir);
-  const explicitRoutes = (argv.routesDir || argv.routes) as string | undefined;
+export async function runGenerate(argv: { config?: string | undefined }): Promise<void> {
+  const appConfig = await resolveAppConfig(argv.config);
+  const rootDir = appConfig.rootDir;
 
   console.log(`[taserjs] generate · config source: ${appConfig.source}`);
 
-  const resolved = taserConfigSchema.parse({
-    ...appConfig.taser,
-    ...(explicitRoutes ? { routesDir: explicitRoutes } : {}),
-  });
+  const resolved = appConfig.taser;
   const serverDir = resolveServerDir(rootDir, resolved.serverDir);
   const routesDir = resolveRoutesDir(rootDir, serverDir, resolved.routesDir);
+  const taserEntryPath = resolveTaserEntryPath(rootDir, serverDir, resolved.entry);
 
   if (existsSync(routesDir)) {
     const files = await walkRouteFiles(routesDir, resolved.ignore);
@@ -52,6 +48,7 @@ export async function runGenerate(argv: Record<string, any>): Promise<void> {
     quotes: resolved.formatting.quotes,
     header: resolved.formatting.header,
     routesDir,
+    taserEntryPath,
   });
 
   if (didWrite) {

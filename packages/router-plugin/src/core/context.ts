@@ -1,5 +1,4 @@
-import { existsSync } from "node:fs";
-import { isAbsolute, join, resolve } from "pathe";
+import { resolve } from "pathe";
 import {
   AnalysisCache,
   emitManifestSource,
@@ -7,6 +6,7 @@ import {
   resolveRoutesDir,
   resolveServerDir,
   resolveServerEntry,
+  resolveTaserEntryPath,
   scanAndBuildModel,
   taserConfigSchema,
   watchRoutes,
@@ -18,28 +18,6 @@ import {
 
 import { ROUTES_ALIAS_ID } from "./constants.js";
 import type { TaserPluginOptions, TaserVirtualContext, WatcherOptions } from "./types.js";
-
-function resolveTaserEntryPath(
-  rootDir: string,
-  serverDir: string,
-  entry?: string,
-): string | undefined {
-  if (entry && !entry.startsWith("#")) {
-    const candidate = isAbsolute(entry) ? entry : resolve(serverDir, entry);
-    if (existsSync(candidate)) return resolve(candidate);
-    const rootCandidate = resolve(rootDir, entry);
-    if (existsSync(rootCandidate)) return resolve(rootCandidate);
-  }
-  const defaultCandidate = join(serverDir, "taser.ts");
-  if (existsSync(defaultCandidate)) {
-    return resolve(defaultCandidate);
-  }
-  const rootSrcCandidate = join(rootDir, "src", "taser.ts");
-  if (existsSync(rootSrcCandidate)) {
-    return resolve(rootSrcCandidate);
-  }
-  return undefined;
-}
 
 export function createTaserVirtualContext(options: TaserPluginOptions = {}): TaserVirtualContext {
   const rootDir = resolve(options.rootDir || ".");

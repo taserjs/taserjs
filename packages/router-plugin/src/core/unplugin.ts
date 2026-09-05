@@ -85,6 +85,7 @@ export const unpluginFactory: UnpluginFactory<TaserPluginOptions | undefined> = 
   return {
     name: "taser",
     enforce: "pre" as const,
+    __taserOptions: options,
 
     async buildStart() {
       const activeCtx = getContext();

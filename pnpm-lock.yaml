@@ -251,6 +251,9 @@ importers:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
     devDependencies:
+      '@taserjs/router-cli':
+        specifier: workspace:*
+        version: link:../../packages/router-cli
       '@taserjs/router-plugin':
         specifier: workspace:*
         version: link:../../packages/router-plugin

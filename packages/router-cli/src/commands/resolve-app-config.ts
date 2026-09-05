@@ -1,110 +1,114 @@
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { basename, isAbsolute, dirname, resolve } from "node:path";
 import {
   DEFAULT_IGNORE,
-  flattenPlugins,
   taserConfigSchema,
   type ResolvedTaserConfig,
 } from "@taserjs/router-generator";
+import { resolveViteConfig } from "./resolvers/vite.js";
+import { resolveNitroConfig } from "./resolvers/nitro.js";
+import { resolveNextConfig } from "./resolvers/next.js";
+import type { ConfigResolver } from "./resolvers/types.js";
 
 export type ResolvedGenerateConfig = {
   taser: ResolvedTaserConfig;
   routesDir?: string | undefined;
   basePath?: string | undefined;
   ignore: string[];
-  source: "vite" | "nitro" | "defaults";
+  source: "vite" | "nitro" | "next";
+  rootDir: string;
 };
 
-const VITE_CONFIG_FILES = [
-  "vite.config.ts",
-  "vite.config.mts",
-  "vite.config.js",
-  "vite.config.mjs",
+const PROVIDER_RESOLVERS: readonly ConfigResolver[] = [
+  resolveViteConfig,
+  resolveNitroConfig,
+  resolveNextConfig,
 ];
 
-const NITRO_CONFIG_FILES = [
-  "nitro.config.ts",
-  "nitro.config.mts",
-  "nitro.config.js",
-  "nitro.config.mjs",
-];
-
-type MaybeTaserPlugin = {
-  name?: string;
-  __taserOptions?: Record<string, unknown>;
-  setup?: unknown;
-};
-
-export async function resolveAppConfig(rootDir: string): Promise<ResolvedGenerateConfig> {
-  const { createJiti } = await import("jiti");
-  const jiti = createJiti(process.cwd());
-
-  for (const file of VITE_CONFIG_FILES) {
-    const configPath = resolve(rootDir, file);
-    if (!existsSync(configPath)) {
-      continue;
-    }
-    try {
-      // oxlint-disable-next-line no-await-in-loop
-      const mod = (await jiti.import(configPath)) as {
-        default?: { plugins?: unknown; nitro?: unknown };
-      };
-      const plugins = flattenPlugins(
-        ((mod.default?.plugins as readonly unknown[] | undefined) ?? []).flat(),
-      );
-      const taserPlugin = plugins.find(
-        (plugin) => (plugin as MaybeTaserPlugin)?.name === "taser",
-      ) as MaybeTaserPlugin | undefined;
-
-      if (taserPlugin) {
-        return finalize(taserPlugin.__taserOptions || {}, "vite");
-      }
-    } catch {
-      // Unreadable config — fall through.
-    }
+function detectProviderFromFilename(fileName: string): ConfigResolver | null {
+  const base = basename(fileName).toLowerCase();
+  if (base.startsWith("vite.config")) {
+    return resolveViteConfig;
   }
+  if (base.startsWith("nitro.config")) {
+    return resolveNitroConfig;
+  }
+  if (base.startsWith("next.config")) {
+    return resolveNextConfig;
+  }
+  return null;
+}
 
-  for (const file of NITRO_CONFIG_FILES) {
-    const configPath = resolve(rootDir, file);
-    if (!existsSync(configPath)) {
-      continue;
+export async function resolveAppConfig(configFile?: string): Promise<ResolvedGenerateConfig> {
+  const { createJiti } = await import("jiti");
+
+  if (configFile) {
+    const absConfigPath = isAbsolute(configFile) ? configFile : resolve(process.cwd(), configFile);
+    const rootDir = dirname(absConfigPath);
+    const jiti = createJiti(rootDir);
+
+    const singleResolver = detectProviderFromFilename(absConfigPath);
+    if (singleResolver) {
+      const result = await singleResolver(rootDir, jiti, absConfigPath);
+      if (result) {
+        return finalize(result.options, result.source, rootDir, result.frameworkOptions);
+      }
+      throw new Error(`[taserjs] Could not detect valid Taser configuration in "${configFile}".`);
     }
-    try {
-      // oxlint-disable-next-line no-await-in-loop
-      const mod = (await jiti.import(configPath)) as {
-        default?: { modules?: unknown[]; ignore?: string[] };
-      };
-      const modules = flattenPlugins(
-        ((mod.default?.modules as readonly unknown[] | undefined) ?? []).flat(),
-      );
-      const taserMod = modules.find((m) => (m as MaybeTaserPlugin)?.name === "taser") as
-        | MaybeTaserPlugin
-        | undefined;
 
-      if (taserMod) {
+    const settledResults = await Promise.allSettled(
+      PROVIDER_RESOLVERS.map((resolver) => resolver(rootDir, jiti, absConfigPath)),
+    );
+
+    for (const settled of settledResults) {
+      if (settled.status === "fulfilled" && settled.value) {
         return finalize(
-          taserMod.__taserOptions || {},
-          "nitro",
-          mod.default as Record<string, unknown>,
+          settled.value.options,
+          settled.value.source,
+          rootDir,
+          settled.value.frameworkOptions,
         );
       }
-    } catch {
-      // Fall through.
+    }
+
+    throw new Error(`[taserjs] Could not detect valid Taser configuration in "${configFile}".`);
+  }
+
+  const rootDir = process.cwd();
+  const jiti = createJiti(rootDir);
+
+  const settledResults = await Promise.allSettled(
+    PROVIDER_RESOLVERS.map((resolver) => resolver(rootDir, jiti)),
+  );
+
+  for (const settled of settledResults) {
+    if (settled.status === "fulfilled" && settled.value) {
+      return finalize(
+        settled.value.options,
+        settled.value.source,
+        rootDir,
+        settled.value.frameworkOptions,
+      );
     }
   }
 
-  return finalize({}, "defaults");
+  throw new Error(
+    `[taserjs] No Taser configuration found in "${rootDir}". Please provide a configuration file (vite.config, nitro.config, or next.config) or use --config.`,
+  );
 }
 
 function finalize(
   raw: Record<string, unknown>,
   source: ResolvedGenerateConfig["source"],
-  nitroOptions?: Record<string, unknown>,
+  rootDir: string,
+  frameworkOptions?: Record<string, unknown>,
 ): ResolvedGenerateConfig {
-  const taser = taserConfigSchema.parse(raw);
+  const taser = taserConfigSchema.parse({
+    ...raw,
+    ...(frameworkOptions?.ignore ? { ignore: frameworkOptions.ignore } : {}),
+  });
   const ignore = Array.from(
     new Set([
-      ...(((nitroOptions?.ignore as string[]) ??
+      ...(((frameworkOptions?.ignore as string[]) ??
         (raw.ignore as string[]) ??
         taser.ignore ??
         []) as string[]),
@@ -117,5 +121,6 @@ function finalize(
     basePath: (raw.basePath as string | undefined) ?? taser.basePath,
     ignore,
     source,
+    rootDir,
   };
 }

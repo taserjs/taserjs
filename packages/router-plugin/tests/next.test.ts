@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { promises as fsp } from "node:fs";
+import { promises as fsp, existsSync } from "node:fs";
 import { join } from "pathe";
 import { tmpdir } from "node:os";
 import type { NextConfig } from "next";
@@ -324,6 +324,54 @@ describe("Next.js adapter (createTaser / withTaser)", () => {
       expect(manifest).toContain("users.get");
     } finally {
       await devConfig.__taserCloseWatcher?.();
+    }
+  });
+
+  it("exposes __taserOptions non-enumerable on wrapped config, factory, and webpack", () => {
+    const withTaserCustom = createTaser({
+      rootDir: testDir,
+      basePath: "/api",
+      serverDir: "src/server",
+    });
+    expect((withTaserCustom as any).__taserOptions).toEqual({
+      rootDir: testDir,
+      basePath: "/api",
+      serverDir: "src/server",
+    });
+    expect((withTaserCustom as any).__taserRouterPlugin).toBe(true);
+
+    const config = withTaserCustom({ reactStrictMode: true });
+    expect(config.__taserOptions).toEqual({
+      rootDir: testDir,
+      basePath: "/api",
+      serverDir: "src/server",
+    });
+    expect(Object.keys(config)).not.toContain("__taserOptions");
+    expect((config.webpack as any).__taserOptions).toEqual({
+      rootDir: testDir,
+      basePath: "/api",
+      serverDir: "src/server",
+    });
+  });
+
+  it("respects TASER_CONFIG_ONLY without creating artifacts or throwing on missing serverDir", () => {
+    process.env.TASER_CONFIG_ONLY = "true";
+    try {
+      const withTaserCustom = createTaser({
+        rootDir: testDir,
+        serverDir: "nonexistent-server-dir-abc",
+        basePath: "/api",
+      });
+      const config = withTaserCustom({ reactStrictMode: true });
+      expect(config.__taserRouterPlugin).toBe(true);
+      expect(config.__taserOptions).toEqual({
+        rootDir: testDir,
+        serverDir: "nonexistent-server-dir-abc",
+        basePath: "/api",
+      });
+      expect(existsSync(join(testDir, ".taser"))).toBe(false);
+    } finally {
+      delete process.env.TASER_CONFIG_ONLY;
     }
   });
 });
