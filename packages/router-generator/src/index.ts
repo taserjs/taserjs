@@ -54,6 +54,7 @@ export {
   resolveServerDir,
   resolveRoutesDir,
   resolveServerEntry,
+  resolveTaserEntryPath,
   type AliasImportRewriterOptions,
 } from "./support/paths.js";
 

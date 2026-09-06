@@ -1,10 +1,12 @@
 import { AdaptersSection } from "@/components/landing/adapters-section";
 import { AuthorSection } from "@/components/landing/author-section";
 import { CtaSection } from "@/components/landing/cta-section";
+import { Footer } from "@/components/landing/footer";
 import { HeroSection } from "@/components/landing/hero-section";
 import { MotivationSection } from "@/components/landing/motivation-section";
 import { ProblemSolutionTabs } from "@/components/landing/problem-solution-tabs";
 import { RoadmapSection } from "@/components/landing/roadmap-section";
+import { SkillsSection } from "@/components/landing/skills-section";
 import { SponsorsSection } from "@/components/landing/sponsors-section";
 import { TryItSection } from "@/components/landing/try-it-section";
 import { homeMetadata } from "@/lib/metadata";
@@ -18,6 +20,7 @@ export default function HomePage() {
       <SoftwareApplicationJsonLd />
       <WebSiteJsonLd />
       <HeroSection />
+      <SkillsSection />
       <ProblemSolutionTabs />
       <MotivationSection />
       <TryItSection />
@@ -26,6 +29,7 @@ export default function HomePage() {
       <SponsorsSection />
       <CtaSection />
       <AuthorSection />
+      <Footer />
     </>
   );
 }

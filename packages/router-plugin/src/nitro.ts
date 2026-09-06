@@ -44,6 +44,7 @@ export type TaserNitroOptions = TaserPluginOptions & {
 export function taser(options: TaserNitroOptions = {}) {
   return {
     name: "taser",
+    __taserOptions: options,
     setup: (nitro: Nitro) => setupTaserNitro(nitro, options),
   };
 }

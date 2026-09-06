@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "generate": "taser generate"
   },
   "dependencies": {
     "@taserjs/router": "workspace:*",
@@ -15,6 +16,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@taserjs/router-cli": "workspace:*",
     "@taserjs/router-plugin": "workspace:*",
     "@types/node": "^20",
     "@types/react": "^19",

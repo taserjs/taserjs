@@ -7,6 +7,7 @@ import rspackPlugin from "../src/rspack.js";
 import rollupPlugin from "../src/rollup.js";
 import rolldownPlugin from "../src/rolldown.js";
 import esbuildPlugin from "../src/esbuild.js";
+import { taserNitro } from "../src/nitro.js";
 
 function getSinglePlugin(plugin: unknown): Record<string, any> {
   return (Array.isArray(plugin) ? plugin[0] : plugin) as Record<string, any>;
@@ -75,5 +76,18 @@ describe("unplugin multi-bundler exports", () => {
     const plugin = getSinglePlugin(esbuildPlugin());
     expect(plugin.name).toBe("taser");
     expect(typeof plugin.setup).toBe("function");
+  });
+
+  it("exposes __taserOptions across all plugin flavors", () => {
+    const opts = { serverDir: "custom/server", basePath: "/api" };
+    expect((getSinglePlugin(vitePlugin(opts)) as any).__taserOptions).toEqual(opts);
+    expect((getSinglePlugin(webpackPlugin(opts)) as any).__taserOptions).toEqual(opts);
+    expect((getSinglePlugin(webpackPlugin(opts)) as any).name).toBe("taser");
+    expect((getSinglePlugin(rspackPlugin(opts)) as any).__taserOptions).toEqual(opts);
+    expect((getSinglePlugin(rspackPlugin(opts)) as any).name).toBe("taser");
+    expect((getSinglePlugin(rollupPlugin(opts)) as any).__taserOptions).toEqual(opts);
+    expect((getSinglePlugin(rolldownPlugin(opts)) as any).__taserOptions).toEqual(opts);
+    expect((getSinglePlugin(esbuildPlugin(opts)) as any).__taserOptions).toEqual(opts);
+    expect((taserNitro(opts) as any).__taserOptions).toEqual(opts);
   });
 });

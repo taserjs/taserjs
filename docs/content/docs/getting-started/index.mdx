@@ -337,9 +337,13 @@ Response:
 }
 ```
 
-<Callout type="info" title="Automatic Boilerplate Generation">
-  When you create a new empty route file (e.g. `touch src/routes/users/$id.get.ts`), Vite or `npx
-  taser generate` automatically fills it with type-safe starter boilerplate.
+<Callout type="info" title="Route Path Strings Are Generated, Not Authored">
+  The path string passed to `t.get()`, `t.post()`, `t.layout()`, etc. is generated automatically by the dev watcher (`vite dev`, `next dev`), standard production builds (`vite build`, `next build`), or `@taserjs/router-cli` when route files are first created (e.g. via `touch src/routes/...`). You do not need to author this string by hand.
+
+**Scaffolding & Mismatch Behavior**: Blank files are automatically populated with starter boilerplate and the matching path string, but existing, populated files are never overwritten. If you rename a route file or edit its path string to an invalid path, your code is preserved; instead, TypeScript flags the mismatch at compile time (`Type '"..."' is not assignable to type 'RoutePath'`).
+
+**Production Builds vs. Standalone Typechecking**: Standard builds (`vite build`, `next build`) automatically scan routes, generate the manifest, and emit ambient types during compilation—no separate CLI command is required in build pipelines. If your setup runs standalone typechecks (`tsc --noEmit`) in CI or pre-commit hooks outside of a bundler build, install `@taserjs/router-cli` as a dev dependency and add `"typecheck": "taser generate && tsc --noEmit"` to your `package.json` (or invoke on-demand via `npx @taserjs/router-cli generate`).
+
 </Callout>
 
 ---

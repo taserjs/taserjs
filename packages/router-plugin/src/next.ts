@@ -23,6 +23,7 @@ import type { TaserConfig, WatcherOptions } from "./core/types.js";
 
 export type TaserNextConfig = NextConfig & {
   __taserRouterPlugin?: boolean;
+  __taserOptions?: TaserNextOptions;
   __taserReady?: Promise<void>;
   __taserCloseWatcher?: () => Promise<void>;
   turbopack?: {
@@ -117,10 +118,58 @@ function applyTaserNext(
     marked[TASER_KEY] ||
     (typeof nextConfig === "object" && nextConfig !== null && appliedConfigs.has(nextConfig))
   ) {
+    if (marked && !("__taserOptions" in marked)) {
+      Object.defineProperty(marked, "__taserOptions", {
+        get: () => options,
+        enumerable: false,
+        configurable: true,
+      });
+    }
     return marked;
   }
 
-  const rootDir = options.rootDir ?? process.cwd();
+  const isConfigOnly =
+    process.env.TASER_CONFIG_ONLY === "true" || process.env.TASER_CONFIG_ONLY === "1";
+
+  if (isConfigOnly) {
+    applyTurbopackConfig(nextConfig);
+    const result = {
+      ...nextConfig,
+    } as MarkedConfig;
+
+    Object.defineProperty(result, TASER_KEY, {
+      get: () => true,
+      enumerable: false,
+      configurable: true,
+    });
+
+    Object.defineProperty(result, "__taserOptions", {
+      get: () => options,
+      enumerable: false,
+      configurable: true,
+    });
+
+    Object.defineProperty(result, "__taserReady", {
+      get: () => Promise.resolve(),
+      enumerable: false,
+      configurable: true,
+    });
+
+    Object.defineProperty(result, "__taserCloseWatcher", {
+      get: () => async () => {},
+      enumerable: false,
+      configurable: true,
+    });
+
+    if (typeof nextConfig === "object" && nextConfig !== null) {
+      appliedConfigs.add(nextConfig);
+    }
+    appliedConfigs.add(result);
+
+    return result;
+  }
+
+  const rootDir = options.rootDir ?? process.env.TASER_ROOT_DIR ?? process.cwd();
   const outDir = options.outDir ?? DISK_ARTIFACT_DIR;
   const scope = options.basePath;
 
@@ -202,6 +251,12 @@ function applyTaserNext(
     return applyWebpackConfig(next);
   };
 
+  Object.defineProperty(wrappedWebpack, "__taserOptions", {
+    get: () => options,
+    enumerable: false,
+    configurable: true,
+  });
+
   const result = {
     ...nextConfig,
     webpack: wrappedWebpack,
@@ -209,6 +264,12 @@ function applyTaserNext(
 
   Object.defineProperty(result, TASER_KEY, {
     get: () => true,
+    enumerable: false,
+    configurable: true,
+  });
+
+  Object.defineProperty(result, "__taserOptions", {
+    get: () => options,
     enumerable: false,
     configurable: true,
   });
@@ -233,12 +294,15 @@ function applyTaserNext(
   return result;
 }
 
-export function createTaser(
-  options: TaserNextOptions = {},
-): <T extends NextConfigInput<any> | undefined = NextConfig>(
+export function createTaser(options: TaserNextOptions = {}): (<
+  T extends NextConfigInput<any> | undefined = NextConfig,
+>(
   nextConfig?: T,
-) => NextConfigReturn<T> {
-  return function withTaserCurried<T extends NextConfigInput<any> | undefined = NextConfig>(
+) => NextConfigReturn<T>) & {
+  __taserRouterPlugin: boolean;
+  __taserOptions: TaserNextOptions;
+} {
+  function withTaserCurried<T extends NextConfigInput<any> | undefined = NextConfig>(
     nextConfig?: T,
   ): NextConfigReturn<T> {
     if (typeof nextConfig === "function") {
@@ -249,6 +313,19 @@ export function createTaser(
         const resolved = await (nextConfig as Function)(phase, context);
         return applyTaserNext(resolved, options, phase);
       };
+
+      Object.defineProperty(configFn, TASER_KEY, {
+        get: () => true,
+        enumerable: false,
+        configurable: true,
+      });
+
+      Object.defineProperty(configFn, "__taserOptions", {
+        get: () => options,
+        enumerable: false,
+        configurable: true,
+      });
+
       return configFn as unknown as NextConfigReturn<T>;
     }
 
@@ -256,7 +333,21 @@ export function createTaser(
       (nextConfig ?? {}) as TaserNextConfig,
       options,
     ) as unknown as NextConfigReturn<T>;
-  };
+  }
+
+  Object.defineProperty(withTaserCurried, TASER_KEY, {
+    get: () => true,
+    enumerable: false,
+    configurable: true,
+  });
+
+  Object.defineProperty(withTaserCurried, "__taserOptions", {
+    get: () => options,
+    enumerable: false,
+    configurable: true,
+  });
+
+  return withTaserCurried as any;
 }
 
 export const withTaser = createTaser;

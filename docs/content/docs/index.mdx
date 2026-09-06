@@ -40,6 +40,15 @@ export default GET.handler(async (ctx) => {
 });
 ```
 
+<Callout type="info" title="Route Path Strings Are Generated, Not Authored">
+  The path string passed to `t.get()`, `t.post()`, `t.layout()`, etc. is generated automatically by the dev watcher (`vite dev`, `next dev`), standard production builds (`vite build`, `next build`), or `@taserjs/router-cli` when route files are first created (e.g. via `touch src/routes/...`). You do not need to author this string by hand.
+
+**Scaffolding & Mismatch Behavior**: Blank files are automatically populated with starter boilerplate and the matching path string, but existing, populated files are never overwritten. If you rename a route file or edit its path string to an invalid path, your code is preserved; instead, TypeScript flags the mismatch at compile time (`Type '"..."' is not assignable to type 'RoutePath'`).
+
+**Production Builds vs. Standalone Typechecking**: Standard builds (`vite build`, `next build`) automatically scan routes, generate the manifest, and emit ambient types during compilation—no separate CLI command is required in build pipelines. If your setup runs standalone typechecks (`tsc --noEmit`) in CI or pre-commit hooks outside of a bundler build, install `@taserjs/router-cli` as a dev dependency and add `"typecheck": "taser generate && tsc --noEmit"` to your `package.json` (or invoke on-demand via `npx @taserjs/router-cli generate`).
+
+</Callout>
+
 ---
 
 ## Why Taser.js?
@@ -119,6 +128,43 @@ Get up and running in seconds using the official scaffolding CLI. Customize your
 </Tabs>
 
 For full flag definitions and project structure options, see the [Quickstart Guide](/docs/getting-started).
+
+---
+
+## AI Agent Skill
+
+Equip your AI coding assistant (Cursor, Claude Code, Windsurf, GitHub Copilot, Cline, Codex) with expert knowledge of Taser.js file routing conventions, cascading layouts, Standard Schema validation, and typed client RPC.
+
+Install the official skill using the open agent skills CLI:
+
+<Tabs items={["npx", "pnpm", "bun"]} groupId="skills-pm" persist>
+  <Tab value="npx">```bash npx skills add taserjs/taserjs ```</Tab>
+  <Tab value="pnpm">```bash pnpm dlx skills add taserjs/taserjs ```</Tab>
+  <Tab value="bun">```bash bunx skills add taserjs/taserjs ```</Tab>
+</Tabs>
+
+### What the Skill Teaches Your Assistant
+
+- **Route Builder Phasing**: Enforces the strict compile-time builder order (`.params()`, `.query()`, `.body()`, `.returns()`, `.handler()`) to prevent invalid method chaining.
+- **Filesystem Conventions**: Eliminates hallucinated routes by strictly adhering to verb suffixes (`.get.ts`, `.post.ts`), dynamic parameters (`$id`), splats (`$`), and layout middleware.
+- **Validation & Return Contracts**: Guides assistants to declare schemas with Zod, ArkType, or Valibot while pairing status codes with standalone reply helpers (`json`, `created`, `notFound`).
+- **Host Migrations & Client RPC**: Guides incremental migrations from Express, Fastify, and Hono using host pass-through adapters and generates typed `@taserjs/router-client` calls.
+
+### Example Prompts
+
+Once installed, your AI assistant will reference Taser.js rules automatically. Try prompts like:
+
+```text
+"Set up Taser.js API routes in my Next.js project with Zod schema validation, an auth layout, and a typed client."
+```
+
+```text
+"Create a type-safe POST /api/users endpoint in Taser.js with body validation and compile-time return contracts."
+```
+
+```text
+"Migrate my existing Express routes to Taser.js using host pass-through without breaking current APIs."
+```
 
 ---
 

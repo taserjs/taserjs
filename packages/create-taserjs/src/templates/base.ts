@@ -14,6 +14,7 @@ export function packageJsonTemplate(
       dev: "vite",
       build: "vite build",
       typecheck: "tsc --noEmit -p tsconfig.json",
+      "taser:generate": "taser generate",
       ...scripts,
     },
   };
