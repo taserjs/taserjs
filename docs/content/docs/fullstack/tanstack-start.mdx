@@ -142,7 +142,7 @@ yarn add -D @taserjs/router-plugin
 
     ```tsx title="src/routes/api/$.tsx"
     import { createFileRoute } from "@tanstack/react-router";
-    import { app } from "virtual:taser/entry";
+    import { app } from "#taserjs/virtual/entry";
 
     const handle = async ({ request }: { request: Request }) => app.fetch(request);
 
@@ -286,10 +286,10 @@ Fetch typed data on the server during route transitions with `@taserjs/router-cl
 ```tsx title="src/routes/users.tsx"
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@taserjs/router-client";
-import type { RouteManifest } from "../.taser/types/routes.js";
+import type { routeManifest } from "#taserjs/virtual/manifest";
 
 // Initialize client with your app's base URL and manifest
-const api = createClient<RouteManifest>({ baseUrl: "http://localhost:3000/api" });
+const api = createClient<typeof routeManifest>({ baseUrl: "http://localhost:3000/api" });
 
 export const Route = createFileRoute("/users")({
   loader: async () => {
@@ -331,9 +331,9 @@ Use Taser.js client calls directly inside `queryOptions` or `useQuery` hooks:
 ```tsx title="src/hooks/use-users.ts"
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@taserjs/router-client";
-import type { RouteManifest } from "../.taser/types/routes.js";
+import type { routeManifest } from "#taserjs/virtual/manifest";
 
-const api = createClient<RouteManifest>({ baseUrl: "/api" });
+const api = createClient<typeof routeManifest>({ baseUrl: "/api" });
 
 export function useUsers(limit = 10) {
   return useQuery({

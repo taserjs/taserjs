@@ -55,7 +55,7 @@ Use this literal lookup table to translate familiar Express and Fastify paradigm
 | **Query Parameters**   | `req.query.page`                  | `request.query.page`                                  | `ctx.query.page`<br/>(validated and coerced via `.query(schema)`)           |
 | **Request Payload**    | `req.body`                        | `request.body`                                        | `ctx.body`<br/>(validated via `.body(schema)`)                              |
 | **JSON Response**      | `res.json(data)`                  | `reply.send(data)`                                    | `return json(data)` from `@taserjs/router/reply`                            |
-| **HTTP Status Code**   | `res.status(201).json(data)`      | `reply.code(201).send(data)`                          | `return created(data)` or `return reply.status(201).json(data)`             |
+| **HTTP Status Code**   | `res.status(201).json(data)`      | `reply.code(201).send(data)`                          | `return created(data)` or `return json(data, { status: 201 })`              |
 | **Error Handling**     | `res.status(404).json({ error })` | `reply.code(404).send({ error })`                     | `return notFound({ error })` or `return badRequest(...)`                    |
 | **Request Headers**    | `req.headers["authorization"]`    | `request.headers["authorization"]`                    | `ctx.headers.get("authorization")`                                          |
 | **Cookie Jar**         | `req.cookies["token"]`            | `request.cookies["token"]`                            | `ctx.cookies.get("token")`                                                  |

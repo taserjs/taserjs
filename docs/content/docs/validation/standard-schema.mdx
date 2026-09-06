@@ -144,12 +144,11 @@ Taser.js gives you fine-grained control over request body parsing and performanc
 - **Default JSON Parsing**: Calling `.body(schema)` parses the body as JSON by default.
 - **Explicit Body Modes**: To parse file uploads, URL-encoded forms, raw text, or binary buffers, provide the mode as the first argument (`.body(mode, schema)`):
 
-| Body Mode              | Method Signature                           | Use Case                              | Content Types                                              |
-| :--------------------- | :----------------------------------------- | :------------------------------------ | :--------------------------------------------------------- |
-| **`json`** _(default)_ | `.body(schema)` or `.body("json", schema)` | REST JSON payloads                    | `application/json`                                         |
-| **`form`**             | `.body("form", schema)`                    | File uploads and form submissions     | `multipart/form-data`, `application/x-www-form-urlencoded` |
-| **`text`**             | `.body("text", schema)`                    | Raw text, webhook signatures, XML     | `text/plain`, `application/xml`                            |
-| **`arrayBuffer`**      | `.body("arrayBuffer", schema)`             | Raw binary buffers, images, protobufs | `application/octet-stream`, any binary                     |
+| Body Mode              | Method Signature                           | Use Case                          | Content Types                       |
+| :--------------------- | :----------------------------------------- | :-------------------------------- | :---------------------------------- |
+| **`json`** _(default)_ | `.body(schema)` or `.body("json", schema)` | REST JSON payloads                | `application/json`                  |
+| **`form`**             | `.body("form", schema)`                    | File uploads and form submissions | `multipart/form-data`               |
+| **`urlencoded`**       | `.body("urlencoded", schema)`              | URL-encoded form data             | `application/x-www-form-urlencoded` |
 
 ### JSON Body Example
 
@@ -169,10 +168,6 @@ const CreatePostSchema = z.object({
 export default t
   .post("/posts")
   .body(CreatePostSchema)
-  .returns({
-    201: z.object({ id: z.string(), slug: z.string() }),
-    422: z.object({ message: z.string(), issues: z.array(z.unknown()) }),
-  })
   .handler(async (ctx) => {
     // ctx.body is inferred directly from CreatePostSchema:
     const newPost = await ctx.db.posts.create({
@@ -216,9 +211,6 @@ You can validate file presence, file size, and permitted MIME types using your s
       .post("/users/:id/avatar")
       .params(z.object({ id: z.string() }))
       .body("form", AvatarUploadSchema) // [!code highlight]
-      .returns({
-        200: z.object({ success: z.boolean(), fileName: z.string(), bytes: z.number() }),
-      })
       .handler(async (ctx) => {
         const { avatar, caption } = ctx.body;
 

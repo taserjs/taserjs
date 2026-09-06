@@ -45,10 +45,11 @@ Initialize the client with your backend `baseUrl` and your server app or manifes
 
 ```ts title="src/lib/api.ts"
 import { createClient } from "@taserjs/router-client";
-import type { RouteManifest } from "../.taser/types/routes.js";
-// Or when using virtual modules / fullstack adapters:
-// import type { routeManifest } from "#taserjs/virtual/manifest";
-// import type { app } from "@/.taser/entry";
+import type { RouteManifest } from "path/to/.taser/types/routes.js";
+// Or when using vite based projects:
+// import type { RouteManifest } from "#taserjs/virtual/manifest";
+// Or on Next.js with the Taser.js adapter:
+// import type { RouteManifest } from "@/.taser/types/routes";
 
 export const api = createClient<RouteManifest>({
   baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api",

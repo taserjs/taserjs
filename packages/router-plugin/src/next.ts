@@ -7,10 +7,10 @@
  * route handler:
  *
  * ```ts
- * // app/[[...slug]]/route.ts
- * import { taserApp } from "../.taser/app";
+ * // src/app/api/[[...slug]]/route.ts (or app/api/[[...slug]]/route.ts)
+ * import { app } from "@/.taser/entry";
  *
- * const handle = (request: Request) => taserApp.fetch(request);
+ * const handle = (request: Request) => app.fetch(request);
  * export const GET = handle;
  * export const POST = handle;
  * ```

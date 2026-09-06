@@ -145,8 +145,8 @@ Install the official skill using the open agent skills CLI:
 
 ### What the Skill Teaches Your Assistant
 
-- **Route Builder Phasing**: Enforces the strict compile-time builder order (`.params()`, `.query()`, `.body()`, `.returns()`, `.handler()`) to prevent invalid method chaining.
 - **Filesystem Conventions**: Eliminates hallucinated routes by strictly adhering to verb suffixes (`.get.ts`, `.post.ts`), dynamic parameters (`$id`), splats (`$`), and layout middleware.
+- **Layout and Middleware Inheritance**: Guides assistants to declare cascading layouts and middleware that flow into child routes via `ctx.state` without unsafe type assertions.
 - **Validation & Return Contracts**: Guides assistants to declare schemas with Zod, ArkType, or Valibot while pairing status codes with standalone reply helpers (`json`, `created`, `notFound`).
 - **Host Migrations & Client RPC**: Guides incremental migrations from Express, Fastify, and Hono using host pass-through adapters and generates typed `@taserjs/router-client` calls.
 
