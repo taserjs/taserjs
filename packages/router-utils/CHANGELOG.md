@@ -1,5 +1,11 @@
 # @taserjs/router-utils
 
+## 0.1.12
+
+### Patch Changes
+
+- e07eeb0: fix: Deterministic CLI Generate Command
+
 ## 0.1.11
 
 ## 0.1.10

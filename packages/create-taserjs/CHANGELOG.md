@@ -1,5 +1,11 @@
 # create-taserjs
 
+## 0.1.11
+
+### Patch Changes
+
+- e07eeb0: fix: Deterministic CLI Generate Command
+
 ## 0.1.10
 
 ### Patch Changes
