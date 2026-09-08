@@ -1,11 +1,36 @@
-import type { ContextDefinition, ContextOptions } from "./types.js";
+import type { ContextDefinition, ContextOptions } from "@taserjs/router";
 
-export function createContext<
-  TBoot extends Record<string, unknown> = Record<string, unknown>,
-  TRequest extends Record<string, unknown> = Record<string, unknown>,
->(options: ContextOptions<TBoot, TRequest>): ContextDefinition<TBoot, TRequest> {
-  return {
-    kind: "context",
-    ...options,
+export { createContext } from "@taserjs/router";
+
+export interface BootManager {
+  getBoot: () => Promise<Record<string, unknown>>;
+}
+
+export function createBootManager(
+  contextDef?: ContextDefinition | ContextOptions | undefined,
+): BootManager {
+  let bootPromise: Promise<Record<string, unknown>> | null = null;
+  let bootResult: Record<string, unknown> | null = null;
+
+  const getBoot = async (): Promise<Record<string, unknown>> => {
+    if (bootResult) return bootResult;
+    if (!contextDef?.boot) {
+      bootResult = {};
+      return bootResult;
+    }
+    if (!bootPromise) {
+      bootPromise = (async () => {
+        const res = await contextDef.boot!();
+        bootResult = res ?? {};
+        return bootResult;
+      })();
+    }
+    return await bootPromise;
   };
+
+  if (contextDef?.boot) {
+    getBoot().catch(() => {});
+  }
+
+  return { getBoot };
 }

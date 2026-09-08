@@ -7,7 +7,7 @@ export interface TaserRequest {
   method: string;
   url: string;
   raw: Request;
-  body?: unknown;
+  body?: unknown | undefined;
 }
 
 export interface RouteHandlerArgs {
@@ -18,7 +18,7 @@ export interface RouteHandlerArgs {
 
 export type RouteHandler = (args: RouteHandlerArgs) => Response | Promise<Response>;
 
-export type NextFunction = (state?: Record<string, unknown>) => Promise<Response>;
+export type NextFunction = (state?: Record<string, unknown> | undefined) => Promise<Response>;
 
 export interface MiddlewareArgs {
   req: TaserRequest;
@@ -49,8 +49,8 @@ export interface ContextOptions<
   TBoot extends Record<string, unknown> = Record<string, unknown>,
   TRequest extends Record<string, unknown> = Record<string, unknown>,
 > {
-  boot?: () => TBoot | Promise<TBoot>;
-  request?: (req: TaserRequest) => TRequest | Promise<TRequest>;
+  boot?: (() => TBoot | Promise<TBoot>) | undefined;
+  request?: ((req: TaserRequest) => TRequest | Promise<TRequest>) | undefined;
 }
 
 export interface ContextDefinition<
@@ -58,6 +58,6 @@ export interface ContextDefinition<
   TRequest extends Record<string, unknown> = Record<string, unknown>,
 > {
   readonly kind: "context";
-  readonly boot?: () => TBoot | Promise<TBoot>;
-  readonly request?: (req: TaserRequest) => TRequest | Promise<TRequest>;
+  readonly boot?: (() => TBoot | Promise<TBoot>) | undefined;
+  readonly request?: ((req: TaserRequest) => TRequest | Promise<TRequest>) | undefined;
 }
