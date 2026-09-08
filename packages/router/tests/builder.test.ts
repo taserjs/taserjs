@@ -66,4 +66,58 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
     expect(layout.path).toBeUndefined();
     expect(layout.middlewares).toEqual([]);
   });
+
+  it("supports schema builder methods (.params, .query, .headers, .body, .returns) on route builder", () => {
+    const mockSchema = {
+      "~standard": {
+        version: 1 as const,
+        vendor: "test",
+        validate: (v: unknown) => ({ value: v }),
+      },
+    };
+
+    const route = t
+      .post("/users/:id")
+      .params(mockSchema)
+      .query(mockSchema)
+      .headers(mockSchema)
+      .body(mockSchema, "json")
+      .returns({ 200: mockSchema })
+      .handler(() => new Response("ok"));
+
+    expect(route.schemas).toBeDefined();
+    expect(route.schemas?.params).toBe(mockSchema);
+    expect(route.schemas?.query).toBe(mockSchema);
+    expect(route.schemas?.headers).toBe(mockSchema);
+    expect(route.schemas?.body?.schema).toBe(mockSchema);
+    expect(route.schemas?.body?.mode).toBe("json");
+    expect(route.schemas?.returns?.[200]).toBe(mockSchema);
+    expect(route.returns?.[200]).toBe(mockSchema);
+  });
+
+  it("supports schema builder methods on layout builder", () => {
+    const mockSchema = {
+      "~standard": {
+        version: 1 as const,
+        vendor: "test",
+        validate: (v: unknown) => ({ value: v }),
+      },
+    };
+
+    const layout = t
+      .layout("/*")
+      .params(mockSchema)
+      .query(mockSchema)
+      .headers(mockSchema)
+      .body(mockSchema, "form")
+      .returns({ 401: mockSchema });
+
+    expect(layout.schemas).toBeDefined();
+    expect(layout.schemas?.params).toBe(mockSchema);
+    expect(layout.schemas?.query).toBe(mockSchema);
+    expect(layout.schemas?.headers).toBe(mockSchema);
+    expect(layout.schemas?.body?.schema).toBe(mockSchema);
+    expect(layout.schemas?.body?.mode).toBe("form");
+    expect(layout.schemas?.returns?.[401]).toBe(mockSchema);
+  });
 });

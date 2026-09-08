@@ -1,19 +1,25 @@
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type {
+  BodyMode,
   HttpMethod,
   LayoutDefinition,
-  MiddlewareHandler,
+  MiddlewareInput,
   RouteDefinition,
   RouteHandler,
+  RouteSchemas,
+  StatusCode,
 } from "./types.js";
 
-type MiddlewareInput = MiddlewareHandler | { handler: MiddlewareHandler };
-
-function appendMiddlewares(target: MiddlewareHandler[], inputs: MiddlewareInput[]): void {
+function appendMiddlewares(target: MiddlewareInput[], inputs: MiddlewareInput[]): void {
   for (const mw of inputs) {
     if (typeof mw === "function") {
       target.push(mw);
     } else if (mw && typeof mw.handler === "function") {
-      target.push(mw.handler);
+      if (mw.schemas && (mw.schemas.headers || mw.schemas.params || mw.schemas.query || mw.schemas.body)) {
+        target.push(mw);
+      } else {
+        target.push(mw.handler);
+      }
     }
   }
 }
@@ -21,7 +27,8 @@ function appendMiddlewares(target: MiddlewareHandler[], inputs: MiddlewareInput[
 export class LayoutBuilder<TPath extends string = string> implements LayoutDefinition<TPath> {
   readonly kind = "layout" as const;
   public readonly path?: TPath | undefined;
-  public readonly middlewares: MiddlewareHandler[] = [];
+  public readonly middlewares: MiddlewareInput[] = [];
+  public readonly schemas: RouteSchemas = {};
 
   constructor(path?: TPath | undefined) {
     this.path = path;
@@ -31,10 +38,42 @@ export class LayoutBuilder<TPath extends string = string> implements LayoutDefin
     appendMiddlewares(this.middlewares, middlewares);
     return this;
   }
+
+  params(schema: StandardSchemaV1): this {
+    this.schemas.params = schema;
+    return this;
+  }
+
+  query(schema: StandardSchemaV1): this {
+    this.schemas.query = schema;
+    return this;
+  }
+
+  headers(schema: StandardSchemaV1): this {
+    this.schemas.headers = schema;
+    return this;
+  }
+
+  body(schema: StandardSchemaV1, mode?: BodyMode): this {
+    this.schemas.body = { schema, mode };
+    return this;
+  }
+
+  returns(map: Record<StatusCode, StandardSchemaV1>): this {
+    this.schemas.returns = { ...this.schemas.returns, ...map };
+    return this;
+  }
 }
 
-export class RouteBuilder<TPath extends string = string> {
-  public readonly middlewares: MiddlewareHandler[] = [];
+export class RouteBuilder<
+  TPath extends string = string,
+  TParams = Record<string, string>,
+  TQuery = Record<string, string | string[]>,
+  THeaders = Headers,
+  TBody = unknown,
+> {
+  public readonly middlewares: MiddlewareInput[] = [];
+  public readonly schemas: RouteSchemas = {};
 
   constructor(
     public readonly method: HttpMethod,
@@ -46,13 +85,67 @@ export class RouteBuilder<TPath extends string = string> {
     return this;
   }
 
-  handler(fn: RouteHandler): RouteDefinition<TPath> {
+  params<TSchema extends StandardSchemaV1>(
+    schema: TSchema,
+  ): RouteBuilder<TPath, StandardSchemaV1.InferOutput<TSchema>, TQuery, THeaders, TBody> {
+    this.schemas.params = schema;
+    return this as unknown as RouteBuilder<
+      TPath,
+      StandardSchemaV1.InferOutput<TSchema>,
+      TQuery,
+      THeaders,
+      TBody
+    >;
+  }
+
+  query<TSchema extends StandardSchemaV1>(
+    schema: TSchema,
+  ): RouteBuilder<TPath, TParams, StandardSchemaV1.InferOutput<TSchema>, THeaders, TBody> {
+    this.schemas.query = schema;
+    return this as unknown as RouteBuilder<
+      TPath,
+      TParams,
+      StandardSchemaV1.InferOutput<TSchema>,
+      THeaders,
+      TBody
+    >;
+  }
+
+  headers(schema: StandardSchemaV1): this {
+    this.schemas.headers = schema;
+    return this;
+  }
+
+  body<TSchema extends StandardSchemaV1>(
+    schema: TSchema,
+    mode?: BodyMode,
+  ): RouteBuilder<TPath, TParams, TQuery, THeaders, StandardSchemaV1.InferOutput<TSchema>> {
+    this.schemas.body = { schema, mode };
+    return this as unknown as RouteBuilder<
+      TPath,
+      TParams,
+      TQuery,
+      THeaders,
+      StandardSchemaV1.InferOutput<TSchema>
+    >;
+  }
+
+  returns(map: Record<StatusCode, StandardSchemaV1>): this {
+    this.schemas.returns = { ...this.schemas.returns, ...map };
+    return this;
+  }
+
+  handler(
+    fn: RouteHandler<TParams, TQuery, THeaders, TBody>,
+  ): RouteDefinition<TPath> {
     return {
       kind: "route",
       method: this.method,
       path: this.path,
       middlewares: [...this.middlewares],
-      handler: fn,
+      handler: fn as RouteHandler,
+      schemas: { ...this.schemas },
+      returns: this.schemas.returns ? { ...this.schemas.returns } : undefined,
     };
   }
 }

@@ -44,6 +44,7 @@
   },
   "dependencies": {
     "@standard-schema/spec": "^1.1.0",
+    "@taserjs/utils": "workspace:*",
     "hono": "^4.10.3"
   },
   "devDependencies": {

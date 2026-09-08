@@ -1,19 +1,68 @@
+import type { Context } from "hono";
+import { validateStandardSchema } from "@taserjs/utils";
+import { extractBody } from "./body.js";
 import type {
   MiddlewareHandler,
   NextFunction,
   RouteHandler,
+  RouteSchemas,
   TaserRequest,
 } from "./types.js";
+
+export async function validateSchemas(
+  schemas: RouteSchemas | undefined,
+  req: TaserRequest,
+  c?: Context,
+): Promise<void> {
+  if (!schemas) return;
+
+  // 1. headers
+  if (schemas.headers) {
+    const rawHeadersObj: Record<string, string> = {};
+    req.headers.forEach((val, key) => {
+      rawHeadersObj[key.toLowerCase()] = val;
+    });
+    const validated = await validateStandardSchema(schemas.headers, rawHeadersObj, "headers");
+    if (typeof validated === "object" && validated !== null) {
+      for (const [k, v] of Object.entries(validated)) {
+        req.headers.set(k, String(v));
+      }
+    }
+  }
+
+  // 2. params
+  if (schemas.params) {
+    const validated = await validateStandardSchema(schemas.params, req.params, "params");
+    (req as { params: unknown }).params = validated;
+  }
+
+  // 3. query
+  if (schemas.query) {
+    const validated = await validateStandardSchema(schemas.query, req.query, "query");
+    (req as { query: unknown }).query = validated;
+  }
+
+  // 4. body
+  if (schemas.body) {
+    if (req.body === undefined && c) {
+      req.body = await extractBody(c, schemas.body.mode);
+    }
+    const validated = await validateStandardSchema(schemas.body.schema, req.body, "body");
+    req.body = validated;
+  }
+}
 
 export function createPipeline(
   middlewares: readonly MiddlewareHandler[],
   terminalHandler: RouteHandler,
+  routeSchemas?: RouteSchemas | undefined,
 ) {
   return async function executePipeline(
     req: TaserRequest,
     ctx: Record<string, unknown>,
   ): Promise<Response> {
     let currentState: Record<string, unknown> = {};
+    const honoContext = ctx.context as Context | undefined;
 
     async function dispatch(index: number, state: Record<string, unknown>): Promise<Response> {
       currentState = state;
@@ -39,6 +88,11 @@ export function createPipeline(
           );
         }
         return res;
+      }
+
+      // Route middlewares finished: validate route schemas immediately before route handler
+      if (routeSchemas) {
+        await validateSchemas(routeSchemas, req, honoContext);
       }
 
       const res = await terminalHandler({ req, ctx, state: currentState });

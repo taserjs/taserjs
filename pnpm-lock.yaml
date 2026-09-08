@@ -201,6 +201,9 @@ importers:
       '@standard-schema/spec':
         specifier: ^1.1.0
         version: 1.1.0
+      '@taserjs/utils':
+        specifier: workspace:*
+        version: link:../utils
       hono:
         specifier: ^4.10.3
         version: 4.12.33
@@ -223,16 +226,16 @@ importers:
 
   packages/runtime:
     dependencies:
-      hono:
-        specifier: ^4.10.3
-        version: 4.12.33
-    devDependencies:
       '@taserjs/router':
         specifier: workspace:*
         version: link:../router
       '@taserjs/utils':
         specifier: workspace:*
         version: link:../utils
+      hono:
+        specifier: ^4.10.3
+        version: 4.12.33
+    devDependencies:
       publint:
         specifier: ^0.3.22
         version: 0.3.22

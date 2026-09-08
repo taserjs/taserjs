@@ -10,6 +10,7 @@ import type {
   RouteDefinition,
   RouteHandler,
   RouteHandlerArgs,
+  RouteSchemas,
   TaserRequest,
 } from "@taserjs/router";
 
@@ -24,6 +25,7 @@ export type {
   RouteDefinition,
   RouteHandler,
   RouteHandlerArgs,
+  RouteSchemas,
   TaserRequest,
 };
 

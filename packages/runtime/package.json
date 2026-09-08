@@ -44,6 +44,7 @@
   },
   "dependencies": {
     "@taserjs/router": "workspace:*",
+    "@taserjs/utils": "workspace:*",
     "hono": "^4.10.3"
   },
   "devDependencies": {

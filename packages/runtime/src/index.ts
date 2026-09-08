@@ -1,10 +1,17 @@
 export const VERSION = "0.0.1";
 export { createTaserApp } from "./app.js";
+export { extractBody } from "./body.js";
 export { createContext, createBootManager } from "./context.js";
-export { extractMiddlewares, isRouteManifestEntry, resolveMiddlewares } from "./layout.js";
+export {
+  extractMiddlewares,
+  isRouteManifestEntry,
+  resolveMiddlewares,
+  createSchemaValidationMiddleware,
+} from "./layout.js";
 export { normalizeRoutePath } from "./normalize.js";
-export { createPipeline } from "./pipeline.js";
+export { createPipeline, validateSchemas } from "./pipeline.js";
 export { createTaserRequest } from "./request.js";
+export { ValidationError, UnsupportedMediaTypeError } from "@taserjs/utils";
 export type {
   BootManager,
 } from "./context.js";
