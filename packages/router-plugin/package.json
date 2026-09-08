@@ -1,6 +1,6 @@
 {
   "name": "@taserjs/router-plugin",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Framework adapters (Vite, Next) and shared core for integrating Taser.js routing",
   "license": "ISC",
   "repository": {
