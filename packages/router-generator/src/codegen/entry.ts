@@ -1,4 +1,5 @@
 import { VIRTUAL_MANIFEST_ID } from "../constants.js";
+import { toPosixPath } from "../support/paths.js";
 
 export type EmitVirtualEntryOptions = {
   taserAppImportPath: string;
@@ -7,14 +8,15 @@ export type EmitVirtualEntryOptions = {
 };
 
 export function emitVirtualEntrySource(options: EmitVirtualEntryOptions): string {
-  const manifestImportPath = options.manifestImportPath ?? VIRTUAL_MANIFEST_ID;
+  const manifestImportPath = toPosixPath(options.manifestImportPath ?? VIRTUAL_MANIFEST_ID);
+  const taserAppImportPath = toPosixPath(options.taserAppImportPath);
   const configArg =
     options.basePath && options.basePath !== "/" && options.basePath !== ""
       ? `, { basePath: "${options.basePath}" }`
       : "";
 
   return [
-    `import taser from "${options.taserAppImportPath}";`,
+    `import taser from "${taserAppImportPath}";`,
     `import { routeManifest } from "${manifestImportPath}";`,
     "",
     `export const app = taser.create(routeManifest${configArg});`,

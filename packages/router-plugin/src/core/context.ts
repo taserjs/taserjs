@@ -9,6 +9,7 @@ import {
   resolveTaserEntryPath,
   scanAndBuildModel,
   taserConfigSchema,
+  toPosixPath,
   watchRoutes,
   writeTaserTypes,
   DEFAULT_ENTRY,
@@ -70,7 +71,7 @@ export function createTaserVirtualContext(options: TaserPluginOptions = {}): Tas
   const getEntryCode = async (): Promise<string> => {
     if (!entryCodePromise) {
       entryCodePromise = (async () => {
-        const importPath = taserEntryPath || resolved.entry || DEFAULT_ENTRY;
+        const importPath = toPosixPath(taserEntryPath || resolved.entry || DEFAULT_ENTRY);
         return emitVirtualEntrySource({
           taserAppImportPath: importPath,
           basePath: resolved.basePath,

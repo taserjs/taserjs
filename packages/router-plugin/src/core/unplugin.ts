@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "pathe";
 import { createUnplugin, type UnpluginFactory } from "unplugin";
 import type { ViteDevServer } from "vite";
-import { flattenPlugins } from "@taserjs/router-generator";
+import { flattenPlugins, toPosixPath } from "@taserjs/router-generator";
 
 import {
   ROUTES_ALIAS_ID,
@@ -103,7 +103,7 @@ export const unpluginFactory: UnpluginFactory<TaserPluginOptions | undefined> = 
 
       const activeCtx = getContext();
       if (id === SERVER_ENTRY_ALIAS_ID && activeCtx.serverEntryPath) {
-        return activeCtx.serverEntryPath;
+        return toPosixPath(activeCtx.serverEntryPath);
       }
       if (id.startsWith(`${ROUTES_ALIAS_ID}/`)) {
         let target = join(activeCtx.routesDir, id.slice(ROUTES_ALIAS_ID.length + 1));
@@ -111,7 +111,7 @@ export const unpluginFactory: UnpluginFactory<TaserPluginOptions | undefined> = 
         if (!existsSync(target) && tsCandidate !== target && existsSync(tsCandidate)) {
           target = tsCandidate;
         }
-        return target;
+        return toPosixPath(target);
       }
       return null;
     },

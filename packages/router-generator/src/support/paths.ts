@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 
 export function toPosixPath(filePath: string): string {
-  return sep === "\\" ? filePath.replaceAll("\\", "/") : filePath;
+  return filePath.replaceAll("\\", "/");
 }
 
 export function ensureRelativePrefix(path: string): string {
@@ -42,18 +42,18 @@ export function resolveServerDir(rootDir: string, serverDir?: string): string {
   if (serverDir) {
     const candidate = isAbsolute(serverDir) ? serverDir : resolve(resolvedRoot, serverDir);
     if (existsSync(candidate)) {
-      return candidate;
+      return toPosixPath(candidate);
     }
     throw new Error(
-      `[taserjs] Configured serverDir does not exist: "${candidate}". Please check your taser configuration.`,
+      `[taserjs] Configured serverDir does not exist: "${toPosixPath(candidate)}". Please check your taser configuration.`,
     );
   }
 
   const srcDir = resolve(resolvedRoot, "src");
   if (existsSync(srcDir)) {
-    return srcDir;
+    return toPosixPath(srcDir);
   }
-  return resolvedRoot;
+  return toPosixPath(resolvedRoot);
 }
 
 export function resolveServerEntry(
@@ -66,30 +66,32 @@ export function resolveServerEntry(
   if (serverEntry) {
     const candidate = isAbsolute(serverEntry) ? serverEntry : resolve(serverDir, serverEntry);
     if (existsSync(candidate)) {
-      return candidate;
+      return toPosixPath(candidate);
     }
     const withoutExt = candidate.replace(/\.[cm]?[jt]sx?$/, "");
     for (const ext of COMMON_JS_EXTS) {
       const withExt = `${withoutExt}${ext}`;
       if (existsSync(withExt)) {
-        return withExt;
+        return toPosixPath(withExt);
       }
     }
-    throw new Error(`[taserjs] Configured serverEntry does not exist: "${candidate}".`);
+    throw new Error(
+      `[taserjs] Configured serverEntry does not exist: "${toPosixPath(candidate)}".`,
+    );
   }
 
   const defaultNames = ["server.node.ts", "server.node.js", "server.ts", "server.js", "server.mjs"];
   for (const name of defaultNames) {
     const candidate = resolve(serverDir, name);
     if (existsSync(candidate)) {
-      return candidate;
+      return toPosixPath(candidate);
     }
   }
   if (serverDir !== resolvedRoot) {
     for (const name of defaultNames) {
       const candidate = resolve(resolvedRoot, name);
       if (existsSync(candidate)) {
-        return candidate;
+        return toPosixPath(candidate);
       }
     }
   }
@@ -102,24 +104,24 @@ export function resolveRoutesDir(rootDir: string, serverDir: string, routesDir?:
   if (routesDir) {
     const candidate = isAbsolute(routesDir) ? routesDir : resolve(serverDir, routesDir);
     if (existsSync(candidate)) {
-      return candidate;
+      return toPosixPath(candidate);
     }
     const rootCandidate = resolve(resolvedRoot, routesDir);
     if (existsSync(rootCandidate)) {
-      return rootCandidate;
+      return toPosixPath(rootCandidate);
     }
-    return candidate;
+    return toPosixPath(candidate);
   }
 
   const serverRoutes = resolve(serverDir, "routes");
   if (existsSync(serverRoutes)) {
-    return serverRoutes;
+    return toPosixPath(serverRoutes);
   }
   const rootRoutes = resolve(resolvedRoot, "routes");
   if (existsSync(rootRoutes)) {
-    return rootRoutes;
+    return toPosixPath(rootRoutes);
   }
-  return serverRoutes;
+  return toPosixPath(serverRoutes);
 }
 
 export function resolveTaserEntryPath(
@@ -131,21 +133,21 @@ export function resolveTaserEntryPath(
 
   if (entry && !entry.startsWith("#")) {
     const candidate = isAbsolute(entry) ? entry : resolve(serverDir, entry);
-    if (existsSync(candidate)) return resolve(candidate);
+    if (existsSync(candidate)) return toPosixPath(resolve(candidate));
     const rootCandidate = resolve(resolvedRoot, entry);
-    if (existsSync(rootCandidate)) return resolve(rootCandidate);
+    if (existsSync(rootCandidate)) return toPosixPath(resolve(rootCandidate));
   }
   const defaultCandidate = join(serverDir, "taser.ts");
   if (existsSync(defaultCandidate)) {
-    return resolve(defaultCandidate);
+    return toPosixPath(resolve(defaultCandidate));
   }
   const rootSrcCandidate = join(resolvedRoot, "src", "taser.ts");
   if (existsSync(rootSrcCandidate)) {
-    return resolve(rootSrcCandidate);
+    return toPosixPath(resolve(rootSrcCandidate));
   }
   const rootCandidate = join(resolvedRoot, "taser.ts");
   if (existsSync(rootCandidate)) {
-    return resolve(rootCandidate);
+    return toPosixPath(resolve(rootCandidate));
   }
   return undefined;
 }

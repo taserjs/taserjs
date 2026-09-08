@@ -6,6 +6,7 @@ import {
   emitManifestSource,
   emitVirtualEntrySource,
   ensureRelativePrefix,
+  toPosixPath,
   ROUTES_ALIAS_ID,
 } from "@taserjs/router-generator";
 import { getComposedAppCode } from "./compose.js";
@@ -63,9 +64,11 @@ export async function writeDiskArtifacts(
     rewriteImportPath,
   });
 
-  let taserAppImportPath = ctx.entry;
+  let taserAppImportPath = toPosixPath(ctx.entry);
   if (ctx.taserEntryPath) {
-    const relToTaser = relative(outDir, ctx.taserEntryPath).replace(/\.[cm]?[jt]sx?$/, "");
+    const relToTaser = toPosixPath(
+      relative(outDir, ctx.taserEntryPath).replace(/\.[cm]?[jt]sx?$/, ""),
+    );
     taserAppImportPath = ensureRelativePrefix(relToTaser);
   }
 
@@ -77,7 +80,7 @@ export async function writeDiskArtifacts(
 
   let hostSpecifier: string | undefined;
   if (ctx.serverEntryPath) {
-    const relToHost = relative(outDir, ctx.serverEntryPath);
+    const relToHost = toPosixPath(relative(outDir, ctx.serverEntryPath));
     const hostWithoutExt = relToHost.replace(/\.[cm]?[jt]sx?$/, "");
     hostSpecifier = ensureRelativePrefix(hostWithoutExt);
   }
