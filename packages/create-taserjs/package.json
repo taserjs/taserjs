@@ -1,6 +1,6 @@
 {
   "name": "create-taserjs",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "Scaffold a new Taser.js application",
   "license": "ISC",
   "repository": {

@@ -1,5 +1,13 @@
 # @taserjs/router-cli
 
+## 0.1.13
+
+### Patch Changes
+
+- 0cf6eaa: fix: Windows Posix Path Resolve Error
+- Updated dependencies [0cf6eaa]
+  - @taserjs/router-generator@0.1.13
+
 ## 0.1.12
 
 ### Patch Changes
