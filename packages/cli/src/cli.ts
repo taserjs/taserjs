@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 export function run(): void {
-  console.log("create-taserjs");
+  console.log("taser CLI");
 }
 
 run();

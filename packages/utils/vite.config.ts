@@ -3,7 +3,7 @@ import { tanstackViteConfig } from "@tanstack/vite-config";
 
 const config = defineConfig({
   test: {
-    name: "router",
+    name: "utils",
     dir: "./tests",
     environment: "node",
     globals: true,

@@ -1,15 +1,12 @@
 {
-  "name": "create-taserjs",
+  "name": "@taserjs/plugin",
   "version": "0.0.1",
-  "description": "Scaffold a new Taser.js application",
+  "description": "Universal bundler plugin for Taser.js",
   "license": "ISC",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/taserjs/taserjs.git",
-    "directory": "packages/create-taserjs"
-  },
-  "bin": {
-    "create-taserjs": "./dist/esm/cli.js"
+    "directory": "packages/plugin"
   },
   "files": [
     "dist",
@@ -46,7 +43,7 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@taserjs/cli": "workspace:*"
+    "unplugin": "^2.3.11"
   },
   "devDependencies": {
     "@tanstack/vite-config": "^0.6.0",

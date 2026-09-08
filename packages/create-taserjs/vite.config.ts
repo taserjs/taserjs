@@ -1,15 +1,20 @@
 import { defineConfig, mergeConfig } from "vitest/config";
 import { tanstackViteConfig } from "@tanstack/vite-config";
 
+const config = defineConfig({
+  test: {
+    name: "create-taserjs",
+    dir: "./tests",
+    environment: "node",
+    globals: true,
+    watch: false,
+  },
+});
+
 export default mergeConfig(
-  defineConfig({
-    test: {
-      name: "create-taser",
-      dir: "./tests",
-      environment: "node",
-      globals: true,
-      watch: false,
-    },
+  config,
+  tanstackViteConfig({
+    entry: ["./src/index.ts", "./src/cli.ts"],
+    srcDir: "./src",
   }),
-  tanstackViteConfig({ entry: "./src/cli.ts", srcDir: "./src" }),
 );

@@ -3,7 +3,7 @@ import { tanstackViteConfig } from "@tanstack/vite-config";
 
 const config = defineConfig({
   test: {
-    name: "router",
+    name: "cli",
     dir: "./tests",
     environment: "node",
     globals: true,
@@ -14,7 +14,7 @@ const config = defineConfig({
 export default mergeConfig(
   config,
   tanstackViteConfig({
-    entry: "./src/index.ts",
+    entry: ["./src/index.ts", "./src/cli.ts"],
     srcDir: "./src",
   }),
 );

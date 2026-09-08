@@ -4,18 +4,18 @@
   "commit": false,
   "fixed": [
     [
-      "@taserjs/router-utils",
-      "@taserjs/router-core",
+      "@taserjs/runtime",
       "@taserjs/router",
-      "@taserjs/router-generator",
-      "@taserjs/router-cli",
-      "@taserjs/router-client",
-      "@taserjs/router-plugin"
+      "@taserjs/cli",
+      "@taserjs/plugin",
+      "@taserjs/utils",
+      "@taserjs/client",
+      "create-taserjs"
     ]
   ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["taserjs", "express", "fastify", "hono", "docs"]
+  "ignore": ["taserjs", "docs"]
 }

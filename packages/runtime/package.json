@@ -1,15 +1,12 @@
 {
-  "name": "create-taserjs",
+  "name": "@taserjs/runtime",
   "version": "0.0.1",
-  "description": "Scaffold a new Taser.js application",
+  "description": "High-performance type-safe runtime engine for Taser.js backed by Hono",
   "license": "ISC",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/taserjs/taserjs.git",
-    "directory": "packages/create-taserjs"
-  },
-  "bin": {
-    "create-taserjs": "./dist/esm/cli.js"
+    "directory": "packages/runtime"
   },
   "files": [
     "dist",
@@ -46,7 +43,7 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@taserjs/cli": "workspace:*"
+    "hono": "^4.10.3"
   },
   "devDependencies": {
     "@tanstack/vite-config": "^0.6.0",

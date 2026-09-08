@@ -1,15 +1,12 @@
 {
-  "name": "create-taserjs",
+  "name": "@taserjs/utils",
   "version": "0.0.1",
-  "description": "Scaffold a new Taser.js application",
+  "description": "Shared primitives and Standard Schema validators for Taser.js",
   "license": "ISC",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/taserjs/taserjs.git",
-    "directory": "packages/create-taserjs"
-  },
-  "bin": {
-    "create-taserjs": "./dist/esm/cli.js"
+    "directory": "packages/utils"
   },
   "files": [
     "dist",
@@ -46,7 +43,7 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@taserjs/cli": "workspace:*"
+    "@standard-schema/spec": "^1.1.0"
   },
   "devDependencies": {
     "@tanstack/vite-config": "^0.6.0",

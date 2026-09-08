@@ -1,15 +1,15 @@
 {
-  "name": "create-taserjs",
+  "name": "@taserjs/cli",
   "version": "0.0.1",
-  "description": "Scaffold a new Taser.js application",
+  "description": "Unified CLI: scanning, manifest code generation, and project scaffolding for Taser.js",
   "license": "ISC",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/taserjs/taserjs.git",
-    "directory": "packages/create-taserjs"
+    "directory": "packages/cli"
   },
   "bin": {
-    "create-taserjs": "./dist/esm/cli.js"
+    "taser": "./dist/esm/cli.js"
   },
   "files": [
     "dist",
@@ -46,7 +46,9 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@taserjs/cli": "workspace:*"
+    "@clack/prompts": "^0.11.0",
+    "jiti": "^2.4.2",
+    "picocolors": "^1.1.1"
   },
   "devDependencies": {
     "@tanstack/vite-config": "^0.6.0",

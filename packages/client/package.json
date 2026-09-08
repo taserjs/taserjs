@@ -1,15 +1,12 @@
 {
-  "name": "create-taserjs",
+  "name": "@taserjs/client",
   "version": "0.0.1",
-  "description": "Scaffold a new Taser.js application",
+  "description": "Type-safe client-side RPC and fetch proxy for Taser.js",
   "license": "ISC",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/taserjs/taserjs.git",
-    "directory": "packages/create-taserjs"
-  },
-  "bin": {
-    "create-taserjs": "./dist/esm/cli.js"
+    "directory": "packages/client"
   },
   "files": [
     "dist",
@@ -44,9 +41,6 @@
     "test": "vitest run",
     "lint": "oxlint .",
     "prepublishOnly": "pnpm run build"
-  },
-  "dependencies": {
-    "@taserjs/cli": "workspace:*"
   },
   "devDependencies": {
     "@tanstack/vite-config": "^0.6.0",
