@@ -33,4 +33,37 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
     expect(patchRoute.method).toBe("PATCH");
     expect(patchRoute.path).toBe("/items/:id");
   });
+
+  it("supports .use() middleware registration on route builder", () => {
+    const mw1 = async (_args: any, next: any) => next();
+    const mw2 = async (_args: any, next: any) => next();
+    const handler = () => new Response("ok");
+
+    const route = t.get("/test").use(mw1).use(mw2).handler(handler);
+
+    expect(route.kind).toBe("route");
+    expect(route.middlewares).toHaveLength(2);
+    expect(route.middlewares?.[0]).toBe(mw1);
+    expect(route.middlewares?.[1]).toBe(mw2);
+  });
+
+  it("builds a layout with t.layout() and registers middlewares via .use()", () => {
+    const mw1 = async (_args: any, next: any) => next();
+    const mw2 = { handler: async (_args: any, next: any) => next() };
+
+    const layout = t.layout("/*").use(mw1).use(mw2);
+
+    expect(layout.kind).toBe("layout");
+    expect(layout.path).toBe("/*");
+    expect(layout.middlewares).toHaveLength(2);
+    expect(layout.middlewares[0]).toBe(mw1);
+    expect(layout.middlewares[1]).toBe(mw2.handler);
+  });
+
+  it("builds a pathless layout with t.layout()", () => {
+    const layout = t.layout();
+    expect(layout.kind).toBe("layout");
+    expect(layout.path).toBeUndefined();
+    expect(layout.middlewares).toEqual([]);
+  });
 });
