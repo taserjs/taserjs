@@ -3,7 +3,6 @@ import type { Context } from "hono";
 import { UnsupportedMediaTypeError, ValidationError } from "@taserjs/utils";
 import { createBootManager } from "./context.js";
 import { resolveMiddlewares } from "./layout.js";
-import { normalizeRoutePath } from "./normalize.js";
 import { createPipeline } from "./pipeline.js";
 import { createTaserRequest } from "./request.js";
 import type {
@@ -17,10 +16,8 @@ export function createTaserApp(
   manifest: RouteManifest,
   taser?: TaserDefinition<any>,
 ): TaserApp {
-  const app = new Hono();
-
   const options = taser?.options;
-  const basePath = options?.basePath ? normalizeRoutePath(options.basePath) : "";
+  const app = options?.basePath ? new Hono().basePath(options.basePath) : new Hono();
   const contextDef = options?.context;
   const customNotFound = options?.notFound;
   const customOnError = options?.onError;
@@ -73,12 +70,6 @@ export function createTaserApp(
       const routeDefinition = entry.route;
       const method = (routeDefinition.method || methodKey).toUpperCase();
       const targetPath = routeDefinition.path || routePath;
-      let finalPath = targetPath;
-      if (basePath) {
-        const cleanBase = basePath.endsWith("/") ? basePath.slice(0, -1) : basePath;
-        const cleanTarget = targetPath.startsWith("/") ? targetPath : `/${targetPath}`;
-        finalPath = cleanTarget === "/" ? cleanBase || "/" : `${cleanBase}${cleanTarget}`;
-      }
 
       const middlewares = resolveMiddlewares(entry, manifest);
       const pipeline = createPipeline(
@@ -87,7 +78,7 @@ export function createTaserApp(
         routeDefinition.schemas,
       );
 
-      app.on(method, finalPath, async (c: Context) => {
+      app.on(method, targetPath, async (c: Context) => {
         try {
           const req = createTaserRequest(c);
           const ctx = await resolveContext(c, req);

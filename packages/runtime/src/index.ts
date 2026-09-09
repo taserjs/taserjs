@@ -7,7 +7,6 @@ export {
   resolveMiddleware,
   normalizeMiddleware,
 } from "./layout.js";
-export { normalizeRoutePath } from "./normalize.js";
 export { createPipeline, validateSchemas } from "./pipeline.js";
 export { createTaserHeaders, createTaserRequest } from "./request.js";
 export { ValidationError, UnsupportedMediaTypeError } from "@taserjs/utils";
