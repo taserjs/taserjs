@@ -51,11 +51,9 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
       parse: vi.fn(),
     });
 
-    const manifestPath = join(outputDir, "routes.ts");
-    const typesPath = join(outputDir, "routes.d.ts");
+    const manifestPath = join(outputDir, "routes.gen.ts");
 
     expect(existsSync(manifestPath)).toBe(true);
-    expect(existsSync(typesPath)).toBe(true);
 
     const manifestContent = readFileSync(manifestPath, "utf-8");
     expect(manifestContent).toContain('"/users"');
@@ -73,7 +71,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
       parse: vi.fn(),
     });
 
-    const outputFilePath = join(outputDir, "routes.ts");
+    const outputFilePath = join(outputDir, "routes.gen.ts");
 
     // Invoking watchChange for a file in outputDir should be ignored
     expect(() => {
@@ -102,7 +100,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
       parse: vi.fn(),
     });
 
-    const manifestPath = join(outputDir, "routes.ts");
+    const manifestPath = join(outputDir, "routes.gen.ts");
     expect(existsSync(manifestPath)).toBe(true);
     let content = readFileSync(manifestPath, "utf-8");
     expect(content).not.toContain('"/posts"');

@@ -64,11 +64,9 @@ export default t.get("/health").handler(() => Response.json({ status: "ok" }));
 
     await server.listen();
 
-    const manifestPath = join(tempDir, "src", ".taserjs", "routes.ts");
-    const dtsPath = join(tempDir, "src", ".taserjs", "routes.d.ts");
+    const manifestPath = join(tempDir, "src", ".taserjs", "routes.gen.ts");
 
     expect(existsSync(manifestPath)).toBe(true);
-    expect(existsSync(dtsPath)).toBe(true);
 
     const manifestCode = readFileSync(manifestPath, "utf-8");
     expect(manifestCode).toContain("'/health'");
@@ -93,7 +91,7 @@ export default t.get("/health").handler(() => Response.json({ status: "ok" }));
 
     await server.listen();
 
-    const manifestPath = join(tempDir, "src", ".taserjs", "routes.ts");
+    const manifestPath = join(tempDir, "src", ".taserjs", "routes.gen.ts");
     expect(existsSync(manifestPath)).toBe(true);
     let manifestCode = readFileSync(manifestPath, "utf-8");
     expect(manifestCode).toContain('"/one"');
@@ -148,7 +146,7 @@ export default t.get("/health").handler(() => Response.json({ status: "ok" }));
 
     await server.listen();
 
-    const manifestPath = join(tempDir, "src", ".taserjs", "routes.ts");
+    const manifestPath = join(tempDir, "src", ".taserjs", "routes.gen.ts");
     expect(existsSync(manifestPath)).toBe(true);
     let manifestCode = readFileSync(manifestPath, "utf-8");
     expect(manifestCode).toContain('"/initial"');
@@ -190,10 +188,10 @@ export default t.get("/health").handler(() => Response.json({ status: "ok" }));
 
     await server.listen();
 
-    const manifestPath = join(tempDir, "src", ".taserjs", "routes.ts");
+    const manifestPath = join(tempDir, "src", ".taserjs", "routes.gen.ts");
     expect(existsSync(manifestPath)).toBe(true);
 
-    // Emitting change event on .taserjs/routes.ts should not throw or alter contents
+    // Emitting change event on .taserjs/routes.gen.ts should not throw or alter contents
     expect(() => {
       server!.watcher.emit("change", manifestPath);
     }).not.toThrow();

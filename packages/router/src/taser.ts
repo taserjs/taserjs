@@ -6,9 +6,7 @@ import type {
   TaserDefinition,
 } from "./types.js";
 
-export class TaserBuilder<TContext = Record<string, unknown>>
-  implements TaserDefinition<TContext>
-{
+export class TaserBuilder<TContext = Record<string, unknown>> implements TaserDefinition<TContext> {
   readonly _context?: TContext;
   public readonly options: TaserAppOptions<any> = {};
 
@@ -20,9 +18,7 @@ export class TaserBuilder<TContext = Record<string, unknown>>
   context<
     TBoot extends Record<string, unknown> = Record<string, unknown>,
     TRequest extends Record<string, unknown> = Record<string, unknown>,
-  >(
-    ctxDef: ContextDefinition<TBoot, TRequest>,
-  ): TaserBuilder<TBoot & TRequest> {
+  >(ctxDef: ContextDefinition<TBoot, TRequest>): TaserBuilder<TBoot & TRequest> {
     this.options.context = ctxDef;
     return this as unknown as TaserBuilder<TBoot & TRequest>;
   }

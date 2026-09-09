@@ -5,17 +5,9 @@ import { createBootManager } from "./context.js";
 import { resolveMiddlewares } from "./layout.js";
 import { createPipeline } from "./pipeline.js";
 import { createTaserRequest } from "./request.js";
-import type {
-  RouteManifest,
-  TaserApp,
-  TaserDefinition,
-  TaserRequest,
-} from "./types.js";
+import type { RouteManifest, TaserApp, TaserDefinition, TaserRequest } from "./types.js";
 
-export function createTaserApp(
-  manifest: RouteManifest,
-  taser?: TaserDefinition<any>,
-): TaserApp {
+export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<any>): TaserApp {
   const options = taser?.options;
   const app = options?.basePath ? new Hono().basePath(options.basePath) : new Hono();
   const contextDef = options?.context;
@@ -23,10 +15,7 @@ export function createTaserApp(
   const customOnError = options?.onError;
   const bootManager = createBootManager(contextDef);
 
-  async function resolveContext(
-    c: Context,
-    req: TaserRequest,
-  ): Promise<Record<string, unknown>> {
+  async function resolveContext(c: Context, req: TaserRequest): Promise<Record<string, unknown>> {
     const bootData = await bootManager.getBoot();
     const reqData = contextDef?.request ? await contextDef.request(req) : {};
     return {

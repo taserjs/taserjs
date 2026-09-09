@@ -92,9 +92,7 @@ export class LayoutBuilder<
   }
 
   use<TMwServices = {}, TMwState = {}>(
-    middleware:
-      | MiddlewareDefinition<TMwServices, TMwState, any>
-      | MiddlewareHandler<any, TParams>,
+    middleware: MiddlewareDefinition<TMwServices, TMwState, any> | MiddlewareHandler<any, TParams>,
   ): LayoutBuilder<TPath, TParams, TServices & TMwServices, TState & TMwState> {
     this.middlewares.push(toMiddlewareDefinition(middleware));
     return this as unknown as LayoutBuilder<
@@ -130,9 +128,7 @@ export class RouteBuilder<
   ) {}
 
   use<TMwServices = {}, TMwState = {}>(
-    middleware:
-      | MiddlewareDefinition<TMwServices, TMwState, any>
-      | MiddlewareHandler<any, TParams>,
+    middleware: MiddlewareDefinition<TMwServices, TMwState, any> | MiddlewareHandler<any, TParams>,
   ): RouteBuilder<
     TMethod,
     TPath,

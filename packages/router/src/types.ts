@@ -75,105 +75,106 @@ export type InferredAppContext = RouterRegister extends { AppContext: infer C }
   ? C
   : Record<string, unknown>;
 
-export type InferAppContext<T> = T extends ContextDefinition<infer TBoot, infer TRequest>
-  ? TBoot & TRequest
-  : Record<string, unknown>;
+export type InferAppContext<T> =
+  T extends ContextDefinition<infer TBoot, infer TRequest>
+    ? TBoot & TRequest
+    : Record<string, unknown>;
 
-export type UnionToIntersection<U> =
-  (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never;
+export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+  k: infer I,
+) => void
+  ? I
+  : never;
 
 export type SafeIntersect<U> = [U] extends [never] ? {} : UnionToIntersection<U>;
 
-export type ExtractServicesFromMiddleware<TMw> =
-  TMw extends { readonly _services?: infer S }
+export type ExtractServicesFromMiddleware<TMw> = TMw extends { readonly _services?: infer S }
+  ? S
+  : TMw extends MiddlewareDefinition<infer S, any, any>
     ? S
-    : TMw extends MiddlewareDefinition<infer S, any, any>
-      ? S
+    : {};
+
+export type ExtractStateFromMiddleware<TMw> = TMw extends { readonly _state?: infer St }
+  ? St
+  : TMw extends MiddlewareDefinition<any, infer St, any>
+    ? St
+    : {};
+
+export type ExtractServicesFromLayout<TLayout> = TLayout extends { readonly _services?: infer S }
+  ? S
+  : TLayout extends LayoutDefinition<any, infer S, any>
+    ? S
+    : TLayout extends { readonly middlewares: readonly (infer M)[] }
+      ? ExtractServicesFromMiddleware<M>
       : {};
 
-export type ExtractStateFromMiddleware<TMw> =
-  TMw extends { readonly _state?: infer St }
+export type ExtractStateFromLayout<TLayout> = TLayout extends { readonly _state?: infer St }
+  ? St
+  : TLayout extends LayoutDefinition<any, any, infer St>
     ? St
-    : TMw extends MiddlewareDefinition<any, infer St, any>
-      ? St
+    : TLayout extends { readonly middlewares: readonly (infer M)[] }
+      ? ExtractStateFromMiddleware<M>
       : {};
 
-export type ExtractServicesFromLayout<TLayout> =
-  TLayout extends { readonly _services?: infer S }
-    ? S
-    : TLayout extends LayoutDefinition<any, infer S, any>
-      ? S
-      : TLayout extends { readonly middlewares: readonly (infer M)[] }
-        ? ExtractServicesFromMiddleware<M>
-        : {};
-
-export type ExtractStateFromLayout<TLayout> =
-  TLayout extends { readonly _state?: infer St }
-    ? St
-    : TLayout extends LayoutDefinition<any, any, infer St>
-      ? St
-      : TLayout extends { readonly middlewares: readonly (infer M)[] }
-        ? ExtractStateFromMiddleware<M>
-        : {};
-
-type GetRouteLayoutIds<TPath extends string, TMethod extends HttpMethod> =
-  RouterRegister extends { RouteByPathMethod: infer R }
-    ? TPath extends keyof R
-      ? TMethod extends keyof R[TPath]
-        ? R[TPath][TMethod] extends { layouts: infer L }
-          ? L extends readonly (infer Id)[]
+type GetRouteLayoutIds<TPath extends string, TMethod extends HttpMethod> = RouterRegister extends {
+  RouteByPathMethod: infer R;
+}
+  ? TPath extends keyof R
+    ? TMethod extends keyof R[TPath]
+      ? R[TPath][TMethod] extends { layouts: infer L }
+        ? L extends readonly (infer Id)[]
+          ? Id
+          : L extends (infer Id)[]
             ? Id
-            : L extends (infer Id)[]
-              ? Id
-              : never
-          : never
+            : never
         : never
       : never
-    : never;
+    : never
+  : never;
 
-type GetLayoutServices<LId extends string> =
-  RouterRegister extends { LayoutTree: infer LT }
-    ? LId extends keyof LT
-      ? ExtractServicesFromLayout<LT[LId]>
-      : RouterRegister extends { LayoutMiddlewares: infer LM }
-        ? LId extends keyof LM
-          ? LM[LId] extends readonly (infer M)[]
-            ? ExtractServicesFromMiddleware<M>
-            : {}
-          : {}
-        : {}
+type GetLayoutServices<LId extends string> = RouterRegister extends { LayoutTree: infer LT }
+  ? LId extends keyof LT
+    ? ExtractServicesFromLayout<LT[LId]>
     : RouterRegister extends { LayoutMiddlewares: infer LM }
       ? LId extends keyof LM
         ? LM[LId] extends readonly (infer M)[]
           ? ExtractServicesFromMiddleware<M>
           : {}
         : {}
-      : {};
-
-type GetLayoutState<LId extends string> =
-  RouterRegister extends { LayoutTree: infer LT }
-    ? LId extends keyof LT
-      ? ExtractStateFromLayout<LT[LId]>
-      : RouterRegister extends { LayoutMiddlewares: infer LM }
-        ? LId extends keyof LM
-          ? LM[LId] extends readonly (infer M)[]
-            ? ExtractStateFromMiddleware<M>
-            : {}
-          : {}
+      : {}
+  : RouterRegister extends { LayoutMiddlewares: infer LM }
+    ? LId extends keyof LM
+      ? LM[LId] extends readonly (infer M)[]
+        ? ExtractServicesFromMiddleware<M>
         : {}
+      : {}
+    : {};
+
+type GetLayoutState<LId extends string> = RouterRegister extends { LayoutTree: infer LT }
+  ? LId extends keyof LT
+    ? ExtractStateFromLayout<LT[LId]>
     : RouterRegister extends { LayoutMiddlewares: infer LM }
       ? LId extends keyof LM
         ? LM[LId] extends readonly (infer M)[]
           ? ExtractStateFromMiddleware<M>
           : {}
         : {}
-      : {};
+      : {}
+  : RouterRegister extends { LayoutMiddlewares: infer LM }
+    ? LId extends keyof LM
+      ? LM[LId] extends readonly (infer M)[]
+        ? ExtractStateFromMiddleware<M>
+        : {}
+      : {}
+    : {};
 
-export type InferRouteServices<TPath extends string, TMethod extends HttpMethod> =
-  SafeIntersect<GetLayoutServices<GetRouteLayoutIds<TPath, TMethod>>>;
+export type InferRouteServices<TPath extends string, TMethod extends HttpMethod> = SafeIntersect<
+  GetLayoutServices<GetRouteLayoutIds<TPath, TMethod>>
+>;
 
-export type InferRouteState<TPath extends string, TMethod extends HttpMethod> =
-  SafeIntersect<GetLayoutState<GetRouteLayoutIds<TPath, TMethod>>>;
+export type InferRouteState<TPath extends string, TMethod extends HttpMethod> = SafeIntersect<
+  GetLayoutState<GetRouteLayoutIds<TPath, TMethod>>
+>;
 
 export type RouteHandlerArgs<
   TParams = Record<string, string>,
@@ -231,11 +232,7 @@ export interface MiddlewareDefinition<
 
 export type MiddlewareInput = MiddlewareHandler | MiddlewareDefinition<any, any, any>;
 
-export interface LayoutDefinition<
-  TPath extends string = string,
-  TServices = {},
-  TState = {},
-> {
+export interface LayoutDefinition<TPath extends string = string, TServices = {}, TState = {}> {
   readonly kind: "layout";
   readonly path: TPath;
   readonly middlewares: readonly MiddlewareDefinition<any, any>[];
@@ -273,10 +270,7 @@ export type NotFoundHandler<TContext = Record<string, unknown>> = (args: {
   ctx: TContext;
 }) => Response | Promise<Response>;
 
-export type OnErrorHandler = (
-  err: unknown,
-  req: TaserRequest,
-) => Response | Promise<Response>;
+export type OnErrorHandler = (err: unknown, req: TaserRequest) => Response | Promise<Response>;
 
 export interface TaserAppOptions<TContext = Record<string, unknown>> {
   basePath?: string | undefined;
@@ -289,4 +283,3 @@ export interface TaserDefinition<TContext = Record<string, unknown>> {
   readonly _context?: TContext;
   readonly options: TaserAppOptions<TContext>;
 }
-
