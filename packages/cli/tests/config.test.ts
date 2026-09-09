@@ -21,7 +21,6 @@ describe("cli config loader", () => {
     const config = defineConfig({
       routesDir: "./custom/routes",
       outputDir: "./custom/out",
-      basePath: "/api/v1",
       extensions: ["ts"],
       formatting: { quotes: "single" },
     });
@@ -29,7 +28,6 @@ describe("cli config loader", () => {
     expect(config).toEqual({
       routesDir: "./custom/routes",
       outputDir: "./custom/out",
-      basePath: "/api/v1",
       extensions: ["ts"],
       formatting: { quotes: "single" },
     });
@@ -48,7 +46,6 @@ describe("cli config loader", () => {
 export default {
   routesDir: "./api/routes",
   outputDir: "./.gen",
-  basePath: "/v2",
   formatting: { quotes: "single" },
 };
 `;
@@ -57,7 +54,6 @@ export default {
     const loaded = await loadConfig(tempDir);
     expect(loaded.routesDir).toBe("./api/routes");
     expect(loaded.outputDir).toBe("./.gen");
-    expect(loaded.basePath).toBe("/v2");
     expect(loaded.formatting.quotes).toBe("single");
     expect(loaded.configFile).toBe(join(tempDir, "taserjs.config.ts"));
   });

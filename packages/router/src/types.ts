@@ -134,8 +134,6 @@ export interface ContextOptions<
 export interface ContextDefinition<
   TBoot extends Record<string, unknown> = Record<string, unknown>,
   TRequest extends Record<string, unknown> = Record<string, unknown>,
-> {
+> extends ContextOptions<TBoot, TRequest> {
   readonly kind: "context";
-  readonly boot?: (() => TBoot | Promise<TBoot>) | undefined;
-  readonly request?: ((req: TaserRequest) => TRequest | Promise<TRequest>) | undefined;
 }

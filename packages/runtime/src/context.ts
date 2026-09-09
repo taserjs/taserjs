@@ -1,4 +1,4 @@
-import type { ContextDefinition, ContextOptions } from "@taserjs/router";
+import type { ContextOptions } from "@taserjs/router";
 
 export { createContext } from "@taserjs/router";
 
@@ -7,7 +7,7 @@ export interface BootManager {
 }
 
 export function createBootManager(
-  contextDef?: ContextDefinition | ContextOptions | undefined,
+  contextDef?: ContextOptions | undefined,
 ): BootManager {
   let bootPromise: Promise<Record<string, unknown>> | null = null;
   let bootResult: Record<string, unknown> | null = null;

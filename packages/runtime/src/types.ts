@@ -51,7 +51,7 @@ export interface RouteManifest {
 
 export interface CreateTaserAppOptions {
   basePath?: string | undefined;
-  context?: ContextDefinition | ContextOptions | undefined;
+  context?: ContextOptions | undefined;
 }
 
 export type TaserApp = Hono;

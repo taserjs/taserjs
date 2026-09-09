@@ -76,10 +76,8 @@ export class LayoutBuilder<
     this.path = path;
   }
 
-  use(...middlewares: (MiddlewareDefinition | MiddlewareHandler<any, TParams>)[]): this {
-    for (const mw of middlewares) {
-      this.middlewares.push(toMiddlewareDefinition(mw));
-    }
+  use(middleware: MiddlewareDefinition | MiddlewareHandler<any, TParams>): this {
+    this.middlewares.push(toMiddlewareDefinition(middleware));
     return this;
   }
 }
@@ -104,10 +102,8 @@ export class RouteBuilder<
     public readonly path: TPath,
   ) {}
 
-  use(...middlewares: (MiddlewareDefinition | MiddlewareHandler<any, TParams>)[]): this {
-    for (const mw of middlewares) {
-      this.middlewares.push(toMiddlewareDefinition(mw));
-    }
+  use(middleware: MiddlewareDefinition | MiddlewareHandler<any, TParams>): this {
+    this.middlewares.push(toMiddlewareDefinition(middleware));
     return this;
   }
 
