@@ -6,11 +6,8 @@ import type { DiscoveredLayout, DiscoveredRoute, ScanResult } from "./scanner.js
 
 export interface GenerateResult {
   manifestPath: string;
-  typesPath: string;
   manifestWritten: boolean;
-  typesWritten: boolean;
   content: string;
-  typesContent: string;
 }
 
 // In-memory content hash cache to prevent watch loop thrashing
@@ -68,7 +65,7 @@ export function generateManifestCode(
   scanResult: ScanResult,
   config: ResolvedTaserConfig,
   cwd: string = process.cwd(),
-): { manifestCode: string; dtsCode: string } {
+): { manifestCode: string } {
   const quote = config.formatting.quotes === "single" ? "'" : '"';
   const outputDirFull = resolveOutputDir(config, cwd);
   const appFile = resolveAppFile(config, cwd);
@@ -239,8 +236,7 @@ declare module "@taserjs/router" {
 }
 `;
 
-  // Return both manifestCode (unified) and dtsCode (alias to manifestCode) for backward compatibility
-  return { manifestCode, dtsCode: manifestCode };
+  return { manifestCode };
 }
 
 export function generateManifest(
@@ -259,17 +255,12 @@ export function generateManifest(
 
   const outputDirFull = resolveOutputDir(config, cwd);
   const manifestPath = resolve(outputDirFull, "routes.gen.ts");
-  const typesPath = manifestPath;
 
   const manifestWritten = safeWriteFile(manifestPath, manifestCode);
-  const typesWritten = manifestWritten;
 
   return {
     manifestPath,
-    typesPath,
     manifestWritten,
-    typesWritten,
     content: manifestCode,
-    typesContent: manifestCode,
   };
 }

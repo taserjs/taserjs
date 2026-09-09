@@ -60,7 +60,6 @@ describe("manifest codegen and content-hash caching", () => {
     const genResult = generateManifest(scanResult, config, tempDir);
 
     expect(genResult.manifestWritten).toBe(true);
-    expect(genResult.typesWritten).toBe(true);
     expect(genResult.content).toMatchSnapshot();
   });
 
@@ -100,12 +99,10 @@ describe("manifest codegen and content-hash caching", () => {
     const scan1 = scanRoutes({ routesDir, cwd: tempDir });
     const gen1 = generateManifest(scan1, config, tempDir);
     expect(gen1.manifestWritten).toBe(true);
-    expect(gen1.typesWritten).toBe(true);
 
     const scan2 = scanRoutes({ routesDir, cwd: tempDir });
     const gen2 = generateManifest(scan2, config, tempDir);
     expect(gen2.manifestWritten).toBe(false);
-    expect(gen2.typesWritten).toBe(false);
   });
 
   it("supports single quote formatting option", () => {
@@ -162,9 +159,7 @@ export default defineTaser().context(createContext({
     const gen = generateManifest(scan, config, tempDir);
 
     expect(gen.manifestPath).toMatch(/routes\.gen\.ts$/);
-    expect(gen.typesPath).toMatch(/routes\.gen\.ts$/);
     expect(gen.manifestWritten).toBe(true);
-    expect(gen.typesWritten).toBe(true);
     expect(gen.content).toMatchSnapshot();
   });
 

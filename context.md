@@ -16,6 +16,10 @@ _Avoid_: Server host, HTTP handler, listener
 The configured Hono application instance compiled and returned by `createTaserApp()`.
 _Avoid_: Server instance, express app
 
+**Standalone Serve Shim**:
+The internal runner entry emitted at `.taserjs/serve.mjs` (or virtual ID) during Vite SSR build that imports `routes.gen.ts`, configures `FastResponse`, and binds `app` to `srvx/node` `serve(app)` for zero-boilerplate standalone production hosting.
+_Avoid_: server.ts, host wrapper, server entry, express server
+
 **TaserDefinition**:
 The declarative, uninstantiated application configuration created via `defineTaser()` capturing base path, application context, not-found handlers, and error handlers without loading or creating a server instance.
 _Avoid_: App config, server options, app instance
@@ -25,8 +29,12 @@ The generated module emitted at `src/.taserjs/routes.gen.ts` that imports the ap
 _Avoid_: Virtual entry, bundle output, main entry, routes.d.ts
 
 **Request Facet (`req`)**:
-The HTTP-specific input container holding validated params, query, body, headers, and the raw fetch Request.
+The HTTP-specific input container holding validated params, query, body, raw typed Web headers (`req.headers`), and the raw fetch Request.
 _Avoid_: HTTP context, payload, request object
+
+**HTTP Headers (`req.headers`)**:
+The Web Headers collection exposed on `req.headers` providing typed header access without schema validation. Unlike params, query, and body, HTTP headers are intentionally not subject to Standard Schema validation contracts and remain raw, high-performance header accessors.
+_Avoid_: validated headers, schema headers, header schema
 
 **Application Context (`ctx`)**:
 Global singletons and long-lived services defined at startup via `createContext()`.

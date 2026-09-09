@@ -12,7 +12,7 @@ export function packageJsonTemplate(
     scripts: {
       dev: "vite",
       build: "vite build",
-      start: "node dist/server.js",
+      start: "node dist/serve.mjs",
       ...scripts,
     },
   };
@@ -71,11 +71,6 @@ import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
   plugins: [taser()],
-  build: {
-    target: "esnext",
-    ssr: "src/server.ts",
-    outDir: "dist",
-  },
 });
 `;
   }
@@ -154,45 +149,62 @@ export function staticRoutesGenTemplate(): string {
   return `// @ts-nocheck
 import { createTaserApp } from "@taserjs/runtime";
 import taser from "../taser.js";
-import route_0 from "../routes/index.get.js";
 import layout_0 from "../routes/$.js";
+import route_0 from "../routes/index.get.js";
+
+export const layoutManifest = {
+  "/*": layout_0,
+} as const;
 
 export const routeManifest = {
-  routes: [
-    {
-      method: "get",
-      urlPattern: "/",
-      filePattern: "index.get.ts",
-      load: () => route_0,
-      layouts: ["$"],
+  layouts: layoutManifest,
+  routes: {
+    "/": {
+      GET: {
+        layouts: ["/*"],
+        route: route_0,
+      },
     },
-  ],
-  layouts: [
-    {
-      scope: "/*",
-      filePattern: "$.ts",
-      load: () => layout_0,
-    },
-  ],
+  },
+} as const;
+
+export type LayoutManifest = typeof layoutManifest;
+export type RouteManifest = typeof routeManifest;
+export type AppManifest = {
+  readonly routes: RouteManifest;
+  readonly layouts: LayoutManifest;
 };
 
-export const layoutManifest = routeManifest.layouts;
 export const app = createTaserApp(routeManifest, taser);
-export const createApp = (opts) => createTaserApp(routeManifest, opts ?? taser);
 export default app;
+export const createApp = (overrideTaser?: typeof taser) =>
+  createTaserApp(routeManifest, overrideTaser ?? taser);
+
+export type RoutePath = "/";
+
+export type LayoutTree = LayoutManifest;
+
+export type LayoutMiddlewares = {
+  [K in keyof LayoutTree]: LayoutTree[K]["middlewares"];
+};
+
+export type RouteByPathMethod = {
+  "/": {
+    GET: {
+      layouts: readonly ["/*"];
+    };
+  };
+};
+
+export type AppContext = typeof taser.$Infer.Context;
 
 declare module "@taserjs/router" {
   interface RouterRegister {
-    routes: {
-      "/": {
-        methods: {
-          get: {
-            input: { params: Record<string, string>; query: Record<string, string>; body: unknown; headers: Record<string, string> };
-            output: unknown;
-          };
-        };
-      };
-    };
+    RoutePath: RoutePath;
+    LayoutTree: LayoutTree;
+    LayoutMiddlewares: LayoutMiddlewares;
+    RouteByPathMethod: RouteByPathMethod;
+    AppContext: AppContext;
   }
 }
 `;

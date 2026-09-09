@@ -17,7 +17,7 @@ export function resolveMiddleware(mw: MiddlewareDefinition): MiddlewareHandler {
     const schemas = mw.schemas!;
     const handler = mw.handler;
     return async (args, next) => {
-      const honoContext = args.ctx.context as Context | undefined;
+      const honoContext = (args.ctx as Record<string, unknown>).context as Context | undefined;
       await validateSchemas(schemas, args.req, honoContext);
       return await handler(args, next);
     };

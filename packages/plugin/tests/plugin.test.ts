@@ -146,7 +146,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
       ? ignored.some((pattern: string | RegExp) =>
           typeof pattern === "string"
             ? pattern.includes(".taserjs")
-            : pattern.test("src/.taserjs/routes.ts"),
+            : pattern.test("src/.taserjs/routes.gen.ts"),
         )
       : false;
     expect(isIgnored).toBe(true);

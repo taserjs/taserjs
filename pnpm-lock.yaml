@@ -111,9 +111,6 @@ importers:
 
   packages/cli:
     dependencies:
-      '@clack/prompts':
-        specifier: ^0.11.0
-        version: 0.11.0
       chokidar:
         specifier: ^5.0.0
         version: 5.0.0
@@ -175,10 +172,22 @@ importers:
 
   packages/create-taserjs:
     dependencies:
-      '@taserjs/cli':
-        specifier: workspace:*
-        version: link:../cli
+      '@clack/prompts':
+        specifier: ^0.11.0
+        version: 0.11.0
+      package-manager-detector:
+        specifier: ^1.8.0
+        version: 1.8.0
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
+      yargs:
+        specifier: ^18.1.0
+        version: 18.1.0
     devDependencies:
+      '@types/yargs':
+        specifier: ^17.0.35
+        version: 17.0.35
       publint:
         specifier: ^0.3.22
         version: 0.3.22
@@ -200,10 +209,19 @@ importers:
       '@taserjs/cli':
         specifier: workspace:^
         version: link:../cli
+      chokidar:
+        specifier: ^5.0.0
+        version: 5.0.0
+      srvx:
+        specifier: ^1.0.4
+        version: 1.0.4
       unplugin:
         specifier: ^2.3.11
         version: 2.3.11
     devDependencies:
+      create-taserjs:
+        specifier: workspace:*
+        version: link:../create-taserjs
       publint:
         specifier: ^0.3.22
         version: 0.3.22
@@ -3008,6 +3026,11 @@ packages:
 
   space-separated-tokens@2.0.2:
     resolution: {integrity: sha512-PEGlAwrG8yXGXRjW32fGbg66JAlOAwbObuqVoJpv/mRgoWDQfgH1wDPvtzWyUSNAXBGSk8h755YDbbcEy3SH2Q==}
+
+  srvx@1.0.4:
+    resolution: {integrity: sha512-eZmYaxUfZSo7/8m8UdsHRJNmTLSCTPPom9d7a60vMmuVeZvwhbvflRR+00/CxTCjMOFa5+H8tgBeNDVZ+w7AAQ==}
+    engines: {node: '>=20.16.0'}
+    hasBin: true
 
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
@@ -6058,6 +6081,8 @@ snapshots:
   source-map@0.7.6: {}
 
   space-separated-tokens@2.0.2: {}
+
+  srvx@1.0.4: {}
 
   stackback@0.0.2: {}
 

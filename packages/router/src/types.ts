@@ -203,7 +203,7 @@ export interface NextFunction {
 
 export type MiddlewareArgs<TServices = Record<string, any>, TParams = Record<string, string>> = {
   req: TaserRequest<TParams>;
-  ctx: Record<string, unknown>;
+  ctx: InferredAppContext;
   state: Record<string, unknown>;
 } & TServices;
 

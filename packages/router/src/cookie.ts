@@ -109,7 +109,7 @@ export function cookie(
   options?: CookieJarOptions,
 ): MiddlewareDefinition<{ cookies: TaserCookieJar }> {
   return middleware(async ({ req, ctx }, next) => {
-    let c = ctx.context as Context | undefined;
+    let c = (ctx as Record<string, unknown>).context as Context | undefined;
     if (!c) {
       c = new Context(req.raw);
       (ctx as Record<string, unknown>).context = c;

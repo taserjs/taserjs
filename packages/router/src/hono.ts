@@ -7,7 +7,7 @@ export function hono(honoMw: HonoMiddlewareHandler): MiddlewareDefinition {
   return {
     kind: "middleware",
     handler: async (args, next) => {
-      let c = args.ctx.context as Context | undefined;
+      let c = (args.ctx as Record<string, unknown>).context as Context | undefined;
       if (!c) {
         c = new Context(args.req.raw);
         (args.ctx as Record<string, unknown>).context = c;

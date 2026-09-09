@@ -108,7 +108,7 @@ export default t.get("/admin/users/:id").handler(async ({ req, ctx, state, cooki
     expect(scan.diagnostics).toHaveLength(0);
 
     const gen = generateManifest(scan, config, tempDir);
-    expect(gen.typesWritten).toBe(true);
+    expect(gen.manifestWritten).toBe(true);
 
     const result = runTsc(tempDir);
     if (!result.success) {

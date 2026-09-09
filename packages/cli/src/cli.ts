@@ -31,7 +31,7 @@ export async function runGenerate(options: {
       const generateResult = generateManifest(scanResult, config, cwd);
       const elapsed = Date.now() - startTime;
 
-      if (generateResult.manifestWritten || generateResult.typesWritten) {
+      if (generateResult.manifestWritten) {
         console.log(
           pc.green("✔") +
             ` Manifest generated in ${pc.cyan(`${elapsed}ms`)} ` +
