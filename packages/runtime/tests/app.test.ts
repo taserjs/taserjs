@@ -34,8 +34,8 @@ describe("createTaserApp and Hono runtime dispatch", () => {
     expect(data).toEqual({ message: "hello world", method: "GET" });
   });
 
-  it("normalizes route path parameters and extracts req.params and req.query", async () => {
-    const userRoute = t.get("/users/$id").handler(({ req }) => {
+  it("extracts req.params and req.query from canonical route path", async () => {
+    const userRoute = t.get("/users/:id").handler(({ req }) => {
       return json({
         userId: req.params.id,
         filter: req.query.filter,
@@ -44,7 +44,7 @@ describe("createTaserApp and Hono runtime dispatch", () => {
 
     const app = createTaserApp({
       routes: {
-        "/users/$id": {
+        "/users/:id": {
           GET: {
             route: userRoute,
           },
@@ -56,6 +56,29 @@ describe("createTaserApp and Hono runtime dispatch", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data).toEqual({ userId: "42", filter: "active" });
+  });
+
+  it("extracts req.params._splat for wildcard routes", async () => {
+    const fileRoute = t.get("/files/*").handler(({ req }) => {
+      return json({
+        splat: req.params._splat,
+      });
+    });
+
+    const app = createTaserApp({
+      routes: {
+        "/files/*": {
+          GET: {
+            route: fileRoute,
+          },
+        },
+      },
+    });
+
+    const res = await app.request("/files/docs/2026/spec.pdf");
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toEqual({ splat: "docs/2026/spec.pdf" });
   });
 
   it("supports multiple HTTP methods on different paths", async () => {

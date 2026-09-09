@@ -1,6 +1,7 @@
 export const VERSION = "0.0.1";
 export {
   t,
+  layout,
   RouteBuilder,
   LayoutBuilder,
   MiddlewareBuilder,
@@ -32,6 +33,7 @@ export type {
   MiddlewareHandler,
   MiddlewareInput,
   NextFunction,
+  RouteDefaultParams,
   RouteDefinition,
   RouteHandler,
   RouteHandlerArgs,

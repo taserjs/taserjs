@@ -47,10 +47,16 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.11.0",
+    "chokidar": "^5.0.0",
     "jiti": "^2.4.2",
-    "picocolors": "^1.1.1"
+    "oxc-parser": "^0.149.0",
+    "picocolors": "^1.1.1",
+    "yargs": "^18.1.0"
   },
   "devDependencies": {
+    "@taserjs/router": "workspace:*",
+    "@taserjs/runtime": "workspace:*",
+    "@types/yargs": "^17.0.35",
     "publint": "^0.3.22",
     "rimraf": "^6.0.1",
     "tsdown": "^0.23.0",

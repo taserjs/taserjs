@@ -47,7 +47,7 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
     expect(route.middlewares?.[1]).toEqual({ kind: "middleware", handler: mw2 });
   });
 
-  it("builds a layout with t.layout() and registers middlewares via .use()", () => {
+  it("builds a layout with t.layout(path) and registers middlewares via .use()", () => {
     const mw1 = async (_args: any, next: any) => next();
     const mw2 = async (_args: any, next: any) => next();
 
@@ -60,11 +60,34 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
     expect(layout.middlewares[1]).toEqual({ kind: "middleware", handler: mw2 });
   });
 
-  it("builds a pathless layout with t.layout()", () => {
-    const layout = t.layout();
+  it("builds a pathless layout with t.layout(path)", () => {
+    const layout = t.layout("/_auth/*");
     expect(layout.kind).toBe("layout");
-    expect(layout.path).toBeUndefined();
+    expect(layout.path).toBe("/_auth/*");
     expect(layout.middlewares).toEqual([]);
+  });
+
+  it("infers default string params and _splat on routes and layouts", () => {
+    const routeWithParams = t.get("/users/:id/posts/:postId").handler(({ req }) => {
+      // Type assertion compile check
+      const _id: string = req.params.id;
+      const _postId: string = req.params.postId;
+      return new Response(`${_id}-${_postId}`);
+    });
+    expect(routeWithParams.path).toBe("/users/:id/posts/:postId");
+
+    const routeWithSplat = t.get("/files/*").handler(({ req }) => {
+      const _splat: string = req.params._splat;
+      return new Response(_splat);
+    });
+    expect(routeWithSplat.path).toBe("/files/*");
+
+    const layoutWithSplat = t.layout("/admin/:id/*").use(async ({ req }, next) => {
+      const _id: string = req.params.id;
+      const _splat: string = req.params._splat;
+      return next();
+    });
+    expect(layoutWithSplat.path).toBe("/admin/:id/*");
   });
 
   it("supports schema builder methods (.params, .query, .body, .returns) on route builder", () => {

@@ -6,18 +6,20 @@ import type {
   LayoutDefinition,
   MiddlewareDefinition,
   MiddlewareHandler,
-  MiddlewareInput,
+  RouteDefaultParams,
   RouteDefinition,
   RouteHandler,
   RouteSchemas,
   StatusCode,
 } from "./types.js";
 
-export function toMiddlewareDefinition(input: MiddlewareInput): MiddlewareDefinition {
+export function toMiddlewareDefinition(
+  input: MiddlewareDefinition | MiddlewareHandler<any, any>,
+): MiddlewareDefinition {
   if (typeof input === "function") {
     return {
       kind: "middleware",
-      handler: input,
+      handler: input as MiddlewareHandler,
     };
   }
   return input;
@@ -62,16 +64,19 @@ export function middleware(fn?: MiddlewareHandler): MiddlewareBuilder | Middlewa
   return new MiddlewareBuilder();
 }
 
-export class LayoutBuilder<TPath extends string = string> implements LayoutDefinition<TPath> {
+export class LayoutBuilder<
+  TPath extends string = string,
+  TParams = RouteDefaultParams<TPath>,
+> implements LayoutDefinition<TPath> {
   readonly kind = "layout" as const;
-  public readonly path?: TPath | undefined;
+  public readonly path: TPath;
   public readonly middlewares: MiddlewareDefinition[] = [];
 
-  constructor(path?: TPath | undefined) {
+  constructor(path: TPath) {
     this.path = path;
   }
 
-  use(...middlewares: MiddlewareInput[]): this {
+  use(...middlewares: (MiddlewareDefinition | MiddlewareHandler<any, TParams>)[]): this {
     for (const mw of middlewares) {
       this.middlewares.push(toMiddlewareDefinition(mw));
     }
@@ -79,9 +84,15 @@ export class LayoutBuilder<TPath extends string = string> implements LayoutDefin
   }
 }
 
+export function layout<TPath extends string>(
+  path: TPath,
+): LayoutBuilder<TPath, RouteDefaultParams<TPath>> {
+  return new LayoutBuilder<TPath, RouteDefaultParams<TPath>>(path);
+}
+
 export class RouteBuilder<
   TPath extends string = string,
-  TParams = Record<string, string>,
+  TParams = RouteDefaultParams<TPath>,
   TQuery = Record<string, string | string[]>,
   TBody = unknown,
 > {
@@ -93,7 +104,7 @@ export class RouteBuilder<
     public readonly path: TPath,
   ) {}
 
-  use(...middlewares: MiddlewareInput[]): this {
+  use(...middlewares: (MiddlewareDefinition | MiddlewareHandler<any, TParams>)[]): this {
     for (const mw of middlewares) {
       this.middlewares.push(toMiddlewareDefinition(mw));
     }
@@ -156,12 +167,17 @@ export class RouteBuilder<
 }
 
 export const t = {
-  get: <TPath extends string>(path: TPath) => new RouteBuilder("GET", path),
-  post: <TPath extends string>(path: TPath) => new RouteBuilder("POST", path),
-  put: <TPath extends string>(path: TPath) => new RouteBuilder("PUT", path),
-  delete: <TPath extends string>(path: TPath) => new RouteBuilder("DELETE", path),
-  patch: <TPath extends string>(path: TPath) => new RouteBuilder("PATCH", path),
-  layout: <TPath extends string = string>(path?: TPath | undefined) => new LayoutBuilder(path),
+  get: <TPath extends string>(path: TPath) =>
+    new RouteBuilder<TPath, RouteDefaultParams<TPath>>("GET", path),
+  post: <TPath extends string>(path: TPath) =>
+    new RouteBuilder<TPath, RouteDefaultParams<TPath>>("POST", path),
+  put: <TPath extends string>(path: TPath) =>
+    new RouteBuilder<TPath, RouteDefaultParams<TPath>>("PUT", path),
+  delete: <TPath extends string>(path: TPath) =>
+    new RouteBuilder<TPath, RouteDefaultParams<TPath>>("DELETE", path),
+  patch: <TPath extends string>(path: TPath) =>
+    new RouteBuilder<TPath, RouteDefaultParams<TPath>>("PATCH", path),
+  layout,
   middleware,
   hono,
 };

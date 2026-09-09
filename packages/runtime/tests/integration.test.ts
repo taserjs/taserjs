@@ -26,7 +26,7 @@ describe("Composed Onion Pipeline Integration", () => {
     });
 
     // Pathless layout (_auth.ts)
-    const authLayout = t.layout().use(async ({ req }, next) => {
+    const authLayout = t.layout("/_auth/*").use(async ({ req }, next) => {
       trace.push("auth:enter");
       const authHeader = req.headers.get("authorization");
       if (!authHeader) {
@@ -58,12 +58,12 @@ describe("Composed Onion Pipeline Integration", () => {
       layouts: {
         "/*": rootLayout,
         "/admin/*": adminLayout,
-        _auth: authLayout,
+        "/_auth/*": authLayout,
       },
       routes: {
         "/admin/users/:id": {
           GET: {
-            layouts: ["/*", "/admin/*", "_auth"],
+            layouts: ["/*", "/admin/*", "/_auth/*"],
             route,
           },
         },
@@ -104,7 +104,7 @@ describe("Composed Onion Pipeline Integration", () => {
     let handlerExecuted = false;
     let routeMwExecuted = false;
 
-    const authLayout = t.layout().use(async ({ req }, next) => {
+    const authLayout = t.layout("/_auth/*").use(async ({ req }, next) => {
       const auth = req.headers.get("authorization");
       if (!auth) {
         return json({ error: "missing auth header" }, 401);
@@ -125,12 +125,12 @@ describe("Composed Onion Pipeline Integration", () => {
 
     const app = createTaserApp({
       layouts: {
-        auth: authLayout,
+        "/_auth/*": authLayout,
       },
       routes: {
         "/guarded": {
           GET: {
-            layouts: ["auth"],
+            layouts: ["/_auth/*"],
             route,
           },
         },
@@ -262,7 +262,7 @@ describe("Composed Onion Pipeline Integration", () => {
       return res;
     });
 
-    const innerLayout = t.layout().use(async () => {
+    const innerLayout = t.layout("/inner/*").use(async () => {
       return json({ error: "forbidden" }, 403);
     });
 
@@ -271,12 +271,12 @@ describe("Composed Onion Pipeline Integration", () => {
     const app = createTaserApp({
       layouts: {
         "/*": rootLayout,
-        inner: innerLayout,
+        "/inner/*": innerLayout,
       },
       routes: {
         "/nested-short-circuit": {
           GET: {
-            layouts: ["/*", "inner"],
+            layouts: ["/*", "/inner/*"],
             route,
           },
         },

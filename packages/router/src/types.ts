@@ -28,6 +28,26 @@ export interface RouteSchemas {
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
+type ExtractParamName<T extends string> = T extends `:${infer P}` ? P : never;
+
+type ExtractPathSegments<T extends string> = T extends `/${infer Rest}`
+  ? ExtractPathSegments<Rest>
+  : T extends `${infer Segment}/${infer Rest}`
+    ? Segment | ExtractPathSegments<Rest>
+    : T extends ""
+      ? never
+      : T;
+
+type HasWildcard<T extends string> = T extends `${string}*${string}` ? true : false;
+
+type ParamsFromSegments<T extends string> = {
+  [K in ExtractPathSegments<T> as ExtractParamName<K>]: string;
+};
+
+export type RouteDefaultParams<TPath extends string = string> = string extends TPath
+  ? Record<string, string>
+  : (HasWildcard<TPath> extends true ? { _splat: string } : {}) & ParamsFromSegments<TPath>;
+
 export interface TaserRequest<
   TParams = Record<string, string>,
   TQuery = Record<string, string | string[]>,
@@ -68,14 +88,14 @@ export interface NextFunction {
   ): Promise<Response>;
 }
 
-export type MiddlewareArgs<TServices = Record<string, any>> = {
-  req: TaserRequest;
+export type MiddlewareArgs<TServices = Record<string, any>, TParams = Record<string, string>> = {
+  req: TaserRequest<TParams>;
   ctx: Record<string, unknown>;
   state: Record<string, unknown>;
 } & TServices;
 
-export type MiddlewareHandler<TServices = Record<string, any>> = (
-  args: MiddlewareArgs<TServices>,
+export type MiddlewareHandler<TServices = Record<string, any>, TParams = Record<string, string>> = (
+  args: MiddlewareArgs<TServices, TParams>,
   next: NextFunction,
 ) => Response | Promise<Response>;
 
@@ -89,7 +109,7 @@ export type MiddlewareInput = MiddlewareHandler | MiddlewareDefinition;
 
 export interface LayoutDefinition<TPath extends string = string> {
   readonly kind: "layout";
-  readonly path?: TPath | undefined;
+  readonly path: TPath;
   readonly middlewares: readonly MiddlewareDefinition[];
 }
 

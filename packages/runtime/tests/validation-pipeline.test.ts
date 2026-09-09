@@ -34,6 +34,25 @@ function createNumberCoerceSchema(key: string): StandardSchemaV1<unknown, Record
   };
 }
 
+function createStringSchema(key: string): StandardSchemaV1<unknown, Record<string, any>> {
+  return {
+    "~standard": {
+      version: 1,
+      vendor: "test",
+      validate(value: unknown) {
+        if (typeof value !== "object" || value === null) {
+          return { issues: [{ message: "Expected object", path: [key] }] };
+        }
+        const record = value as Record<string, unknown>;
+        // Purposely return an object with ONLY this key to simulate schemas stripping unknown keys
+        return {
+          value: { [key]: String(record[key] ?? "") },
+        };
+      },
+    },
+  };
+}
+
 describe("Standard Schema Bidirectional Validation Pipeline", () => {
   it("coerces params and mutates req.params in-place", async () => {
     let capturedParams: unknown;
@@ -272,6 +291,54 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
 
     const failRes = await app.request("http://localhost/test?limit=invalid");
     expect(failRes.status).toBe(422);
+  });
+
+  it("preserves non-validated keys across layout and handler schema validation", async () => {
+    // Layout validates query 'token'
+    const tokenSchema = createStringSchema("token");
+    const layoutMw = t
+      .middleware()
+      .query(tokenSchema)
+      .handler(async (_args, next) => {
+        return await next();
+      });
+    const layout = t.layout("/*").use(layoutMw);
+
+    // Route validates query 'page'
+    const pageSchema = createNumberCoerceSchema("page");
+    const route = t
+      .get("/multi-query")
+      .query(pageSchema)
+      .handler(({ req }) => {
+        return Response.json({
+          token: req.query.token,
+          page: req.query.page,
+          extra: req.query.extra,
+        });
+      });
+
+    const app = createTaserApp({
+      layouts: {
+        "/*": layout,
+      },
+      routes: {
+        "/multi-query": {
+          GET: {
+            layouts: ["/*"],
+            route,
+          },
+        },
+      },
+    });
+
+    const res = await app.request(
+      "http://localhost/multi-query?token=secret123&page=5&extra=unvalidated",
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.token).toBe("secret123");
+    expect(data.page).toBe(5);
+    expect(data.extra).toBe("unvalidated");
   });
 
   it("stores .returns(Record<StatusCode, Schema>) on route definitions", () => {

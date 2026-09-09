@@ -9,6 +9,20 @@ import type {
   TaserRequest,
 } from "./types.js";
 
+function isPlainObject(val: unknown): val is Record<string, unknown> {
+  return (
+    typeof val === "object" &&
+    val !== null &&
+    (val.constructor === Object || Object.getPrototypeOf(val) === null)
+  );
+}
+
+function mergeValidated(original: unknown, validated: unknown): unknown {
+  return isPlainObject(validated) && isPlainObject(original)
+    ? { ...original, ...validated }
+    : validated;
+}
+
 export async function validateSchemas(
   schemas: RouteSchemas | undefined,
   req: TaserRequest,
@@ -19,13 +33,13 @@ export async function validateSchemas(
   // 1. params
   if (schemas.params) {
     const validated = await validateStandardSchema(schemas.params, req.params, "params");
-    (req as { params: unknown }).params = validated;
+    (req as { params: unknown }).params = mergeValidated(req.params, validated);
   }
 
   // 2. query
   if (schemas.query) {
     const validated = await validateStandardSchema(schemas.query, req.query, "query");
-    (req as { query: unknown }).query = validated;
+    (req as { query: unknown }).query = mergeValidated(req.query, validated);
   }
 
   // 3. body
@@ -34,7 +48,7 @@ export async function validateSchemas(
       req.body = await extractBody(c, schemas.body.mode);
     }
     const validated = await validateStandardSchema(schemas.body.schema, req.body, "body");
-    req.body = validated;
+    req.body = mergeValidated(req.body, validated);
   }
 }
 

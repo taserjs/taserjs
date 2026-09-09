@@ -38,8 +38,12 @@ export function createTaserApp(manifest: RouteManifest, options?: CreateTaserApp
 
       const method = (routeDefinition.method || methodKey).toUpperCase();
       const targetPath = routeDefinition.path || routePath;
-      const rawCombinedPath = basePath ? `${basePath}/${targetPath}` : targetPath;
-      const normalizedPath = normalizeRoutePath(rawCombinedPath);
+      let finalPath = targetPath;
+      if (basePath) {
+        const cleanBase = basePath.endsWith("/") ? basePath.slice(0, -1) : basePath;
+        const cleanTarget = targetPath.startsWith("/") ? targetPath : `/${targetPath}`;
+        finalPath = cleanTarget === "/" ? cleanBase || "/" : `${cleanBase}${cleanTarget}`;
+      }
 
       const middlewares = resolveMiddlewares(entryOrRoute, manifest);
       const pipeline = createPipeline(
@@ -48,7 +52,7 @@ export function createTaserApp(manifest: RouteManifest, options?: CreateTaserApp
         routeDefinition.schemas,
       );
 
-      app.on(method, normalizedPath, async (c: Context) => {
+      app.on(method, finalPath, async (c: Context) => {
         const req = createTaserRequest(c);
         const bootData = await bootManager.getBoot();
         const reqData = contextDef?.request ? await contextDef.request(req) : {};
