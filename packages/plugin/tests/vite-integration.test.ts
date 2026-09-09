@@ -127,6 +127,50 @@ export default t.get("/health").handler(() => Response.json({ status: "ok" }));
     expect(manifestCode).toContain('"/two"');
   });
 
+  it("handles file renames within routes directory", async () => {
+    const oldPath = join(tempDir, "src", "routes", "initial.get.ts");
+    const newPath = join(tempDir, "src", "routes", "renamed.get.ts");
+
+    writeFileSync(
+      oldPath,
+      'import { t } from "@taserjs/router";\nexport default t.get("/initial").handler(() => Response.json("init"));',
+      "utf-8",
+    );
+
+    server = await createServer({
+      root: tempDir,
+      server: {
+        port: 0,
+      },
+      plugins: [taser({ cwd: tempDir })],
+      logLevel: "silent",
+    });
+
+    await server.listen();
+
+    const manifestPath = join(tempDir, "src", ".taserjs", "routes.ts");
+    expect(existsSync(manifestPath)).toBe(true);
+    let manifestCode = readFileSync(manifestPath, "utf-8");
+    expect(manifestCode).toContain('"/initial"');
+    expect(manifestCode).not.toContain('"/renamed"');
+
+    // Simulate rename: unlink old, write new, add new
+    unlinkSync(oldPath);
+    writeFileSync(
+      newPath,
+      'import { t } from "@taserjs/router";\nexport default t.get("/renamed").handler(() => Response.json("renamed"));',
+      "utf-8",
+    );
+    server.watcher.emit("unlink", oldPath);
+    server.watcher.emit("add", newPath);
+
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    manifestCode = readFileSync(manifestPath, "utf-8");
+    expect(manifestCode).not.toContain('"/initial"');
+    expect(manifestCode).toContain('"/renamed"');
+  });
+
   it("ignores file events inside .taserjs directory to prevent endless rebuild loops", async () => {
     const route = join(tempDir, "src", "routes", "test.get.ts");
     writeFileSync(

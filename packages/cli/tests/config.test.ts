@@ -97,6 +97,22 @@ export default {
     expect(loaded.configFile).toBe(join(tempDir, "taserjs.config.ts"));
   });
 
+  it("loads taserjs.config.js when present", async () => {
+    const configContent = `
+export default {
+  serverDir: "server",
+  routesDir: "routes-js",
+  outputDir: ".taser-js",
+};
+`;
+    writeFileSync(join(tempDir, "taserjs.config.js"), configContent, "utf-8");
+
+    const loaded = await loadConfig(tempDir);
+    expect(loaded.routesDir).toBe("routes-js");
+    expect(loaded.outputDir).toBe(".taser-js");
+    expect(loaded.configFile).toBe(join(tempDir, "taserjs.config.js"));
+  });
+
   it("loads taserjs.config.mjs when present", async () => {
     const configContent = `
 export default {

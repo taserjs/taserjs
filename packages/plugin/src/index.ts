@@ -11,6 +11,8 @@ import {
 import { createUnplugin } from "unplugin";
 
 export const VERSION = "0.0.1";
+export const DEFAULT_WATCH_DEBOUNCE_MS = 50;
+export const DEFAULT_OUTPUT_IGNORE_PATTERN = "**/.taserjs/**";
 
 export interface TaserPluginOptions {
   cwd?: string | undefined;
@@ -23,10 +25,29 @@ function isSubPath(child: string, parent: string): boolean {
 }
 
 function isOutputDir(filePath: string, outputDir: string): boolean {
-  if (filePath.includes(".taserjs")) {
-    return true;
+  const normalizedFile = resolve(filePath);
+  const normalizedOutput = resolve(outputDir);
+  return (
+    normalizedFile === normalizedOutput ||
+    isSubPath(normalizedFile, normalizedOutput) ||
+    filePath.includes(".taserjs")
+  );
+}
+
+function mergeWatchIgnored(current: unknown, ...patterns: string[]): Array<string | RegExp> {
+  const existing: Array<string | RegExp> = Array.isArray(current)
+    ? [...current]
+    : current
+      ? [current as string | RegExp]
+      : [];
+
+  for (const pattern of patterns) {
+    if (!existing.includes(pattern)) {
+      existing.push(pattern);
+    }
   }
-  return isSubPath(filePath, outputDir) || filePath === outputDir;
+
+  return existing;
 }
 
 export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefined = {}, meta) => {
@@ -68,7 +89,7 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
     }
     debounceTimer = setTimeout(() => {
       executeGeneration(true).catch(() => {});
-    }, 50);
+    }, DEFAULT_WATCH_DEBOUNCE_MS);
   }
 
   return {
@@ -98,18 +119,10 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
       config(config) {
         config.server = config.server || {};
         config.server.watch = config.server.watch || {};
-        const currentIgnored = config.server.watch.ignored;
-        const ignoredPattern = "**/.taserjs/**";
-
-        if (Array.isArray(currentIgnored)) {
-          if (!currentIgnored.includes(ignoredPattern)) {
-            config.server.watch.ignored = [...currentIgnored, ignoredPattern];
-          }
-        } else if (currentIgnored) {
-          config.server.watch.ignored = [currentIgnored, ignoredPattern];
-        } else {
-          config.server.watch.ignored = [ignoredPattern];
-        }
+        config.server.watch.ignored = mergeWatchIgnored(
+          config.server.watch.ignored,
+          DEFAULT_OUTPUT_IGNORE_PATTERN,
+        );
       },
 
       configureServer(server) {
@@ -137,34 +150,18 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
 
     webpack(compiler) {
       compiler.options.watchOptions = compiler.options.watchOptions || {};
-      const ignored = compiler.options.watchOptions.ignored;
-      const ignoredPattern = "**/.taserjs/**";
-
-      if (Array.isArray(ignored)) {
-        if (!ignored.includes(ignoredPattern)) {
-          compiler.options.watchOptions.ignored = [...ignored, ignoredPattern];
-        }
-      } else if (ignored) {
-        compiler.options.watchOptions.ignored = [ignored, ignoredPattern];
-      } else {
-        compiler.options.watchOptions.ignored = [ignoredPattern];
-      }
+      compiler.options.watchOptions.ignored = mergeWatchIgnored(
+        compiler.options.watchOptions.ignored,
+        DEFAULT_OUTPUT_IGNORE_PATTERN,
+      );
     },
 
     rspack(compiler) {
       compiler.options.watchOptions = compiler.options.watchOptions || {};
-      const ignored = compiler.options.watchOptions.ignored;
-      const ignoredPattern = "**/.taserjs/**";
-
-      if (Array.isArray(ignored)) {
-        if (!ignored.includes(ignoredPattern)) {
-          compiler.options.watchOptions.ignored = [...ignored, ignoredPattern];
-        }
-      } else if (ignored) {
-        compiler.options.watchOptions.ignored = [ignored, ignoredPattern];
-      } else {
-        compiler.options.watchOptions.ignored = [ignoredPattern];
-      }
+      compiler.options.watchOptions.ignored = mergeWatchIgnored(
+        compiler.options.watchOptions.ignored,
+        DEFAULT_OUTPUT_IGNORE_PATTERN,
+      );
     },
   };
 });

@@ -43,10 +43,10 @@ export const DEFAULT_CONFIG: ResolvedTaserConfig = {
 
 export function defineConfig(config: TaserConfig = {}): TaserConfig {
   return {
+    ...config,
     routesDir: config.routesDir ?? DEFAULT_CONFIG.routesDir,
     outputDir: config.outputDir ?? DEFAULT_CONFIG.outputDir,
     extensions: config.extensions ? [...config.extensions] : [...DEFAULT_CONFIG.extensions],
-    ...config,
     formatting: {
       quotes: config.formatting?.quotes ?? DEFAULT_CONFIG.formatting.quotes,
     },
@@ -129,20 +129,22 @@ export async function loadConfig(
       | TaserConfigExport
       | { default?: TaserConfigExport };
 
-    let rawConfig: any =
-      loaded &&
+    const hasDefault =
+      loaded !== null &&
       typeof loaded === "object" &&
       "default" in loaded &&
-      (loaded as any).default !== undefined
-        ? (loaded as any).default
-        : loaded;
+      (loaded as { default?: unknown }).default !== undefined;
 
-    if (typeof rawConfig === "function") {
-      rawConfig = await rawConfig();
+    let candidateConfig: unknown = hasDefault ? (loaded as { default: unknown }).default : loaded;
+
+    if (typeof candidateConfig === "function") {
+      candidateConfig = await (candidateConfig as () => Promise<unknown> | unknown)();
     }
-    if (!rawConfig || typeof rawConfig !== "object") {
-      rawConfig = {};
-    }
+
+    const rawConfig: TaserConfig =
+      candidateConfig !== null && typeof candidateConfig === "object"
+        ? (candidateConfig as TaserConfig)
+        : {};
 
     return {
       serverDir: rawConfig.serverDir ?? DEFAULT_CONFIG.serverDir,
