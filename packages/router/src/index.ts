@@ -1,5 +1,12 @@
 export const VERSION = "0.0.1";
-export { t, RouteBuilder, LayoutBuilder } from "./builder.js";
+export {
+  t,
+  RouteBuilder,
+  LayoutBuilder,
+  MiddlewareBuilder,
+  middleware,
+  toMiddlewareDefinition,
+} from "./builder.js";
 export { createContext } from "./context.js";
 export {
   ValidationError,
@@ -20,10 +27,15 @@ export type {
   HttpMethod,
   LayoutDefinition,
   MiddlewareArgs,
+  MiddlewareDefinition,
   MiddlewareHandler,
+  MiddlewareInput,
   NextFunction,
   RouteDefinition,
   RouteHandler,
   RouteHandlerArgs,
   TaserRequest,
+  RequestHeader,
+  HeaderKey,
+  TaserHeaders,
 } from "./types.js";

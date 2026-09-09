@@ -1,16 +1,12 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-export type ValidationFacet = "params" | "query" | "headers" | "body";
+export type ValidationFacet = "params" | "query" | "body";
 
 export class ValidationError extends Error {
   readonly issues: readonly StandardSchemaV1.Issue[];
   readonly facet: ValidationFacet;
 
-  constructor(
-    issues: readonly StandardSchemaV1.Issue[],
-    facet: ValidationFacet,
-    message?: string,
-  ) {
+  constructor(issues: readonly StandardSchemaV1.Issue[], facet: ValidationFacet, message?: string) {
     super(message ?? `Validation failed for ${facet}`);
     this.name = "ValidationError";
     this.issues = issues;

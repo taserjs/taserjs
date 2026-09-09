@@ -202,12 +202,9 @@ describe("Composed Onion Pipeline Integration", () => {
       },
     });
 
-    const res = await app.request(
-      "/inspect/books/99?tag=fiction&tag=mystery&sort=asc",
-      {
-        headers: { "X-Test-Header": "unit-test" },
-      },
-    );
+    const res = await app.request("/inspect/books/99?tag=fiction&tag=mystery&sort=asc", {
+      headers: { "X-Test-Header": "unit-test" },
+    });
 
     expect(res.status).toBe(200);
     expect(capturedReq).toBeDefined();
@@ -329,5 +326,45 @@ describe("Composed Onion Pipeline Integration", () => {
     });
     expect(caughtError).not.toBeNull();
     expect((caughtError as any)?.message).toBe("Failed to connect to database");
+  });
+
+  it("provides typed req.headers proxying to Hono request headers", async () => {
+    let capturedAuth: string | null = null;
+    let capturedContentType: string | null = null;
+    let capturedCustom: string | null = null;
+    let capturedMissing: string | null = null;
+    let capturedHasCustom: boolean = false;
+
+    const route = t.get("/headers-test").handler(async ({ req }) => {
+      capturedAuth = req.headers.get("Authorization");
+      capturedContentType = req.headers.get("Content-Type");
+      capturedCustom = req.headers.get("X-Custom-Client");
+      capturedMissing = req.headers.get("X-Non-Existent");
+      capturedHasCustom = req.headers.has("X-Custom-Client");
+      return json({ ok: true });
+    });
+
+    const app = createTaserApp({
+      routes: {
+        "/headers-test": {
+          GET: { route },
+        },
+      },
+    });
+
+    const res = await app.request("/headers-test", {
+      headers: {
+        Authorization: "Bearer token-xyz",
+        "Content-Type": "application/json",
+        "X-Custom-Client": "my-client-app",
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect(capturedAuth).toBe("Bearer token-xyz");
+    expect(capturedContentType).toBe("application/json");
+    expect(capturedCustom).toBe("my-client-app");
+    expect(capturedMissing).toBeNull();
+    expect(capturedHasCustom).toBe(true);
   });
 });

@@ -197,23 +197,21 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     expect(capturedBody).toEqual({ amount: 99 });
   });
 
-  it("validates schemas attached to middleware units", async () => {
+  it("validates schemas declared on t.middleware() before its logic runs", async () => {
     let mwExecuted = false;
 
-    const mwUnit = {
-      schemas: {
-        query: createNumberCoerceSchema("step"),
-      },
-      handler: async ({ req }: any, next: any) => {
+    const stepperMw = t
+      .middleware()
+      .query(createNumberCoerceSchema("step"))
+      .handler(async ({ req }, next) => {
         expect(req.query.step).toBe(3);
         mwExecuted = true;
         return await next();
-      },
-    };
+      });
 
     const route = t
       .get("/stepper")
-      .use(mwUnit)
+      .use(stepperMw)
       .handler(({ req }) => Response.json({ step: req.query.step }));
 
     const app = createTaserApp({
@@ -227,22 +225,26 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     const res = await app.request("http://localhost/stepper?step=3");
     expect(res.status).toBe(200);
     expect(mwExecuted).toBe(true);
+    const data = await res.json();
+    expect(data.step).toBe(3);
 
     const failRes = await app.request("http://localhost/stepper?step=invalid");
     expect(failRes.status).toBe(422);
   });
 
-  it("executes layout schemas before downstream route handler", async () => {
+  it("executes layout middlewares with schemas before downstream route handler", async () => {
     let layoutValidated = false;
 
-    const layout = t
-      .layout("/*")
+    const queryMw = t
+      .middleware()
       .query(createNumberCoerceSchema("limit"))
-      .use(async ({ req }, next) => {
+      .handler(async ({ req }, next) => {
         expect(req.query.limit).toBe(10);
         layoutValidated = true;
         return await next();
       });
+
+    const layout = t.layout("/*").use(queryMw);
 
     const route = t.get("/test").handler(({ req }) => {
       return Response.json({ limit: req.query.limit });
@@ -267,6 +269,9 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     expect(layoutValidated).toBe(true);
     const data = await res.json();
     expect(data.limit).toBe(10);
+
+    const failRes = await app.request("http://localhost/test?limit=invalid");
+    expect(failRes.status).toBe(422);
   });
 
   it("stores .returns(Record<StatusCode, Schema>) on route definitions", () => {
@@ -313,47 +318,6 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data).toEqual({ customHandled: true });
-  });
-
-  it("validates and mutates req.headers in-place", async () => {
-    let capturedHeaders: Headers | undefined;
-
-    const headerSchema: StandardSchemaV1<Record<string, string>, Record<string, string>> = {
-      "~standard": {
-        version: 1,
-        vendor: "test",
-        validate(value: unknown) {
-          const headers = value as Record<string, string>;
-          if (!headers["x-api-key"]) {
-            return { issues: [{ message: "Missing x-api-key", path: ["x-api-key"] }] };
-          }
-          return { value: { ...headers, "x-api-key": headers["x-api-key"].toUpperCase() } };
-        },
-      },
-    };
-
-    const route = t
-      .get("/secure")
-      .headers(headerSchema)
-      .handler(({ req }) => {
-        capturedHeaders = req.headers;
-        return Response.json({ key: req.headers.get("x-api-key") });
-      });
-
-    const app = createTaserApp({
-      routes: {
-        "/secure": {
-          GET: route,
-        },
-      },
-    });
-
-    const res = await app.request("http://localhost/secure", {
-      headers: { "x-api-key": "secret-token" },
-    });
-
-    expect(res.status).toBe(200);
-    expect(capturedHeaders?.get("x-api-key")).toBe("SECRET-TOKEN");
   });
 
   it("extracts and validates form body (multipart)", async () => {

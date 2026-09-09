@@ -1,9 +1,6 @@
 export type BodyMode = "json" | "form" | "urlencoded" | "text" | "raw";
 
-export function unsupportedMediaType(
-  data?: unknown,
-  init?: number | ResponseInit,
-): Response {
+export function unsupportedMediaType(data?: unknown, init?: number | ResponseInit): Response {
   const payload = data ?? { message: "Unsupported Media Type" };
   const resInit = typeof init === "number" ? { status: init } : { status: 415, ...init };
   return Response.json(payload, resInit);

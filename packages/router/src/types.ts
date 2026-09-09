@@ -1,8 +1,16 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { BodyMode, ValidationFacet } from "@taserjs/utils";
+import type { RequestHeader } from "hono/utils/headers";
 
-export type { BodyMode, ValidationFacet };
+export type { BodyMode, ValidationFacet, RequestHeader };
 export type { StandardSchemaV1 };
+
+export type HeaderKey = RequestHeader | (string & {});
+
+export interface TaserHeaders extends Headers {
+  get(name: HeaderKey): string | null;
+  has(name: HeaderKey): boolean;
+}
 
 export type StatusCode = number;
 
@@ -14,7 +22,6 @@ export interface RouteBodySchema {
 export interface RouteSchemas {
   params?: StandardSchemaV1 | undefined;
   query?: StandardSchemaV1 | undefined;
-  headers?: StandardSchemaV1 | undefined;
   body?: RouteBodySchema | undefined;
   returns?: Record<StatusCode, StandardSchemaV1> | undefined;
 }
@@ -24,12 +31,11 @@ export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 export interface TaserRequest<
   TParams = Record<string, string>,
   TQuery = Record<string, string | string[]>,
-  THeaders = Headers,
   TBody = unknown,
 > {
   params: TParams;
   query: TQuery;
-  headers: THeaders;
+  headers: TaserHeaders;
   method: string;
   url: string;
   raw: Request;
@@ -39,10 +45,9 @@ export interface TaserRequest<
 export interface RouteHandlerArgs<
   TParams = Record<string, string>,
   TQuery = Record<string, string | string[]>,
-  THeaders = Headers,
   TBody = unknown,
 > {
-  req: TaserRequest<TParams, TQuery, THeaders, TBody>;
+  req: TaserRequest<TParams, TQuery, TBody>;
   ctx: Record<string, unknown>;
   state: Record<string, unknown>;
 }
@@ -50,11 +55,8 @@ export interface RouteHandlerArgs<
 export type RouteHandler<
   TParams = Record<string, string>,
   TQuery = Record<string, string | string[]>,
-  THeaders = Headers,
   TBody = unknown,
-> = (
-  args: RouteHandlerArgs<TParams, TQuery, THeaders, TBody>,
-) => Response | Promise<Response>;
+> = (args: RouteHandlerArgs<TParams, TQuery, TBody>) => Response | Promise<Response>;
 
 export type NextFunction = (state?: Record<string, unknown> | undefined) => Promise<Response>;
 
@@ -69,25 +71,25 @@ export type MiddlewareHandler = (
   next: NextFunction,
 ) => Response | Promise<Response>;
 
-export interface MiddlewareObject {
-  handler: MiddlewareHandler;
-  schemas?: RouteSchemas | undefined;
+export interface MiddlewareDefinition {
+  readonly kind: "middleware";
+  readonly handler: MiddlewareHandler;
+  readonly schemas?: RouteSchemas | undefined;
 }
 
-export type MiddlewareInput = MiddlewareHandler | MiddlewareObject;
+export type MiddlewareInput = MiddlewareHandler | MiddlewareDefinition;
 
 export interface LayoutDefinition<TPath extends string = string> {
   readonly kind: "layout";
   readonly path?: TPath | undefined;
-  readonly middlewares: readonly (MiddlewareHandler | MiddlewareObject)[];
-  readonly schemas?: RouteSchemas | undefined;
+  readonly middlewares: readonly MiddlewareDefinition[];
 }
 
 export interface RouteDefinition<TPath extends string = string> {
   readonly kind: "route";
   readonly method: HttpMethod;
   readonly path: TPath;
-  readonly middlewares?: readonly (MiddlewareHandler | MiddlewareObject)[] | undefined;
+  readonly middlewares?: readonly MiddlewareDefinition[] | undefined;
   readonly handler: RouteHandler;
   readonly schemas?: RouteSchemas | undefined;
   readonly returns?: Record<StatusCode, StandardSchemaV1> | undefined;

@@ -6,12 +6,7 @@ import { isRouteManifestEntry, resolveMiddlewares } from "./layout.js";
 import { normalizeRoutePath } from "./normalize.js";
 import { createPipeline } from "./pipeline.js";
 import { createTaserRequest } from "./request.js";
-import type {
-  CreateTaserAppOptions,
-  RouteDefinition,
-  RouteManifest,
-  TaserApp,
-} from "./types.js";
+import type { CreateTaserAppOptions, RouteDefinition, RouteManifest, TaserApp } from "./types.js";
 
 export function createTaserApp(manifest: RouteManifest, options?: CreateTaserAppOptions): TaserApp {
   const app = new Hono();
@@ -20,23 +15,12 @@ export function createTaserApp(manifest: RouteManifest, options?: CreateTaserApp
   const bootManager = createBootManager(contextDef);
 
   app.onError((err: unknown, c: Context) => {
-    if (
-      err instanceof ValidationError ||
-      (err && typeof err === "object" && (err as { name?: string }).name === "ValidationError")
-    ) {
-      const valErr = err as ValidationError;
-      return c.json({ errors: valErr.issues }, 422);
+    if (err instanceof ValidationError) {
+      return c.json({ errors: err.issues }, 422);
     }
 
-    if (
-      err instanceof UnsupportedMediaTypeError ||
-      (err &&
-        typeof err === "object" &&
-        ((err as { name?: string }).name === "UnsupportedMediaTypeError" ||
-          (err as { status?: number }).status === 415))
-    ) {
-      const mediaErr = err as UnsupportedMediaTypeError;
-      return c.json({ message: mediaErr.message || "Unsupported Media Type" }, 415);
+    if (err instanceof UnsupportedMediaTypeError) {
+      return c.json({ message: err.message || "Unsupported Media Type" }, 415);
     }
 
     if (err instanceof Response) {
@@ -58,7 +42,11 @@ export function createTaserApp(manifest: RouteManifest, options?: CreateTaserApp
       const normalizedPath = normalizeRoutePath(rawCombinedPath);
 
       const middlewares = resolveMiddlewares(entryOrRoute, manifest);
-      const pipeline = createPipeline(middlewares, routeDefinition.handler, routeDefinition.schemas);
+      const pipeline = createPipeline(
+        middlewares,
+        routeDefinition.handler,
+        routeDefinition.schemas,
+      );
 
       app.on(method, normalizedPath, async (c: Context) => {
         const req = createTaserRequest(c);

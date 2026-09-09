@@ -1,5 +1,21 @@
 import type { Context } from "hono";
-import type { TaserRequest } from "./types.js";
+import type { HeaderKey, TaserHeaders, TaserRequest } from "./types.js";
+
+export function createTaserHeaders(c: Context): TaserHeaders {
+  const rawHeaders = c.req.raw.headers;
+  return new Proxy(rawHeaders as unknown as TaserHeaders, {
+    get(target, prop, receiver) {
+      if (prop === "get") {
+        return (name: HeaderKey) => c.req.header(name) ?? null;
+      }
+      const val = Reflect.get(target, prop, receiver);
+      if (typeof val === "function") {
+        return val.bind(target);
+      }
+      return val;
+    },
+  });
+}
 
 export function createTaserRequest(c: Context): TaserRequest {
   const rawQueries = c.req.queries();
@@ -18,7 +34,7 @@ export function createTaserRequest(c: Context): TaserRequest {
   return {
     params: c.req.param() ?? {},
     query,
-    headers: c.req.raw.headers,
+    headers: createTaserHeaders(c),
     method: c.req.method,
     url: c.req.url,
     raw: c.req.raw,

@@ -27,7 +27,9 @@ export function parseMediaType(contentType: string | null | undefined): ParsedMe
 
 export function isJsonMediaType(media: ParsedMediaType | null): boolean {
   if (!media) return false;
-  return media.type === "application" && (media.subtype === "json" || media.subtype.endsWith("+json"));
+  return (
+    media.type === "application" && (media.subtype === "json" || media.subtype.endsWith("+json"))
+  );
 }
 
 export function isMultipartMediaType(media: ParsedMediaType | null): boolean {

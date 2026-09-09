@@ -43,21 +43,21 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
 
     expect(route.kind).toBe("route");
     expect(route.middlewares).toHaveLength(2);
-    expect(route.middlewares?.[0]).toBe(mw1);
-    expect(route.middlewares?.[1]).toBe(mw2);
+    expect(route.middlewares?.[0]).toEqual({ kind: "middleware", handler: mw1 });
+    expect(route.middlewares?.[1]).toEqual({ kind: "middleware", handler: mw2 });
   });
 
   it("builds a layout with t.layout() and registers middlewares via .use()", () => {
     const mw1 = async (_args: any, next: any) => next();
-    const mw2 = { handler: async (_args: any, next: any) => next() };
+    const mw2 = async (_args: any, next: any) => next();
 
     const layout = t.layout("/*").use(mw1).use(mw2);
 
     expect(layout.kind).toBe("layout");
     expect(layout.path).toBe("/*");
     expect(layout.middlewares).toHaveLength(2);
-    expect(layout.middlewares[0]).toBe(mw1);
-    expect(layout.middlewares[1]).toBe(mw2.handler);
+    expect(layout.middlewares[0]).toEqual({ kind: "middleware", handler: mw1 });
+    expect(layout.middlewares[1]).toEqual({ kind: "middleware", handler: mw2 });
   });
 
   it("builds a pathless layout with t.layout()", () => {
@@ -67,7 +67,7 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
     expect(layout.middlewares).toEqual([]);
   });
 
-  it("supports schema builder methods (.params, .query, .headers, .body, .returns) on route builder", () => {
+  it("supports schema builder methods (.params, .query, .body, .returns) on route builder", () => {
     const mockSchema = {
       "~standard": {
         version: 1 as const,
@@ -80,7 +80,6 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       .post("/users/:id")
       .params(mockSchema)
       .query(mockSchema)
-      .headers(mockSchema)
       .body(mockSchema, "json")
       .returns({ 200: mockSchema })
       .handler(() => new Response("ok"));
@@ -88,14 +87,13 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
     expect(route.schemas).toBeDefined();
     expect(route.schemas?.params).toBe(mockSchema);
     expect(route.schemas?.query).toBe(mockSchema);
-    expect(route.schemas?.headers).toBe(mockSchema);
     expect(route.schemas?.body?.schema).toBe(mockSchema);
     expect(route.schemas?.body?.mode).toBe("json");
     expect(route.schemas?.returns?.[200]).toBe(mockSchema);
     expect(route.returns?.[200]).toBe(mockSchema);
   });
 
-  it("supports schema builder methods on layout builder", () => {
+  it("builds a middleware definition with t.middleware() and schemas", () => {
     const mockSchema = {
       "~standard": {
         version: 1 as const,
@@ -104,20 +102,45 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       },
     };
 
-    const layout = t
-      .layout("/*")
+    const fn = async (_args: any, next: any) => next();
+
+    const mwDef = t
+      .middleware()
       .params(mockSchema)
       .query(mockSchema)
-      .headers(mockSchema)
-      .body(mockSchema, "form")
-      .returns({ 401: mockSchema });
+      .body(mockSchema, "json")
+      .handler(fn);
 
-    expect(layout.schemas).toBeDefined();
-    expect(layout.schemas?.params).toBe(mockSchema);
-    expect(layout.schemas?.query).toBe(mockSchema);
-    expect(layout.schemas?.headers).toBe(mockSchema);
-    expect(layout.schemas?.body?.schema).toBe(mockSchema);
-    expect(layout.schemas?.body?.mode).toBe("form");
-    expect(layout.schemas?.returns?.[401]).toBe(mockSchema);
+    expect(mwDef.kind).toBe("middleware");
+    expect(mwDef.handler).toBe(fn);
+    expect(mwDef.schemas).toBeDefined();
+    expect(mwDef.schemas?.params).toBe(mockSchema);
+    expect(mwDef.schemas?.query).toBe(mockSchema);
+    expect(mwDef.schemas?.body?.schema).toBe(mockSchema);
+  });
+
+  it("supports shorthand t.middleware(fn)", () => {
+    const fn = async (_args: any, next: any) => next();
+    const mwDef = t.middleware(fn);
+
+    expect(mwDef.kind).toBe("middleware");
+    expect(mwDef.handler).toBe(fn);
+    expect(mwDef.schemas).toBeUndefined();
+  });
+
+  it("registers middleware definitions via .use() on routes and layouts", () => {
+    const fn = async (_args: any, next: any) => next();
+    const mwDef = t.middleware(fn);
+
+    const route = t
+      .get("/test")
+      .use(mwDef)
+      .handler(() => new Response("ok"));
+    expect(route.middlewares).toHaveLength(1);
+    expect(route.middlewares?.[0]).toBe(mwDef);
+
+    const layout = t.layout("/*").use(mwDef);
+    expect(layout.middlewares).toHaveLength(1);
+    expect(layout.middlewares[0]).toBe(mwDef);
   });
 });

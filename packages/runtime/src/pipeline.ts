@@ -16,33 +16,19 @@ export async function validateSchemas(
 ): Promise<void> {
   if (!schemas) return;
 
-  // 1. headers
-  if (schemas.headers) {
-    const rawHeadersObj: Record<string, string> = {};
-    req.headers.forEach((val, key) => {
-      rawHeadersObj[key.toLowerCase()] = val;
-    });
-    const validated = await validateStandardSchema(schemas.headers, rawHeadersObj, "headers");
-    if (typeof validated === "object" && validated !== null) {
-      for (const [k, v] of Object.entries(validated)) {
-        req.headers.set(k, String(v));
-      }
-    }
-  }
-
-  // 2. params
+  // 1. params
   if (schemas.params) {
     const validated = await validateStandardSchema(schemas.params, req.params, "params");
     (req as { params: unknown }).params = validated;
   }
 
-  // 3. query
+  // 2. query
   if (schemas.query) {
     const validated = await validateStandardSchema(schemas.query, req.query, "query");
     (req as { query: unknown }).query = validated;
   }
 
-  // 4. body
+  // 3. body
   if (schemas.body) {
     if (req.body === undefined && c) {
       req.body = await extractBody(c, schemas.body.mode);

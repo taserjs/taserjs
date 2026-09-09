@@ -41,13 +41,7 @@ describe("createPipeline (onion execution pipeline)", () => {
     const res = await pipeline(createDummyRequest(), {});
 
     expect(res.status).toBe(200);
-    expect(trace).toEqual([
-      "mw1:enter",
-      "mw2:enter",
-      "handler",
-      "mw2:exit",
-      "mw1:exit",
-    ]);
+    expect(trace).toEqual(["mw1:enter", "mw2:enter", "handler", "mw2:exit", "mw1:exit"]);
   });
 
   it("accumulates state across middleware layers via next(state)", async () => {
