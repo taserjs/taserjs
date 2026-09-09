@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { VERSION } from "../src/index.js";
+import { t, layout, RouteBuilder } from "../src/index.js";
 
 describe("@taserjs/router", () => {
-  it("exports VERSION", () => {
-    expect(VERSION).toBe("0.0.1");
+  it("exports routing primitives", () => {
+    expect(typeof t).toBe("object");
+    expect(typeof layout).toBe("function");
+    expect(typeof RouteBuilder).toBe("function");
   });
 });

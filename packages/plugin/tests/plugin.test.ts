@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { taserPlugin, taser, VERSION } from "../src/index.js";
+import { taserPlugin, taser } from "../src/index.js";
 
 describe("@taserjs/plugin core", () => {
   let tempDir: string;
@@ -22,8 +22,7 @@ describe("@taserjs/plugin core", () => {
     } catch {}
   });
 
-  it("exports VERSION and plugin factories", () => {
-    expect(VERSION).toBe("0.0.1");
+  it("exports plugin factories", () => {
     expect(typeof taserPlugin).toBe("object");
     expect(typeof taserPlugin.vite).toBe("function");
     expect(typeof taserPlugin.rollup).toBe("function");

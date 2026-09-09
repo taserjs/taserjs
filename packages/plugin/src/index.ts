@@ -10,7 +10,6 @@ import {
 } from "@taserjs/cli";
 import { createUnplugin } from "unplugin";
 
-export const VERSION = "0.0.1";
 export const DEFAULT_WATCH_DEBOUNCE_MS = 50;
 export const DEFAULT_OUTPUT_IGNORE_PATTERN = "**/.taserjs/**";
 

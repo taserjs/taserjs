@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { VERSION } from "../src/index.js";
+import { json, isStandardSchema } from "../src/index.js";
 
 describe("@taserjs/utils", () => {
-  it("exports VERSION", () => {
-    expect(VERSION).toBe("0.0.1");
+  it("exports utility primitives", () => {
+    expect(typeof json).toBe("function");
+    expect(typeof isStandardSchema).toBe("function");
   });
 });

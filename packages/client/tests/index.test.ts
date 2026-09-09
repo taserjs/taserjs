@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { VERSION } from "../src/index.js";
+import * as client from "../src/index.js";
 
 describe("@taserjs/client", () => {
-  it("exports VERSION", () => {
-    expect(VERSION).toBe("0.0.1");
+  it("loads client module", () => {
+    expect(client).toBeDefined();
   });
 });

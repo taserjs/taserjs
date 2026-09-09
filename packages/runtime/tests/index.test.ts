@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { VERSION } from "../src/index.js";
+import { createTaserApp } from "../src/index.js";
 
 describe("@taserjs/runtime", () => {
-  it("exports VERSION", () => {
-    expect(VERSION).toBe("0.0.1");
+  it("exports createTaserApp", () => {
+    expect(typeof createTaserApp).toBe("function");
   });
 });

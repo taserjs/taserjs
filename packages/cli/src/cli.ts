@@ -8,8 +8,6 @@ import { loadConfig, resolveAppFile, resolveRoutesDir } from "./config.js";
 import { generateManifest } from "./generator.js";
 import { scanRoutes } from "./scanner.js";
 
-export const VERSION = "0.0.1";
-
 const DEFAULT_WATCH_DEBOUNCE_MS = 100;
 
 export async function runGenerate(options: {
@@ -117,7 +115,7 @@ export function createCli(argv: string[] = hideBin(process.argv)) {
       },
     )
     .demandCommand(1, "You must provide a valid command.")
-    .version(VERSION)
+    .version()
     .alias("version", "v")
     .help()
     .alias("help", "h")

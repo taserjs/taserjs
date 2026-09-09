@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { VERSION } from "../src/index.js";
+import { defineConfig, loadConfig, scanRoutes } from "../src/index.js";
 
 describe("@taserjs/cli", () => {
-  it("exports VERSION", () => {
-    expect(VERSION).toBe("0.0.1");
+  it("exports CLI primitives", () => {
+    expect(typeof defineConfig).toBe("function");
+    expect(typeof loadConfig).toBe("function");
+    expect(typeof scanRoutes).toBe("function");
   });
 });
