@@ -6,15 +6,36 @@ import { isRouteManifestEntry, resolveMiddlewares } from "./layout.js";
 import { normalizeRoutePath } from "./normalize.js";
 import { createPipeline } from "./pipeline.js";
 import { createTaserRequest } from "./request.js";
-import type { CreateTaserAppOptions, RouteDefinition, RouteManifest, TaserApp } from "./types.js";
+import type {
+  CreateTaserAppOptions,
+  RouteDefinition,
+  RouteManifest,
+  TaserApp,
+  TaserAppDefinition,
+} from "./types.js";
 
-export function createTaserApp(manifest: RouteManifest, options?: CreateTaserAppOptions): TaserApp {
+export function createTaserApp(
+  manifest: RouteManifest,
+  taserOrOptions?: TaserAppDefinition,
+): TaserApp {
   const app = new Hono();
+
+  const options = (
+    taserOrOptions &&
+    typeof taserOrOptions === "object" &&
+    "options" in taserOrOptions &&
+    typeof (taserOrOptions as { options?: unknown }).options === "object"
+      ? (taserOrOptions as { options: CreateTaserAppOptions }).options
+      : taserOrOptions
+  ) as CreateTaserAppOptions | undefined;
+
   const basePath = options?.basePath ? normalizeRoutePath(options.basePath) : "";
   const contextDef = options?.context;
+  const customNotFound = options?.notFound;
+  const customOnError = options?.onError;
   const bootManager = createBootManager(contextDef);
 
-  app.onError((err: unknown, c: Context) => {
+  app.onError(async (err: unknown, c: Context) => {
     if (err instanceof ValidationError) {
       return c.json({ errors: err.issues }, 422);
     }
@@ -27,8 +48,28 @@ export function createTaserApp(manifest: RouteManifest, options?: CreateTaserApp
       return err;
     }
 
+    if (customOnError) {
+      const req = createTaserRequest(c);
+      return await customOnError(err, req);
+    }
+
     return c.text((err as Error)?.message || "Internal Server Error", 500);
   });
+
+  if (customNotFound) {
+    app.notFound(async (c: Context) => {
+      const req = createTaserRequest(c);
+      const bootData = await bootManager.getBoot();
+      const reqData = contextDef?.request ? await contextDef.request(req) : {};
+      const ctx: Record<string, unknown> = {
+        ...bootData,
+        ...reqData,
+        context: c,
+      };
+
+      return await customNotFound({ req, ctx });
+    });
+  }
 
   for (const [routePath, methods] of Object.entries(manifest.routes)) {
     for (const [methodKey, entryOrRoute] of Object.entries(methods)) {
@@ -53,17 +94,24 @@ export function createTaserApp(manifest: RouteManifest, options?: CreateTaserApp
       );
 
       app.on(method, finalPath, async (c: Context) => {
-        const req = createTaserRequest(c);
-        const bootData = await bootManager.getBoot();
-        const reqData = contextDef?.request ? await contextDef.request(req) : {};
-        const ctx: Record<string, unknown> = {
-          ...bootData,
-          ...reqData,
-          context: c,
-        };
+        try {
+          const req = createTaserRequest(c);
+          const bootData = await bootManager.getBoot();
+          const reqData = contextDef?.request ? await contextDef.request(req) : {};
+          const ctx: Record<string, unknown> = {
+            ...bootData,
+            ...reqData,
+            context: c,
+          };
 
-        const res = await pipeline(req, ctx);
-        return res;
+          const res = await pipeline(req, ctx);
+          return res;
+        } catch (err) {
+          if (err instanceof Response) {
+            return err;
+          }
+          throw err;
+        }
       });
     }
   }

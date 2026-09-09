@@ -10,6 +10,7 @@ export {
 } from "./builder.js";
 export { hono } from "./hono.js";
 export { createContext } from "./context.js";
+export { defineTaser, TaserBuilder } from "./taser.js";
 export {
   ValidationError,
   unsupportedMediaType,
@@ -53,4 +54,8 @@ export type {
   ExtractStateFromMiddleware,
   InferRouteServices,
   InferRouteState,
+  NotFoundHandler,
+  OnErrorHandler,
+  TaserAppOptions,
+  TaserDefinition,
 } from "./types.js";

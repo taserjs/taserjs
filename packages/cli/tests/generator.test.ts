@@ -54,11 +54,7 @@ describe("manifest codegen and content-hash caching", () => {
       'import { t } from "@taserjs/router";\nexport default t.get("/admin/users/:id").handler(() => new Response("admin-user"));',
     );
 
-    const config = {
-      ...DEFAULT_CONFIG,
-      routesDir: "./src/routes",
-      outputDir: "./.taserjs",
-    };
+    const config = { ...DEFAULT_CONFIG };
 
     const scanResult = scanRoutes({ routesDir, cwd: tempDir });
     const genResult = generateManifest(scanResult, config, tempDir);
@@ -69,8 +65,8 @@ describe("manifest codegen and content-hash caching", () => {
     const code = genResult.content;
 
     // Check static imports
-    expect(code).toMatch(/import layout_0 from "\.\.\/src\/routes\/\$\.tsx";/);
-    expect(code).toMatch(/import layout_1 from "\.\.\/src\/routes\/admin\/\$\.ts";/);
+    expect(code).toMatch(/import layout_0 from "\.\.\/routes\/\$\.tsx";/);
+    expect(code).toMatch(/import layout_1 from "\.\.\/routes\/admin\/\$\.ts";/);
     expect(code).toMatch(/export const routeManifest = {/);
     expect(code).toMatch(/export type RouteManifest = typeof routeManifest;/);
 
@@ -78,66 +74,65 @@ describe("manifest codegen and content-hash caching", () => {
     // Root "/" inherits ["/*"]
     expect(code).toMatch(/"\/":\s*{\s*GET:\s*{\s*layouts:\s*\["\/\*"\],/);
 
-    // Admin root "/admin" inherits both ["/*", "/admin/*"]
-    expect(code).toMatch(/"\/admin":\s*{\s*GET:\s*{\s*layouts:\s*\["\/\*", "\/admin\/\*"\],/);
+    // Admin index "/admin" inherits ["/*", "/admin/*"]
+    expect(code).toMatch(/"\/admin":\s*{\s*GET:\s*{\s*layouts:\s*\["\/\*",\s*"\/admin\/\*"\],/);
 
-    // Admin descendant "/admin/users/:id" inherits both ["/*", "/admin/*"]
+    // Admin child "/admin/users/:id" inherits ["/*", "/admin/*"]
     expect(code).toMatch(
-      /"\/admin\/users\/:id":\s*{\s*GET:\s*{\s*layouts:\s*\["\/\*", "\/admin\/\*"\],/,
+      /"\/admin\/users\/:id":\s*{\s*GET:\s*{\s*layouts:\s*\["\/\*",\s*"\/admin\/\*"\],/,
     );
+
+    // Check app export fallback when src/taser.ts is omitted
+    expect(code).toContain('import { createTaserApp } from "@taserjs/runtime";');
+    expect(code).toContain("export const app = createTaserApp(routeManifest);");
+    expect(code).toContain("export default app;");
+    expect(code).toContain("export const createApp = (overrideTaser?: any) =>");
   });
 
-  it("handles pathless layouts wrapping nested routes", () => {
+  it("handles pathless segment layouts correctly", () => {
     const routesDir = join(tempDir, "src", "routes");
     mkdirSync(join(routesDir, "_auth"), { recursive: true });
 
-    // Pathless layout
     writeFileSync(
       join(routesDir, "_auth.ts"),
       'import { t } from "@taserjs/router";\nexport default t.layout("/_auth/*");',
     );
 
-    // Route inside pathless group
     writeFileSync(
       join(routesDir, "_auth", "login.post.ts"),
       'import { t } from "@taserjs/router";\nexport default t.post("/login").handler(() => new Response("login"));',
     );
 
-    const config = {
-      ...DEFAULT_CONFIG,
-      routesDir: "./src/routes",
-      outputDir: "./.taserjs",
-    };
+    const config = { ...DEFAULT_CONFIG };
 
     const scanResult = scanRoutes({ routesDir, cwd: tempDir });
     const genResult = generateManifest(scanResult, config, tempDir);
 
-    expect(genResult.content).toMatch(/"\/login":\s*{\s*POST:\s*{\s*layouts:\s*\["\/_auth\/\*"\],/);
+    expect(genResult.content).toMatch(
+      /"\/login":\s*{\s*POST:\s*{\s*layouts:\s*\["\/_auth\/\*"\],\s*route:\s*route_0,?\s*},?\s*}/,
+    );
   });
 
-  it("avoids disk writes when content has not changed (content-hash caching)", () => {
+  it("skips writing files when content hash is unchanged", () => {
     const routesDir = join(tempDir, "src", "routes");
     mkdirSync(routesDir, { recursive: true });
 
     writeFileSync(
       join(routesDir, "hello.get.ts"),
-      'import { t } from "@taserjs/router";\nexport default t.get("/hello").handler(() => new Response("hi"));',
+      'import { t } from "@taserjs/router";\nexport default t.get("/hello").handler(() => new Response("hello"));',
     );
 
-    const config = {
-      ...DEFAULT_CONFIG,
-      routesDir: "./src/routes",
-      outputDir: "./.taserjs",
-    };
+    const config = { ...DEFAULT_CONFIG };
 
     const scan1 = scanRoutes({ routesDir, cwd: tempDir });
     const gen1 = generateManifest(scan1, config, tempDir);
     expect(gen1.manifestWritten).toBe(true);
+    expect(gen1.typesWritten).toBe(true);
 
-    // Second call without modifications
     const scan2 = scanRoutes({ routesDir, cwd: tempDir });
     const gen2 = generateManifest(scan2, config, tempDir);
     expect(gen2.manifestWritten).toBe(false);
+    expect(gen2.typesWritten).toBe(false);
   });
 
   it("supports single quote formatting option", () => {
@@ -151,32 +146,29 @@ describe("manifest codegen and content-hash caching", () => {
 
     const config = {
       ...DEFAULT_CONFIG,
-      routesDir: "./src/routes",
-      outputDir: "./.taserjs",
       formatting: { quotes: "single" as const },
     };
 
     const scan = scanRoutes({ routesDir, cwd: tempDir });
     const gen = generateManifest(scan, config, tempDir);
 
-    expect(gen.content).toMatch(/import route_0 from '\.\.\/src\/routes\/index\.get\.ts';/);
+    expect(gen.content).toMatch(/import route_0 from '\.\.\/routes\/index\.get\.ts';/);
     expect(gen.content).toMatch(/'\/': {/);
   });
 
-  it("emits ambient routes.d.ts augmenting RouterRegister with RoutePath, LayoutTree, LayoutMiddlewares, RouteByPathMethod, and AppContext", () => {
+  it("emits ambient routes.d.ts extracting AppContext from src/taser.ts and compiles inverted app", () => {
     const routesDir = join(tempDir, "src", "routes");
     mkdirSync(routesDir, { recursive: true });
     mkdirSync(join(tempDir, "src"), { recursive: true });
 
-    // Write src/context.ts
+    // Write src/taser.ts
     writeFileSync(
-      join(tempDir, "src", "context.ts"),
-      `import { createContext } from "@taserjs/router";
-export const context = createContext({
+      join(tempDir, "src", "taser.ts"),
+      `import { defineTaser, createContext } from "@taserjs/router";
+export default defineTaser().context(createContext({
   boot: async () => ({ db: "db-pool" }),
   request: () => ({ requestId: "req-1" }),
-});
-export type AppContext = { db: string; requestId: string };
+}));
 `,
     );
 
@@ -192,11 +184,7 @@ export type AppContext = { db: string; requestId: string };
       'import { t } from "@taserjs/router";\nexport default t.get("/users").handler(() => new Response("users"));',
     );
 
-    const config = {
-      ...DEFAULT_CONFIG,
-      routesDir: "./src/routes",
-      outputDir: "./.taserjs",
-    };
+    const config = { ...DEFAULT_CONFIG };
 
     const scan = scanRoutes({ routesDir, cwd: tempDir });
     const gen = generateManifest(scan, config, tempDir);
@@ -220,15 +208,18 @@ export type AppContext = { db: string; requestId: string };
     expect(dts).toContain('"/users": {');
     expect(dts).toContain('layouts: readonly ["/*"];');
 
-    // Check AppContext connected to src/context
-    expect(dts).toContain('import("../src/context.js")');
+    // Check AppContext extracted from src/taser.ts phantom _context without AST parsing
+    expect(dts).toContain('typeof import("../taser.js").default extends { readonly _context?: infer C }');
 
-    // Check manifest references routes.d.ts
+    // Check manifest references routes.d.ts and compiles app with taser
     expect(gen.content).toContain('/// <reference path="./routes.d.ts" />');
-    expect(gen.content).toContain("export const layoutManifest = {");
+    expect(gen.content).toContain('import taser from "../taser.js";');
+    expect(gen.content).toContain("export const app = createTaserApp(routeManifest, taser);");
+    expect(gen.content).toContain("export default app;");
+    expect(gen.content).toContain("export const createApp = (overrideTaser?: typeof taser) =>");
   });
 
-  it("defaults AppContext to Record<string, unknown> when no context file exists", () => {
+  it("defaults AppContext to Record<string, unknown> when src/taser.ts does not exist", () => {
     const routesDir = join(tempDir, "src", "routes");
     mkdirSync(routesDir, { recursive: true });
 
@@ -237,16 +228,13 @@ export type AppContext = { db: string; requestId: string };
       'import { t } from "@taserjs/router";\nexport default t.get("/").handler(() => new Response("ok"));',
     );
 
-    const config = {
-      ...DEFAULT_CONFIG,
-      routesDir: "./src/routes",
-      outputDir: "./.taserjs",
-    };
+    const config = { ...DEFAULT_CONFIG };
 
     const scan = scanRoutes({ routesDir, cwd: tempDir });
     const gen = generateManifest(scan, config, tempDir);
 
     expect(gen.typesContent).toContain("export type AppContext = Record<string, unknown>;");
     expect(gen.typesContent).not.toContain("import(");
+    expect(gen.content).toContain("export const app = createTaserApp(routeManifest);");
   });
 });

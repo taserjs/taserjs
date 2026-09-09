@@ -10,11 +10,15 @@ import type {
   MiddlewareHandler,
   MiddlewareInput,
   NextFunction,
+  NotFoundHandler,
+  OnErrorHandler,
   RequestHeader,
   RouteDefinition,
   RouteHandler,
   RouteHandlerArgs,
   RouteSchemas,
+  TaserAppOptions,
+  TaserDefinition,
   TaserHeaders,
   TaserRequest,
 } from "@taserjs/router";
@@ -30,11 +34,15 @@ export type {
   MiddlewareHandler,
   MiddlewareInput,
   NextFunction,
+  NotFoundHandler,
+  OnErrorHandler,
   RequestHeader,
   RouteDefinition,
   RouteHandler,
   RouteHandlerArgs,
   RouteSchemas,
+  TaserAppOptions,
+  TaserDefinition,
   TaserHeaders,
   TaserRequest,
 };
@@ -52,6 +60,10 @@ export interface RouteManifest {
 export interface CreateTaserAppOptions {
   basePath?: string | undefined;
   context?: ContextOptions | undefined;
+  notFound?: NotFoundHandler<any> | undefined;
+  onError?: OnErrorHandler | undefined;
 }
+
+export type TaserAppDefinition = TaserDefinition<any> | CreateTaserAppOptions;
 
 export type TaserApp = Hono;

@@ -58,6 +58,7 @@ export interface TaserRequest<
   headers: TaserHeaders;
   method: string;
   url: string;
+  path: string;
   raw: Request;
   body?: TBody;
 }
@@ -268,3 +269,26 @@ export interface ContextDefinition<
 > extends ContextOptions<TBoot, TRequest> {
   readonly kind: "context";
 }
+
+export type NotFoundHandler<TContext = Record<string, unknown>> = (args: {
+  req: TaserRequest;
+  ctx: TContext;
+}) => Response | Promise<Response>;
+
+export type OnErrorHandler = (
+  err: unknown,
+  req: TaserRequest,
+) => Response | Promise<Response>;
+
+export interface TaserAppOptions<TContext = Record<string, unknown>> {
+  basePath?: string | undefined;
+  context?: ContextOptions | ContextDefinition | undefined;
+  notFound?: NotFoundHandler<TContext> | undefined;
+  onError?: OnErrorHandler | undefined;
+}
+
+export interface TaserDefinition<TContext = Record<string, unknown>> {
+  readonly _context?: TContext;
+  readonly options: TaserAppOptions<TContext>;
+}
+

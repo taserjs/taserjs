@@ -1,8 +1,11 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, posix, relative, resolve } from "node:path";
-import { parseSync } from "oxc-parser";
-import type { ResolvedTaserConfig } from "./config.js";
+import {
+  resolveAppFile,
+  resolveOutputDir,
+  type ResolvedTaserConfig,
+} from "./config.js";
 import type { DiscoveredLayout, DiscoveredRoute, ScanResult } from "./scanner.js";
 
 export interface GenerateResult {
@@ -65,107 +68,24 @@ export function resolveLayoutsForRoute(
   return matchingLayoutIds;
 }
 
-export function inspectContextExports(contextFilePath: string): {
-  hasAppContextType: boolean;
-  hasContextConst: boolean;
-  hasDefaultExport: boolean;
-} {
-  try {
-    const code = readFileSync(contextFilePath, "utf-8");
-    const parsed = parseSync(contextFilePath, code);
-    let hasAppContextType = false;
-    let hasContextConst = false;
-    let hasDefaultExport = false;
-
-    for (const stmt of parsed.program.body) {
-      if (stmt.type === "ExportNamedDeclaration") {
-        if (stmt.declaration) {
-          if (
-            (stmt.declaration.type === "TSTypeAliasDeclaration" ||
-              stmt.declaration.type === "TSInterfaceDeclaration") &&
-            stmt.declaration.id?.name === "AppContext"
-          ) {
-            hasAppContextType = true;
-          }
-          if (stmt.declaration.type === "VariableDeclaration") {
-            for (const decl of stmt.declaration.declarations) {
-              if (
-                decl.id &&
-                "name" in decl.id &&
-                typeof (decl.id as { name?: unknown }).name === "string" &&
-                (decl.id as { name: string }).name === "context"
-              ) {
-                hasContextConst = true;
-              }
-            }
-          }
-        }
-        if (stmt.specifiers) {
-          for (const spec of stmt.specifiers) {
-            const exportedName =
-              spec.exported && "name" in spec.exported
-                ? (spec.exported as { name: string }).name
-                : spec.exported && "value" in spec.exported
-                  ? (spec.exported as { value: string }).value
-                  : undefined;
-            if (exportedName === "AppContext") {
-              hasAppContextType = true;
-            }
-            if (exportedName === "context") {
-              hasContextConst = true;
-            }
-          }
-        }
-      }
-      if (stmt.type === "ExportDefaultDeclaration") {
-        hasDefaultExport = true;
-      }
-    }
-
-    return { hasAppContextType, hasContextConst, hasDefaultExport };
-  } catch {
-    return { hasAppContextType: false, hasContextConst: false, hasDefaultExport: false };
-  }
-}
-
-export function findContextFile(
-  config: ResolvedTaserConfig,
-  cwd: string = process.cwd(),
-): string | null {
-  const candidates: string[] = [];
-
-  if (config.contextFile) {
-    candidates.push(resolve(cwd, config.contextFile));
-  }
-
-  const routesDirFull = resolve(cwd, config.routesDir);
-  const srcDir = dirname(routesDirFull);
-
-  candidates.push(
-    resolve(cwd, "src", "context.ts"),
-    resolve(cwd, "src", "context.tsx"),
-    resolve(srcDir, "context.ts"),
-    resolve(srcDir, "context.tsx"),
-    resolve(cwd, "context.ts"),
-    resolve(cwd, "context.tsx"),
-  );
-
-  for (const candidate of candidates) {
-    if (existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  return null;
-}
-
 export function generateManifestCode(
   scanResult: ScanResult,
   config: ResolvedTaserConfig,
   cwd: string = process.cwd(),
 ): { manifestCode: string; dtsCode: string } {
   const quote = config.formatting.quotes === "single" ? "'" : '"';
-  const outputDirFull = resolve(cwd, config.outputDir);
+  const outputDirFull = resolveOutputDir(config, cwd);
+  const appFile = resolveAppFile(config, cwd);
+  const hasApp = existsSync(appFile);
+
+  let appRelPath = "";
+  if (hasApp) {
+    let rel = posix.normalize(relative(outputDirFull, appFile).replace(/\\/g, "/"));
+    if (!rel.startsWith("./") && !rel.startsWith("../")) {
+      rel = `./${rel}`;
+    }
+    appRelPath = rel.replace(/\.(ts|tsx|mts|cts|js|mjs|cjs)$/, ".js");
+  }
 
   // Group layouts by segment
   const layoutsBySegment = new Map<string, DiscoveredLayout>();
@@ -251,9 +171,22 @@ ${dtsMethodEntries.join("\n")}
 
   const manifestImports = importLines.length > 0 ? `${importLines.join("\n")}\n\n` : "";
 
+  const appImport = hasApp ? `import taser from ${quote}${appRelPath}${quote};\n` : "";
+
+  const appCompilation = hasApp
+    ? `export const app = createTaserApp(routeManifest, taser);
+export default app;
+export const createApp = (overrideTaser?: typeof taser) =>
+  createTaserApp(routeManifest, overrideTaser ?? taser);`
+    : `export const app = createTaserApp(routeManifest);
+export default app;
+export const createApp = (overrideTaser?: any) =>
+  createTaserApp(routeManifest, overrideTaser);`;
+
   const manifestCode = `/// <reference path="./routes.d.ts" />
 // Generated by @taserjs/cli. Do not edit directly.
-${manifestImports}export const layoutManifest = {
+import { createTaserApp } from "@taserjs/runtime";
+${appImport}${manifestImports}export const layoutManifest = {
 ${layoutEntries.join("\n")}
 } as const;
 
@@ -266,34 +199,20 @@ ${routeEntries.join("\n")}
 
 export type LayoutManifest = typeof layoutManifest;
 export type RouteManifest = typeof routeManifest;
+
+${appCompilation}
 `;
 
-  // Build context type declaration
-  const contextFile = findContextFile(config, cwd);
-  let contextDeclaration: string;
-
-  if (contextFile) {
-    let contextRelPath = posix.normalize(relative(outputDirFull, contextFile).replace(/\\/g, "/"));
-    if (!contextRelPath.startsWith("./") && !contextRelPath.startsWith("../")) {
-      contextRelPath = `./${contextRelPath}`;
-    }
-    contextRelPath = contextRelPath.replace(/\.(ts|tsx)$/, ".js");
-
-    const { hasAppContextType, hasContextConst, hasDefaultExport } =
-      inspectContextExports(contextFile);
-
-    if (hasAppContextType) {
-      contextDeclaration = `export type AppContext = import(${quote}${contextRelPath}${quote}).AppContext;`;
-    } else if (hasContextConst) {
-      contextDeclaration = `export type AppContext = import("@taserjs/router").InferAppContext<typeof import(${quote}${contextRelPath}${quote}).context>;`;
-    } else if (hasDefaultExport) {
-      contextDeclaration = `export type AppContext = import("@taserjs/router").InferAppContext<typeof import(${quote}${contextRelPath}${quote}).default>;`;
-    } else {
-      contextDeclaration = `export type AppContext = Record<string, unknown>;`;
-    }
-  } else {
-    contextDeclaration = `export type AppContext = Record<string, unknown>;`;
-  }
+  // Build context type declaration without AST parsing
+  const contextDeclaration = hasApp
+    ? `export type AppContext = typeof import(${quote}${appRelPath}${quote}).default extends { readonly _context?: infer C }
+  ? [C] extends [never]
+    ? Record<string, unknown>
+    : C extends Record<string, unknown>
+      ? C
+      : Record<string, unknown>
+  : Record<string, unknown>;`
+    : `export type AppContext = Record<string, unknown>;`;
 
   const uniquePaths = Array.from(new Set(scanResult.routes.map((r) => r.canonicalPath)));
   const routePathUnion = uniquePaths.length > 0
@@ -303,7 +222,7 @@ export type RouteManifest = typeof routeManifest;
   const dtsCode = `// Generated by @taserjs/cli. Do not edit directly.
 import type { LayoutManifest, RouteManifest } from "./routes.js";
 
-export { routeManifest, layoutManifest } from "./routes.js";
+export { default, app, createApp, routeManifest, layoutManifest } from "./routes.js";
 export type { RouteManifest, LayoutManifest } from "./routes.js";
 
 export type RoutePath = ${routePathUnion};
@@ -348,7 +267,7 @@ export function generateManifest(
 
   const { manifestCode, dtsCode } = generateManifestCode(scanResult, config, cwd);
 
-  const outputDirFull = resolve(cwd, config.outputDir);
+  const outputDirFull = resolveOutputDir(config, cwd);
   const manifestPath = resolve(outputDirFull, "routes.ts");
   const typesPath = resolve(outputDirFull, "routes.d.ts");
 

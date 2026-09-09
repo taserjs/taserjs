@@ -10,6 +10,8 @@ import { scanRoutes } from "../src/scanner.js";
 describe("TypeScript ambient types and route context inference (tsc)", { timeout: 30000 }, () => {
   let tempDir: string;
   const routerDir = resolve(__dirname, "../../router/src");
+  const runtimeDir = resolve(__dirname, "../../runtime/src");
+  const utilsDir = resolve(__dirname, "../../utils/src");
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "taser-tsc-test-"));
@@ -37,9 +39,13 @@ describe("TypeScript ambient types and route context inference (tsc)", { timeout
             "@taserjs/router": [routerDir + "/index.ts"],
             "@taserjs/router/cookie": [routerDir + "/cookie.ts"],
             "@taserjs/router/*": [routerDir + "/*.ts"],
+            "@taserjs/runtime": [runtimeDir + "/index.ts"],
+            "@taserjs/runtime/*": [runtimeDir + "/*.ts"],
+            "@taserjs/utils": [utilsDir + "/index.ts"],
+            "@taserjs/utils/*": [utilsDir + "/*.ts"],
           },
         },
-        include: [".taserjs/**/*", "src/**/*"],
+        include: ["src/**/*", "src/.taserjs/**/*"],
       }),
     );
   }
@@ -63,18 +69,14 @@ describe("TypeScript ambient types and route context inference (tsc)", { timeout
     const routesDir = join(tempDir, "src", "routes");
     mkdirSync(join(routesDir, "admin"), { recursive: true });
 
-    // 1. src/context.ts
+    // 1. src/taser.ts with defineTaser and context
     writeFileSync(
-      join(tempDir, "src", "context.ts"),
-      `import { createContext } from "@taserjs/router";
-export const context = createContext({
+      join(tempDir, "src", "taser.ts"),
+      `import { createContext, defineTaser } from "@taserjs/router";
+export default defineTaser().context(createContext({
   boot: async () => ({ db: { findUser: (id: string) => ({ id, name: "Alice" }) } }),
   request: (req) => ({ requestId: "req-123" }),
-});
-export type AppContext = {
-  db: { findUser: (id: string) => { id: string; name: string } };
-  requestId: string;
-};
+}));
 `,
     );
 
@@ -101,7 +103,7 @@ export default t.get("/admin/users/:id").handler(async ({ req, ctx, state, cooki
 `,
     );
 
-    const config = { ...DEFAULT_CONFIG, routesDir: "./src/routes", outputDir: "./.taserjs" };
+    const config = { ...DEFAULT_CONFIG };
     const scan = scanRoutes({ routesDir, cwd: tempDir });
     expect(scan.diagnostics).toHaveLength(0);
 
@@ -109,6 +111,9 @@ export default t.get("/admin/users/:id").handler(async ({ req, ctx, state, cooki
     expect(gen.typesWritten).toBe(true);
 
     const result = runTsc(tempDir);
+    if (!result.success) {
+      console.error("TSC FAIL:", result.output);
+    }
     expect(result.success).toBe(true);
   });
 
@@ -125,7 +130,7 @@ export default t.get("/valid").handler(() => new Response("ok"));
 `,
     );
 
-    const config = { ...DEFAULT_CONFIG, routesDir: "./src/routes", outputDir: "./.taserjs" };
+    const config = { ...DEFAULT_CONFIG };
     const scan = scanRoutes({ routesDir, cwd: tempDir });
     generateManifest(scan, config, tempDir);
 
@@ -179,12 +184,15 @@ export default t.get("/public/about").handler(async ({ req, ctx, state }) => {
 `,
     );
 
-    const config = { ...DEFAULT_CONFIG, routesDir: "./src/routes", outputDir: "./.taserjs" };
+    const config = { ...DEFAULT_CONFIG };
     const scan = scanRoutes({ routesDir, cwd: tempDir });
     generateManifest(scan, config, tempDir);
 
     // Base configuration compiles cleanly
     const baseResult = runTsc(tempDir);
+    if (!baseResult.success) {
+      console.error("BASE RESULT FAILED:", baseResult.output);
+    }
     expect(baseResult.success).toBe(true);
 
     // Now update public route to illegally destructure { cookies }
@@ -219,7 +227,7 @@ export default t.get("/items/:id").handler(async ({ req }) => {
 `,
     );
 
-    const config = { ...DEFAULT_CONFIG, routesDir: "./src/routes", outputDir: "./.taserjs" };
+    const config = { ...DEFAULT_CONFIG };
     const scan = scanRoutes({ routesDir, cwd: tempDir });
     generateManifest(scan, config, tempDir);
 

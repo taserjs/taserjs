@@ -10,6 +10,7 @@ function createDummyRequest(): TaserRequest {
     headers: raw.headers,
     method: "GET",
     url: raw.url,
+    path: new URL(raw.url).pathname,
     raw,
   };
 }

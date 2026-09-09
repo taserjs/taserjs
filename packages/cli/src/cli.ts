@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-import { resolve } from "node:path";
+import { existsSync } from "node:fs";
 import { watch, type FSWatcher } from "chokidar";
 import pc from "picocolors";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { loadConfig } from "./config.js";
+import { loadConfig, resolveAppFile, resolveRoutesDir } from "./config.js";
 import { generateManifest } from "./generator.js";
 import { scanRoutes } from "./scanner.js";
 
@@ -23,8 +23,9 @@ export async function runGenerate(options: {
   const executeGeneration = () => {
     const startTime = Date.now();
     try {
+      const routesDir = resolveRoutesDir(config, cwd);
       const scanResult = scanRoutes({
-        routesDir: config.routesDir,
+        routesDir,
         cwd,
         extensions: config.extensions,
       });
@@ -53,10 +54,16 @@ export async function runGenerate(options: {
   executeGeneration();
 
   if (options.watch) {
-    const fullRoutesDir = resolve(cwd, config.routesDir);
+    const fullRoutesDir = resolveRoutesDir(config, cwd);
+    const fullAppFile = resolveAppFile(config, cwd);
     console.log(pc.cyan(`\nWatching for route changes in ${fullRoutesDir}...`));
 
-    const watcher = watch(fullRoutesDir, {
+    const watchTargets = [fullRoutesDir];
+    if (existsSync(fullAppFile)) {
+      watchTargets.push(fullAppFile);
+    }
+
+    const watcher = watch(watchTargets, {
       ignoreInitial: true,
       ignored: [/(^|[/\\])\../, /(^|[/\\])-/, /node_modules/, /\.taserjs/],
     });

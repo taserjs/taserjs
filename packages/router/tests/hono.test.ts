@@ -12,6 +12,7 @@ function createDummyRequest(url = "http://localhost/test", method = "GET"): Tase
     headers: raw.headers as any,
     method,
     url: raw.url,
+    path: new URL(url).pathname,
     raw,
   };
 }

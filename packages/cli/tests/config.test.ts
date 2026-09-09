@@ -2,7 +2,15 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { DEFAULT_CONFIG, defineConfig, loadConfig } from "../src/config.js";
+import {
+  DEFAULT_CONFIG,
+  defineConfig,
+  loadConfig,
+  resolveAppFile,
+  resolveOutputDir,
+  resolveRoutesDir,
+  resolveServerDir,
+} from "../src/config.js";
 
 describe("cli config loader", () => {
   let tempDir: string;
@@ -19,15 +27,19 @@ describe("cli config loader", () => {
 
   it("defineConfig returns the configuration object", () => {
     const config = defineConfig({
-      routesDir: "./custom/routes",
-      outputDir: "./custom/out",
+      serverDir: "src",
+      routesDir: "routes",
+      outputDir: ".taserjs",
+      app: "taser.ts",
       extensions: ["ts"],
       formatting: { quotes: "single" },
     });
 
     expect(config).toEqual({
-      routesDir: "./custom/routes",
-      outputDir: "./custom/out",
+      serverDir: "src",
+      routesDir: "routes",
+      outputDir: ".taserjs",
+      app: "taser.ts",
       extensions: ["ts"],
       formatting: { quotes: "single" },
     });
@@ -39,23 +51,46 @@ describe("cli config loader", () => {
       ...DEFAULT_CONFIG,
       configFile: undefined,
     });
+    expect(loaded.serverDir).toBe("src");
+    expect(loaded.routesDir).toBe("routes");
+    expect(loaded.outputDir).toBe(".taserjs");
+    expect(loaded.app).toBe("taser.ts");
   });
 
   it("loads taserjs.config.ts when present", async () => {
     const configContent = `
 export default {
-  routesDir: "./api/routes",
-  outputDir: "./.gen",
+  serverDir: "server",
+  routesDir: "api",
+  outputDir: ".taser",
+  app: "app.ts",
   formatting: { quotes: "single" },
 };
 `;
     writeFileSync(join(tempDir, "taserjs.config.ts"), configContent, "utf-8");
 
     const loaded = await loadConfig(tempDir);
-    expect(loaded.routesDir).toBe("./api/routes");
-    expect(loaded.outputDir).toBe("./.gen");
+    expect(loaded.serverDir).toBe("server");
+    expect(loaded.routesDir).toBe("api");
+    expect(loaded.outputDir).toBe(".taser");
+    expect(loaded.app).toBe("app.ts");
     expect(loaded.formatting.quotes).toBe("single");
     expect(loaded.configFile).toBe(join(tempDir, "taserjs.config.ts"));
+  });
+
+  it("resolves paths relative to workspace root using serverDir", () => {
+    const config = {
+      ...DEFAULT_CONFIG,
+      serverDir: "src",
+      routesDir: "routes",
+      outputDir: ".taserjs",
+      app: "taser.ts",
+    };
+
+    expect(resolveServerDir(config, tempDir)).toBe(join(tempDir, "src"));
+    expect(resolveRoutesDir(config, tempDir)).toBe(join(tempDir, "src", "routes"));
+    expect(resolveOutputDir(config, tempDir)).toBe(join(tempDir, "src", ".taserjs"));
+    expect(resolveAppFile(config, tempDir)).toBe(join(tempDir, "src", "taser.ts"));
   });
 
   it("throws when a specified custom config file is not found", async () => {

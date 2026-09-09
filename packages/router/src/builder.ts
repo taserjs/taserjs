@@ -1,5 +1,6 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { hono } from "./hono.js";
+import { defineTaser } from "./taser.js";
 import type {
   BodyMode,
   HttpMethod,
@@ -263,4 +264,5 @@ export const t = {
   layout,
   middleware,
   hono,
+  app: defineTaser,
 };

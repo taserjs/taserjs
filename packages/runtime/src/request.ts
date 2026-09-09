@@ -18,7 +18,12 @@ export function createTaserHeaders(c: Context): TaserHeaders {
 }
 
 export function createTaserRequest(c: Context): TaserRequest {
-  const rawQueries = c.req.queries();
+  let rawQueries: Record<string, string[]> | undefined;
+  try {
+    rawQueries = c.req.queries();
+  } catch {
+    rawQueries = undefined;
+  }
   const query: Record<string, string | string[]> = {};
 
   if (rawQueries) {
@@ -31,9 +36,19 @@ export function createTaserRequest(c: Context): TaserRequest {
     }
   }
 
-  const params: Record<string, string> = { ...c.req.param() };
+  let params: Record<string, string> = {};
+  try {
+    params = { ...c.req.param() };
+  } catch {
+    params = {};
+  }
 
-  const routePath = c.req.routePath;
+  let routePath: string | undefined;
+  try {
+    routePath = c.req.routePath;
+  } catch {
+    routePath = undefined;
+  }
   if (routePath && routePath.includes("*")) {
     const starIdx = routePath.indexOf("*");
     const prefix = routePath.slice(0, starIdx);
@@ -53,6 +68,7 @@ export function createTaserRequest(c: Context): TaserRequest {
     headers: createTaserHeaders(c),
     method: c.req.method,
     url: c.req.url,
+    path: c.req.path,
     raw: c.req.raw,
   };
 }

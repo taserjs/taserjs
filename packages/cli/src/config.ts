@@ -7,17 +7,19 @@ export interface TaserFormattingConfig {
 }
 
 export interface TaserConfig {
+  serverDir?: string | undefined;
   routesDir?: string | undefined;
   outputDir?: string | undefined;
-  contextFile?: string | undefined;
+  app?: string | undefined;
   extensions?: string[] | undefined;
   formatting?: TaserFormattingConfig | undefined;
 }
 
 export interface ResolvedTaserConfig {
+  serverDir: string;
   routesDir: string;
   outputDir: string;
-  contextFile?: string | undefined;
+  app: string;
   extensions: string[];
   formatting: {
     quotes: "single" | "double";
@@ -30,14 +32,82 @@ export function defineConfig(config: TaserConfig): TaserConfig {
 }
 
 export const DEFAULT_CONFIG: ResolvedTaserConfig = {
-  routesDir: "./src/routes",
-  outputDir: "./.taserjs",
-  contextFile: undefined,
+  serverDir: "src",
+  routesDir: "routes",
+  outputDir: ".taserjs",
+  app: "taser.ts",
   extensions: ["ts", "tsx"],
   formatting: {
     quotes: "double",
   },
 };
+
+export function resolveServerDir(
+  config: ResolvedTaserConfig,
+  cwd: string = process.cwd(),
+): string {
+  return resolve(cwd, config.serverDir);
+}
+
+export function resolveRoutesDir(
+  config: ResolvedTaserConfig,
+  cwd: string = process.cwd(),
+): string {
+  if (config.routesDir.startsWith("/") || /^[a-zA-Z]:[/\\]/.test(config.routesDir)) {
+    return resolve(config.routesDir);
+  }
+  const cleanServerDir = config.serverDir.replace(/^\.[/\\]/, "");
+  const cleanRoutesDir = config.routesDir.replace(/^\.[/\\]/, "");
+  if (
+    cleanServerDir &&
+    (cleanRoutesDir === cleanServerDir ||
+      cleanRoutesDir.startsWith(`${cleanServerDir}/`) ||
+      cleanRoutesDir.startsWith(`${cleanServerDir}\\`))
+  ) {
+    return resolve(cwd, cleanRoutesDir);
+  }
+  return resolve(cwd, config.serverDir, config.routesDir);
+}
+
+export function resolveOutputDir(
+  config: ResolvedTaserConfig,
+  cwd: string = process.cwd(),
+): string {
+  if (config.outputDir.startsWith("/") || /^[a-zA-Z]:[/\\]/.test(config.outputDir)) {
+    return resolve(config.outputDir);
+  }
+  const cleanServerDir = config.serverDir.replace(/^\.[/\\]/, "");
+  const cleanOutputDir = config.outputDir.replace(/^\.[/\\]/, "");
+  if (
+    cleanServerDir &&
+    (cleanOutputDir === cleanServerDir ||
+      cleanOutputDir.startsWith(`${cleanServerDir}/`) ||
+      cleanOutputDir.startsWith(`${cleanServerDir}\\`))
+  ) {
+    return resolve(cwd, cleanOutputDir);
+  }
+  return resolve(cwd, config.serverDir, config.outputDir);
+}
+
+export function resolveAppFile(
+  config: ResolvedTaserConfig,
+  cwd: string = process.cwd(),
+): string {
+  if (config.app.startsWith("/") || /^[a-zA-Z]:[/\\]/.test(config.app)) {
+    return resolve(config.app);
+  }
+  const cleanServerDir = config.serverDir.replace(/^\.[/\\]/, "");
+  const cleanApp = config.app.replace(/^\.[/\\]/, "");
+  if (
+    cleanServerDir &&
+    (cleanApp === cleanServerDir ||
+      cleanApp.startsWith(`${cleanServerDir}/`) ||
+      cleanApp.startsWith(`${cleanServerDir}\\`))
+  ) {
+    return resolve(cwd, cleanApp);
+  }
+  return resolve(cwd, config.serverDir, config.app);
+}
 
 export async function loadConfig(
   cwd: string = process.cwd(),
@@ -85,9 +155,10 @@ export async function loadConfig(
         : (loaded as TaserConfig) || {};
 
     return {
+      serverDir: rawConfig.serverDir ?? DEFAULT_CONFIG.serverDir,
       routesDir: rawConfig.routesDir ?? DEFAULT_CONFIG.routesDir,
       outputDir: rawConfig.outputDir ?? DEFAULT_CONFIG.outputDir,
-      contextFile: rawConfig.contextFile ?? DEFAULT_CONFIG.contextFile,
+      app: rawConfig.app ?? DEFAULT_CONFIG.app,
       extensions: rawConfig.extensions ? [...rawConfig.extensions] : DEFAULT_CONFIG.extensions,
       formatting: {
         quotes: rawConfig.formatting?.quotes ?? DEFAULT_CONFIG.formatting.quotes,
