@@ -1,12 +1,13 @@
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { build } from "vite";
-import { runCreate, scaffoldProject } from "@taserjs/cli";
+import { runCreateCommand, scaffoldProject } from "create-taserjs";
 import { taser } from "../src/vite.js";
+import { applyTaserNitro } from "../src/nitro.js";
 
-describe("E2E Scaffolding Engine, Build, and Request Serving", { timeout: 30000 }, () => {
+describe("E2E Scaffolding Engine, Nitro Plugin, Build, and Request Serving", { timeout: 30000 }, () => {
   let tempDir: string;
   const monorepoRoot = resolve(__dirname, "../../..");
 
@@ -37,13 +38,11 @@ describe("E2E Scaffolding Engine, Build, and Request Serving", { timeout: 30000 
       }
     }
 
-    const honoServerTarget = resolve(monorepoRoot, "node_modules/@hono/node-server");
-    if (existsSync(honoServerTarget)) {
-      const honoDir = join(projectDir, "node_modules", "@hono");
-      mkdirSync(honoDir, { recursive: true });
-      const linkPath = join(honoDir, "node-server");
-      if (!existsSync(linkPath)) {
-        symlinkSync(honoServerTarget, linkPath, "dir");
+    const srvxTarget = resolve(monorepoRoot, "packages/plugin/node_modules/srvx");
+    if (existsSync(srvxTarget)) {
+      const srvxLink = join(projectDir, "node_modules", "srvx");
+      if (!existsSync(srvxLink)) {
+        symlinkSync(srvxTarget, srvxLink, "dir");
       }
     }
 
@@ -64,26 +63,95 @@ describe("E2E Scaffolding Engine, Build, and Request Serving", { timeout: 30000 
     }
   }
 
-  it("scaffolded project can run pnpm build and serve requests", async () => {
-    const projectDir = join(tempDir, "pnpm-build-app");
+  it("scaffolds a complete project structure, runs Vite build, and serves requests cleanly", async () => {
+    const projectDir = join(tempDir, "sample-app");
 
-    scaffoldProject({
+    // 1. Scaffold project via runCreateCommand
+    await runCreateCommand({
       targetDir: projectDir,
-      projectName: "pnpm-build-app",
-      template: "ts",
+      projectName: "sample-app",
+      skipInstall: true,
+      interactive: false,
     });
 
     setupLocalWorkspaceLinks(projectDir);
+
+    // 2. Verify all expected files were generated
+    expect(existsSync(join(projectDir, "taserjs.config.ts"))).toBe(true);
+    expect(existsSync(join(projectDir, "vite.config.ts"))).toBe(true);
+    expect(existsSync(join(projectDir, "src", "server.ts"))).toBe(false);
+    expect(existsSync(join(projectDir, "src", "routes", "index.get.ts"))).toBe(true);
+    expect(existsSync(join(projectDir, "src", "routes", "$.ts"))).toBe(true);
+    expect(existsSync(join(projectDir, "src", "taser.ts"))).toBe(true);
+    expect(existsSync(join(projectDir, "src", "context.ts"))).toBe(true);
+    expect(existsSync(join(projectDir, ".gitignore"))).toBe(true);
+
+    const gitignore = readFileSync(join(projectDir, ".gitignore"), "utf-8");
+    expect(gitignore).toContain(".taserjs/");
+
+    const viteConfig = readFileSync(join(projectDir, "vite.config.ts"), "utf-8");
+    expect(viteConfig).toContain("@taserjs/plugin/vite");
+
+    // 3. Run Vite build on the scaffolded project (pure plugin-driven SSR build)
+    await build({
+      root: projectDir,
+      configFile: false,
+      plugins: [taser({ cwd: projectDir })],
+      logLevel: "silent",
+    });
+
+    // 4. Verify generated manifest and compiled output
+    const manifestPath = join(projectDir, "src", ".taserjs", "routes.gen.ts");
+    expect(existsSync(manifestPath)).toBe(true);
+    expect(existsSync(join(projectDir, "dist", "serve.mjs"))).toBe(true);
+
+    // 5. Import compiled serve bundle or routes manifest and verify request dispatch
+    const routesModule = await import(join(projectDir, "src", ".taserjs", "routes.gen.ts"));
+    const app = routesModule.app ?? routesModule.default;
+    expect(app).toBeDefined();
+
+    const response = await app.request("http://localhost/");
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    expect(body).toEqual({ message: "Welcome to Taser.js!" });
+  });
+
+  it("scaffolded project can run pnpm build and serve requests", async () => {
+    const projectDir = join(tempDir, "pnpm-build-app");
+
+    await scaffoldProject({
+      targetDir: projectDir,
+      projectName: "pnpm-build-app",
+      skipInstall: true,
+    });
+
+    setupLocalWorkspaceLinks(projectDir);
+
+    // pnpm requires dependencies to be declared in package.json to link them or run scripts
+    const pkgJsonPath = join(projectDir, "package.json");
+    const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf-8"));
+    pkg.dependencies = {
+      "@taserjs/router": "workspace:*",
+      "@taserjs/runtime": "workspace:*",
+    };
+    pkg.devDependencies = {
+      "@taserjs/cli": "workspace:*",
+      "@taserjs/plugin": "workspace:*",
+      typescript: "^5.9.3",
+      vite: "^8.2.2",
+    };
+    writeFileSync(pkgJsonPath, JSON.stringify(pkg, null, 2));
 
     execSync("pnpm run build", {
       cwd: projectDir,
       stdio: "pipe",
     });
 
-    expect(existsSync(join(projectDir, "dist", "server.js"))).toBe(true);
+    expect(existsSync(join(projectDir, "dist", "serve.mjs"))).toBe(true);
 
-    const serverModule = await import(join(projectDir, "dist", "server.js"));
-    const app = serverModule.app ?? serverModule.default;
+    const routesModule = await import(join(projectDir, "src", ".taserjs", "routes.gen.ts"));
+    const app = routesModule.app ?? routesModule.default;
     expect(app).toBeDefined();
 
     const response = await app.request("http://localhost/");
@@ -95,19 +163,33 @@ describe("E2E Scaffolding Engine, Build, and Request Serving", { timeout: 30000 
   it("scaffolded project can run pnpm install and pnpm build cleanly", async () => {
     const projectDir = join(tempDir, "pnpm-install-app");
 
-    scaffoldProject({
+    await scaffoldProject({
       targetDir: projectDir,
       projectName: "pnpm-install-app",
-      template: "ts",
       packageVersions: {
-        cli: `link:${resolve(monorepoRoot, "packages/cli")}`,
-        plugin: `link:${resolve(monorepoRoot, "packages/plugin")}`,
-        router: `link:${resolve(monorepoRoot, "packages/router")}`,
-        runtime: `link:${resolve(monorepoRoot, "packages/runtime")}`,
+        "@taserjs/cli": `link:${resolve(monorepoRoot, "packages/cli")}`,
+        "@taserjs/plugin": `link:${resolve(monorepoRoot, "packages/plugin")}`,
+        "@taserjs/router": `link:${resolve(monorepoRoot, "packages/router")}`,
+        "@taserjs/runtime": `link:${resolve(monorepoRoot, "packages/runtime")}`,
       },
+      skipInstall: true,
     });
 
     setupLocalWorkspaceLinks(projectDir);
+
+    const pkgJsonPath = join(projectDir, "package.json");
+    const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf-8"));
+    pkg.dependencies = {
+      "@taserjs/router": `link:${resolve(monorepoRoot, "packages/router")}`,
+      "@taserjs/runtime": `link:${resolve(monorepoRoot, "packages/runtime")}`,
+    };
+    pkg.devDependencies = {
+      "@taserjs/cli": `link:${resolve(monorepoRoot, "packages/cli")}`,
+      "@taserjs/plugin": `link:${resolve(monorepoRoot, "packages/plugin")}`,
+      typescript: "^5.9.3",
+      vite: "^8.2.2",
+    };
+    writeFileSync(pkgJsonPath, JSON.stringify(pkg, null, 2));
 
     // Verify pnpm install runs cleanly
     execSync("pnpm install --offline", {
@@ -121,10 +203,10 @@ describe("E2E Scaffolding Engine, Build, and Request Serving", { timeout: 30000 
       stdio: "pipe",
     });
 
-    expect(existsSync(join(projectDir, "dist", "server.js"))).toBe(true);
+    expect(existsSync(join(projectDir, "dist", "serve.mjs"))).toBe(true);
 
-    const serverModule = await import(join(projectDir, "dist", "server.js"));
-    const app = serverModule.app ?? serverModule.default;
+    const routesModule = await import(join(projectDir, "src", ".taserjs", "routes.gen.ts"));
+    const app = routesModule.app ?? routesModule.default;
     expect(app).toBeDefined();
 
     const response = await app.request("http://localhost/");
@@ -133,107 +215,62 @@ describe("E2E Scaffolding Engine, Build, and Request Serving", { timeout: 30000 
     expect(body).toEqual({ message: "Welcome to Taser.js!" });
   });
 
-  it("scaffolds a complete project structure, runs Vite build, and serves requests cleanly", async () => {
-    const projectDir = join(tempDir, "sample-app");
+  it("tests Nitro module hooks in both standalone and middleware modes", async () => {
+    const projectDir = join(tempDir, "nitro-test-app");
 
-    // 1. Scaffold project via runCreate
-    await runCreate({
-      dir: projectDir,
-      template: "ts",
-      name: "sample-app",
-      force: true,
-      interactive: false,
-    });
-
-    setupLocalWorkspaceLinks(projectDir);
-
-    // 2. Verify all expected files were generated
-    expect(existsSync(join(projectDir, "taserjs.config.ts"))).toBe(true);
-    expect(existsSync(join(projectDir, "vite.config.ts"))).toBe(true);
-    expect(existsSync(join(projectDir, "src", "server.ts"))).toBe(true);
-    expect(existsSync(join(projectDir, "src", "routes", "index.get.ts"))).toBe(true);
-    expect(existsSync(join(projectDir, "src", "routes", "$.ts"))).toBe(true);
-    expect(existsSync(join(projectDir, "src", "taser.ts"))).toBe(true);
-    expect(existsSync(join(projectDir, ".gitignore"))).toBe(true);
-
-    const gitignore = readFileSync(join(projectDir, ".gitignore"), "utf-8");
-    expect(gitignore).toContain(".taserjs/");
-
-    const viteConfig = readFileSync(join(projectDir, "vite.config.ts"), "utf-8");
-    expect(viteConfig).toContain("@taserjs/plugin/vite");
-
-    const serverCode = readFileSync(join(projectDir, "src", "server.ts"), "utf-8");
-    expect(serverCode).toContain("routeManifest");
-    expect(serverCode).toContain("createTaserApp");
-
-    // 3. Run Vite build on the scaffolded project
-    await build({
-      root: projectDir,
-      configFile: false,
-      plugins: [taser({ cwd: projectDir })],
-      build: {
-        ssr: "src/server.ts",
-        outDir: "dist",
-      },
-      logLevel: "silent",
-    });
-
-    // 4. Verify generated manifest and compiled output
-    const manifestPath = join(projectDir, "src", ".taserjs", "routes.gen.ts");
-    expect(existsSync(manifestPath)).toBe(true);
-    expect(existsSync(join(projectDir, "dist", "server.js"))).toBe(true);
-
-    // 5. Import compiled server bundle and verify request dispatch
-    const serverModule = await import(join(projectDir, "dist", "server.js"));
-    const app = serverModule.app ?? serverModule.default;
-    expect(app).toBeDefined();
-
-    const response = await app.request("http://localhost/");
-    expect(response.status).toBe(200);
-
-    const body = await response.json();
-    expect(body).toEqual({ message: "Welcome to Taser.js!" });
-  });
-
-  it("scaffolds a TSX project, runs Vite build, and serves TSX responses cleanly", async () => {
-    const projectDir = join(tempDir, "sample-tsx-app");
-
-    // 1. Scaffold TSX project
-    scaffoldProject({
+    await scaffoldProject({
       targetDir: projectDir,
-      projectName: "sample-tsx-app",
-      template: "tsx",
+      projectName: "nitro-test-app",
+      preset: "node-server",
+      skipInstall: true,
     });
 
-    setupLocalWorkspaceLinks(projectDir);
-
-    // 2. Verify TSX routes
-    expect(existsSync(join(projectDir, "src", "routes", "index.get.tsx"))).toBe(true);
-    expect(existsSync(join(projectDir, "src", "routes", "$.tsx"))).toBe(true);
-
-    // 3. Run Vite build
-    await build({
-      root: projectDir,
-      configFile: false,
-      plugins: [taser({ cwd: projectDir })],
-      build: {
-        ssr: "src/server.ts",
-        outDir: "dist",
+    // 1. Standalone Nitro Mode
+    const standaloneNitro: any = {
+      options: {
+        rootDir: projectDir,
+        virtual: {},
+        handlers: [],
       },
-      logLevel: "silent",
-    });
+      hooks: {
+        hookOnce: (_name: string, fn: any) => fn(),
+        hook: () => {},
+      },
+    };
 
-    expect(existsSync(join(projectDir, "dist", "server.js"))).toBe(true);
+    await applyTaserNitro(standaloneNitro, { standalone: true, cwd: projectDir });
 
-    // 4. Import compiled server bundle and verify HTML response
-    const serverModule = await import(join(projectDir, "dist", "server.js"));
-    const app = serverModule.app ?? serverModule.default;
-    expect(app).toBeDefined();
+    expect(typeof standaloneNitro.options.virtual["#nitro/virtual/app"]).toBe("function");
+    expect(typeof standaloneNitro.options.virtual["#nitro/virtual/routing"]).toBe("function");
 
-    const response = await app.request("http://localhost/");
-    expect(response.status).toBe(200);
+    const standaloneAppCode = standaloneNitro.options.virtual["#nitro/virtual/app"]();
+    expect(standaloneAppCode).toContain("createNitroApp");
+    expect(standaloneAppCode).toContain("FastResponse");
+    expect(standaloneAppCode).toContain("srvx");
 
-    const text = await response.text();
-    expect(text).toContain("<h1>Welcome to Taser.js!</h1>");
+    const routingCode = standaloneNitro.options.virtual["#nitro/virtual/routing"]();
+    expect(routingCode).toContain("findRoute");
+
+    // 2. Middleware / Hosted Nitro Mode (standalone: false)
+    const middlewareNitro: any = {
+      options: {
+        rootDir: projectDir,
+        virtual: {},
+        handlers: [],
+      },
+      hooks: {
+        hookOnce: (_name: string, fn: any) => fn(),
+        hook: () => {},
+      },
+    };
+
+    await applyTaserNitro(middlewareNitro, { standalone: false, cwd: projectDir });
+
+    expect(middlewareNitro.options.handlers.length).toBeGreaterThan(0);
+    expect(middlewareNitro.options.handlers[0].route).toBe("/**");
+    const virtualHandlerCode = middlewareNitro.options.virtual["#taserjs/virtual/nitro-handler"]();
+    expect(virtualHandlerCode).toContain("defineEventHandler");
+    expect(virtualHandlerCode).toContain("toWebRequest");
+    expect(virtualHandlerCode).toContain("taserApp.fetch(toWebRequest(event))");
   });
 });

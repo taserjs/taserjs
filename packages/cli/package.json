@@ -1,7 +1,7 @@
 {
   "name": "@taserjs/cli",
   "version": "0.0.1",
-  "description": "Unified CLI: scanning, manifest code generation, and project scaffolding for Taser.js",
+  "description": "Unified CLI: scanning and manifest code generation for Taser.js",
   "license": "ISC",
   "repository": {
     "type": "git",
@@ -46,7 +46,6 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@clack/prompts": "^0.11.0",
     "chokidar": "^5.0.0",
     "jiti": "^2.4.2",
     "oxc-parser": "^0.149.0",

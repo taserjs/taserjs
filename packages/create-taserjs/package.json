@@ -46,9 +46,13 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@taserjs/cli": "workspace:*"
+    "@clack/prompts": "^0.11.0",
+    "package-manager-detector": "^1.8.0",
+    "picocolors": "^1.1.1",
+    "yargs": "^18.1.0"
   },
   "devDependencies": {
+    "@types/yargs": "^17.0.35",
     "publint": "^0.3.22",
     "rimraf": "^6.0.1",
     "tsdown": "^0.23.0",

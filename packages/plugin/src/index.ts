@@ -1,4 +1,5 @@
-import { isAbsolute, relative, resolve } from "node:path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import {
   generateManifest,
   loadConfig,
@@ -8,6 +9,7 @@ import {
   scanRoutes,
   type ResolvedTaserConfig,
 } from "@taserjs/cli";
+import { toNodeHandler } from "srvx/node";
 import { createUnplugin } from "unplugin";
 
 export const DEFAULT_WATCH_DEBOUNCE_MS = 50;
@@ -16,6 +18,7 @@ export const DEFAULT_OUTPUT_IGNORE_PATTERN = "**/.taserjs/**";
 export interface TaserPluginOptions {
   cwd?: string | undefined;
   config?: string | undefined;
+  standalone?: boolean | undefined;
 }
 
 function isSubPath(child: string, parent: string): boolean {
@@ -91,15 +94,52 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
     }, DEFAULT_WATCH_DEBOUNCE_MS);
   }
 
+  let cachedDevHandler: ((req: any, res: any) => any) | null = null;
+  const VITE_INTERNAL_PREFIXES = ["/@", "/__vite", "/__open-in-editor", "/@fs/", "/@id/"];
+  const VITE_QUERY_PATTERN = /[?&](?:import|raw|url|worker)\b/;
+
+  function shouldSkipDevRequest(url: string): boolean {
+    for (let i = 0; i < VITE_INTERNAL_PREFIXES.length; i++) {
+      if (url.startsWith(VITE_INTERNAL_PREFIXES[i]!)) {
+        return true;
+      }
+    }
+    if (url.startsWith("/node_modules/")) {
+      return true;
+    }
+    return VITE_QUERY_PATTERN.test(url);
+  }
+
+  function emitServeShim(serveShimPath: string, routesGenImportPath: string): void {
+    const normalizedRoutesPath = routesGenImportPath.replace(/\\/g, "/");
+    const code = `// @ts-nocheck
+import { FastResponse } from "srvx";
+globalThis.Response = FastResponse;
+import { serve } from "srvx/node";
+import { app } from "${normalizedRoutesPath}";
+
+serve(app);
+`;
+    mkdirSync(resolve(serveShimPath, ".."), { recursive: true });
+    writeFileSync(serveShimPath, code, "utf-8");
+  }
+
   return {
     name: "taserjs:plugin",
 
     async buildStart() {
       const isDev = meta.framework === "vite";
       await executeGeneration(isDev);
+
+      const config = await getConfig();
+      const outputDir = resolveOutputDir(config, cwd);
+      const routesGenPath = join(outputDir, "routes.gen.ts");
+      const serveShimPath = join(outputDir, "serve.mjs");
+      emitServeShim(serveShimPath, "./routes.gen.js");
     },
 
     async watchChange(id, _change) {
+      cachedDevHandler = null;
       const config = await getConfig();
       const outputDir = resolveOutputDir(config, cwd);
       if (isOutputDir(id, outputDir)) {
@@ -115,7 +155,7 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
     },
 
     vite: {
-      config(config) {
+      async config(config, env) {
         if (!options.cwd && config.root) {
           cwd = resolve(config.root);
           cachedConfig = null;
@@ -126,10 +166,39 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
           config.server.watch.ignored,
           DEFAULT_OUTPUT_IGNORE_PATTERN,
         );
+
+        // Detect if Nitro is active
+        const hasNitro = Boolean(
+          (config as any).nitro ||
+            (config.plugins &&
+              (config.plugins as any[]).some((p: any) => {
+                const name = p?.name;
+                return typeof name === "string" && (name === "nitro" || name.startsWith("nitro:"));
+              })),
+        );
+
+        if (!hasNitro && env?.command === "build") {
+          const taserConfig = await getConfig();
+          const outputDir = resolveOutputDir(taserConfig, cwd);
+          const serveShimPath = join(outputDir, "serve.mjs");
+          emitServeShim(serveShimPath, "./routes.gen.js");
+
+          return {
+            build: {
+              ssr: serveShimPath,
+              rollupOptions: {
+                output: {
+                  entryFileNames: "serve.mjs",
+                },
+              },
+            },
+          };
+        }
       },
 
       configureServer(server) {
         const handleFileChange = async (file: string) => {
+          cachedDevHandler = null;
           const config = await getConfig();
           const outputDir = resolveOutputDir(config, cwd);
           if (isOutputDir(file, outputDir)) {
@@ -148,6 +217,43 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
         server.watcher.on("unlink", handleFileChange);
         server.watcher.on("change", handleFileChange);
         server.watcher.on("unlinkDir", handleFileChange);
+
+        server.middlewares.use(async (req: any, res: any, next: any) => {
+          const url = req.url;
+          if (!url || shouldSkipDevRequest(url)) {
+            return next();
+          }
+
+          try {
+            if (!cachedDevHandler) {
+              const taserConfig = await getConfig();
+              const outputDir = resolveOutputDir(taserConfig, cwd);
+              const routesGenPath = join(outputDir, "routes.gen.ts");
+
+              if (!existsSync(routesGenPath)) {
+                await executeGeneration(true);
+              }
+
+              const mod = (await server.ssrLoadModule(routesGenPath)) as Record<string, any>;
+              const app = mod.app ?? mod.default;
+
+              if (!app || typeof app.fetch !== "function") {
+                return next();
+              }
+
+              cachedDevHandler = toNodeHandler((fetchReq: Request) => app.fetch(fetchReq));
+            }
+
+            if (cachedDevHandler) {
+              await cachedDevHandler(req, res);
+            } else {
+              next();
+            }
+          } catch (error) {
+            server.ssrFixStacktrace(error as Error);
+            next(error);
+          }
+        });
       },
     },
 

@@ -3,7 +3,7 @@
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "./dist",
-    "types": ["node", "vitest/globals"]
+    "types": ["node", "vitest/globals", "yargs"]
   },
   "include": ["src", "tests", "tsdown.config.ts", "vitest.config.ts"]
 }

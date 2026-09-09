@@ -104,9 +104,12 @@
   },
   "dependencies": {
     "@taserjs/cli": "workspace:^",
+    "chokidar": "^5.0.0",
+    "srvx": "^1.0.4",
     "unplugin": "^2.3.11"
   },
   "devDependencies": {
+    "create-taserjs": "workspace:*",
     "publint": "^0.3.22",
     "rimraf": "^6.0.1",
     "tsdown": "^0.23.0",

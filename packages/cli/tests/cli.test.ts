@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { run, runCreate, runCreateCommand, runGenerate } from "../src/cli.js";
+import { run, runGenerate } from "../src/cli.js";
 
 describe("cli commands", () => {
   let tempDir: string;
@@ -76,58 +76,5 @@ export default {
     if (watcher) {
       await watcher.close();
     }
-  });
-
-  it("scaffolds a project via 'taser create [dir]'", async () => {
-    const targetDir = join(tempDir, "scaffolded-app");
-    await run(["create", targetDir, "--template", "ts", "--name", "my-custom-app"]);
-
-    expect(existsSync(join(targetDir, "package.json"))).toBe(true);
-    expect(existsSync(join(targetDir, "taserjs.config.ts"))).toBe(true);
-    expect(existsSync(join(targetDir, "src", "routes", "index.get.ts"))).toBe(true);
-    expect(existsSync(join(targetDir, "src", ".taserjs", "routes.gen.ts"))).toBe(true);
-
-    const pkg = JSON.parse(readFileSync(join(targetDir, "package.json"), "utf-8"));
-    expect(pkg.name).toBe("my-custom-app");
-  });
-
-  it("scaffolds a project via runCreateCommand directly", async () => {
-    const targetDir = join(tempDir, "direct-app");
-    await runCreateCommand([targetDir, "--template", "tsx"]);
-
-    expect(existsSync(join(targetDir, "package.json"))).toBe(true);
-    expect(existsSync(join(targetDir, "src", "routes", "index.get.tsx"))).toBe(true);
-    expect(existsSync(join(targetDir, "src", "routes", "$.tsx"))).toBe(true);
-  });
-
-  it("throws error in non-interactive mode if target directory is not empty and --force is omitted", async () => {
-    const targetDir = join(tempDir, "non-empty-app");
-    mkdirSync(targetDir, { recursive: true });
-    writeFileSync(join(targetDir, "existing.txt"), "hello");
-
-    await expect(
-      runCreate({
-        dir: targetDir,
-        force: false,
-        interactive: false,
-      }),
-    ).rejects.toThrow(/not empty/);
-
-    // With force: true it should succeed
-    await expect(
-      runCreate({
-        dir: targetDir,
-        force: true,
-        interactive: false,
-      }),
-    ).resolves.toBeDefined();
-  });
-
-  it("handles --help without error", async () => {
-    await run(["--help"]);
-  });
-
-  it("handles --version without error", async () => {
-    await run(["--version"]);
   });
 });
