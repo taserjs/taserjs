@@ -19,6 +19,7 @@ export function createTaserHeaders(c: Context): TaserHeaders {
 
 export function createTaserRequest(c: Context): TaserRequest {
   let rawQueries: Record<string, string[]> | undefined;
+  // Hono can throw when queries() is called on unmatched or synthetic requests (e.g. notFound)
   try {
     rawQueries = c.req.queries();
   } catch {
@@ -37,6 +38,7 @@ export function createTaserRequest(c: Context): TaserRequest {
   }
 
   let params: Record<string, string> = {};
+  // Hono param() access can fail if no route pattern matched the request URL
   try {
     params = { ...c.req.param() };
   } catch {
@@ -44,6 +46,7 @@ export function createTaserRequest(c: Context): TaserRequest {
   }
 
   let routePath: string | undefined;
+  // routePath is only defined when a route is matched; safe fallback if not present
   try {
     routePath = c.req.routePath;
   } catch {

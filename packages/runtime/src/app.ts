@@ -12,6 +12,7 @@ import type {
   RouteManifest,
   TaserApp,
   TaserAppDefinition,
+  TaserRequest,
 } from "./types.js";
 
 export function createTaserApp(
@@ -34,6 +35,19 @@ export function createTaserApp(
   const customNotFound = options?.notFound;
   const customOnError = options?.onError;
   const bootManager = createBootManager(contextDef);
+
+  async function resolveContext(
+    c: Context,
+    req: TaserRequest,
+  ): Promise<Record<string, unknown>> {
+    const bootData = await bootManager.getBoot();
+    const reqData = contextDef?.request ? await contextDef.request(req) : {};
+    return {
+      ...bootData,
+      ...reqData,
+      context: c,
+    };
+  }
 
   app.onError(async (err: unknown, c: Context) => {
     if (err instanceof ValidationError) {
@@ -59,14 +73,7 @@ export function createTaserApp(
   if (customNotFound) {
     app.notFound(async (c: Context) => {
       const req = createTaserRequest(c);
-      const bootData = await bootManager.getBoot();
-      const reqData = contextDef?.request ? await contextDef.request(req) : {};
-      const ctx: Record<string, unknown> = {
-        ...bootData,
-        ...reqData,
-        context: c,
-      };
-
+      const ctx = await resolveContext(c, req);
       return await customNotFound({ req, ctx });
     });
   }
@@ -96,13 +103,7 @@ export function createTaserApp(
       app.on(method, finalPath, async (c: Context) => {
         try {
           const req = createTaserRequest(c);
-          const bootData = await bootManager.getBoot();
-          const reqData = contextDef?.request ? await contextDef.request(req) : {};
-          const ctx: Record<string, unknown> = {
-            ...bootData,
-            ...reqData,
-            context: c,
-          };
+          const ctx = await resolveContext(c, req);
 
           const res = await pipeline(req, ctx);
           return res;

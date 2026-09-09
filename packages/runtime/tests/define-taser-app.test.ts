@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createContext, defineTaser, t, ValidationError } from "@taserjs/router";
-import { createTaserApp } from "../src/index.js";
+import { createTaserApp, UnsupportedMediaTypeError } from "../src/index.js";
 
 describe("createTaserApp with defineTaser and error boundaries", () => {
   it("mounts routes with basePath and provides context to notFound handler", async () => {
@@ -76,6 +76,13 @@ describe("createTaserApp with defineTaser and error boundaries", () => {
               }),
             },
           },
+          "/unsupported-media-type": {
+            POST: {
+              route: t.post("/unsupported-media-type").handler(async () => {
+                throw new UnsupportedMediaTypeError("Expected application/json");
+              }),
+            },
+          },
           "/thrown-response": {
             GET: {
               route: t.get("/thrown-response").handler(async () => {
@@ -104,14 +111,21 @@ describe("createTaserApp with defineTaser and error boundaries", () => {
     ]);
     expect(onErrorSpy).not.toHaveBeenCalled();
 
-    // 2. Thrown Response -> 403, onError NOT called
+    // 2. UnsupportedMediaTypeError -> 415, onError NOT called
+    const umtRes = await app.request("/unsupported-media-type", { method: "POST" });
+    expect(umtRes.status).toBe(415);
+    const umtBody = await umtRes.json();
+    expect(umtBody.message).toBe("Expected application/json");
+    expect(onErrorSpy).not.toHaveBeenCalled();
+
+    // 3. Thrown Response -> 403, onError NOT called
     const thrownRes = await app.request("/thrown-response");
     expect(thrownRes.status).toBe(403);
     const thrownText = await thrownRes.text();
     expect(thrownText).toBe("Custom Forbidden");
     expect(onErrorSpy).not.toHaveBeenCalled();
 
-    // 3. Unhandled 500 crash -> routes to custom onError
+    // 4. Unhandled 500 crash -> routes to custom onError
     const crashRes = await app.request("/crash");
     expect(crashRes.status).toBe(500);
     const crashBody = await crashRes.json();

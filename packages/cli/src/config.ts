@@ -42,6 +42,30 @@ export const DEFAULT_CONFIG: ResolvedTaserConfig = {
   },
 };
 
+const ABSOLUTE_PATH_REGEX = /^[a-zA-Z]:[/\\]/;
+const LEADING_DOT_SLASH_REGEX = /^\.[/\\]/;
+
+function resolveServerSubPath(
+  serverDir: string,
+  subPath: string,
+  cwd: string,
+): string {
+  if (subPath.startsWith("/") || ABSOLUTE_PATH_REGEX.test(subPath)) {
+    return resolve(subPath);
+  }
+  const cleanServerDir = serverDir.replace(LEADING_DOT_SLASH_REGEX, "");
+  const cleanSubPath = subPath.replace(LEADING_DOT_SLASH_REGEX, "");
+  if (
+    cleanServerDir &&
+    (cleanSubPath === cleanServerDir ||
+      cleanSubPath.startsWith(`${cleanServerDir}/`) ||
+      cleanSubPath.startsWith(`${cleanServerDir}\\`))
+  ) {
+    return resolve(cwd, cleanSubPath);
+  }
+  return resolve(cwd, serverDir, subPath);
+}
+
 export function resolveServerDir(
   config: ResolvedTaserConfig,
   cwd: string = process.cwd(),
@@ -53,60 +77,21 @@ export function resolveRoutesDir(
   config: ResolvedTaserConfig,
   cwd: string = process.cwd(),
 ): string {
-  if (config.routesDir.startsWith("/") || /^[a-zA-Z]:[/\\]/.test(config.routesDir)) {
-    return resolve(config.routesDir);
-  }
-  const cleanServerDir = config.serverDir.replace(/^\.[/\\]/, "");
-  const cleanRoutesDir = config.routesDir.replace(/^\.[/\\]/, "");
-  if (
-    cleanServerDir &&
-    (cleanRoutesDir === cleanServerDir ||
-      cleanRoutesDir.startsWith(`${cleanServerDir}/`) ||
-      cleanRoutesDir.startsWith(`${cleanServerDir}\\`))
-  ) {
-    return resolve(cwd, cleanRoutesDir);
-  }
-  return resolve(cwd, config.serverDir, config.routesDir);
+  return resolveServerSubPath(config.serverDir, config.routesDir, cwd);
 }
 
 export function resolveOutputDir(
   config: ResolvedTaserConfig,
   cwd: string = process.cwd(),
 ): string {
-  if (config.outputDir.startsWith("/") || /^[a-zA-Z]:[/\\]/.test(config.outputDir)) {
-    return resolve(config.outputDir);
-  }
-  const cleanServerDir = config.serverDir.replace(/^\.[/\\]/, "");
-  const cleanOutputDir = config.outputDir.replace(/^\.[/\\]/, "");
-  if (
-    cleanServerDir &&
-    (cleanOutputDir === cleanServerDir ||
-      cleanOutputDir.startsWith(`${cleanServerDir}/`) ||
-      cleanOutputDir.startsWith(`${cleanServerDir}\\`))
-  ) {
-    return resolve(cwd, cleanOutputDir);
-  }
-  return resolve(cwd, config.serverDir, config.outputDir);
+  return resolveServerSubPath(config.serverDir, config.outputDir, cwd);
 }
 
 export function resolveAppFile(
   config: ResolvedTaserConfig,
   cwd: string = process.cwd(),
 ): string {
-  if (config.app.startsWith("/") || /^[a-zA-Z]:[/\\]/.test(config.app)) {
-    return resolve(config.app);
-  }
-  const cleanServerDir = config.serverDir.replace(/^\.[/\\]/, "");
-  const cleanApp = config.app.replace(/^\.[/\\]/, "");
-  if (
-    cleanServerDir &&
-    (cleanApp === cleanServerDir ||
-      cleanApp.startsWith(`${cleanServerDir}/`) ||
-      cleanApp.startsWith(`${cleanServerDir}\\`))
-  ) {
-    return resolve(cwd, cleanApp);
-  }
-  return resolve(cwd, config.serverDir, config.app);
+  return resolveServerSubPath(config.serverDir, config.app, cwd);
 }
 
 export async function loadConfig(
