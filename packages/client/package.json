@@ -42,7 +42,14 @@
     "lint": "oxlint .",
     "prepublishOnly": "pnpm run build"
   },
+  "dependencies": {
+    "@standard-schema/spec": "^1.1.0"
+  },
   "devDependencies": {
+    "@hono/node-server": "^2.1.1",
+    "@taserjs/router": "workspace:*",
+    "@taserjs/runtime": "workspace:*",
+    "@taserjs/utils": "workspace:*",
     "publint": "^0.3.22",
     "rimraf": "^6.0.1",
     "tsdown": "^0.23.0",

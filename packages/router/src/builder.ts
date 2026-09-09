@@ -118,6 +118,10 @@ export class RouteBuilder<
   TBody = unknown,
   TRouteServices = {},
   TRouteState = {},
+  TReturns = undefined,
+  TParamsIn = TParams,
+  TQueryIn = TQuery,
+  TBodyIn = TBody,
 > {
   public readonly middlewares: MiddlewareDefinition<any, any>[] = [];
   public readonly schemas: RouteSchemas = {};
@@ -136,7 +140,11 @@ export class RouteBuilder<
     TQuery,
     TBody,
     TRouteServices & TMwServices,
-    TRouteState & TMwState
+    TRouteState & TMwState,
+    TReturns,
+    TParamsIn,
+    TQueryIn,
+    TBodyIn
   > {
     this.middlewares.push(toMiddlewareDefinition(middleware));
     return this as unknown as RouteBuilder<
@@ -146,7 +154,11 @@ export class RouteBuilder<
       TQuery,
       TBody,
       TRouteServices & TMwServices,
-      TRouteState & TMwState
+      TRouteState & TMwState,
+      TReturns,
+      TParamsIn,
+      TQueryIn,
+      TBodyIn
     >;
   }
 
@@ -159,7 +171,11 @@ export class RouteBuilder<
     TQuery,
     TBody,
     TRouteServices,
-    TRouteState
+    TRouteState,
+    TReturns,
+    StandardSchemaV1.InferInput<TSchema>,
+    TQueryIn,
+    TBodyIn
   > {
     this.schemas.params = schema;
     return this as unknown as RouteBuilder<
@@ -169,7 +185,11 @@ export class RouteBuilder<
       TQuery,
       TBody,
       TRouteServices,
-      TRouteState
+      TRouteState,
+      TReturns,
+      StandardSchemaV1.InferInput<TSchema>,
+      TQueryIn,
+      TBodyIn
     >;
   }
 
@@ -182,7 +202,11 @@ export class RouteBuilder<
     StandardSchemaV1.InferOutput<TSchema>,
     TBody,
     TRouteServices,
-    TRouteState
+    TRouteState,
+    TReturns,
+    TParamsIn,
+    StandardSchemaV1.InferInput<TSchema>,
+    TBodyIn
   > {
     this.schemas.query = schema;
     return this as unknown as RouteBuilder<
@@ -192,7 +216,11 @@ export class RouteBuilder<
       StandardSchemaV1.InferOutput<TSchema>,
       TBody,
       TRouteServices,
-      TRouteState
+      TRouteState,
+      TReturns,
+      TParamsIn,
+      StandardSchemaV1.InferInput<TSchema>,
+      TBodyIn
     >;
   }
 
@@ -206,7 +234,11 @@ export class RouteBuilder<
     TQuery,
     StandardSchemaV1.InferOutput<TSchema>,
     TRouteServices,
-    TRouteState
+    TRouteState,
+    TReturns,
+    TParamsIn,
+    TQueryIn,
+    StandardSchemaV1.InferInput<TSchema>
   > {
     this.schemas.body = { schema, mode };
     return this as unknown as RouteBuilder<
@@ -216,24 +248,65 @@ export class RouteBuilder<
       TQuery,
       StandardSchemaV1.InferOutput<TSchema>,
       TRouteServices,
-      TRouteState
+      TRouteState,
+      TReturns,
+      TParamsIn,
+      TQueryIn,
+      StandardSchemaV1.InferInput<TSchema>
     >;
   }
 
-  returns(map: Record<StatusCode, StandardSchemaV1>): this {
+  returns<const TMap extends Record<StatusCode, StandardSchemaV1>>(
+    map: TMap,
+  ): RouteBuilder<
+    TMethod,
+    TPath,
+    TParams,
+    TQuery,
+    TBody,
+    TRouteServices,
+    TRouteState,
+    TReturns extends Record<StatusCode, StandardSchemaV1> ? TReturns & TMap : TMap,
+    TParamsIn,
+    TQueryIn,
+    TBodyIn
+  > {
     this.schemas.returns = { ...this.schemas.returns, ...map };
-    return this;
+    return this as unknown as RouteBuilder<
+      TMethod,
+      TPath,
+      TParams,
+      TQuery,
+      TBody,
+      TRouteServices,
+      TRouteState,
+      TReturns extends Record<StatusCode, StandardSchemaV1> ? TReturns & TMap : TMap,
+      TParamsIn,
+      TQueryIn,
+      TBodyIn
+    >;
   }
 
-  handler(
+  handler<TReturn extends Response | Promise<Response> = Response | Promise<Response>>(
     fn: RouteHandler<
       TParams,
       TQuery,
       TBody,
       InferRouteServices<TPath, TMethod> & TRouteServices,
-      InferRouteState<TPath, TMethod> & TRouteState
+      InferRouteState<TPath, TMethod> & TRouteState,
+      TReturn
     >,
-  ): RouteDefinition<TPath> {
+  ): RouteDefinition<
+    TPath,
+    TParams,
+    TQuery,
+    TBody,
+    TReturns,
+    TReturn,
+    TParamsIn,
+    TQueryIn,
+    TBodyIn
+  > {
     return {
       kind: "route",
       method: this.method,
@@ -242,7 +315,17 @@ export class RouteBuilder<
       handler: fn as RouteHandler<any, any, any, any, any>,
       schemas: { ...this.schemas },
       returns: this.schemas.returns ? { ...this.schemas.returns } : undefined,
-    };
+    } as unknown as RouteDefinition<
+      TPath,
+      TParams,
+      TQuery,
+      TBody,
+      TReturns,
+      TReturn,
+      TParamsIn,
+      TQueryIn,
+      TBodyIn
+    >;
   }
 }
 

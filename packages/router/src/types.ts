@@ -189,9 +189,10 @@ export type RouteHandler<
   TBody = unknown,
   TServices = {},
   TState = Record<string, unknown>,
+  TReturn extends Response | Promise<Response> = Response | Promise<Response>,
 > = (
   args: RouteHandlerArgs<TParams, TQuery, TBody, TServices, TState>,
-) => Response | Promise<Response>;
+) => TReturn;
 
 export interface NextFunction {
   (state?: Record<string, unknown> | undefined): Promise<Response>;
@@ -235,7 +236,17 @@ export interface LayoutDefinition<TPath extends string = string, TServices = {},
   readonly _state?: TState;
 }
 
-export interface RouteDefinition<TPath extends string = string> {
+export interface RouteDefinition<
+  TPath extends string = string,
+  TParams = any,
+  TQuery = any,
+  TBody = any,
+  TReturns = any,
+  THandlerReturn = any,
+  TParamsIn = TParams,
+  TQueryIn = TQuery,
+  TBodyIn = TBody,
+> {
   readonly kind: "route";
   readonly method: HttpMethod;
   readonly path: TPath;
@@ -243,6 +254,22 @@ export interface RouteDefinition<TPath extends string = string> {
   readonly handler: RouteHandler<any, any, any, any, any>;
   readonly schemas?: RouteSchemas | undefined;
   readonly returns?: Record<StatusCode, StandardSchemaV1> | undefined;
+  readonly $Infer?: {
+    Params: TParams;
+    Query: TQuery;
+    Body: TBody;
+    ParamsIn: TParamsIn;
+    QueryIn: TQueryIn;
+    BodyIn: TBodyIn;
+    Returns: TReturns;
+    HandlerReturn: THandlerReturn;
+    Input: {
+      params: TParamsIn;
+      query: TQueryIn;
+      body: TBodyIn;
+    };
+    Output: TReturns;
+  };
 }
 
 export interface ContextOptions<

@@ -1,4 +1,4 @@
-export { json } from "./json.js";
+export { json, type JsonResponse } from "./json.js";
 export { type BodyMode, unsupportedMediaType, UnsupportedMediaTypeError } from "./media.js";
 export { type ResponseContext, mergeResponseCookies } from "./cookie.js";
 export {
