@@ -3,7 +3,6 @@ export { createTaserApp } from "./app.js";
 export { extractBody } from "./body.js";
 export { createContext, createBootManager } from "./context.js";
 export {
-  isRouteManifestEntry,
   resolveMiddlewares,
   resolveMiddleware,
   normalizeMiddleware,
@@ -15,8 +14,6 @@ export { ValidationError, UnsupportedMediaTypeError } from "@taserjs/utils";
 export type { BootManager } from "./context.js";
 export type {
   ContextDefinition,
-  ContextOptions,
-  CreateTaserAppOptions,
   HeaderKey,
   HttpMethod,
   LayoutDefinition,
@@ -32,6 +29,8 @@ export type {
   RouteManifest,
   RouteManifestEntry,
   TaserApp,
+  TaserAppOptions,
+  TaserDefinition,
   TaserHeaders,
   TaserRequest,
 } from "./types.js";

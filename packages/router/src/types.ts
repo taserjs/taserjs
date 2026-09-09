@@ -77,9 +77,7 @@ export type InferredAppContext = RouterRegister extends { AppContext: infer C }
 
 export type InferAppContext<T> = T extends ContextDefinition<infer TBoot, infer TRequest>
   ? TBoot & TRequest
-  : T extends ContextOptions<infer TBoot, infer TRequest>
-    ? TBoot & TRequest
-    : Record<string, unknown>;
+  : Record<string, unknown>;
 
 export type UnionToIntersection<U> =
   (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never;
@@ -282,7 +280,7 @@ export type OnErrorHandler = (
 
 export interface TaserAppOptions<TContext = Record<string, unknown>> {
   basePath?: string | undefined;
-  context?: ContextOptions | ContextDefinition | undefined;
+  context?: ContextDefinition<any, any> | undefined;
   notFound?: NotFoundHandler<TContext> | undefined;
   onError?: OnErrorHandler | undefined;
 }

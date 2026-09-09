@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isRouteManifestEntry, resolveMiddlewares, resolveMiddleware } from "../src/layout.js";
+import { resolveMiddlewares, resolveMiddleware } from "../src/layout.js";
 import type {
   LayoutDefinition,
   MiddlewareDefinition,
@@ -9,19 +9,6 @@ import type {
 } from "../src/types.js";
 
 describe("Layout resolver (packages/runtime/src/layout.ts)", () => {
-  it("checks route manifest entry shape with isRouteManifestEntry", () => {
-    const route: RouteDefinition = {
-      kind: "route",
-      method: "GET",
-      path: "/test",
-      handler: async () => new Response("ok"),
-    };
-
-    expect(isRouteManifestEntry(route)).toBe(false);
-    expect(isRouteManifestEntry({ route })).toBe(true);
-    expect(isRouteManifestEntry({ route, layouts: ["/*"] })).toBe(true);
-  });
-
   it("resolves cascading layout middlewares and route-level middlewares", () => {
     const mwRoot: MiddlewareHandler = async (_args, next) => next();
     const mwAdmin: MiddlewareHandler = async (_args, next) => next();
@@ -139,7 +126,7 @@ describe("Layout resolver (packages/runtime/src/layout.ts)", () => {
       handler: async () => new Response("ok"),
     };
 
-    const middlewares = resolveMiddlewares(routeDef, { routes: {} });
+    const middlewares = resolveMiddlewares({ route: routeDef }, { routes: {} });
     expect(middlewares).toHaveLength(1);
     expect(typeof middlewares[0]).toBe("function");
 

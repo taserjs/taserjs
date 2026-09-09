@@ -1,7 +1,6 @@
 import type { Hono } from "hono";
 import type {
   ContextDefinition,
-  ContextOptions,
   HeaderKey,
   HttpMethod,
   LayoutDefinition,
@@ -25,7 +24,6 @@ import type {
 
 export type {
   ContextDefinition,
-  ContextOptions,
   HeaderKey,
   HttpMethod,
   LayoutDefinition,
@@ -48,22 +46,13 @@ export type {
 };
 
 export interface RouteManifestEntry {
-  layouts?: readonly (string | LayoutDefinition)[] | undefined;
-  route: RouteDefinition;
+  readonly layouts?: readonly string[] | undefined;
+  readonly route: RouteDefinition;
 }
 
 export interface RouteManifest {
-  layouts?: Record<string, LayoutDefinition> | undefined;
-  routes: Record<string, Record<string, RouteManifestEntry | RouteDefinition>>;
+  readonly layouts?: Record<string, LayoutDefinition> | undefined;
+  readonly routes: Record<string, Record<string, RouteManifestEntry>>;
 }
-
-export interface CreateTaserAppOptions {
-  basePath?: string | undefined;
-  context?: ContextOptions | undefined;
-  notFound?: NotFoundHandler<any> | undefined;
-  onError?: OnErrorHandler | undefined;
-}
-
-export type TaserAppDefinition = TaserDefinition<any> | CreateTaserAppOptions;
 
 export type TaserApp = Hono;

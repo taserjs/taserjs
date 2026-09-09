@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { t } from "@taserjs/router";
+import { createContext, defineTaser, t } from "@taserjs/router";
 import { json } from "@taserjs/utils";
 import { createTaserApp } from "../src/index.js";
 
@@ -303,13 +303,13 @@ describe("Composed Onion Pipeline Integration", () => {
           },
         },
       },
-      {
-        context: {
+      defineTaser().context(
+        createContext({
           boot: async () => {
             throw new Error("Failed to connect to database");
           },
-        },
-      },
+        }),
+      ),
     );
 
     app.onError((err, c) => {

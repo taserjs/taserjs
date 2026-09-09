@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { t } from "@taserjs/router";
+import { defineTaser, t } from "@taserjs/router";
 import { json } from "@taserjs/utils";
 import { createContext, createTaserApp } from "../src/index.js";
 
@@ -40,7 +40,7 @@ describe("createContext & context resolution", () => {
           },
         },
       },
-      { context },
+      defineTaser().context(context),
     );
 
     const res1 = await app.request("/test", {

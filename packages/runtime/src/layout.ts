@@ -2,19 +2,11 @@ import type { Context } from "hono";
 import type { RouteSchemas } from "@taserjs/router";
 import { validateSchemas } from "./pipeline.js";
 import type {
-  LayoutDefinition,
   MiddlewareDefinition,
   MiddlewareHandler,
-  RouteDefinition,
   RouteManifest,
   RouteManifestEntry,
 } from "./types.js";
-
-export function isRouteManifestEntry(
-  value: RouteManifestEntry | RouteDefinition,
-): value is RouteManifestEntry {
-  return typeof value === "object" && value !== null && "route" in value;
-}
 
 export function hasSchemas(schemas?: RouteSchemas | undefined): boolean {
   return Boolean(schemas && (schemas.params || schemas.query || schemas.body));
@@ -37,25 +29,18 @@ export function resolveMiddleware(mw: MiddlewareDefinition): MiddlewareHandler {
 export const normalizeMiddleware = resolveMiddleware;
 
 export function resolveMiddlewares(
-  entryOrRoute: RouteManifestEntry | RouteDefinition,
+  entry: RouteManifestEntry,
   manifest: RouteManifest,
 ): MiddlewareHandler[] {
   const middlewares: MiddlewareHandler[] = [];
-  const entry: RouteManifestEntry = isRouteManifestEntry(entryOrRoute)
-    ? entryOrRoute
-    : { route: entryOrRoute };
 
   if (entry.layouts) {
-    for (const layoutRef of entry.layouts) {
-      const layout: LayoutDefinition | undefined =
-        typeof layoutRef === "string" ? manifest.layouts?.[layoutRef] : layoutRef;
+    for (const layoutId of entry.layouts) {
+      const layout = manifest.layouts?.[layoutId];
+      if (!layout?.middlewares) continue;
 
-      if (!layout) continue;
-
-      if (layout.middlewares) {
-        for (const mw of layout.middlewares) {
-          middlewares.push(resolveMiddleware(mw));
-        }
+      for (const mw of layout.middlewares) {
+        middlewares.push(resolveMiddleware(mw));
       }
     }
   }

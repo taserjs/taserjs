@@ -68,7 +68,7 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     const app = createTaserApp({
       routes: {
         "/users/:id": {
-          GET: route,
+          GET: { route },
         },
       },
     });
@@ -94,7 +94,7 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     const app = createTaserApp({
       routes: {
         "/items": {
-          GET: route,
+          GET: { route },
         },
       },
     });
@@ -120,7 +120,7 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     const app = createTaserApp({
       routes: {
         "/items": {
-          POST: route,
+          POST: { route },
         },
       },
     });
@@ -144,7 +144,7 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     const app = createTaserApp({
       routes: {
         "/users/:id": {
-          GET: route,
+          GET: { route },
         },
       },
     });
@@ -168,7 +168,7 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     const app = createTaserApp({
       routes: {
         "/upload": {
-          POST: route,
+          POST: { route },
         },
       },
     });
@@ -201,7 +201,7 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     const app = createTaserApp({
       routes: {
         "/payment": {
-          POST: route,
+          POST: { route },
         },
       },
     });
@@ -236,7 +236,7 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     const app = createTaserApp({
       routes: {
         "/stepper": {
-          GET: route,
+          GET: { route },
         },
       },
     });
@@ -376,7 +376,7 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     const app = createTaserApp({
       routes: {
         "/protected/:id": {
-          GET: route,
+          GET: { route },
         },
       },
     });
@@ -412,7 +412,7 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     const app = createTaserApp({
       routes: {
         "/upload": {
-          POST: route,
+          POST: { route },
         },
       },
     });
@@ -453,7 +453,7 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     const app = createTaserApp({
       routes: {
         "/raw-text": {
-          POST: route,
+          POST: { route },
         },
       },
     });
@@ -492,7 +492,7 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     const app = createTaserApp({
       routes: {
         "/stream": {
-          POST: route,
+          POST: { route },
         },
       },
     });
@@ -518,7 +518,7 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     const app = createTaserApp({
       routes: {
         "/no-schema": {
-          POST: route,
+          POST: { route },
         },
       },
     });

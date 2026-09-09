@@ -86,7 +86,7 @@ describe("manifest codegen and content-hash caching", () => {
     expect(code).toContain('import { createTaserApp } from "@taserjs/runtime";');
     expect(code).toContain("export const app = createTaserApp(routeManifest);");
     expect(code).toContain("export default app;");
-    expect(code).toContain("export const createApp = (overrideTaser?: any) =>");
+    expect(code).toContain("export const createApp = (overrideTaser?: Parameters<typeof createTaserApp>[1]) =>");
   });
 
   it("handles pathless segment layouts correctly", () => {

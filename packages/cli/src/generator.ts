@@ -180,7 +180,7 @@ export const createApp = (overrideTaser?: typeof taser) =>
   createTaserApp(routeManifest, overrideTaser ?? taser);`
     : `export const app = createTaserApp(routeManifest);
 export default app;
-export const createApp = (overrideTaser?: any) =>
+export const createApp = (overrideTaser?: Parameters<typeof createTaserApp>[1]) =>
   createTaserApp(routeManifest, overrideTaser);`;
 
   const manifestCode = `/// <reference path="./routes.d.ts" />
