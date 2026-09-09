@@ -1,263 +1,93 @@
-# Taser.js Architecture & Codebase Context
-
-## 1. Overview & Purpose
-
-**Taser.js** is a type-safe, file-based routing framework for backend HTTP APIs in TypeScript. It brings the intuitive routing, layout hierarchies, and type inference model of modern frontend routers (like TanStack Router) to backend server runtimes.
-
-### Key Philosophy
-
-- **Deterministic File-Based Routing**: Route endpoints are defined by HTTP verb files (`.get.ts`, `.post.ts`, `.put.ts`, `.delete.ts`, etc.). Layout and middleware definitions are defined hierarchically using non-verb files (e.g. `src/routes/$.ts` or `src/routes/admin.ts`).
-- **Cascading Strongly-Typed Context**: Middleware passes state down the pipeline via `next({ key: value })`, automatically merged and typed on downstream handlers in `ctx.state` with zero runtime overhead and no manual type assertions (`req.user as User`).
-- **Standard Schema First**: Natively supports any validator implementing the `@standard-schema/spec` (Zod, ArkType, Valibot, Typia, etc.).
-- **Compile-Time Return Contracts** (optional): `.returns({ 200: UserSchema, 401: ErrorSchema })` verifies handler returns against schemas at compile time and enables runtime response validation.
-- **Framework & Runtime Agnostic**: Runs standalone on Node.js, Bun, Cloudflare Workers, or mounts directly onto Hono, Express, Fastify, Nitro, and Next.js.
-- **Zero-Drift Typed Client**: `@taserjs/router-client` infers end-to-end types from route handlers automatically; optional `.returns()` schemas override success payload inference when defined.
-
----
-
-## 2. Monorepo Structure
-
-```
-taserjs/
-├── packages/
-│   ├── router/            # Public entry point, standalone builders (t.get, t.layout, t.middleware), types
-│   ├── router-core/       # Runtime onion execution pipeline, context, headers, cookies, layers, Hono adapter
-│   ├── router-utils/      # Standard Schema validation, reply helpers (json, text, html), status codes, manifest helpers
-│   ├── router-generator/  # Route scanner, AST parser, watcher, type generator (.taser/types/routes.d.ts), scaffolder
-│   ├── router-plugin/     # Vite/Next/Nitro adapters + optional bundler plugins (Webpack, Rspack, Rollup, Rolldown, Esbuild)
-│   ├── router-client/     # Lightweight typed RPC client proxy
-│   ├── router-cli/        # Command-line interface (`taser generate` only; dev/build via Vite + taser() plugin)
-│   └── create-taserjs/    # CLI starter template generator
-├── docs/                  # Next.js 16 + Turbopack documentation application
-└── examples/              # Integration examples (basic-app, bun-app, hono-app, manual-app, next-app, start-app)
-```
-
----
-
-## 3. Core Concepts & Architecture
-
-### 3.1 `src/taser.ts` & Ambient AppContext
+# Taser.js Architecture
 
-A Taser.js application initializes a root runtime via `createTaserApp` in `src/taser.ts` and exports it as `default`:
+Type-safe, file-based routing and middleware composition engine backed by Hono.
 
-```ts
-import { createContext, createTaserApp } from "@taserjs/router";
+## Language
 
-export const context = createContext({
-  boot: () => ({ db: new Database() }),
-  request: (req) => ({ requestId: crypto.randomUUID() }),
-});
+**Router**:
+The type-safe builder and composer for routes, schemas, and cascading middlewares.
+_Avoid_: Server, engine, framework
 
-export default createTaserApp({
-  response: { validate: true },
-}).context(context);
-```
+**Runtime**:
+The execution layer that consumes the route manifest, registers handlers and middlewares onto a Hono instance, and wires execution context.
+_Avoid_: Server host, HTTP handler, listener
 
-- When `@taserjs/router-generator` runs, it generates `.taser/types/routes.d.ts` which augments `@taserjs/router`'s split interfaces:
-  ```ts
-  declare module "@taserjs/router" {
-    interface RouterRegister {
-      AppContext: typeof taser.$Infer.Context;
-      RoutePath: RoutePathGen;
-      LayoutId: LayoutIdGen;
-      LayoutTree: LayoutTreeGen;
-    }
+**TaserApp**:
+The configured Hono application instance compiled and returned by `createTaserApp()`.
+_Avoid_: Server instance, express app
 
-    interface RouterMiddlewaresRegister {
-      LayoutMiddlewares: LayoutMiddlewaresGen;
-    }
+**TaserDefinition**:
+The declarative, uninstantiated application configuration created via `defineTaser()` capturing base path, application context, not-found handlers, and error handlers without loading or creating a server instance.
+_Avoid_: App config, server options, app instance
 
-    interface RouterRoutesRegister {
-      RouteByPathMethod: RouteByPathMethodGen;
-    }
-  }
-  ```
-- All route and middleware files import directly from `@taserjs/router` (e.g. `import { t } from "@taserjs/router"`). Builders resolve `AppContext` ambiently from `RouterRegister`, eliminating the need for path aliases (like `#taserjs/router`).
+**Generated Runtime Entry**:
+The generated module emitted at `src/.taserjs/routes.gen.ts` that imports the application definition from `src/taser.ts`, compiles the routing pipeline via `createTaserApp(routeManifest, taser)`, exports the runnable Hono `app`, and augments ambient router types.
+_Avoid_: Virtual entry, bundle output, main entry, routes.d.ts
 
----
+**Request Facet (`req`)**:
+The HTTP-specific input container holding validated params, query, body, headers, and the raw fetch Request.
+_Avoid_: HTTP context, payload, request object
 
-### 3.2 Defining Routes (`t.get`, `t.post`, etc.)
+**Application Context (`ctx`)**:
+Global singletons and long-lived services defined at startup via `createContext()`.
+_Avoid_: App state, global state, singletons
 
-Routes export a builder chain as `default`:
+**Middleware State (`state`)**:
+Request-scoped values accumulated down the directory layout hierarchy via `next({ ... })`.
+_Avoid_: Session data, local state, context
 
-```ts
-import { json, t } from "@taserjs/router";
-import { z } from "zod";
+**Manifest**:
+The static TypeScript file structure emitted by `@taserjs/plugin` into `.taserjs/routes.gen.ts` describing all discovered routes, layouts, and handlers.
+_Avoid_: Virtual module, route registry, routing table, split dts
 
-export default t
-  .get("/users/:id")
-  .params(z.object({ id: z.coerce.number() }))
-  .query(z.object({ includePosts: z.boolean().default(false) }))
-  .returns({ 200: UserSchema, 404: ErrorSchema })
-  .handler(async (ctx) => {
-    // ctx.params.id is number
-    // ctx.query.includePosts is boolean
-    // ctx.db and ctx.requestId come from AppContext
-    // ctx.state comes from layout/route middlewares
-    return json({ id: ctx.params.id, name: "Alice" });
-  });
-```
+**AppManifest**:
+The composite manifest type combining both `RouteManifest` and `LayoutManifest` exported from `routes.gen.ts`, used by `@taserjs/client` to construct type-safe RPC proxies and statically infer route input/output across the entire middleware layout hierarchy.
+_Avoid_: Manifest schema, client types, route table
 
-#### Validation & Body Parsing Semantics
+**Composed Handler**:
+The single composite route handler per endpoint compiled at registration time that executes the onion pipeline (cascading layouts, route schemas, route middleware, and terminal handler) before returning a Web Response to Hono.
+_Avoid_: Route wrapper, Hono callback, route pipeline
 
-- **Path Params**: Inferred as `string` by default unless overridden by `.params(schema)`.
-- **Query Params**: Parsed and validated via `.query(schema)`.
-- **Body Parsing**:
-  - If no `.body()` is declared, request body parsing is **completely skipped** (optimizing hot paths like GET/HEAD).
-  - `.body(schema)` defaults to JSON body parsing.
-  - `.body("form", schema)` or `.body("urlencoded", schema)` enables multipart or URL-encoded form parsing.
+**Provided Service (`next.provide`)**:
+A dynamic helper, service, or client instance (such as `cookies`) injected by upstream middleware into downstream handlers as top-level destructured sibling arguments, distinct from serializable data state.
+_Avoid_: Global plugin, ambient context, middleware state
 
----
+**Hono Adapter (`t.hono`)**:
+The fluent adapter function wrapping native Hono `(c, next) => ...` middleware into Taser-compatible onion layers.
+_Avoid_: honoMw, bridge, compat wrapper
 
-### 3.3 Layout & Middleware System
+**Taser Config (`taserjs.config.ts`)**:
+The dedicated root configuration file defining filesystem routing directories, manifest output paths, formatting, and file extensions for CLI and bundler plugins.
+_Avoid_: vite.config routing options, nitro options, bundler options, taser.config.ts
 
-#### Hierarchical Layouts
+**Hono Context Escape Hatch (`ctx.context`)**:
+The runtime attachment of Hono's native `Context` (`c`) onto `ctx` as `ctx.context`, intentionally omitted from ambient TypeScript definitions so end users remain unaware while library authors can access underlying engine primitives via manual assertion.
+_Avoid_: c, ctx._c, ctx.raw, honoInstance
 
-Non-verb files (e.g. `src/routes/$.ts` for root, `src/routes/admin.ts` for `/admin/*`) define layout middleware chains:
+**Escaped Segment (`[...]`)**:
+A route filename segment wrapped in brackets (such as `[.]` or `[_]`) to treat special routing characters as literal characters in the URL rather than triggering route separators or conventions.
+_Avoid_: literal path, quoted segment
 
-```ts
-import { t } from "@taserjs/router";
-import { text } from "@taserjs/router/reply";
+**Canonical URL Pattern**:
+The standard Hono-compatible path pattern (e.g. `/users/:id`, `/files/*`, `/sitemap.xml`) used as the `path` argument in `t.get()` / `t.post()`, in route manifests, and in HTTP dispatch.
+_Avoid_: filesystem pattern, file path, route key
 
-export default t.layout("/admin").use(async (ctx, next) => {
-  const token = ctx.headers.get("authorization");
-  if (!token) return text("Unauthorized", { status: 401 });
-  return next({ user: { id: "123", role: "admin" } });
-});
-```
+**Filesystem Route Pattern**:
+The OS-compatible file and directory naming convention (e.g. `users/$id.get.ts`, `files/$.get.ts`, `sitemap[.]xml.get.ts`) used on disk to avoid OS filename limitations (such as forbidden `:` characters on Windows). Dynamic parameters use `$param` and splats/wildcards use `$` (e.g. `$.get.ts`).
+_Avoid_: URL pattern, endpoint path, route pattern, [...slug]
 
-#### Strict Phased Route Builder Lifecycle
+**Route File**:
+A source file distinguished by an HTTP verb suffix (`.<verb>.ts` or `.<verb>.tsx`) that defines an HTTP endpoint. It must export default a route definition matching the filename verb (`export default t.<verb>(...)`).
+_Avoid_: endpoint file, handler file, API file
 
-Route definitions enforce a strict phased lifecycle at the type level:
+**Layout File**:
+A source file without an HTTP verb suffix (e.g. `$.ts`, `admin.ts`, `_auth.ts`, `admin/$.ts`) that defines middleware and state wrapping an entire tree segment. It must export default a layout definition (`export default t.layout(...)`).
+_Avoid_: middleware file, wrapper file, layout component
 
-1. **Middleware Phase** (`.use(...)`): Chained together at the start of the route definition.
-2. **Contract / Schema Phase** (`.query()`, `.params()`, `.body()`, `.returns()`): Transitions the builder to a `RouteContractBuilder` where `.use()` is eliminated from autocomplete and type signatures.
-3. **Execution Phase** (`.handler(...)`): The terminal handler function.
+**Layout Scope**:
+The cascading boundary of a layout file, wrapping the entire tree segment including both the segment root endpoint (e.g. `GET /admin`) and all nested child routes (`/admin/*`).
+_Avoid_: directory scope, path prefix boundary
 
-#### Faceted Precondition Requirements (`.requires<{ state?, params?, query?, body? }>()`)
-
-Standalone middlewares declare compile-time preconditions across all 4 request facets:
-
-```ts
-const userParamMw = middleware()
-  .requires<{ params: { userId: string } }>()
-  .handler((ctx, next) => next({ user: ctx.params.userId }));
-```
-
-When attached via `.use(userParamMw)`, TypeScript verifies that the route path (e.g. `/users/:userId`) or upstream layout middleware provides the required facets.
-
-#### Fluent Middleware Units
-
-Standalone middlewares use the fluent `middleware()` builder:
-
-```ts
-import { middleware } from "@taserjs/router";
-import { z } from "zod";
-
-export const validatePagination = middleware().query(
-  z.object({ page: z.coerce.number().default(1), limit: z.coerce.number().default(20) }),
-);
-
-export const authGuard = middleware().handler(async (ctx, next) => {
-  return next({ session: { userId: "xyz" } });
-});
-```
-
-#### Validation-Only Middlewares
-
-Middlewares without handlers (e.g. `middleware().query(...)`) act as pure validation layers. The runtime pipeline automatically skips handler execution and forwards validation results into `ctx.query`, `ctx.params`, or `ctx.body`.
-
-#### Automatic Union State Inference
-
-When a middleware branches with different state payloads:
-
-```ts
-const featureFlag = middleware().handler((ctx, next) => {
-  if (ctx.query.beta === "true") {
-    return next({ betaUser: true as const, tier: "premium" as const });
-  }
-  return next({ betaUser: false as const, tier: "standard" as const });
-});
-```
-
-The state is automatically inferred on downstream route handlers as:
-`{ betaUser: true, tier: "premium" } | { betaUser: false, tier: "standard" }` without requiring manual generic annotations.
-
----
-
-### 3.4 Generated Manifest & Runtime Pipeline (`@taserjs/router-core`)
-
-The generator produces a flattened, type-safe runtime manifest `routeManifest`:
-
-```ts
-export const routeManifest = {
-  layouts: {
-    "/*": RootSplatLayoutImport,
-    "/admin": AdminLayoutImport,
-  },
-  routes: {
-    "/users": {
-      GET: {
-        layouts: ["/*"],
-        route: UsersGetRouteImport,
-      },
-    },
-  },
-} as const;
-```
-
-At runtime, requests flow through an onion middleware pipeline:
-
-1. **Layout Middlewares**: Executed in order of `route.layouts` from shallowest root to deepest nested layout.
-2. **Route Middlewares**: Attached via `.use(...)` on specific routes.
-3. **Route Validation Layer**: Merges validated fields (`query`, `params`, `body`).
-4. **Route Handler**: Produces a `Response`.
-5. **Response Finalization & Contracts**: Validates returned responses if response contracts are configured and handles cookies/headers.
-
----
-
-### 3.5 RPC Client (`@taserjs/router-client`)
-
-The client builds a zero-codegen typed proxy from your server's `RouteManifest` or `typeof app`. Success `json()` types are auto-inferred from handler `ReplyOf` returns by default; optional `.returns({ 200: schema })` overrides inference when present.
-
-```ts
-import { createClient } from "@taserjs/router-client";
-import type { RouteManifest } from "../.taser/types/routes.js";
-
-const client = createClient<RouteManifest>({ baseUrl: "http://localhost:3000" });
-
-const res = await client.users._id.$get({
-  param: { id: "usr_123" },
-  query: { includePosts: true },
-});
-
-if (res.ok) {
-  const data = await res.json(); // Typed from handler or returns[200] schema
-}
-```
-
----
-
-## 4. Key Developer Commands
-
-```bash
-# Run tests across all packages
-pnpm test
-
-# Run typecheck across all packages & examples (21 targets)
-pnpm typecheck
-
-# Build all packages
-pnpm build
-
-# Build documentation site
-pnpm --filter docs build
-```
-
----
-
-## 5. Coding & Contribution Guidelines
-
-- **Zero Type Assertion Principle**: Ensure all API builders and pipelines preserve compile-time inference without requiring user-level type casting.
-- **Fluent API Exclusivity**: Middleware and routes must use the fluent builder API (`middleware().query(...).handler(...)`) or function signature `(ctx, next) => next(...)`. Raw options object literals (`{ query, handler }`) are intentionally disallowed.
-- **Exact Optional Properties**: Codebase compiles with `exactOptionalPropertyTypes: true` — optional properties must explicitly include `| undefined` when applicable.
+**Sibling Layout vs. Nested Layout**:
+A directory-scoped layout defined alongside its directory as `<segment>.ts` (sibling) vs. inside the directory as `<segment>/$.ts` (nested). Both resolve to the same segment layout; defining both for the same segment is a build-stopping collision error.
+_Avoid_: external layout, inner layout

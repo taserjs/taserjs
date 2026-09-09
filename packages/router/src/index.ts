@@ -44,7 +44,6 @@ export type {
   RouterRegister,
   RegisteredRoutePath,
   InferredAppContext,
-  InferAppContext,
   UnionToIntersection,
   SafeIntersect,
   ExtractServicesFromLayout,

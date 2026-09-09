@@ -75,11 +75,6 @@ export type InferredAppContext = RouterRegister extends { AppContext: infer C }
   ? C
   : Record<string, unknown>;
 
-export type InferAppContext<T> =
-  T extends ContextDefinition<infer TBoot, infer TRequest>
-    ? TBoot & TRequest
-    : Record<string, unknown>;
-
 export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   k: infer I,
 ) => void
@@ -281,5 +276,8 @@ export interface TaserAppOptions<TContext = Record<string, unknown>> {
 
 export interface TaserDefinition<TContext = Record<string, unknown>> {
   readonly _context?: TContext;
+  readonly $Infer: {
+    Context: TContext;
+  };
   readonly options: TaserAppOptions<TContext>;
 }

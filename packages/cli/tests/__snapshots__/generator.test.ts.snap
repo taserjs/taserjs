@@ -114,13 +114,7 @@ export type RouteByPathMethod = {
     };
 };
 
-export type AppContext = typeof import("../taser.js").default extends { readonly _context?: infer C }
-  ? [C] extends [never]
-    ? Record<string, unknown>
-    : C extends Record<string, unknown>
-      ? C
-      : Record<string, unknown>
-  : Record<string, unknown>;
+export type AppContext = typeof taser.$Infer.Context;
 
 declare module "@taserjs/router" {
   interface RouterRegister {

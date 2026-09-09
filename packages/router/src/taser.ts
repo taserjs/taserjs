@@ -8,6 +8,9 @@ import type {
 
 export class TaserBuilder<TContext = Record<string, unknown>> implements TaserDefinition<TContext> {
   readonly _context?: TContext;
+  declare readonly $Infer: {
+    Context: TContext;
+  };
   public readonly options: TaserAppOptions<any> = {};
 
   basePath(path: string): this {
