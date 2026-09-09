@@ -50,7 +50,7 @@ function mergeWatchIgnored(current: unknown, ...patterns: string[]): Array<strin
 }
 
 export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefined = {}, meta) => {
-  const cwd = options.cwd ? resolve(options.cwd) : process.cwd();
+  let cwd = options.cwd ? resolve(options.cwd) : process.cwd();
   let cachedConfig: ResolvedTaserConfig | null = null;
 
   async function getConfig(): Promise<ResolvedTaserConfig> {
@@ -116,6 +116,10 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
 
     vite: {
       config(config) {
+        if (!options.cwd && config.root) {
+          cwd = resolve(config.root);
+          cachedConfig = null;
+        }
         config.server = config.server || {};
         config.server.watch = config.server.watch || {};
         config.server.watch.ignored = mergeWatchIgnored(

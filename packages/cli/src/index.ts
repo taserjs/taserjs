@@ -46,4 +46,19 @@ export {
   type GenerateResult,
 } from "./generator.js";
 
-export { runGenerate, run, createCli } from "./cli.js";
+export {
+  scaffoldProject,
+  type ScaffoldOptions,
+  type ScaffoldResult,
+  type TemplateVariant,
+  type PackageVersions,
+} from "./scaffold.js";
+
+export {
+  runGenerate,
+  runCreate,
+  runCreateCommand,
+  run,
+  createCli,
+  type RunCreateOptions,
+} from "./cli.js";
