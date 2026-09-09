@@ -83,10 +83,10 @@ describe("manifest codegen and content-hash caching", () => {
     );
 
     // Check app export fallback when src/taser.ts is omitted
-    expect(code).toContain('import { createTaserApp } from "@taserjs/runtime";');
+    expect(code).toContain('import { createTaserApp, type TaserDefinition } from "@taserjs/runtime";');
     expect(code).toContain("export const app = createTaserApp(routeManifest);");
     expect(code).toContain("export default app;");
-    expect(code).toContain("export const createApp = (overrideTaser?: Parameters<typeof createTaserApp>[1]) =>");
+    expect(code).toContain("export const createApp = (overrideTaser?: TaserDefinition) =>");
   });
 
   it("handles pathless segment layouts correctly", () => {
