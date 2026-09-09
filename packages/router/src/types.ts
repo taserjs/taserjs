@@ -42,32 +42,40 @@ export interface TaserRequest<
   body?: TBody;
 }
 
-export interface RouteHandlerArgs<
+export type RouteHandlerArgs<
   TParams = Record<string, string>,
   TQuery = Record<string, string | string[]>,
   TBody = unknown,
-> {
+  TServices = Record<string, any>,
+> = {
   req: TaserRequest<TParams, TQuery, TBody>;
   ctx: Record<string, unknown>;
   state: Record<string, unknown>;
-}
+} & TServices;
 
 export type RouteHandler<
   TParams = Record<string, string>,
   TQuery = Record<string, string | string[]>,
   TBody = unknown,
-> = (args: RouteHandlerArgs<TParams, TQuery, TBody>) => Response | Promise<Response>;
+  TServices = Record<string, any>,
+> = (args: RouteHandlerArgs<TParams, TQuery, TBody, TServices>) => Response | Promise<Response>;
 
-export type NextFunction = (state?: Record<string, unknown> | undefined) => Promise<Response>;
+export interface NextFunction {
+  (state?: Record<string, unknown> | undefined): Promise<Response>;
+  provide(
+    services: Record<string, unknown>,
+    state?: Record<string, unknown> | undefined,
+  ): Promise<Response>;
+}
 
-export interface MiddlewareArgs {
+export type MiddlewareArgs<TServices = Record<string, any>> = {
   req: TaserRequest;
   ctx: Record<string, unknown>;
   state: Record<string, unknown>;
-}
+} & TServices;
 
-export type MiddlewareHandler = (
-  args: MiddlewareArgs,
+export type MiddlewareHandler<TServices = Record<string, any>> = (
+  args: MiddlewareArgs<TServices>,
   next: NextFunction,
 ) => Response | Promise<Response>;
 

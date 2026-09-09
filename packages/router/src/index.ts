@@ -7,6 +7,7 @@ export {
   middleware,
   toMiddlewareDefinition,
 } from "./builder.js";
+export { hono } from "./hono.js";
 export { createContext } from "./context.js";
 export {
   ValidationError,

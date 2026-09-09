@@ -28,6 +28,16 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./cookie": {
+      "import": {
+        "types": "./dist/cookie.d.ts",
+        "default": "./dist/cookie.js"
+      },
+      "require": {
+        "types": "./dist/cookie.d.cts",
+        "default": "./dist/cookie.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {

@@ -186,4 +186,79 @@ describe("createPipeline (onion execution pipeline)", () => {
       "next() called multiple times",
     );
   });
+
+  it("injects services via next.provide as top-level destructured siblings", async () => {
+    let capturedArgs: Record<string, unknown> = {};
+
+    const mw1: MiddlewareHandler = async (_args, next) => {
+      return next.provide({ myService: { name: "service-1" } });
+    };
+
+    const handler = async (args: {
+      req: TaserRequest;
+      ctx: Record<string, unknown>;
+      state: Record<string, unknown>;
+      myService?: { name: string };
+    }) => {
+      capturedArgs = args;
+      return new Response("ok");
+    };
+
+    const pipeline = createPipeline([mw1], handler as any);
+    await pipeline(createDummyRequest(), {});
+
+    expect(capturedArgs.myService).toEqual({ name: "service-1" });
+    expect(capturedArgs.req).toBeDefined();
+    expect(capturedArgs.ctx).toBeDefined();
+    expect(capturedArgs.state).toEqual({});
+  });
+
+  it("cascades provided services across middleware layers and preserves existing state", async () => {
+    let capturedChildMwServices: unknown;
+    let capturedHandlerArgs: Record<string, unknown> = {};
+
+    const mw1: MiddlewareHandler = async (_args, next) => {
+      return next.provide({ serviceA: "alpha" }, { user: "alice" });
+    };
+
+    const mw2: MiddlewareHandler = async (args, next) => {
+      capturedChildMwServices = args.serviceA;
+      return next.provide({ serviceB: "beta" });
+    };
+
+    const handler = async (args: any) => {
+      capturedHandlerArgs = args;
+      return new Response("ok");
+    };
+
+    const pipeline = createPipeline([mw1, mw2], handler);
+    await pipeline(createDummyRequest(), {});
+
+    expect(capturedChildMwServices).toBe("alpha");
+    expect(capturedHandlerArgs.serviceA).toBe("alpha");
+    expect(capturedHandlerArgs.serviceB).toBe("beta");
+    expect(capturedHandlerArgs.state).toEqual({ user: "alice" });
+  });
+
+  it("throws if next.provide is called multiple times or mixed with next()", async () => {
+    const faultyMw1: MiddlewareHandler = async (_args, next) => {
+      await next.provide({ s: 1 });
+      return await next.provide({ s: 2 });
+    };
+
+    const faultyMw2: MiddlewareHandler = async (_args, next) => {
+      await next();
+      return await next.provide({ s: 1 });
+    };
+
+    const pipeline1 = createPipeline([faultyMw1], async () => new Response("ok"));
+    await expect(pipeline1(createDummyRequest(), {})).rejects.toThrow(
+      "next() called multiple times",
+    );
+
+    const pipeline2 = createPipeline([faultyMw2], async () => new Response("ok"));
+    await expect(pipeline2(createDummyRequest(), {})).rejects.toThrow(
+      "next() called multiple times",
+    );
+  });
 });

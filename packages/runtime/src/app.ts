@@ -58,7 +58,24 @@ export function createTaserApp(manifest: RouteManifest, options?: CreateTaserApp
           context: c,
         };
 
-        return await pipeline(req, ctx);
+        const res = await pipeline(req, ctx);
+
+        // Accessing c.res forces materialization of Hono's #preparedHeaders into #res
+        void c.res;
+        const resCookies = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
+        const cCookies = typeof c.res?.headers?.getSetCookie === "function" ? c.res.headers.getSetCookie() : [];
+        const allCookies = Array.from(new Set([...resCookies, ...cCookies]));
+
+        c.res = res;
+
+        if (allCookies.length > 0) {
+          c.res.headers.delete("set-cookie");
+          for (const cookieStr of allCookies) {
+            c.res.headers.append("set-cookie", cookieStr);
+          }
+        }
+
+        return c.res;
       });
     }
   }

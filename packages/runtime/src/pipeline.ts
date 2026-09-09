@@ -48,26 +48,55 @@ export function createPipeline(
     ctx: Record<string, unknown>,
   ): Promise<Response> {
     let currentState: Record<string, unknown> = {};
+    let currentServices: Record<string, unknown> = {};
     const honoContext = ctx.context as Context | undefined;
 
-    async function dispatch(index: number, state: Record<string, unknown>): Promise<Response> {
+    async function dispatch(
+      index: number,
+      state: Record<string, unknown>,
+      services: Record<string, unknown>,
+    ): Promise<Response> {
       currentState = state;
+      currentServices = services;
 
       if (index < middlewares.length) {
         const middleware = middlewares[index]!;
         let called = false;
 
-        const next: NextFunction = async (nextState?: Record<string, unknown> | undefined) => {
+        const nextFn = async (nextState?: Record<string, unknown> | undefined) => {
           if (called) {
             throw new Error("next() called multiple times");
           }
           called = true;
 
           const mergedState = nextState ? { ...currentState, ...nextState } : currentState;
-          return await dispatch(index + 1, mergedState);
+          return await dispatch(index + 1, mergedState, currentServices);
         };
 
-        const res = await middleware({ req, ctx, state: currentState }, next);
+        const provide = async (
+          providedServices: Record<string, unknown>,
+          nextState?: Record<string, unknown> | undefined,
+        ) => {
+          if (called) {
+            throw new Error("next() called multiple times");
+          }
+          called = true;
+
+          const mergedServices = { ...currentServices, ...providedServices };
+          const mergedState = nextState ? { ...currentState, ...nextState } : currentState;
+          return await dispatch(index + 1, mergedState, mergedServices);
+        };
+
+        const next = Object.assign(nextFn, { provide }) as NextFunction;
+
+        const middlewareArgs = {
+          req,
+          ctx,
+          state: currentState,
+          ...currentServices,
+        };
+
+        const res = await middleware(middlewareArgs as any, next);
         if (!(res instanceof Response)) {
           throw new TypeError(
             `Middleware at index ${index} must return a Response, received: ${typeof res}`,
@@ -81,13 +110,32 @@ export function createPipeline(
         await validateSchemas(routeSchemas, req, honoContext);
       }
 
-      const res = await terminalHandler({ req, ctx, state: currentState });
+      const handlerArgs = {
+        req,
+        ctx,
+        state: currentState,
+        ...currentServices,
+      };
+
+      const res = await terminalHandler(handlerArgs as any);
       if (!(res instanceof Response)) {
         throw new TypeError(`Route handler must return a Response, received: ${typeof res}`);
       }
       return res;
     }
 
-    return await dispatch(0, {});
+    const finalRes = await dispatch(0, {}, {});
+
+    let res = finalRes;
+    for (const service of Object.values(currentServices)) {
+      if (
+        service &&
+        typeof (service as { flush?: (r: Response) => Response }).flush === "function"
+      ) {
+        res = (service as { flush: (r: Response) => Response }).flush(res);
+      }
+    }
+
+    return res;
   };
 }

@@ -1,4 +1,5 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
+import { hono } from "./hono.js";
 import type {
   BodyMode,
   HttpMethod,
@@ -162,4 +163,5 @@ export const t = {
   patch: <TPath extends string>(path: TPath) => new RouteBuilder("PATCH", path),
   layout: <TPath extends string = string>(path?: TPath | undefined) => new LayoutBuilder(path),
   middleware,
+  hono,
 };
