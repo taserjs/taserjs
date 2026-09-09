@@ -25,7 +25,26 @@ describe("cli config loader", () => {
     } catch {}
   });
 
-  it("defineConfig returns the configuration object", () => {
+  it("defineConfig returns defaults for routesDir, outputDir, extensions, and formatting when empty", () => {
+    const config = defineConfig();
+    expect(config.routesDir).toBe("routes");
+    expect(config.outputDir).toBe(".taserjs");
+    expect(config.extensions).toEqual(["ts", "tsx"]);
+    expect(config.formatting).toEqual({ quotes: "double" });
+  });
+
+  it("defineConfig merges user options with defaults", () => {
+    const config = defineConfig({
+      routesDir: "api",
+      formatting: { quotes: "single" },
+    });
+    expect(config.routesDir).toBe("api");
+    expect(config.outputDir).toBe(".taserjs");
+    expect(config.extensions).toEqual(["ts", "tsx"]);
+    expect(config.formatting).toEqual({ quotes: "single" });
+  });
+
+  it("defineConfig returns the configuration object when all options are specified", () => {
     const config = defineConfig({
       serverDir: "src",
       routesDir: "routes",
@@ -76,6 +95,50 @@ export default {
     expect(loaded.app).toBe("app.ts");
     expect(loaded.formatting.quotes).toBe("single");
     expect(loaded.configFile).toBe(join(tempDir, "taserjs.config.ts"));
+  });
+
+  it("loads taserjs.config.mjs when present", async () => {
+    const configContent = `
+export default {
+  routesDir: "mjs-routes",
+  outputDir: ".taser-mjs",
+};
+`;
+    writeFileSync(join(tempDir, "taserjs.config.mjs"), configContent, "utf-8");
+
+    const loaded = await loadConfig(tempDir);
+    expect(loaded.routesDir).toBe("mjs-routes");
+    expect(loaded.outputDir).toBe(".taser-mjs");
+    expect(loaded.serverDir).toBe("src"); // fallback
+    expect(loaded.configFile).toBe(join(tempDir, "taserjs.config.mjs"));
+  });
+
+  it("loads taserjs.config.cjs with module.exports", async () => {
+    const configContent = `
+module.exports = {
+  routesDir: "cjs-routes",
+};
+`;
+    writeFileSync(join(tempDir, "taserjs.config.cjs"), configContent, "utf-8");
+
+    const loaded = await loadConfig(tempDir);
+    expect(loaded.routesDir).toBe("cjs-routes");
+    expect(loaded.outputDir).toBe(".taserjs");
+    expect(loaded.configFile).toBe(join(tempDir, "taserjs.config.cjs"));
+  });
+
+  it("supports config exported as a function or async function", async () => {
+    const configContent = `
+export default async () => ({
+  routesDir: "async-routes",
+  formatting: { quotes: "single" },
+});
+`;
+    writeFileSync(join(tempDir, "taserjs.config.ts"), configContent, "utf-8");
+
+    const loaded = await loadConfig(tempDir);
+    expect(loaded.routesDir).toBe("async-routes");
+    expect(loaded.formatting.quotes).toBe("single");
   });
 
   it("resolves paths relative to workspace root using serverDir", () => {

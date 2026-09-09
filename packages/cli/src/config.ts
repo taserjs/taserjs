@@ -15,6 +15,9 @@ export interface TaserConfig {
   formatting?: TaserFormattingConfig | undefined;
 }
 
+export type TaserConfigFn = () => TaserConfig | Promise<TaserConfig>;
+export type TaserConfigExport = TaserConfig | TaserConfigFn;
+
 export interface ResolvedTaserConfig {
   serverDir: string;
   routesDir: string;
@@ -25,10 +28,6 @@ export interface ResolvedTaserConfig {
     quotes: "single" | "double";
   };
   configFile?: string | undefined;
-}
-
-export function defineConfig(config: TaserConfig): TaserConfig {
-  return config;
 }
 
 export const DEFAULT_CONFIG: ResolvedTaserConfig = {
@@ -42,14 +41,22 @@ export const DEFAULT_CONFIG: ResolvedTaserConfig = {
   },
 };
 
+export function defineConfig(config: TaserConfig = {}): TaserConfig {
+  return {
+    routesDir: config.routesDir ?? DEFAULT_CONFIG.routesDir,
+    outputDir: config.outputDir ?? DEFAULT_CONFIG.outputDir,
+    extensions: config.extensions ? [...config.extensions] : [...DEFAULT_CONFIG.extensions],
+    ...config,
+    formatting: {
+      quotes: config.formatting?.quotes ?? DEFAULT_CONFIG.formatting.quotes,
+    },
+  };
+}
+
 const ABSOLUTE_PATH_REGEX = /^[a-zA-Z]:[/\\]/;
 const LEADING_DOT_SLASH_REGEX = /^\.[/\\]/;
 
-function resolveServerSubPath(
-  serverDir: string,
-  subPath: string,
-  cwd: string,
-): string {
+function resolveServerSubPath(serverDir: string, subPath: string, cwd: string): string {
   if (subPath.startsWith("/") || ABSOLUTE_PATH_REGEX.test(subPath)) {
     return resolve(subPath);
   }
@@ -66,31 +73,19 @@ function resolveServerSubPath(
   return resolve(cwd, serverDir, subPath);
 }
 
-export function resolveServerDir(
-  config: ResolvedTaserConfig,
-  cwd: string = process.cwd(),
-): string {
+export function resolveServerDir(config: ResolvedTaserConfig, cwd: string = process.cwd()): string {
   return resolve(cwd, config.serverDir);
 }
 
-export function resolveRoutesDir(
-  config: ResolvedTaserConfig,
-  cwd: string = process.cwd(),
-): string {
+export function resolveRoutesDir(config: ResolvedTaserConfig, cwd: string = process.cwd()): string {
   return resolveServerSubPath(config.serverDir, config.routesDir, cwd);
 }
 
-export function resolveOutputDir(
-  config: ResolvedTaserConfig,
-  cwd: string = process.cwd(),
-): string {
+export function resolveOutputDir(config: ResolvedTaserConfig, cwd: string = process.cwd()): string {
   return resolveServerSubPath(config.serverDir, config.outputDir, cwd);
 }
 
-export function resolveAppFile(
-  config: ResolvedTaserConfig,
-  cwd: string = process.cwd(),
-): string {
+export function resolveAppFile(config: ResolvedTaserConfig, cwd: string = process.cwd()): string {
   return resolveServerSubPath(config.serverDir, config.app, cwd);
 }
 
@@ -131,13 +126,23 @@ export async function loadConfig(
   try {
     const jiti = createJiti(cwd, { interopDefault: true });
     const loaded = (await jiti.import(configFilePath, { default: true })) as
-      | TaserConfig
-      | { default?: TaserConfig };
+      | TaserConfigExport
+      | { default?: TaserConfigExport };
 
-    const rawConfig: TaserConfig =
-      loaded && typeof loaded === "object" && "default" in loaded && loaded.default
-        ? (loaded.default as TaserConfig)
-        : (loaded as TaserConfig) || {};
+    let rawConfig: any =
+      loaded &&
+      typeof loaded === "object" &&
+      "default" in loaded &&
+      (loaded as any).default !== undefined
+        ? (loaded as any).default
+        : loaded;
+
+    if (typeof rawConfig === "function") {
+      rawConfig = await rawConfig();
+    }
+    if (!rawConfig || typeof rawConfig !== "object") {
+      rawConfig = {};
+    }
 
     return {
       serverDir: rawConfig.serverDir ?? DEFAULT_CONFIG.serverDir,

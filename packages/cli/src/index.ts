@@ -9,6 +9,8 @@ export {
   resolveOutputDir,
   resolveAppFile,
   type TaserConfig,
+  type TaserConfigFn,
+  type TaserConfigExport,
   type ResolvedTaserConfig,
   type TaserFormattingConfig,
 } from "./config.js";
