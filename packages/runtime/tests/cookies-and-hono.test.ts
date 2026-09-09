@@ -65,7 +65,7 @@ describe("Dynamic Services, Cookie Middleware, and t.hono Adapter Integration", 
   it("cookie middleware buffers set and delete operations and emits Set-Cookie headers on response", async () => {
     const rootLayout = t.layout("/*").use(cookie());
 
-    const loginRoute = t.post("/auth/login").handler(async ({ req, cookies }: any) => {
+    const loginRoute = t.post("/auth/login").handler(async ({ cookies }) => {
       const incomingSession = cookies.get("old_session");
       cookies.set("session_id", "secret_token_123", {
         httpOnly: true,
@@ -108,7 +108,14 @@ describe("Dynamic Services, Cookie Middleware, and t.hono Adapter Integration", 
 
     const loginCookies = loginRes.headers.getSetCookie();
     expect(loginCookies.length).toBe(2);
-    expect(loginCookies.some((c) => c.includes("session_id=secret_token_123") && c.includes("HttpOnly") && c.includes("Secure"))).toBe(true);
+    expect(
+      loginCookies.some(
+        (c) =>
+          c.includes("session_id=secret_token_123") &&
+          c.includes("HttpOnly") &&
+          c.includes("Secure"),
+      ),
+    ).toBe(true);
     expect(loginCookies.some((c) => c.includes("theme=dark"))).toBe(true);
 
     // Test logout with cookie deletion
@@ -132,7 +139,7 @@ describe("Dynamic Services, Cookie Middleware, and t.hono Adapter Integration", 
         origin: "https://taser.dev",
         allowMethods: ["GET", "POST"],
         allowHeaders: ["Content-Type", "Authorization"],
-      })
+      }),
     );
 
     const authHonoMw = t.hono(async (c, next) => {
@@ -197,7 +204,7 @@ describe("Dynamic Services, Cookie Middleware, and t.hono Adapter Integration", 
         t.hono(async (c, next) => {
           setCookie(c, "hono_cookie", "from_hono_mw", { path: "/" });
           await next();
-        })
+        }),
       )
       .use(cookie());
 
@@ -227,5 +234,47 @@ describe("Dynamic Services, Cookie Middleware, and t.hono Adapter Integration", 
     expect(cookies.length).toBe(2);
     expect(cookies.some((c) => c.includes("hono_cookie=from_hono_mw"))).toBe(true);
     expect(cookies.some((c) => c.includes("taser_cookie=from_taser_jar"))).toBe(true);
+  });
+
+  it("isolates cookie management to the subtree where cookie middleware is mounted without polluting siblings", async () => {
+    const authLayout = t.layout("/auth/*").use(cookie());
+
+    const authLoginRoute = t.post("/auth/login").handler(async ({ cookies }: any) => {
+      cookies.set("token", "auth_token_xyz", { path: "/auth" });
+      return json({ loggedIn: true });
+    });
+
+    const apiRoute = t.get("/api/data").handler(async () => {
+      return json(
+        { data: 123 },
+        {
+          headers: { "X-Custom-Api": "true" },
+        },
+      );
+    });
+
+    const app = createTaserApp({
+      layouts: {
+        "/auth/*": authLayout,
+      },
+      routes: {
+        "/auth/login": {
+          POST: { layouts: ["/auth/*"], route: authLoginRoute },
+        },
+        "/api/data": {
+          GET: { route: apiRoute },
+        },
+      },
+    });
+
+    const authRes = await app.request("/auth/login", { method: "POST" });
+    expect(authRes.status).toBe(200);
+    expect(authRes.headers.getSetCookie()).toEqual(["token=auth_token_xyz; Path=/auth"]);
+
+    const apiRes = await app.request("/api/data");
+    expect(apiRes.status).toBe(200);
+    expect(apiRes.headers.getSetCookie()).toEqual([]);
+    expect(apiRes.headers.get("X-Custom-Api")).toBe("true");
+    expect(await apiRes.json()).toEqual({ data: 123 });
   });
 });

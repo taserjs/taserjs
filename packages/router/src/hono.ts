@@ -1,5 +1,6 @@
 import { Context } from "hono";
 import type { MiddlewareHandler as HonoMiddlewareHandler, Next as HonoNext } from "hono";
+import { mergeResponseCookies } from "@taserjs/utils";
 import type { MiddlewareDefinition } from "./types.js";
 
 export function hono(honoMw: HonoMiddlewareHandler): MiddlewareDefinition {
@@ -19,27 +20,8 @@ export function hono(honoMw: HonoMiddlewareHandler): MiddlewareDefinition {
         nextCalled = true;
         // Access c.res before next() to ensure #preparedHeaders are materialized into #res
         void c.res;
-        const cPreCookies =
-          typeof c.res?.headers?.getSetCookie === "function"
-            ? c.res.headers.getSetCookie()
-            : [];
-
         downstreamResponse = await next();
-
-        const downCookies =
-          typeof downstreamResponse.headers?.getSetCookie === "function"
-            ? downstreamResponse.headers.getSetCookie()
-            : [];
-        const combinedCookies = Array.from(new Set([...cPreCookies, ...downCookies]));
-
-        c.res = downstreamResponse;
-
-        if (combinedCookies.length > 0) {
-          c.res.headers.delete("set-cookie");
-          for (const cookieStr of combinedCookies) {
-            c.res.headers.append("set-cookie", cookieStr);
-          }
-        }
+        mergeResponseCookies(c, downstreamResponse);
       };
 
       const result = await honoMw(c, honoNext);

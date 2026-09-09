@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Context } from "hono";
 import { cors } from "hono/cors";
-import { t, hono } from "../src/index.js";
+import { t } from "../src/index.js";
 import type { TaserRequest } from "../src/index.js";
 
 function createDummyRequest(url = "http://localhost/test", method = "GET"): TaserRequest {
@@ -35,7 +35,10 @@ describe("t.hono adapter", () => {
     expect(layout.middlewares).toHaveLength(1);
     expect(layout.middlewares[0]!.kind).toBe("middleware");
 
-    const route = t.get("/api/test").use(honoMw).handler(async () => new Response("ok"));
+    const route = t
+      .get("/api/test")
+      .use(honoMw)
+      .handler(async () => new Response("ok"));
     expect(route.middlewares).toHaveLength(1);
   });
 
@@ -59,7 +62,7 @@ describe("t.hono adapter", () => {
         order.push("downstream");
         return new Response("downstream-body", { status: 200, headers: { "X-Downstream": "yes" } });
       },
-      { provide: async () => new Response("ok") }
+      { provide: async () => new Response("ok") },
     );
 
     const res = await mw.handler({ req, ctx, state: {} }, nextFn as any);
@@ -88,7 +91,7 @@ describe("t.hono adapter", () => {
         downstreamCalled = true;
         return new Response("ok");
       },
-      { provide: async () => new Response("ok") }
+      { provide: async () => new Response("ok") },
     );
 
     const res = await mw.handler({ req, ctx, state: {} }, nextFn as any);
@@ -118,11 +121,11 @@ describe("t.hono adapter", () => {
       async () => {
         throw new Error("downstream explosion");
       },
-      { provide: async () => new Response("ok") }
+      { provide: async () => new Response("ok") },
     );
 
     await expect(mw.handler({ req, ctx, state: {} }, nextFn as any)).rejects.toThrow(
-      "downstream explosion"
+      "downstream explosion",
     );
     expect(caughtInHono).toBe(true);
   });
@@ -148,12 +151,12 @@ describe("t.hono adapter", () => {
         preflightDownstreamCalled = true;
         return new Response("ok");
       },
-      { provide: async () => new Response("ok") }
+      { provide: async () => new Response("ok") },
     );
 
     const preflightRes = await corsMw.handler(
       { req: preflightReq, ctx: preflightCtx, state: {} },
-      preflightNext as any
+      preflightNext as any,
     );
 
     expect(preflightDownstreamCalled).toBe(false);
@@ -170,17 +173,15 @@ describe("t.hono adapter", () => {
     const getCtx = { context: getC };
 
     const getNext = Object.assign(
-      async () => new Response(JSON.stringify({ ok: true }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-      { provide: async () => new Response("ok") }
+      async () =>
+        new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      { provide: async () => new Response("ok") },
     );
 
-    const getRes = await corsMw.handler(
-      { req: getReq, ctx: getCtx, state: {} },
-      getNext as any
-    );
+    const getRes = await corsMw.handler({ req: getReq, ctx: getCtx, state: {} }, getNext as any);
 
     expect(getRes.status).toBe(200);
     expect(getRes.headers.get("Access-Control-Allow-Origin")).toBe("https://example.com");

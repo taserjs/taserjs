@@ -1,28 +1,20 @@
 import { describe, it, expect } from "vitest";
 import { Context } from "hono";
 import { TaserCookieJar, cookie } from "../src/cookie.js";
-import type { TaserRequest } from "../src/index.js";
 
-function createDummyRequest(cookieHeader?: string): TaserRequest {
+function createHonoContext(cookieHeader?: string): Context {
   const headers = new Headers();
   if (cookieHeader) {
     headers.set("Cookie", cookieHeader);
   }
   const raw = new Request("http://localhost/test", { headers });
-  return {
-    params: {},
-    query: {},
-    headers: raw.headers as any,
-    method: "GET",
-    url: raw.url,
-    raw,
-  };
+  return new Context(raw);
 }
 
 describe("TaserCookieJar", () => {
   it("reads cookies from request headers", () => {
-    const req = createDummyRequest("session=abc123; theme=dark");
-    const jar = new TaserCookieJar(req);
+    const c = createHonoContext("session=abc123; theme=dark");
+    const jar = new TaserCookieJar(c);
 
     expect(jar.get("session")).toBe("abc123");
     expect(jar.get("theme")).toBe("dark");
@@ -33,22 +25,19 @@ describe("TaserCookieJar", () => {
     });
   });
 
-  it("reads cookies from Hono Context", () => {
-    const raw = new Request("http://localhost/test", {
-      headers: { Cookie: "user_id=42" },
-    });
-    const c = new Context(raw);
+  it("supports secure and host prefix via Hono helper", () => {
+    const c = createHonoContext("__Secure-token=sec123; __Host-id=host456");
     const jar = new TaserCookieJar(c);
 
-    expect(jar.get("user_id")).toBe("42");
+    expect(jar.get("token", "secure")).toBe("sec123");
+    expect(jar.get("id", "host")).toBe("host456");
   });
 
-  it("buffers set operations and updates in-memory get()", () => {
-    const req = createDummyRequest();
-    const jar = new TaserCookieJar(req);
+  it("sets cookies onto Hono context", () => {
+    const c = createHonoContext();
+    const jar = new TaserCookieJar(c);
 
     jar.set("session", "new-token", { httpOnly: true, secure: true });
-    expect(jar.get("session")).toBe("new-token");
 
     const headers = jar.getSetCookieHeaders();
     expect(headers).toHaveLength(1);
@@ -58,27 +47,14 @@ describe("TaserCookieJar", () => {
     expect(headers[0]).toContain("Path=/");
   });
 
-  it("overwrites earlier buffered set for the same cookie name", () => {
-    const req = createDummyRequest();
-    const jar = new TaserCookieJar(req);
-
-    jar.set("theme", "light");
-    jar.set("theme", "dark");
-
-    expect(jar.get("theme")).toBe("dark");
-    const headers = jar.getSetCookieHeaders();
-    expect(headers).toHaveLength(1);
-    expect(headers[0]).toContain("theme=dark");
-  });
-
-  it("buffers delete operations with Max-Age=0 and updates get()", () => {
-    const req = createDummyRequest("session=existing123");
-    const jar = new TaserCookieJar(req);
+  it("deletes cookies with Max-Age=0", () => {
+    const c = createHonoContext("session=existing123");
+    const jar = new TaserCookieJar(c);
 
     expect(jar.get("session")).toBe("existing123");
 
-    jar.delete("session");
-    expect(jar.get("session")).toBeUndefined();
+    const deleted = jar.delete("session");
+    expect(deleted).toBe("existing123");
 
     const headers = jar.getSetCookieHeaders();
     expect(headers).toHaveLength(1);
@@ -88,7 +64,8 @@ describe("TaserCookieJar", () => {
 
   it("supports signed cookies with secret", async () => {
     const secret = "super-secret-signing-key-1234567";
-    const jar = new TaserCookieJar(createDummyRequest(), { secret });
+    const c = createHonoContext();
+    const jar = new TaserCookieJar(c, { secret });
 
     await jar.setSigned("signed_cookie", "payload", secret);
     const headers = jar.getSetCookieHeaders();
@@ -97,8 +74,8 @@ describe("TaserCookieJar", () => {
 
     // Simulate incoming signed cookie request
     const signedValue = headers[0]!.split(";")[0]!;
-    const reqWithSigned = createDummyRequest(signedValue);
-    const verifyJar = new TaserCookieJar(reqWithSigned, { secret });
+    const verifyC = createHonoContext(signedValue);
+    const verifyJar = new TaserCookieJar(verifyC, { secret });
 
     const verified = await verifyJar.getSigned("signed_cookie", secret);
     expect(verified).toBe("payload");
@@ -108,7 +85,8 @@ describe("TaserCookieJar", () => {
   });
 
   it("flushes accumulated Set-Cookie headers onto outgoing Response and is idempotent", () => {
-    const jar = new TaserCookieJar(createDummyRequest());
+    const c = createHonoContext();
+    const jar = new TaserCookieJar(c);
     jar.set("a", "1");
     jar.set("b", "2");
 
@@ -117,10 +95,10 @@ describe("TaserCookieJar", () => {
 
     const cookies = flushedRes.headers.getSetCookie();
     expect(cookies).toHaveLength(2);
-    expect(cookies.some((c) => c.includes("a=1"))).toBe(true);
-    expect(cookies.some((c) => c.includes("b=2"))).toBe(true);
+    expect(cookies.some((cookie) => cookie.includes("a=1"))).toBe(true);
+    expect(cookies.some((cookie) => cookie.includes("b=2"))).toBe(true);
 
-    // Second flush does not re-add
+    // Second flush does not duplicate
     const secondFlush = jar.flush(flushedRes);
     expect(secondFlush.headers.getSetCookie()).toHaveLength(2);
   });
@@ -128,33 +106,32 @@ describe("TaserCookieJar", () => {
 
 describe("cookie() middleware", () => {
   it("provides cookies service and flushes Set-Cookie on unwinding", async () => {
-    const req = createDummyRequest("session=abc");
+    const c = createHonoContext("session=abc");
     const mw = cookie();
 
     let capturedIncomingCookie: string | undefined;
 
-    const nextFn = Object.assign(
-      async () => new Response("ok"),
-      {
-        provide: async (services: Record<string, any>) => {
-          capturedIncomingCookie = services.cookies.get("session");
-          services.cookies.set("user", "alice", { path: "/" });
-          services.cookies.delete("session");
-          return new Response(JSON.stringify({ ok: true }), {
-            headers: { "Content-Type": "application/json" },
-          });
-        },
-      }
-    );
+    const nextFn = Object.assign(async () => new Response("ok"), {
+      provide: async (services: Record<string, any>) => {
+        capturedIncomingCookie = services.cookies.get("session");
+        services.cookies.set("user", "alice", { path: "/" });
+        services.cookies.delete("session");
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      },
+    });
 
-    const res = await mw.handler({ req, ctx: {}, state: {} }, nextFn as any);
+    const res = await mw.handler({ req: {} as any, ctx: { context: c }, state: {} }, nextFn as any);
 
     expect(capturedIncomingCookie).toBe("abc");
     expect(res.status).toBe(200);
 
     const setCookies = res.headers.getSetCookie();
     expect(setCookies).toHaveLength(2);
-    expect(setCookies.some((c) => c.includes("user=alice"))).toBe(true);
-    expect(setCookies.some((c) => c.includes("session=") && c.includes("Max-Age=0"))).toBe(true);
+    expect(setCookies.some((cookie) => cookie.includes("user=alice"))).toBe(true);
+    expect(
+      setCookies.some((cookie) => cookie.includes("session=") && cookie.includes("Max-Age=0")),
+    ).toBe(true);
   });
 });

@@ -125,17 +125,6 @@ export function createPipeline(
     }
 
     const finalRes = await dispatch(0, {}, {});
-
-    let res = finalRes;
-    for (const service of Object.values(currentServices)) {
-      if (
-        service &&
-        typeof (service as { flush?: (r: Response) => Response }).flush === "function"
-      ) {
-        res = (service as { flush: (r: Response) => Response }).flush(res);
-      }
-    }
-
-    return res;
+    return finalRes;
   };
 }
