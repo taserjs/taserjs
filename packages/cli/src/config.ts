@@ -9,6 +9,7 @@ export interface TaserFormattingConfig {
 export interface TaserConfig {
   routesDir?: string | undefined;
   outputDir?: string | undefined;
+  contextFile?: string | undefined;
   extensions?: string[] | undefined;
   formatting?: TaserFormattingConfig | undefined;
 }
@@ -16,6 +17,7 @@ export interface TaserConfig {
 export interface ResolvedTaserConfig {
   routesDir: string;
   outputDir: string;
+  contextFile?: string | undefined;
   extensions: string[];
   formatting: {
     quotes: "single" | "double";
@@ -30,6 +32,7 @@ export function defineConfig(config: TaserConfig): TaserConfig {
 export const DEFAULT_CONFIG: ResolvedTaserConfig = {
   routesDir: "./src/routes",
   outputDir: "./.taserjs",
+  contextFile: undefined,
   extensions: ["ts", "tsx"],
   formatting: {
     quotes: "double",
@@ -84,6 +87,7 @@ export async function loadConfig(
     return {
       routesDir: rawConfig.routesDir ?? DEFAULT_CONFIG.routesDir,
       outputDir: rawConfig.outputDir ?? DEFAULT_CONFIG.outputDir,
+      contextFile: rawConfig.contextFile ?? DEFAULT_CONFIG.contextFile,
       extensions: rawConfig.extensions ? [...rawConfig.extensions] : DEFAULT_CONFIG.extensions,
       formatting: {
         quotes: rawConfig.formatting?.quotes ?? DEFAULT_CONFIG.formatting.quotes,

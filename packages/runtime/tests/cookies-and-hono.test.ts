@@ -65,7 +65,7 @@ describe("Dynamic Services, Cookie Middleware, and t.hono Adapter Integration", 
   it("cookie middleware buffers set and delete operations and emits Set-Cookie headers on response", async () => {
     const rootLayout = t.layout("/*").use(cookie());
 
-    const loginRoute = t.post("/auth/login").handler(async ({ cookies }) => {
+    const loginRoute = t.post("/auth/login").handler(async ({ cookies }: any) => {
       const incomingSession = cookies.get("old_session");
       cookies.set("session_id", "secret_token_123", {
         httpOnly: true,

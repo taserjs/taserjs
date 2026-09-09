@@ -162,4 +162,91 @@ describe("manifest codegen and content-hash caching", () => {
     expect(gen.content).toMatch(/import route_0 from '\.\.\/src\/routes\/index\.get\.ts';/);
     expect(gen.content).toMatch(/'\/': {/);
   });
+
+  it("emits ambient routes.d.ts augmenting RouterRegister with RoutePath, LayoutTree, LayoutMiddlewares, RouteByPathMethod, and AppContext", () => {
+    const routesDir = join(tempDir, "src", "routes");
+    mkdirSync(routesDir, { recursive: true });
+    mkdirSync(join(tempDir, "src"), { recursive: true });
+
+    // Write src/context.ts
+    writeFileSync(
+      join(tempDir, "src", "context.ts"),
+      `import { createContext } from "@taserjs/router";
+export const context = createContext({
+  boot: async () => ({ db: "db-pool" }),
+  request: () => ({ requestId: "req-1" }),
+});
+export type AppContext = { db: string; requestId: string };
+`,
+    );
+
+    // Root layout with cookies
+    writeFileSync(
+      join(routesDir, "$.ts"),
+      'import { t } from "@taserjs/router";\nimport { cookie } from "@taserjs/router/cookie";\nexport default t.layout("/*").use(cookie());',
+    );
+
+    // Users route
+    writeFileSync(
+      join(routesDir, "users.get.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.get("/users").handler(() => new Response("users"));',
+    );
+
+    const config = {
+      ...DEFAULT_CONFIG,
+      routesDir: "./src/routes",
+      outputDir: "./.taserjs",
+    };
+
+    const scan = scanRoutes({ routesDir, cwd: tempDir });
+    const gen = generateManifest(scan, config, tempDir);
+
+    expect(gen.typesWritten).toBe(true);
+    const dts = gen.typesContent;
+
+    // Check ambient declaration
+    expect(dts).toContain('declare module "@taserjs/router"');
+    expect(dts).toContain("interface RouterRegister");
+    expect(dts).toContain("RoutePath: RoutePath;");
+    expect(dts).toContain("LayoutTree: LayoutTree;");
+    expect(dts).toContain("LayoutMiddlewares: LayoutMiddlewares;");
+    expect(dts).toContain("RouteByPathMethod: RouteByPathMethod;");
+    expect(dts).toContain("AppContext: AppContext;");
+
+    // Check RoutePath union
+    expect(dts).toContain('export type RoutePath = "/users";');
+
+    // Check RouteByPathMethod
+    expect(dts).toContain('"/users": {');
+    expect(dts).toContain('layouts: readonly ["/*"];');
+
+    // Check AppContext connected to src/context
+    expect(dts).toContain('import("../src/context.js")');
+
+    // Check manifest references routes.d.ts
+    expect(gen.content).toContain('/// <reference path="./routes.d.ts" />');
+    expect(gen.content).toContain("export const layoutManifest = {");
+  });
+
+  it("defaults AppContext to Record<string, unknown> when no context file exists", () => {
+    const routesDir = join(tempDir, "src", "routes");
+    mkdirSync(routesDir, { recursive: true });
+
+    writeFileSync(
+      join(routesDir, "index.get.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.get("/").handler(() => new Response("ok"));',
+    );
+
+    const config = {
+      ...DEFAULT_CONFIG,
+      routesDir: "./src/routes",
+      outputDir: "./.taserjs",
+    };
+
+    const scan = scanRoutes({ routesDir, cwd: tempDir });
+    const gen = generateManifest(scan, config, tempDir);
+
+    expect(gen.typesContent).toContain("export type AppContext = Record<string, unknown>;");
+    expect(gen.typesContent).not.toContain("import(");
+  });
 });

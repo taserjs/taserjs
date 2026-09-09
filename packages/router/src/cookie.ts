@@ -105,7 +105,9 @@ export class TaserCookieJar {
   }
 }
 
-export function cookie(options?: CookieJarOptions): MiddlewareDefinition {
+export function cookie(
+  options?: CookieJarOptions,
+): MiddlewareDefinition<{ cookies: TaserCookieJar }> {
   return middleware(async ({ req, ctx }, next) => {
     let c = ctx.context as Context | undefined;
     if (!c) {
@@ -115,5 +117,5 @@ export function cookie(options?: CookieJarOptions): MiddlewareDefinition {
     const jar = new TaserCookieJar(c, options);
     const res = await next.provide({ cookies: jar });
     return jar.flush(res);
-  });
+  }) as unknown as MiddlewareDefinition<{ cookies: TaserCookieJar }>;
 }
