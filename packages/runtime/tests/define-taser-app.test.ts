@@ -1,3 +1,4 @@
+// oxlint-disable no-await-in-loop
 import { describe, expect, it, vi } from "vitest";
 import { createContext, defineTaser, t, ValidationError } from "@taserjs/router";
 import { createTaserApp, UnsupportedMediaTypeError } from "../src/index.js";
@@ -106,9 +107,7 @@ describe("createTaserApp with defineTaser and error boundaries", () => {
     const valRes = await app.request("/validation-error");
     expect(valRes.status).toBe(422);
     const valBody = await valRes.json();
-    expect(valBody.errors).toEqual([
-      { message: "Field 'name' is required", path: ["name"] },
-    ]);
+    expect(valBody.errors).toEqual([{ message: "Field 'name' is required", path: ["name"] }]);
     expect(onErrorSpy).not.toHaveBeenCalled();
 
     // 2. UnsupportedMediaTypeError -> 415, onError NOT called
@@ -152,5 +151,26 @@ describe("createTaserApp with defineTaser and error boundaries", () => {
 
     const notFoundRes = await app.request("/unmatched");
     expect(notFoundRes.status).toBe(404);
+  });
+
+  it("mounts routes cleanly with different basePath formats (trailing slash, missing leading slash)", async () => {
+    for (const prefix of ["/api/v1", "/api/v1/", "api/v1"]) {
+      const app = createTaserApp(
+        {
+          routes: {
+            "/ping": {
+              GET: {
+                route: t.get("/ping").handler(async () => Response.json({ ok: true })),
+              },
+            },
+          },
+        },
+        defineTaser().basePath(prefix),
+      );
+
+      const res = await app.request("/api/v1/ping");
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ ok: true });
+    }
   });
 });
