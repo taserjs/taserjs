@@ -167,6 +167,60 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
     expect(layout.middlewares[0]).toBe(mwDef);
   });
 
+  it("supports standalone validator middleware without calling .handler()", () => {
+    const mockSchema = <T>(val: T) => ({
+      "~standard": {
+        version: 1 as const,
+        vendor: "test",
+        validate: () => ({ value: val }),
+        types: { input: val, output: val },
+      },
+    });
+
+    const mwQuery = t.middleware().query(mockSchema({ search: "keyword" }));
+    const mwParams = t.middleware().params(mockSchema({ id: 123 }));
+    const mwBody = t.middleware().body(mockSchema({ title: "post" }));
+
+    expect(mwQuery.kind).toBe("middleware");
+    expect(typeof mwQuery.handler).toBe("function");
+    expect(mwQuery.schemas?.query).toBeDefined();
+
+    const getRoute = t
+      .get("/search")
+      .use(mwQuery)
+      .handler(({ req }) => {
+        const _search: string = req.query.search;
+        return new Response(_search);
+      });
+
+    expect(getRoute.middlewares).toHaveLength(1);
+    expect(getRoute.middlewares?.[0]).toBe(mwQuery);
+
+    const layoutDef = t.layout("/users/:id/*").use(mwParams);
+    expect(layoutDef.middlewares).toHaveLength(1);
+    expect(layoutDef.middlewares[0]).toBe(mwParams);
+
+    const postRoute = t
+      .post("/users")
+      .use(mwBody)
+      .handler(({ req }) => {
+        const _title: string = req.body!.title;
+        return new Response(_title);
+      });
+
+    expect(postRoute.middlewares).toHaveLength(1);
+    expect(postRoute.middlewares?.[0]).toBe(mwBody);
+
+    // Static type assertions
+    type Assert<T extends true> = T;
+    type Equal<A, B> =
+      (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+
+    type _Q = Assert<Equal<NonNullable<typeof mwQuery._query>, { search: string }>>;
+    type _P = Assert<Equal<NonNullable<typeof mwParams._params>, { id: number }>>;
+    type _B = Assert<Equal<NonNullable<typeof mwBody._body>, { title: string }>>;
+  });
+
   it("infers phantom types (_state, _services, _params, _query, _body) on t.middleware()", () => {
     const mockSchema = <T>(val: T) => ({
       "~standard": {

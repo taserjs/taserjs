@@ -5,5 +5,10 @@ import viteReact from "@vitejs/plugin-react";
 import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
-  plugins: [taser(), tanstackStart(), viteReact(), nitro()],
+  plugins: [
+    taser(),
+    tanstackStart({ router: { quoteStyle: "double", semicolons: true } }),
+    viteReact(),
+    nitro(),
+  ],
 });

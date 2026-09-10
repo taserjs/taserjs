@@ -23,6 +23,7 @@ import type {
   MiddlewareArgs,
   MiddlewareDefinition,
   MiddlewareHandler,
+  MiddlewareResponse,
   NextFunction,
   Overwrite,
   RegisteredRoutePath,
@@ -38,9 +39,9 @@ export function toMiddlewareDefinition<TMw>(
 ): MiddlewareDefinition<
   InferServicesFromMw<TMw>,
   InferStateFromMw<TMw>,
-  unknown,
-  unknown,
-  unknown
+  ExtractParamsFromMiddleware<TMw>,
+  ExtractQueryFromMiddleware<TMw>,
+  ExtractBodyFromMiddleware<TMw>
 > {
   if (typeof input === "function") {
     return {
@@ -51,8 +52,21 @@ export function toMiddlewareDefinition<TMw>(
   return input as any;
 }
 
-export class MiddlewareBuilder<TParams = unknown, TQuery = unknown, TBody = unknown> {
+export class MiddlewareBuilder<TParams = unknown, TQuery = unknown, TBody = unknown>
+  implements MiddlewareDefinition<{}, {}, TParams, TQuery, TBody>
+{
+  public readonly kind = "middleware" as const;
   public readonly schemas: RouteSchemas = {};
+
+  readonly _services?: {};
+  readonly _state?: {};
+  readonly _params?: TParams;
+  readonly _query?: TQuery;
+  readonly _body?: TBody;
+
+  constructor() {
+    this.handler = this.handler.bind(this);
+  }
 
   params<TSchema extends StandardSchemaV1>(
     schema: TSchema,
@@ -88,6 +102,10 @@ export class MiddlewareBuilder<TParams = unknown, TQuery = unknown, TBody = unkn
     >;
   }
 
+  handler(
+    args: MiddlewareArgs<any, any, any, any, any>,
+    next: NextFunction,
+  ): Response | Promise<Response> | MiddlewareResponse<any, any> | Promise<MiddlewareResponse<any, any>>;
   handler<
     F extends (
       args: MiddlewareArgs<
@@ -109,18 +127,19 @@ export class MiddlewareBuilder<TParams = unknown, TQuery = unknown, TBody = unkn
     ) => any,
   >(
     fn: F,
-  ): MiddlewareDefinition<InferServicesFromMw<F>, InferStateFromMw<F>, TParams, TQuery, TBody> {
-    return {
-      kind: "middleware",
-      handler: fn as unknown as MiddlewareHandler,
-      schemas: Object.keys(this.schemas).length > 0 ? { ...this.schemas } : undefined,
-    } as unknown as MiddlewareDefinition<
-      InferServicesFromMw<F>,
-      InferStateFromMw<F>,
-      TParams,
-      TQuery,
-      TBody
-    >;
+  ): MiddlewareDefinition<InferServicesFromMw<F>, InferStateFromMw<F>, TParams, TQuery, TBody>;
+  handler(arg1?: any, arg2?: any): any {
+    if (typeof arg1 === "function" && arg2 === undefined) {
+      return {
+        kind: "middleware",
+        handler: arg1 as unknown as MiddlewareHandler,
+        schemas: Object.keys(this.schemas).length > 0 ? { ...this.schemas } : undefined,
+      };
+    }
+    if (typeof arg2 === "function") {
+      return Promise.resolve(arg2());
+    }
+    return async (_args: any, next: NextFunction) => next();
   }
 }
 

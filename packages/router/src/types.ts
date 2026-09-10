@@ -132,32 +132,44 @@ export type ExtractStateFromMiddleware<TMw> = TMw extends { readonly _state?: in
 export type ExtractParamsFromMiddleware<TMw> = TMw extends { readonly _params?: infer P }
   ? [P] extends [never]
     ? {}
-    : NonNullable<P>
+    : unknown extends P
+      ? {}
+      : NonNullable<P>
   : TMw extends MiddlewareDefinition<any, any, infer P, any, any>
     ? [P] extends [never]
       ? {}
-      : NonNullable<P>
+      : unknown extends P
+        ? {}
+        : NonNullable<P>
     : {};
 
 export type ExtractQueryFromMiddleware<TMw> = TMw extends { readonly _query?: infer Q }
   ? [Q] extends [never]
     ? {}
-    : NonNullable<Q>
+    : unknown extends Q
+      ? {}
+      : NonNullable<Q>
   : TMw extends MiddlewareDefinition<any, any, any, infer Q, any>
     ? [Q] extends [never]
       ? {}
-      : NonNullable<Q>
+      : unknown extends Q
+        ? {}
+        : NonNullable<Q>
     : {};
 
 export type ExtractBodyFromMiddleware<TMw> = TMw extends { readonly _body?: infer B }
   ? [B] extends [never]
-    ? {}
-    : NonNullable<B>
+    ? unknown
+    : unknown extends B
+      ? unknown
+      : NonNullable<B>
   : TMw extends MiddlewareDefinition<any, any, any, any, infer B>
     ? [B] extends [never]
-      ? {}
-      : NonNullable<B>
-    : {};
+      ? unknown
+      : unknown extends B
+        ? unknown
+        : NonNullable<B>
+    : unknown;
 
 export type ExtractServicesFromLayout<TLayout> = TLayout extends { readonly _services?: infer S }
   ? NonNullable<S>

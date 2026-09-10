@@ -532,4 +532,181 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     expect(res.status).toBe(200);
     expect(capturedBody).toBeUndefined();
   });
+
+  describe("Standalone Validator Middleware (t.middleware() without .handler())", () => {
+    it("validates query via standalone validator middleware and coerces req.query", async () => {
+      let capturedQuery: unknown;
+      const validateQuery = t.middleware().query(createNumberCoerceSchema("page"));
+
+      const route = t
+        .get("/items")
+        .use(validateQuery)
+        .handler(({ req }) => {
+          capturedQuery = req.query;
+          return Response.json({ page: req.query.page });
+        });
+
+      const app = createTaserApp({
+        routes: {
+          "/items": {
+            GET: { route },
+          },
+        },
+      });
+
+      // Valid query
+      const validRes = await app.request("http://localhost/items?page=5");
+      expect(validRes.status).toBe(200);
+      expect(capturedQuery).toEqual({ page: 5 });
+      const validData = await validRes.json();
+      expect(validData).toEqual({ page: 5 });
+
+      // Invalid query
+      const invalidRes = await app.request("http://localhost/items?page=invalid");
+      expect(invalidRes.status).toBe(422);
+      const invalidData = await invalidRes.json();
+      expect(invalidData.errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: "Expected valid number for page",
+            path: ["page"],
+          }),
+        ]),
+      );
+    });
+
+    it("validates params via standalone validator middleware in a route", async () => {
+      let capturedParams: unknown;
+      const validateParams = t.middleware().params(createNumberCoerceSchema("id"));
+
+      const route = t
+        .get("/users/:id")
+        .use(validateParams)
+        .handler(({ req }) => {
+          capturedParams = req.params;
+          return Response.json({ id: req.params.id });
+        });
+
+      const app = createTaserApp({
+        routes: {
+          "/users/:id": {
+            GET: { route },
+          },
+        },
+      });
+
+      // Valid params
+      const validRes = await app.request("http://localhost/users/42");
+      expect(validRes.status).toBe(200);
+      expect(capturedParams).toEqual({ id: 42 });
+
+      // Invalid params
+      const invalidRes = await app.request("http://localhost/users/not-a-number");
+      expect(invalidRes.status).toBe(422);
+    });
+
+    it("validates body via standalone validator middleware in a route", async () => {
+      let capturedBody: unknown;
+      const validateBody = t.middleware().body(createNumberCoerceSchema("age"), "json");
+
+      const route = t
+        .post("/profile")
+        .use(validateBody)
+        .handler(({ req }) => {
+          capturedBody = req.body;
+          return Response.json({ age: req.body!.age });
+        });
+
+      const app = createTaserApp({
+        routes: {
+          "/profile": {
+            POST: { route },
+          },
+        },
+      });
+
+      // Valid body
+      const validRes = await app.request("http://localhost/profile", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ age: "25" }),
+      });
+      expect(validRes.status).toBe(200);
+      expect(capturedBody).toEqual({ age: 25 });
+
+      // Invalid body
+      const invalidRes = await app.request("http://localhost/profile", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ age: "abc" }),
+      });
+      expect(invalidRes.status).toBe(422);
+    });
+
+    it("validates params via standalone validator middleware attached to layout", async () => {
+      let capturedParams: unknown;
+      const validateParams = t.middleware().params(createNumberCoerceSchema("orgId"));
+
+      const layout = t.layout("/orgs/:orgId/*").use(validateParams);
+      const route = t.get("/orgs/:orgId/members").handler(({ req }) => {
+        capturedParams = req.params;
+        return Response.json({ orgId: req.params.orgId });
+      });
+
+      const app = createTaserApp({
+        layouts: {
+          "org-layout": layout,
+        },
+        routes: {
+          "/orgs/:orgId/members": {
+            GET: { route, layouts: ["org-layout"] },
+          },
+        },
+      });
+
+      // Valid request through layout
+      const validRes = await app.request("http://localhost/orgs/99/members");
+      expect(validRes.status).toBe(200);
+      expect(capturedParams).toEqual({ orgId: 99 });
+
+      // Invalid request blocked by layout validator middleware
+      const invalidRes = await app.request("http://localhost/orgs/nan/members");
+      expect(invalidRes.status).toBe(422);
+    });
+
+    it("preserves custom handler behavior when .handler() is explicitly chained", async () => {
+      let customHandlerRan = false;
+      const customMw = t
+        .middleware()
+        .query(createNumberCoerceSchema("limit"))
+        .handler(async ({ req }, next) => {
+          customHandlerRan = true;
+          const res = await next();
+          res.headers.set("x-custom-mw", String(req.query.limit));
+          return res;
+        });
+
+      const route = t
+        .get("/products")
+        .use(customMw)
+        .handler(({ req }) => {
+          return Response.json({ limit: req.query.limit });
+        });
+
+      const app = createTaserApp({
+        routes: {
+          "/products": {
+            GET: { route },
+          },
+        },
+      });
+
+      const res = await app.request("http://localhost/products?limit=10");
+      expect(res.status).toBe(200);
+      expect(customHandlerRan).toBe(true);
+      expect(res.headers.get("x-custom-mw")).toBe("10");
+      const data = await res.json();
+      expect(data).toEqual({ limit: 10 });
+    });
+  });
 });
