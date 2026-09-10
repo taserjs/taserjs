@@ -83,6 +83,14 @@ describe("cli config loader", () => {
     });
   });
 
+  it("defineConfig preserves server option when provided", () => {
+    const configDisabled = defineConfig({ server: false });
+    expect(configDisabled.server).toBe(false);
+
+    const configEnabled = defineConfig({ server: true });
+    expect(configEnabled.server).toBe(true);
+  });
+
   it("loads default config when no config file exists", async () => {
     const loaded = await loadConfig(tempDir);
     expect(loaded).toEqual({
@@ -98,6 +106,7 @@ describe("cli config loader", () => {
   it("loads taserjs.config.ts when present", async () => {
     const configContent = `
 export default {
+  server: false,
   serverDir: "server",
   routesDir: "api",
   outputDir: ".taser",
@@ -109,6 +118,7 @@ export default {
     writeFileSync(join(tempDir, "taserjs.config.ts"), configContent, "utf-8");
 
     const loaded = await loadConfig(tempDir);
+    expect(loaded.server).toBe(false);
     expect(loaded.serverDir).toBe("server");
     expect(loaded.routesDir).toBe("api");
     expect(loaded.outputDir).toBe(".taser");

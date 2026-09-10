@@ -8,6 +8,7 @@ export interface TaserFormattingConfig {
 }
 
 export interface TaserConfig {
+  server?: boolean | undefined;
   serverDir?: string | undefined;
   routesDir?: string | undefined;
   outputDir?: string | undefined;
@@ -20,6 +21,7 @@ export type TaserConfigFn = () => TaserConfig | Promise<TaserConfig>;
 export type TaserConfigExport = TaserConfig | TaserConfigFn;
 
 export interface ResolvedTaserConfig {
+  server?: boolean | undefined;
   serverDir: string;
   routesDir: string;
   outputDir: string;
@@ -162,6 +164,7 @@ export async function loadConfig(
         : {};
 
     return {
+      ...(rawConfig.server !== undefined ? { server: rawConfig.server } : {}),
       serverDir: rawConfig.serverDir ?? DEFAULT_CONFIG.serverDir,
       routesDir: rawConfig.routesDir ?? DEFAULT_CONFIG.routesDir,
       outputDir: rawConfig.outputDir ?? DEFAULT_CONFIG.outputDir,

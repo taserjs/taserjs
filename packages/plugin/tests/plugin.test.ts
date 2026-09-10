@@ -189,4 +189,120 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
     serveContent = readFileSync(serveShimPath, "utf-8");
     expect(serveContent).toContain('import { app } from "./routes.gen";');
   });
+
+  describe("server option and full-stack auto-detection", () => {
+    it("disables serve.mjs emission when server is false", async () => {
+      const rawPlugin = taserPlugin.raw({ cwd: tempDir, server: false }, { framework: "vite" });
+      const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
+
+      await (pluginInstance.buildStart as any)?.call({
+        addWatchFile: vi.fn(),
+        emitFile: vi.fn(),
+        getWatchFiles: vi.fn(),
+        parse: vi.fn(),
+      });
+
+      const manifestPath = join(outputDir, "routes.gen.ts");
+      const serveShimPath = join(outputDir, "serve.mjs");
+
+      // routes.gen.ts should still be generated
+      expect(existsSync(manifestPath)).toBe(true);
+      // serve.mjs should NOT be generated
+      expect(existsSync(serveShimPath)).toBe(false);
+    });
+
+    it("does not configure build.ssr in vite config hook when server is false", async () => {
+      const rawPlugin = taserPlugin.raw({ cwd: tempDir, server: false }, { framework: "vite" });
+      const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
+
+      const viteHooks = pluginInstance.vite;
+      const result = await (viteHooks!.config as any)({ plugins: [] }, { command: "build", mode: "production" });
+      expect(result).toBeUndefined();
+    });
+
+    it("auto-detects full-stack plugins in vite config and disables server mode", async () => {
+      const fullstackPlugins = [
+        [{ name: "tanstack-react-start:config" }],
+        [{ name: "nitro:init" }],
+        [{ name: "react-router" }],
+        [{ name: "@remix-run/dev" }],
+        [{ name: "astro:server" }],
+        [{ name: "vite-plugin-sveltekit-compile" }],
+      ];
+
+      for (const plugins of fullstackPlugins) {
+        const rawPlugin = taserPlugin.raw({ cwd: tempDir }, { framework: "vite" });
+        const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
+        const viteHooks = pluginInstance.vite;
+
+        const result = await (viteHooks!.config as any)(
+          { plugins },
+          { command: "build", mode: "production" },
+        );
+        expect(result).toBeUndefined();
+
+        await (pluginInstance.buildStart as any)?.call({
+          addWatchFile: vi.fn(),
+          emitFile: vi.fn(),
+          getWatchFiles: vi.fn(),
+          parse: vi.fn(),
+        });
+
+        const serveShimPath = join(outputDir, "serve.mjs");
+        expect(existsSync(serveShimPath)).toBe(false);
+      }
+    });
+
+    it("allows explicit server: true to override full-stack auto-detection", async () => {
+      const rawPlugin = taserPlugin.raw({ cwd: tempDir, server: true }, { framework: "vite" });
+      const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
+      const viteHooks = pluginInstance.vite;
+
+      const result = await (viteHooks!.config as any)(
+        { plugins: [{ name: "nitro:init" }] },
+        { command: "build", mode: "production" },
+      );
+
+      expect(result).toBeDefined();
+      expect(result?.build?.ssr).toBeDefined();
+
+      await (pluginInstance.buildStart as any)?.call({
+        addWatchFile: vi.fn(),
+        emitFile: vi.fn(),
+        getWatchFiles: vi.fn(),
+        parse: vi.fn(),
+      });
+
+      const serveShimPath = join(outputDir, "serve.mjs");
+      expect(existsSync(serveShimPath)).toBe(true);
+    });
+
+    it("respects server: false from taserjs.config.ts", async () => {
+      writeFileSync(
+        join(tempDir, "taserjs.config.ts"),
+        'export default { server: false };',
+        "utf-8",
+      );
+
+      const rawPlugin = taserPlugin.raw({ cwd: tempDir }, { framework: "vite" });
+      const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
+      const viteHooks = pluginInstance.vite;
+
+      const result = await (viteHooks!.config as any)(
+        { plugins: [] },
+        { command: "build", mode: "production" },
+      );
+      expect(result).toBeUndefined();
+
+      await (pluginInstance.buildStart as any)?.call({
+        addWatchFile: vi.fn(),
+        emitFile: vi.fn(),
+        getWatchFiles: vi.fn(),
+        parse: vi.fn(),
+      });
+
+      const serveShimPath = join(outputDir, "serve.mjs");
+      expect(existsSync(serveShimPath)).toBe(false);
+    });
+  });
 });

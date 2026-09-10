@@ -17,9 +17,67 @@ export const DEFAULT_WATCH_DEBOUNCE_MS = 50;
 export const DEFAULT_OUTPUT_IGNORE_PATTERN = "**/.taserjs/**";
 
 export interface TaserPluginOptions {
+  server?: boolean | undefined;
   cwd?: string | undefined;
   config?: string | undefined;
   standalone?: boolean | undefined;
+}
+
+const FULLSTACK_PLUGIN_PATTERNS = [
+  "nitro",
+  "tanstack-start",
+  "tanstack:router",
+  "react-router",
+  "remix",
+  "astro",
+  "sveltekit",
+];
+
+function isFullStackPluginName(name: string): boolean {
+  const lower = name.toLowerCase();
+  for (const pattern of FULLSTACK_PLUGIN_PATTERNS) {
+    if (lower.includes(pattern)) {
+      return true;
+    }
+  }
+  if (lower.includes("tanstack") && lower.includes("start")) {
+    return true;
+  }
+  return false;
+}
+
+function detectFullStack(viteConfig: any): boolean {
+  if (!viteConfig) return false;
+  if (viteConfig.nitro) return true;
+  const plugins = viteConfig.plugins;
+  if (!plugins) return false;
+  const flat = Array.isArray(plugins) ? plugins.flat(Infinity) : [plugins];
+  return flat.some((p: any) => {
+    const name = p?.name;
+    return typeof name === "string" && isFullStackPluginName(name);
+  });
+}
+
+function isRunnableEnvironment(environment: any): boolean {
+  if (!environment) return true;
+  try {
+    if (environment.constructor?.name === "FetchableDevEnvironment") {
+      return false;
+    }
+    if (environment.constructor?.name === "RunnableDevEnvironment") {
+      return true;
+    }
+    if (typeof (environment as any).dispatchFetch === "function" && !(environment as any).runner) {
+      return false;
+    }
+    if ((environment as any).runner) {
+      return true;
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[taserjs] Warning checking Vite environment runnability: ${message}`);
+  }
+  return true;
 }
 
 function isSubPath(child: string, parent: string): boolean {
@@ -56,12 +114,31 @@ function mergeWatchIgnored(current: unknown, ...patterns: string[]): Array<strin
 export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefined = {}, meta) => {
   let cwd = options.cwd ? resolve(options.cwd) : process.cwd();
   let cachedConfig: ResolvedTaserConfig | null = null;
+  let detectedFullStack: boolean | null = null;
 
   async function getConfig(): Promise<ResolvedTaserConfig> {
     if (!cachedConfig) {
       cachedConfig = await loadConfig(cwd, options.config);
     }
     return cachedConfig;
+  }
+
+  async function resolveIsServerMode(viteConfig?: any): Promise<boolean> {
+    if (options.server !== undefined) {
+      return options.server;
+    }
+    const config = await getConfig();
+    if (config.server !== undefined) {
+      return config.server;
+    }
+    if (detectedFullStack !== null) {
+      return !detectedFullStack;
+    }
+    if (viteConfig && detectFullStack(viteConfig)) {
+      detectedFullStack = true;
+      return false;
+    }
+    return true;
   }
 
   async function executeGeneration(isDev = false): Promise<void> {
@@ -133,12 +210,14 @@ serve(app);
       const isDev = meta.framework === "vite";
       await executeGeneration(isDev);
 
-      const config = await getConfig();
-      const outputDir = resolveOutputDir(config, cwd);
-      const routesGenPath = join(outputDir, "routes.gen.ts");
-      const serveShimPath = join(outputDir, "serve.mjs");
-      const ext = resolveImportExtension(config.extension);
-      emitServeShim(serveShimPath, `./routes.gen${ext}`);
+      const isServerMode = await resolveIsServerMode();
+      if (isServerMode) {
+        const config = await getConfig();
+        const outputDir = resolveOutputDir(config, cwd);
+        const serveShimPath = join(outputDir, "serve.mjs");
+        const ext = resolveImportExtension(config.extension);
+        emitServeShim(serveShimPath, `./routes.gen${ext}`);
+      }
     },
 
     async watchChange(id, _change) {
@@ -170,17 +249,12 @@ serve(app);
           DEFAULT_OUTPUT_IGNORE_PATTERN,
         );
 
-        // Detect if Nitro is active
-        const hasNitro = Boolean(
-          (config as any).nitro ||
-            (config.plugins &&
-              (config.plugins as any[]).some((p: any) => {
-                const name = p?.name;
-                return typeof name === "string" && (name === "nitro" || name.startsWith("nitro:"));
-              })),
-        );
+        const isFullStack = detectFullStack(config);
+        detectedFullStack = isFullStack;
 
-        if (!hasNitro && env?.command === "build") {
+        const isServerMode = await resolveIsServerMode(config);
+
+        if (isServerMode && env?.command === "build") {
           const taserConfig = await getConfig();
           const outputDir = resolveOutputDir(taserConfig, cwd);
           const serveShimPath = join(outputDir, "serve.mjs");
@@ -201,7 +275,15 @@ serve(app);
         }
       },
 
-      configureServer(server) {
+      configResolved(resolvedConfig) {
+        if (detectFullStack(resolvedConfig)) {
+          detectedFullStack = true;
+        } else if (detectedFullStack === null) {
+          detectedFullStack = false;
+        }
+      },
+
+      async configureServer(server) {
         const handleFileChange = async (file: string) => {
           cachedDevHandler = null;
           const config = await getConfig();
@@ -223,9 +305,19 @@ serve(app);
         server.watcher.on("change", handleFileChange);
         server.watcher.on("unlinkDir", handleFileChange);
 
+        const isServerMode = await resolveIsServerMode(server.config);
+        if (!isServerMode) {
+          return;
+        }
+
         server.middlewares.use(async (req: any, res: any, next: any) => {
           const url = req.url;
           if (!url || shouldSkipDevRequest(url)) {
+            return next();
+          }
+
+          const ssrEnv = (server as any).environments?.ssr;
+          if ((server as any).environments && ssrEnv && !isRunnableEnvironment(ssrEnv)) {
             return next();
           }
 

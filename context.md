@@ -65,7 +65,7 @@ The fluent adapter function wrapping native Hono `(c, next) => ...` middleware i
 _Avoid_: honoMw, bridge, compat wrapper
 
 **Taser Config (`taserjs.config.ts`)**:
-The dedicated root configuration file defining filesystem routing directories, manifest output paths, formatting, and file extensions for CLI and bundler plugins.
+The dedicated root configuration file defining filesystem routing directories, manifest output paths, formatting, and emitted import extension for CLI and bundler plugins.
 _Avoid_: vite.config routing options, nitro options, bundler options, taser.config.ts
 
 **Hono Context Escape Hatch (`ctx.context`)**:
@@ -96,6 +96,15 @@ _Avoid_: middleware file, wrapper file, layout component
 The cascading boundary of a layout file, wrapping the entire tree segment including both the segment root endpoint (e.g. `GET /admin`) and all nested child routes (`/admin/*`).
 _Avoid_: directory scope, path prefix boundary
 
+**Layout Hierarchy (`LayoutHierarchy`)**:
+The ambient mapping in `routes.gen.ts` establishing the parent-child inheritance chain of layouts by layout ID, enabling recursive compile-time inference of cascading state, provided services, and validation schemas down the layout tree.
+_Avoid_: layout graph, layout map, middleware hierarchy
+
 **Sibling Layout vs. Nested Layout**:
 A directory-scoped layout defined alongside its directory as `<segment>.ts` (sibling) vs. inside the directory as `<segment>/$.ts` (nested). Both resolve to the same segment layout; defining both for the same segment is a build-stopping collision error.
 _Avoid_: external layout, inner layout
+
+**Route Scaffolding**:
+The automated generation of starter boilerplate into an empty (0-byte or whitespace-only) route or layout file upon creation during interactive watch and dev modes, pre-configuring canonical path patterns, layout scopes, destructured callback arguments, and typed reply helpers.
+_Avoid_: file generation, code template, auto-create, route stubbing
+
