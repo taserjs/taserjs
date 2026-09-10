@@ -41,7 +41,9 @@ describe("url utils", () => {
     expect(joinUrl("http://localhost:3000/api", [])).toBe("http://localhost:3000/api/");
     expect(joinUrl("http://localhost:3000/api/", [])).toBe("http://localhost:3000/api/");
     expect(joinUrl("http://localhost:3000/api", ["users"])).toBe("http://localhost:3000/api/users");
-    expect(joinUrl("http://localhost:3000/api/", ["users"])).toBe("http://localhost:3000/api/users");
+    expect(joinUrl("http://localhost:3000/api/", ["users"])).toBe(
+      "http://localhost:3000/api/users",
+    );
     expect(joinUrl("http://localhost:3000/api", ["users", "123"])).toBe(
       "http://localhost:3000/api/users/123",
     );
@@ -76,9 +78,7 @@ describe("url utils", () => {
   it("throws descriptive error when required path params are missing", () => {
     expect(() => applyPathParams(["users", "_id"], {})).toThrow('Missing path param "id"');
     expect(() => applyPathParams(["users", ":id"], {})).toThrow('Missing path param "id"');
-    expect(() => applyPathParams(["files", "_splat"], {})).toThrow(
-      'Missing path param "_splat"',
-    );
+    expect(() => applyPathParams(["files", "_splat"], {})).toThrow('Missing path param "_splat"');
     expect(() => applyPathParams(["files", "*"], {})).toThrow('Missing path param "_splat"');
   });
 

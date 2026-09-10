@@ -56,8 +56,4 @@ export {
   type GenerateLayoutStubOptions,
 } from "./scaffold.js";
 
-export {
-  runGenerate,
-  run,
-  createCli,
-} from "./cli.js";
+export { runGenerate, run, createCli } from "./cli.js";

@@ -274,10 +274,7 @@ export function scanRoutes(options: ScanOptions): ScanResult {
           if (options.scaffold && content.trim().length === 0) {
             let stub: string | null = null;
             if (parsed.verb !== null) {
-              const { canonicalPath } = deriveCanonicalUrl(
-                parsed.dir,
-                parsed.stem,
-              );
+              const { canonicalPath } = deriveCanonicalUrl(parsed.dir, parsed.stem);
               stub = generateRouteStub({
                 method: parsed.verb,
                 canonicalPath,

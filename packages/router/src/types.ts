@@ -130,21 +130,33 @@ export type ExtractStateFromMiddleware<TMw> = TMw extends { readonly _state?: in
     : {};
 
 export type ExtractParamsFromMiddleware<TMw> = TMw extends { readonly _params?: infer P }
-  ? [P] extends [never] ? {} : NonNullable<P>
+  ? [P] extends [never]
+    ? {}
+    : NonNullable<P>
   : TMw extends MiddlewareDefinition<any, any, infer P, any, any>
-    ? [P] extends [never] ? {} : NonNullable<P>
+    ? [P] extends [never]
+      ? {}
+      : NonNullable<P>
     : {};
 
 export type ExtractQueryFromMiddleware<TMw> = TMw extends { readonly _query?: infer Q }
-  ? [Q] extends [never] ? {} : NonNullable<Q>
+  ? [Q] extends [never]
+    ? {}
+    : NonNullable<Q>
   : TMw extends MiddlewareDefinition<any, any, any, infer Q, any>
-    ? [Q] extends [never] ? {} : NonNullable<Q>
+    ? [Q] extends [never]
+      ? {}
+      : NonNullable<Q>
     : {};
 
 export type ExtractBodyFromMiddleware<TMw> = TMw extends { readonly _body?: infer B }
-  ? [B] extends [never] ? {} : NonNullable<B>
+  ? [B] extends [never]
+    ? {}
+    : NonNullable<B>
   : TMw extends MiddlewareDefinition<any, any, any, any, infer B>
-    ? [B] extends [never] ? {} : NonNullable<B>
+    ? [B] extends [never]
+      ? {}
+      : NonNullable<B>
     : {};
 
 export type ExtractServicesFromLayout<TLayout> = TLayout extends { readonly _services?: infer S }
@@ -164,25 +176,37 @@ export type ExtractStateFromLayout<TLayout> = TLayout extends { readonly _state?
       : {};
 
 export type ExtractParamsFromLayout<TLayout> = TLayout extends { readonly _params?: infer P }
-  ? [P] extends [never] ? {} : NonNullable<P>
+  ? [P] extends [never]
+    ? {}
+    : NonNullable<P>
   : TLayout extends LayoutDefinition<any, any, any, infer P, any, any>
-    ? [P] extends [never] ? {} : NonNullable<P>
+    ? [P] extends [never]
+      ? {}
+      : NonNullable<P>
     : TLayout extends { readonly middlewares: readonly (infer M)[] }
       ? ExtractParamsFromMiddleware<M>
       : {};
 
 export type ExtractQueryFromLayout<TLayout> = TLayout extends { readonly _query?: infer Q }
-  ? [Q] extends [never] ? {} : NonNullable<Q>
+  ? [Q] extends [never]
+    ? {}
+    : NonNullable<Q>
   : TLayout extends LayoutDefinition<any, any, any, any, infer Q, any>
-    ? [Q] extends [never] ? {} : NonNullable<Q>
+    ? [Q] extends [never]
+      ? {}
+      : NonNullable<Q>
     : TLayout extends { readonly middlewares: readonly (infer M)[] }
       ? ExtractQueryFromMiddleware<M>
       : {};
 
 export type ExtractBodyFromLayout<TLayout> = TLayout extends { readonly _body?: infer B }
-  ? [B] extends [never] ? {} : NonNullable<B>
+  ? [B] extends [never]
+    ? {}
+    : NonNullable<B>
   : TLayout extends LayoutDefinition<any, any, any, any, any, infer B>
-    ? [B] extends [never] ? {} : NonNullable<B>
+    ? [B] extends [never]
+      ? {}
+      : NonNullable<B>
     : TLayout extends { readonly middlewares: readonly (infer M)[] }
       ? ExtractBodyFromMiddleware<M>
       : {};
@@ -388,9 +412,7 @@ export type RouteHandler<
   TServices = {},
   TState = {},
   TReturn extends Response | Promise<Response> = Response | Promise<Response>,
-> = (
-  args: RouteHandlerArgs<TParams, TQuery, TBody, TServices, TState>,
-) => TReturn;
+> = (args: RouteHandlerArgs<TParams, TQuery, TBody, TServices, TState>) => TReturn;
 
 export interface MiddlewareResponse<TServices = {}, TState = {}> extends Response {
   readonly _services?: TServices;
@@ -401,10 +423,7 @@ export interface NextFunction {
   <TState extends Record<string, unknown> = {}>(
     state?: TState,
   ): Promise<MiddlewareResponse<{}, TState>>;
-  provide<
-    TServices extends Record<string, unknown>,
-    TState extends Record<string, unknown> = {},
-  >(
+  provide<TServices extends Record<string, unknown>, TState extends Record<string, unknown> = {}>(
     services: TServices,
     state?: TState,
   ): Promise<MiddlewareResponse<TServices, TState>>;

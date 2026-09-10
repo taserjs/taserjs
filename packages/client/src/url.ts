@@ -9,7 +9,12 @@ export function clientMethodToHttp(method: string): string {
 }
 
 export function decodeClientSegment(segment: string): string {
-  if (segment === "_splat" || segment === "*" || segment.startsWith(":") || segment.startsWith("_")) {
+  if (
+    segment === "_splat" ||
+    segment === "*" ||
+    segment.startsWith(":") ||
+    segment.startsWith("_")
+  ) {
     return segment;
   }
   if (segment.startsWith("$")) {
@@ -35,9 +40,7 @@ export function applyPathParams(
   segments: string[],
   param: Record<string, unknown> | undefined,
 ): string[] {
-  const flattened = segments
-    .flatMap((s) => s.split("/"))
-    .filter((s) => s.length > 0);
+  const flattened = segments.flatMap((s) => s.split("/")).filter((s) => s.length > 0);
 
   return flattened.map((segment) => {
     if (segment === "_splat" || segment === "*") {

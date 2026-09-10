@@ -2,12 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  DEPLOY_TARGETS,
-  run,
-  runCreateCommand,
-  scaffoldProject,
-} from "../src/index.js";
+import { DEPLOY_TARGETS, run, runCreateCommand, scaffoldProject } from "../src/index.js";
 
 describe("create-taserjs unit and integration tests", () => {
   let tempDir: string;
@@ -126,7 +121,15 @@ describe("create-taserjs unit and integration tests", () => {
 
   it("executes CLI command runner via run() with argv and --yes flag", async () => {
     const targetDir = join(tempDir, "cli-app");
-    await run([targetDir, "--preset", "node-server", "--validator", "valibot", "--yes", "--skip-install"]);
+    await run([
+      targetDir,
+      "--preset",
+      "node-server",
+      "--validator",
+      "valibot",
+      "--yes",
+      "--skip-install",
+    ]);
 
     expect(existsSync(join(targetDir, "package.json"))).toBe(true);
     expect(existsSync(join(targetDir, "nitro.config.ts"))).toBe(true);

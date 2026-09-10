@@ -201,7 +201,11 @@ export default defineTaser().context(createContext({
     const scanResult = scanRoutes({ routesDir, cwd: tempDir });
 
     // 1. extension: true (default -> .js)
-    const genDefault = generateManifest(scanResult, { ...DEFAULT_CONFIG, extension: true }, tempDir);
+    const genDefault = generateManifest(
+      scanResult,
+      { ...DEFAULT_CONFIG, extension: true },
+      tempDir,
+    );
     expect(genDefault.content).toContain('import taser from "../taser.js";');
     expect(genDefault.content).toContain('import layout_0 from "../routes/$.js";');
     expect(genDefault.content).toContain('import route_0 from "../routes/hello.get.js";');

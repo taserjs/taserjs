@@ -155,7 +155,9 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
   it("emitServeShim respects config.extension setting", async () => {
     // 1. Default config (extension: true -> ./routes.gen.js)
     const rawPluginDefault = taserPlugin.raw({ cwd: tempDir }, { framework: "rollup" });
-    const pluginDefault = (Array.isArray(rawPluginDefault) ? rawPluginDefault[0] : rawPluginDefault)!;
+    const pluginDefault = (
+      Array.isArray(rawPluginDefault) ? rawPluginDefault[0] : rawPluginDefault
+    )!;
 
     await (pluginDefault.buildStart as any)?.call({
       addWatchFile: vi.fn(),
@@ -172,7 +174,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
     // 2. Custom config with extension: false (extensionless -> ./routes.gen)
     writeFileSync(
       join(tempDir, "taserjs.config.ts"),
-      'export default { extension: false };',
+      "export default { extension: false };",
       "utf-8",
     );
 
@@ -216,7 +218,10 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
       const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
 
       const viteHooks = pluginInstance.vite;
-      const result = await (viteHooks!.config as any)({ plugins: [] }, { command: "build", mode: "production" });
+      const result = await (viteHooks!.config as any)(
+        { plugins: [] },
+        { command: "build", mode: "production" },
+      );
       expect(result).toBeUndefined();
     });
 
@@ -230,27 +235,29 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
         [{ name: "vite-plugin-sveltekit-compile" }],
       ];
 
-      for (const plugins of fullstackPlugins) {
-        const rawPlugin = taserPlugin.raw({ cwd: tempDir }, { framework: "vite" });
-        const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
-        const viteHooks = pluginInstance.vite;
+      await Promise.all(
+        fullstackPlugins.map(async (plugins) => {
+          const rawPlugin = taserPlugin.raw({ cwd: tempDir }, { framework: "vite" });
+          const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
+          const viteHooks = pluginInstance.vite;
 
-        const result = await (viteHooks!.config as any)(
-          { plugins },
-          { command: "build", mode: "production" },
-        );
-        expect(result).toBeUndefined();
+          const result = await (viteHooks!.config as any)(
+            { plugins },
+            { command: "build", mode: "production" },
+          );
+          expect(result).toBeUndefined();
 
-        await (pluginInstance.buildStart as any)?.call({
-          addWatchFile: vi.fn(),
-          emitFile: vi.fn(),
-          getWatchFiles: vi.fn(),
-          parse: vi.fn(),
-        });
+          await (pluginInstance.buildStart as any)?.call({
+            addWatchFile: vi.fn(),
+            emitFile: vi.fn(),
+            getWatchFiles: vi.fn(),
+            parse: vi.fn(),
+          });
 
-        const serveShimPath = join(outputDir, "serve.mjs");
-        expect(existsSync(serveShimPath)).toBe(false);
-      }
+          const serveShimPath = join(outputDir, "serve.mjs");
+          expect(existsSync(serveShimPath)).toBe(false);
+        }),
+      );
     });
 
     it("allows explicit server: true to override full-stack auto-detection", async () => {
@@ -280,7 +287,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
     it("respects server: false from taserjs.config.ts", async () => {
       writeFileSync(
         join(tempDir, "taserjs.config.ts"),
-        'export default { server: false };',
+        "export default { server: false };",
         "utf-8",
       );
 

@@ -1,11 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  generateLayoutStub,
-  generateRouteStub,
-  scanRoutes,
-} from "../src/index.js";
+import { generateLayoutStub, generateRouteStub, scanRoutes } from "../src/index.js";
 
 describe("route & layout scaffolding", () => {
   const tempDir = join(process.cwd(), "tests", "fixtures", "temp-scaffold-test");
@@ -59,7 +55,9 @@ describe("route & layout scaffolding", () => {
       });
 
       expect(code).toContain('import { t } from "@taserjs/router";');
-      expect(code).toContain('export default t.layout("/_auth/*").use(async ({ req, ctx, state }, next) => {');
+      expect(code).toContain(
+        'export default t.layout("/_auth/*").use(async ({ req, ctx, state }, next) => {',
+      );
       expect(code).toContain("  return await next();");
       expect(code).toContain("});");
     });
@@ -74,7 +72,9 @@ describe("route & layout scaffolding", () => {
       });
 
       expect(code).toContain("import { t } from '@taserjs/router'");
-      expect(code).toContain("export default t.layout('/*').use(async ({ req, ctx, state }, next) => {");
+      expect(code).toContain(
+        "export default t.layout('/*').use(async ({ req, ctx, state }, next) => {",
+      );
       expect(code).toContain("  return await next()");
       expect(code).toContain("})");
       expect(code).not.toContain(";");
@@ -121,7 +121,9 @@ describe("route & layout scaffolding", () => {
       expect(result.layouts[0]?.layoutId).toBe("/admin/*");
 
       const writtenContent = readFileSync(layoutFile, "utf-8");
-      expect(writtenContent).toContain('export default t.layout("/admin/*").use(async ({ req, ctx, state }, next) => {');
+      expect(writtenContent).toContain(
+        'export default t.layout("/admin/*").use(async ({ req, ctx, state }, next) => {',
+      );
     });
 
     it("populates whitespace-only file when scaffold: true", () => {

@@ -107,4 +107,3 @@ _Avoid_: external layout, inner layout
 **Route Scaffolding**:
 The automated generation of starter boilerplate into an empty (0-byte or whitespace-only) route or layout file upon creation during interactive watch and dev modes, pre-configuring canonical path patterns, layout scopes, destructured callback arguments, and typed reply helpers.
 _Avoid_: file generation, code template, auto-create, route stubbing
-

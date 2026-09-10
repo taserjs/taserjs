@@ -14,7 +14,6 @@ import type {
   InferLayoutServices,
   InferLayoutState,
   InferRouteBody,
-  InferRouteParams,
   InferRouteQuery,
   InferRouteServices,
   InferRouteState,
@@ -52,11 +51,7 @@ export function toMiddlewareDefinition<TMw>(
   return input as any;
 }
 
-export class MiddlewareBuilder<
-  TParams = unknown,
-  TQuery = unknown,
-  TBody = unknown,
-> {
+export class MiddlewareBuilder<TParams = unknown, TQuery = unknown, TBody = unknown> {
   public readonly schemas: RouteSchemas = {};
 
   params<TSchema extends StandardSchemaV1>(
@@ -114,13 +109,7 @@ export class MiddlewareBuilder<
     ) => any,
   >(
     fn: F,
-  ): MiddlewareDefinition<
-    InferServicesFromMw<F>,
-    InferStateFromMw<F>,
-    TParams,
-    TQuery,
-    TBody
-  > {
+  ): MiddlewareDefinition<InferServicesFromMw<F>, InferStateFromMw<F>, TParams, TQuery, TBody> {
     return {
       kind: "middleware",
       handler: fn as unknown as MiddlewareHandler,
@@ -135,9 +124,7 @@ export class MiddlewareBuilder<
   }
 }
 
-export function middleware<
-  F extends (args: MiddlewareArgs<{}, {}>, next: NextFunction) => any,
->(
+export function middleware<F extends (args: MiddlewareArgs<{}, {}>, next: NextFunction) => any>(
   fn: F,
 ): MiddlewareDefinition<InferServicesFromMw<F>, InferStateFromMw<F>>;
 export function middleware(): MiddlewareBuilder;

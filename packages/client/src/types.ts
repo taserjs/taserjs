@@ -7,17 +7,7 @@ export type { FormBody, FormBodyField, FormBodyInput, HttpMethodName, HeaderValu
 
 export type Simplify<T> = { [K in keyof T]: T[K] } & {};
 
-export type SuccessStatusCode =
-  | 200
-  | 201
-  | 202
-  | 203
-  | 204
-  | 205
-  | 206
-  | 207
-  | 208
-  | 226;
+export type SuccessStatusCode = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207 | 208 | 226;
 
 export type InferSchemaInput<T> = T extends StandardSchemaV1
   ? StandardSchemaV1.InferInput<T>
@@ -61,11 +51,12 @@ type RequiredKeys<T> = {
 
 type HasRequiredKeys<T> = [RequiredKeys<T>] extends [never] ? false : true;
 
-type ExtractReturnsSuccess<TReturns> = TReturns extends Record<number, any>
-  ? {
-      [K in keyof TReturns & SuccessStatusCode]: InferSchemaOutput<TReturns[K]>;
-    }[keyof TReturns & SuccessStatusCode]
-  : never;
+type ExtractReturnsSuccess<TReturns> =
+  TReturns extends Record<number, any>
+    ? {
+        [K in keyof TReturns & SuccessStatusCode]: InferSchemaOutput<TReturns[K]>;
+      }[keyof TReturns & SuccessStatusCode]
+    : never;
 
 type ExtractSingleHandlerData<T> = T extends {
   readonly _data?: infer D;
@@ -86,13 +77,14 @@ type ExtractSingleHandlerData<T> = T extends {
             : D
         : unknown;
 
-type ExtractHandlerData<TReturn> = Awaited<TReturn> extends infer T
-  ? [T] extends [never]
-    ? unknown
-    : [ExtractSingleHandlerData<T>] extends [never]
+type ExtractHandlerData<TReturn> =
+  Awaited<TReturn> extends infer T
+    ? [T] extends [never]
       ? unknown
-      : ExtractSingleHandlerData<T>
-  : unknown;
+      : [ExtractSingleHandlerData<T>] extends [never]
+        ? unknown
+        : ExtractSingleHandlerData<T>
+    : unknown;
 
 type RouteReturns<Route> = Route extends { readonly $Infer?: { readonly Returns?: infer R } }
   ? R
@@ -142,19 +134,21 @@ type RouteBodyIn<Route> = Route extends {
       ? B
       : unknown;
 
-type ParamArg<Route> = RouteParamsIn<Route> extends infer P
-  ? HasRequiredKeys<P> extends true
-    ? { param: P }
-    : { param?: P }
-  : {};
+type ParamArg<Route> =
+  RouteParamsIn<Route> extends infer P
+    ? HasRequiredKeys<P> extends true
+      ? { param: P }
+      : { param?: P }
+    : {};
 
-type QueryArg<Route> = RouteQueryIn<Route> extends infer Q
-  ? [Q] extends [Record<string, unknown>]
-    ? HasRequiredKeys<Q> extends true
-      ? { query: Q }
-      : { query?: Q }
-    : { query?: Record<string, unknown> }
-  : { query?: Record<string, unknown> };
+type QueryArg<Route> =
+  RouteQueryIn<Route> extends infer Q
+    ? [Q] extends [Record<string, unknown>]
+      ? HasRequiredKeys<Q> extends true
+        ? { query: Q }
+        : { query?: Q }
+      : { query?: Record<string, unknown> }
+    : { query?: Record<string, unknown> };
 
 type BodyArg<Route, Method> = Method extends "GET" | "HEAD" | "OPTIONS"
   ? {}
@@ -171,7 +165,9 @@ type BodyArg<Route, Method> = Method extends "GET" | "HEAD" | "OPTIONS"
 export type ClientArgsFor<Entry, Method> = Entry extends { readonly route: infer Route }
   ? Simplify<ParamArg<Route> & QueryArg<Route> & BodyArg<Route, Method> & { headers?: HeaderValue }>
   : Entry extends { route: infer Route }
-    ? Simplify<ParamArg<Route> & QueryArg<Route> & BodyArg<Route, Method> & { headers?: HeaderValue }>
+    ? Simplify<
+        ParamArg<Route> & QueryArg<Route> & BodyArg<Route, Method> & { headers?: HeaderValue }
+      >
     : {
         param?: Record<string, unknown>;
         query?: Record<string, unknown>;
@@ -191,8 +187,14 @@ export type ClientMethodReturn<Entry> = Promise<
 
 export type ClientMethodFn<Entry, Method> =
   HasRequiredKeys<ClientArgsFor<Entry, Method>> extends true
-    ? (args: ClientArgsFor<Entry, Method>, options?: ClientRequestOptions) => ClientMethodReturn<Entry>
-    : (args?: ClientArgsFor<Entry, Method>, options?: ClientRequestOptions) => ClientMethodReturn<Entry>;
+    ? (
+        args: ClientArgsFor<Entry, Method>,
+        options?: ClientRequestOptions,
+      ) => ClientMethodReturn<Entry>
+    : (
+        args?: ClientArgsFor<Entry, Method>,
+        options?: ClientRequestOptions,
+      ) => ClientMethodReturn<Entry>;
 
 type MethodToClientKey = {
   GET: "$get";
@@ -266,7 +268,9 @@ type ClientFromRoutes<Routes extends Record<string, any>> = UnionToIntersection<
       [Path in keyof Routes & string]: PathToChain<Path, Routes[Path]>;
     }[keyof Routes & string]
   | {
-      [Path in keyof Routes & string]: Path extends "/" ? ClientMethods<Routes[Path]> : ClientMethods<Routes[Path]>;
+      [Path in keyof Routes & string]: Path extends "/"
+        ? ClientMethods<Routes[Path]>
+        : ClientMethods<Routes[Path]>;
     }
   | ("/" extends keyof Routes ? ClientMethods<Routes["/"]> : {})
 >;

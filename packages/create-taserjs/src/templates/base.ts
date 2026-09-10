@@ -31,7 +31,13 @@ export function tsconfigTemplate(): string {
         skipLibCheck: true,
         esModuleInterop: true,
       },
-      include: ["src/**/*", "src/.taserjs/**/*", "taserjs.config.ts", "vite.config.ts", "nitro.config.ts"],
+      include: [
+        "src/**/*",
+        "src/.taserjs/**/*",
+        "taserjs.config.ts",
+        "vite.config.ts",
+        "nitro.config.ts",
+      ],
     },
     null,
     2,
@@ -97,14 +103,10 @@ export default defineConfig({
 }
 
 export function contextTemplate(bindings: BootBinding[]): string {
-  const imports = bindings.map(
-    (b) => `import { ${b.factoryName} } from "${b.importPath}";`,
-  );
+  const imports = bindings.map((b) => `import { ${b.factoryName} } from "${b.importPath}";`);
 
   const bootBody =
-    bindings.length > 0
-      ? bindings.map((b) => `    ${b.key}: ${b.factoryName}(),`).join("\n")
-      : "";
+    bindings.length > 0 ? bindings.map((b) => `    ${b.key}: ${b.factoryName}(),`).join("\n") : "";
 
   const bootBlock = bindings.length > 0 ? `  boot: () => ({\n${bootBody}\n  }),\n` : "";
   const importBlock = imports.length > 0 ? `${imports.join("\n")}\n\n` : "";

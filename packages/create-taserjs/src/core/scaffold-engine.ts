@@ -74,10 +74,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
   const resolvedDevDeps = [...new Set(devDependencies)].map(formatDep);
 
   // 1. package.json
-  await trackedWrite(
-    "package.json",
-    packageJsonTemplate(options.projectName, scripts),
-  );
+  await trackedWrite("package.json", packageJsonTemplate(options.projectName, scripts));
 
   // 2. tsconfig.json
   await trackedWrite("tsconfig.json", tsconfigTemplate());

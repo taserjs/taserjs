@@ -18,7 +18,10 @@ export interface NextTaserOptions extends TaserPluginOptions {
 
 let turbopackWatcher: FSWatcher | null = null;
 
-export async function runNextTaserGeneration(cwd: string, options?: NextTaserOptions): Promise<void> {
+export async function runNextTaserGeneration(
+  cwd: string,
+  options?: NextTaserOptions,
+): Promise<void> {
   let config: ResolvedTaserConfig = await loadConfig(cwd, options?.config);
   if (options?.serverDir || options?.extension !== undefined) {
     config = {
@@ -38,7 +41,10 @@ export async function runNextTaserGeneration(cwd: string, options?: NextTaserOpt
   }
 }
 
-export async function startTurbopackWatcher(cwd: string, options?: NextTaserOptions): Promise<FSWatcher | null> {
+export async function startTurbopackWatcher(
+  cwd: string,
+  options?: NextTaserOptions,
+): Promise<FSWatcher | null> {
   if (turbopackWatcher) {
     return turbopackWatcher;
   }

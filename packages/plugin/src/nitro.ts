@@ -100,8 +100,7 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
   if (isStandalone) {
     nitro.options.virtual["#nitro/virtual/app"] = () =>
       buildNitroStandaloneAppSource(routesGenPath);
-    nitro.options.virtual["#nitro/virtual/routing"] = () =>
-      buildNitroRoutingVirtualSource();
+    nitro.options.virtual["#nitro/virtual/routing"] = () => buildNitroRoutingVirtualSource();
   } else {
     const VIRTUAL_NITRO_HANDLER_ID = "#taserjs/virtual/nitro-handler";
     nitro.options.virtual[VIRTUAL_NITRO_HANDLER_ID] = () =>

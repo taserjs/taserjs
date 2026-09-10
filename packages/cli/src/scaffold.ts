@@ -31,10 +31,7 @@ export function generateRouteStub({
   ].join("\n");
 }
 
-export function generateLayoutStub({
-  layoutId,
-  formatting,
-}: GenerateLayoutStubOptions): string {
+export function generateLayoutStub({ layoutId, formatting }: GenerateLayoutStubOptions): string {
   const quote = formatting?.quotes === "single" ? "'" : '"';
   const semi = formatting?.semi === false ? "" : ";";
 

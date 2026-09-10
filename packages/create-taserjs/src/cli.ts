@@ -2,7 +2,14 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { runCreateCommand, type RunCreateCommandOptions } from "./commands/create.js";
-import type { DbDriver, DbOdm, DeployTarget, LoggerId, Runtime, ValidatorId } from "./core/types.js";
+import type {
+  DbDriver,
+  DbOdm,
+  DeployTarget,
+  LoggerId,
+  Runtime,
+  ValidatorId,
+} from "./core/types.js";
 
 export async function run(argv: string[] = hideBin(process.argv)): Promise<void> {
   const parser = yargs(argv)
@@ -65,7 +72,9 @@ export async function run(argv: string[] = hideBin(process.argv)): Promise<void>
           projectName: args.dir as string | undefined,
           preset: args.preset as DeployTarget | undefined,
           runtime: args.runtime as Runtime | undefined,
-          validator: (args.validator === "none" ? undefined : args.validator) as ValidatorId | undefined,
+          validator: (args.validator === "none" ? undefined : args.validator) as
+            | ValidatorId
+            | undefined,
           db: (args.db === "none" ? undefined : args.db) as DbOdm | undefined,
           driver: args.driver as DbDriver | undefined,
           logger: (args.logger === "none" ? undefined : args.logger) as LoggerId | undefined,

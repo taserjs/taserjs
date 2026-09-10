@@ -2,7 +2,12 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { closeTurbopackWatcher, createTaser, runNextTaserGeneration, withTaser } from "../src/next.js";
+import {
+  closeTurbopackWatcher,
+  createTaser,
+  runNextTaserGeneration,
+  withTaser,
+} from "../src/next.js";
 
 describe("@taserjs/plugin next adapter", () => {
   let tempDir: string;

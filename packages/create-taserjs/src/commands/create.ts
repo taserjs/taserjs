@@ -3,10 +3,7 @@ import * as p from "@clack/prompts";
 import pc from "picocolors";
 import { resolveUserAgent, runScript } from "../core/package-manager.js";
 import { scaffoldProject } from "../core/scaffold-engine.js";
-import {
-  allowedRuntimeOverrides,
-  DEFAULT_DEPLOY,
-} from "../core/targets.js";
+import { allowedRuntimeOverrides, DEFAULT_DEPLOY } from "../core/targets.js";
 import type {
   DbDriver,
   DbOdm,
@@ -122,8 +119,7 @@ export async function promptInteractiveOptions(
     process.exit(0);
   }
 
-  const validator =
-    validatorChoice === "none" ? undefined : (validatorChoice as ValidatorId);
+  const validator = validatorChoice === "none" ? undefined : (validatorChoice as ValidatorId);
 
   const dbChoice =
     defaults.db ??
@@ -213,7 +209,9 @@ export async function runCreateCommand(
 
   const cwd = process.cwd();
   const projectName = resolved.projectName || "my-taser-app";
-  const targetDir = args.targetDir ? path.resolve(cwd, args.targetDir) : path.resolve(cwd, projectName);
+  const targetDir = args.targetDir
+    ? path.resolve(cwd, args.targetDir)
+    : path.resolve(cwd, projectName);
 
   const scaffoldOpts: ScaffoldOptions = {
     projectName,
@@ -225,7 +223,7 @@ export async function runCreateCommand(
     ...(resolved.driver !== undefined ? { driver: resolved.driver } : {}),
     ...(resolved.logger !== undefined ? { logger: resolved.logger } : {}),
     ...(args.packageVersions !== undefined ? { packageVersions: args.packageVersions } : {}),
-    skipInstall: resolved.skipInstall ?? (process.env.NODE_ENV === "test"),
+    skipInstall: resolved.skipInstall ?? process.env.NODE_ENV === "test",
   };
 
   if (isInteractive) {

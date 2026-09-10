@@ -1,5 +1,4 @@
-export interface TypedResponse<T = unknown, TStatus extends number = number>
-  extends Response {
+export interface TypedResponse<T = unknown, TStatus extends number = number> extends Response {
   readonly _data?: T;
   readonly _status?: TStatus;
   json(): Promise<T>;
@@ -10,11 +9,7 @@ export type JsonResponse<T = unknown, TStatus extends number = 200> = TypedRespo
 export type ExtractStatus<
   TDefault extends number,
   TInit extends number | ResponseInit | undefined,
-> = TInit extends number
-  ? TInit
-  : TInit extends { status: infer S extends number }
-    ? S
-    : TDefault;
+> = TInit extends number ? TInit : TInit extends { status: infer S extends number } ? S : TDefault;
 
 export function createTypedResponse<T, TStatus extends number>(
   body: BodyInit | null | undefined,
@@ -23,7 +18,7 @@ export function createTypedResponse<T, TStatus extends number>(
   defaultHeaders?: Record<string, string>,
   dataPayload?: T,
 ): TypedResponse<T, TStatus> {
-  const status = (typeof init === "number" ? init : init?.status ?? defaultStatus) as TStatus;
+  const status = (typeof init === "number" ? init : (init?.status ?? defaultStatus)) as TStatus;
   const headers = new Headers(typeof init === "object" ? init?.headers : undefined);
 
   if (defaultHeaders) {
@@ -63,7 +58,10 @@ export function json<T, const TInit extends number | ResponseInit = ResponseInit
   data: T,
   init?: TInit,
 ): TypedResponse<T, ExtractStatus<200, TInit>> {
-  const status = (typeof init === "number" ? init : init?.status ?? 200) as ExtractStatus<200, TInit>;
+  const status = (typeof init === "number" ? init : (init?.status ?? 200)) as ExtractStatus<
+    200,
+    TInit
+  >;
   const headers = new Headers(typeof init === "object" ? init?.headers : undefined);
   if (!headers.has("content-type")) {
     headers.set("content-type", "application/json; charset=utf-8");
@@ -130,7 +128,10 @@ export function redirect<const TInit extends number | ResponseInit = ResponseIni
   url: string | URL,
   init?: TInit,
 ): TypedResponse<null, ExtractStatus<302, TInit>> {
-  const status = (typeof init === "number" ? init : init?.status ?? 302) as ExtractStatus<302, TInit>;
+  const status = (typeof init === "number" ? init : (init?.status ?? 302)) as ExtractStatus<
+    302,
+    TInit
+  >;
   const headers = new Headers(typeof init === "object" ? init?.headers : undefined);
   headers.set("location", typeof url === "string" ? url : url.toString());
 
@@ -160,12 +161,15 @@ export function redirect<const TInit extends number | ResponseInit = ResponseIni
  * Creates an error TypedResponse helper factory.
  */
 function createErrorReply<TStatus extends number>(defaultStatus: TStatus) {
-  return function <T = { message: string }, const TInit extends number | ResponseInit = ResponseInit>(
-    data?: T,
-    init?: TInit,
-  ): TypedResponse<T, ExtractStatus<TStatus, TInit>> {
-    const status = (typeof init === "number" ? init : init?.status ?? defaultStatus) as ExtractStatus<TStatus, TInit>;
-    const bodyPayload = data !== undefined ? data : ({ message: `HTTP ${defaultStatus}` } as unknown as T);
+  return function <
+    T = { message: string },
+    const TInit extends number | ResponseInit = ResponseInit,
+  >(data?: T, init?: TInit): TypedResponse<T, ExtractStatus<TStatus, TInit>> {
+    const status = (
+      typeof init === "number" ? init : (init?.status ?? defaultStatus)
+    ) as ExtractStatus<TStatus, TInit>;
+    const bodyPayload =
+      data !== undefined ? data : ({ message: `HTTP ${defaultStatus}` } as unknown as T);
 
     const headers = new Headers(typeof init === "object" ? init?.headers : undefined);
     if (!headers.has("content-type")) {

@@ -7,10 +7,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": [
-    "src/**/*",
-    "src/.taserjs/**/*",
-    "taserjs.config.ts",
-    "nitro.config.ts"
-  ]
+  "include": ["src/**/*", "src/.taserjs/**/*", "taserjs.config.ts", "nitro.config.ts"]
 }

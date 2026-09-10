@@ -188,9 +188,8 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
 
     // Static type assertions
     type Assert<T extends true> = T;
-    type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
-      ? true
-      : false;
+    type Equal<A, B> =
+      (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 
     type _S = Assert<Equal<NonNullable<typeof mw._services>, { logger: number }>>;
     type _St = Assert<Equal<NonNullable<typeof mw._state>, { userId: string }>>;
@@ -210,23 +209,26 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
         return await next({ token: "auth-123" });
       })
       .use(async ({ state }, next) => {
-        const token: string = state.token;
+        const _token: string = state.token;
         return await next.provide({ authService: { verify: () => true } }, { role: "admin" });
       })
       .use(async ({ state, authService }, next) => {
-        const token: string = state.token;
-        const role: string = state.role;
+        const _token: string = state.token;
+        const _role: string = state.role;
         const isValid: boolean = authService.verify();
         return await next({ verified: isValid });
       });
 
     type Assert<T extends true> = T;
-    type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
-      ? true
-      : false;
+    type Equal<A, B> =
+      (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 
-    type _LS = Assert<Equal<NonNullable<typeof l._services>, { authService: { verify: () => true } }>>;
-    type _LSt = Assert<Equal<NonNullable<typeof l._state>, { token: string } & { role: string } & { verified: true }>>;
+    type _LS = Assert<
+      Equal<NonNullable<typeof l._services>, { authService: { verify: () => true } }>
+    >;
+    type _LSt = Assert<
+      Equal<NonNullable<typeof l._state>, { token: string } & { role: string } & { verified: true }>
+    >;
 
     const r = t
       .get("/chained")
@@ -234,13 +236,13 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
         return await next({ step1: 1 });
       })
       .use(async ({ state }, next) => {
-        const s1: number = state.step1;
+        const _s1: number = state.step1;
         return await next.provide({ myService: "active" }, { step2: "two" });
       })
       .use(async ({ state, myService }, next) => {
-        const s1: number = state.step1;
-        const s2: string = state.step2;
-        const srv: string = myService;
+        const _s1: number = state.step1;
+        const _s2: string = state.step2;
+        const _srv: string = myService;
         return await next();
       })
       .handler(({ state, myService }) => {
@@ -270,16 +272,15 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       .query(mockSchema({ filter: "active" }))
       .body(mockSchema({ data: true as boolean }), "json")
       .use(async ({ req }, next) => {
-        const id: number = req.params.id;
-        const filter: string = req.query.filter;
-        const data: boolean = req.body!.data;
+        const _id: number = req.params.id;
+        const _filter: string = req.query.filter;
+        const _data: boolean = req.body!.data;
         return await next();
       });
 
     type Assert<T extends true> = T;
-    type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
-      ? true
-      : false;
+    type Equal<A, B> =
+      (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 
     type _P_id = Assert<Equal<NonNullable<typeof l._params>["id"], number>>;
     type _P_splat = Assert<Equal<NonNullable<typeof l._params>["_splat"], string>>;
