@@ -1,6 +1,7 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { posix, resolve } from "node:path";
 import { parseSync } from "oxc-parser";
+import type { TaserFormattingConfig } from "./config.js";
 import {
   deriveCanonicalUrl,
   deriveLayoutInfo,
@@ -10,6 +11,7 @@ import {
   type ParsedLayoutFileInfo,
   type ParsedRouteFileInfo,
 } from "./paths.js";
+import { generateLayoutStub, generateRouteStub } from "./scaffold.js";
 
 export interface ScanDiagnostic {
   filePath: string;
@@ -36,6 +38,8 @@ export interface ScanOptions {
   routesDir: string;
   cwd?: string | undefined;
   extensions?: readonly string[] | undefined;
+  scaffold?: boolean | undefined;
+  formatting?: TaserFormattingConfig | undefined;
 }
 
 function findRootCall(node: any): { rootMethod: string | null; rootArgs: any[] } | null {
@@ -264,9 +268,35 @@ export function scanRoutes(options: ScanOptions): ScanResult {
           continue;
         }
 
-        const content = readFileSync(entryFullPath, "utf-8");
+        let content = readFileSync(entryFullPath, "utf-8");
 
         try {
+          if (options.scaffold && content.trim().length === 0) {
+            let stub: string | null = null;
+            if (parsed.verb !== null) {
+              const { canonicalPath } = deriveCanonicalUrl(
+                parsed.dir,
+                parsed.stem,
+              );
+              stub = generateRouteStub({
+                method: parsed.verb,
+                canonicalPath,
+                formatting: options.formatting,
+              });
+            } else {
+              const layoutInfo = deriveLayoutInfo(parsed.dir, parsed.stem, entryRelPath);
+              stub = generateLayoutStub({
+                layoutId: layoutInfo.layoutId,
+                formatting: options.formatting,
+              });
+            }
+
+            if (stub) {
+              writeFileSync(entryFullPath, stub, "utf-8");
+              content = stub;
+            }
+          }
+
           if (parsed.verb !== null) {
             // Route file
             const { canonicalPath, hierarchySegments } = deriveCanonicalUrl(

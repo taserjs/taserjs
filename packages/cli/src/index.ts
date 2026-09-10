@@ -50,6 +50,13 @@ export {
 } from "./generator.js";
 
 export {
+  generateRouteStub,
+  generateLayoutStub,
+  type GenerateRouteStubOptions,
+  type GenerateLayoutStubOptions,
+} from "./scaffold.js";
+
+export {
   runGenerate,
   run,
   createCli,

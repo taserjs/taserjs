@@ -18,13 +18,15 @@ export async function runGenerate(options: {
   const cwd = options.cwd ?? process.cwd();
   const config = await loadConfig(cwd, options.config);
 
-  const executeGeneration = () => {
+  const executeGeneration = (scaffold = Boolean(options.watch)) => {
     const startTime = Date.now();
     try {
       const routesDir = resolveRoutesDir(config, cwd);
       const scanResult = scanRoutes({
         routesDir,
         cwd,
+        scaffold,
+        formatting: config.formatting,
       });
 
       const generateResult = generateManifest(scanResult, config, cwd);

@@ -66,6 +66,8 @@ export async function startTurbopackWatcher(cwd: string, options?: NextTaserOpti
         const scanResult = scanRoutes({
           routesDir,
           cwd,
+          scaffold: true,
+          formatting: resolvedConfig.formatting,
         });
         generateManifest(scanResult, resolvedConfig, cwd);
       }, 50);

@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import { t } from "@taserjs/router";
-import { json } from "@taserjs/utils";
+import { json } from "@taserjs/router/reply";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   createClient,

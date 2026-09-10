@@ -80,11 +80,13 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
   const outputDir = resolveOutputDir(config, cwd);
   const routesGenPath = resolve(outputDir, "routes.gen.ts");
 
-  const executeGeneration = () => {
+  const executeGeneration = (scaffold = Boolean(nitro.options.dev)) => {
     if (existsSync(routesDir)) {
       const scanResult = scanRoutes({
         routesDir,
         cwd,
+        scaffold,
+        formatting: config.formatting,
       });
       generateManifest(scanResult, config, cwd);
     }

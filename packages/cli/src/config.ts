@@ -4,6 +4,7 @@ import { createJiti } from "jiti";
 
 export interface TaserFormattingConfig {
   quotes?: "single" | "double" | undefined;
+  semi?: boolean | undefined;
 }
 
 export interface TaserConfig {
@@ -26,6 +27,7 @@ export interface ResolvedTaserConfig {
   extension: boolean | string;
   formatting: {
     quotes: "single" | "double";
+    semi: boolean;
   };
   configFile?: string | undefined;
 }
@@ -38,6 +40,7 @@ export const DEFAULT_CONFIG: ResolvedTaserConfig = {
   extension: true,
   formatting: {
     quotes: "double",
+    semi: true,
   },
 };
 
@@ -60,6 +63,7 @@ export function defineConfig(config: TaserConfig = {}): TaserConfig {
     extension: config.extension ?? DEFAULT_CONFIG.extension,
     formatting: {
       quotes: config.formatting?.quotes ?? DEFAULT_CONFIG.formatting.quotes,
+      ...(config.formatting?.semi !== undefined ? { semi: config.formatting.semi } : {}),
     },
   };
 }
@@ -165,6 +169,7 @@ export async function loadConfig(
       extension: rawConfig.extension ?? DEFAULT_CONFIG.extension,
       formatting: {
         quotes: rawConfig.formatting?.quotes ?? DEFAULT_CONFIG.formatting.quotes,
+        semi: rawConfig.formatting?.semi ?? DEFAULT_CONFIG.formatting.semi,
       },
       configFile: configFilePath,
     };

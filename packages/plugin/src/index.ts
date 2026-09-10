@@ -71,6 +71,8 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
       const scanResult = scanRoutes({
         routesDir,
         cwd,
+        scaffold: isDev,
+        formatting: config.formatting,
       });
 
       generateManifest(scanResult, config, cwd);
