@@ -56,22 +56,31 @@ export async function validateSchemas(
   }
 }
 
-async function invokeTerminalHandler(
-  terminalHandler: RouteHandler,
-  args: unknown,
-): Promise<Response> {
-  const res = await terminalHandler(args as any);
+const EMPTY_STATE: Record<string, unknown> = Object.freeze({});
+
+function ensureResponse(res: unknown): Response {
   if (!(res instanceof Response)) {
     throw new TypeError(`Route handler must return a Response, received: ${typeof res}`);
   }
   return res;
 }
 
+function invokeTerminalHandler(
+  terminalHandler: RouteHandler,
+  args: unknown,
+): Response | Promise<Response> {
+  const res = terminalHandler(args as any);
+  if (res instanceof Promise) {
+    return res.then(ensureResponse);
+  }
+  return ensureResponse(res);
+}
+
 export function createPipeline(
   middlewares: readonly MiddlewareHandler[],
   terminalHandler: RouteHandler,
   routeSchemas?: RouteSchemas | undefined,
-) {
+): (req: TaserRequest, ctx: Record<string, unknown>) => Response | Promise<Response> {
   const hasRouteSchemas = hasSchemas(routeSchemas);
 
   // Fast-path: routes with 0 middlewares bypass onion dispatch closure allocations completely
@@ -80,18 +89,82 @@ export function createPipeline(
       return function executeDirect(
         req: TaserRequest,
         ctx: Record<string, unknown>,
-      ): Promise<Response> {
-        return invokeTerminalHandler(terminalHandler, { req, ctx, state: {} });
+      ): Response | Promise<Response> {
+        return invokeTerminalHandler(terminalHandler, { req, ctx, state: EMPTY_STATE });
       };
     }
 
-    return async function executeDirectWithSchemas(
+    return function executeDirectWithSchemas(
       req: TaserRequest,
       ctx: Record<string, unknown>,
     ): Promise<Response> {
       const honoContext = ctx.context as Context | undefined;
-      await validateSchemas(routeSchemas, req, honoContext);
-      return await invokeTerminalHandler(terminalHandler, { req, ctx, state: {} });
+      const val = validateSchemas(routeSchemas, req, honoContext);
+      if (val instanceof Promise) {
+        return val.then(() =>
+          invokeTerminalHandler(terminalHandler, { req, ctx, state: EMPTY_STATE }),
+        );
+      }
+      return invokeTerminalHandler(terminalHandler, {
+        req,
+        ctx,
+        state: EMPTY_STATE,
+      }) as Promise<Response>;
+    };
+  }
+
+  // Fast-path: single middleware with no schemas bypasses recursive dispatch
+  if (middlewares.length === 1 && !hasRouteSchemas) {
+    const middleware = middlewares[0]!;
+    return async function executeSingleMiddleware(
+      req: TaserRequest,
+      ctx: Record<string, unknown>,
+    ): Promise<Response> {
+      let called = false;
+      let currentState: Record<string, unknown> = EMPTY_STATE;
+      let currentServices: Record<string, unknown> | undefined;
+
+      const next = (async (nextState?: Record<string, unknown>) => {
+        if (called) {
+          throw new Error("next() called multiple times");
+        }
+        called = true;
+        if (nextState) {
+          currentState = nextState;
+        }
+        const handlerArgs = currentServices
+          ? { req, ctx, state: currentState, ...currentServices }
+          : { req, ctx, state: currentState };
+        return await invokeTerminalHandler(terminalHandler, handlerArgs);
+      }) as NextFunction;
+
+      next.provide = async (
+        providedServices: Record<string, unknown>,
+        nextState?: Record<string, unknown>,
+      ) => {
+        if (called) {
+          throw new Error("next() called multiple times");
+        }
+        called = true;
+        currentServices = providedServices;
+        if (nextState) {
+          currentState = nextState;
+        }
+        return await invokeTerminalHandler(terminalHandler, {
+          req,
+          ctx,
+          state: currentState,
+          ...providedServices,
+        });
+      };
+
+      const res = await middleware({ req, ctx, state: EMPTY_STATE } as any, next);
+      if (!(res instanceof Response)) {
+        throw new TypeError(
+          `Middleware at index 0 must return a Response, received: ${typeof res}`,
+        );
+      }
+      return res;
     };
   }
 
@@ -99,33 +172,36 @@ export function createPipeline(
     req: TaserRequest,
     ctx: Record<string, unknown>,
   ): Promise<Response> {
-    let currentState: Record<string, unknown> = {};
+    let currentState: Record<string, unknown> = EMPTY_STATE;
     let currentServices: Record<string, unknown> = {};
+    let hasServices = false;
     const honoContext = ctx.context as Context | undefined;
 
     async function dispatch(
       index: number,
       state: Record<string, unknown>,
       services: Record<string, unknown>,
+      servicesPresent: boolean,
     ): Promise<Response> {
       currentState = state;
       currentServices = services;
+      hasServices = servicesPresent;
 
       if (index < middlewares.length) {
         const middleware = middlewares[index]!;
         let called = false;
 
-        const nextFn = async (nextState?: Record<string, unknown> | undefined) => {
+        const next = (async (nextState?: Record<string, unknown> | undefined) => {
           if (called) {
             throw new Error("next() called multiple times");
           }
           called = true;
 
           const mergedState = nextState ? { ...currentState, ...nextState } : currentState;
-          return await dispatch(index + 1, mergedState, currentServices);
-        };
+          return await dispatch(index + 1, mergedState, currentServices, hasServices);
+        }) as NextFunction;
 
-        const provide = async (
+        next.provide = async (
           providedServices: Record<string, unknown>,
           nextState?: Record<string, unknown> | undefined,
         ) => {
@@ -134,19 +210,16 @@ export function createPipeline(
           }
           called = true;
 
-          const mergedServices = { ...currentServices, ...providedServices };
+          const mergedServices = hasServices
+            ? { ...currentServices, ...providedServices }
+            : providedServices;
           const mergedState = nextState ? { ...currentState, ...nextState } : currentState;
-          return await dispatch(index + 1, mergedState, mergedServices);
+          return await dispatch(index + 1, mergedState, mergedServices, true);
         };
 
-        const next = Object.assign(nextFn, { provide }) as NextFunction;
-
-        const middlewareArgs = {
-          req,
-          ctx,
-          state: currentState,
-          ...currentServices,
-        };
+        const middlewareArgs = hasServices
+          ? { req, ctx, state: currentState, ...currentServices }
+          : { req, ctx, state: currentState };
 
         const res = await middleware(middlewareArgs as any, next);
         if (!(res instanceof Response)) {
@@ -162,15 +235,14 @@ export function createPipeline(
         await validateSchemas(routeSchemas, req, honoContext);
       }
 
-      const handlerArgs =
-        Object.keys(currentServices).length > 0
-          ? { req, ctx, state: currentState, ...currentServices }
-          : { req, ctx, state: currentState };
+      const handlerArgs = hasServices
+        ? { req, ctx, state: currentState, ...currentServices }
+        : { req, ctx, state: currentState };
 
       return await invokeTerminalHandler(terminalHandler, handlerArgs);
     }
 
-    const finalRes = await dispatch(0, {}, {});
+    const finalRes = await dispatch(0, EMPTY_STATE, {}, false);
     return finalRes;
   };
 }

@@ -11,6 +11,10 @@ export type ExtractStatus<
   TInit extends number | ResponseInit | undefined,
 > = TInit extends number ? TInit : TInit extends { status: infer S extends number } ? S : TDefault;
 
+function defaultJsonHeaders(): Record<string, string> {
+  return { "content-type": "application/json; charset=utf-8" };
+}
+
 export function createTypedResponse<T, TStatus extends number>(
   body: BodyInit | null | undefined,
   init: number | ResponseInit | undefined,
@@ -19,34 +23,36 @@ export function createTypedResponse<T, TStatus extends number>(
   dataPayload?: T,
 ): TypedResponse<T, TStatus> {
   const status = (typeof init === "number" ? init : (init?.status ?? defaultStatus)) as TStatus;
-  const headers = new Headers(typeof init === "object" ? init?.headers : undefined);
 
-  if (defaultHeaders) {
-    for (const [key, value] of Object.entries(defaultHeaders)) {
-      if (!headers.has(key)) {
-        headers.set(key, value);
+  let headers: HeadersInit | undefined;
+  if (init === undefined || typeof init === "number") {
+    headers = defaultHeaders;
+  } else if (init.headers) {
+    const h = new Headers(init.headers);
+    if (defaultHeaders) {
+      for (const [key, value] of Object.entries(defaultHeaders)) {
+        if (!h.has(key)) {
+          h.set(key, value);
+        }
       }
     }
+    headers = h;
+  } else {
+    headers = defaultHeaders;
   }
 
-  const res = new Response(body, {
+  const responseInit: ResponseInit = {
     ...(typeof init === "object" ? init : {}),
     status,
-    headers,
-  }) as TypedResponse<T, TStatus>;
+  };
+  if (headers !== undefined) {
+    responseInit.headers = headers;
+  }
 
-  Object.defineProperty(res, "_data", {
-    value: dataPayload,
-    enumerable: true,
-    writable: false,
-    configurable: true,
-  });
-  Object.defineProperty(res, "_status", {
-    value: status,
-    enumerable: true,
-    writable: false,
-    configurable: true,
-  });
+  const res = new Response(body, responseInit) as TypedResponse<T, TStatus>;
+
+  (res as any)._data = dataPayload;
+  (res as any)._status = status;
 
   return res;
 }
@@ -58,33 +64,46 @@ export function json<T, const TInit extends number | ResponseInit = ResponseInit
   data: T,
   init?: TInit,
 ): TypedResponse<T, ExtractStatus<200, TInit>> {
-  const status = (typeof init === "number" ? init : (init?.status ?? 200)) as ExtractStatus<
-    200,
-    TInit
-  >;
-  const headers = new Headers(typeof init === "object" ? init?.headers : undefined);
-  if (!headers.has("content-type")) {
-    headers.set("content-type", "application/json; charset=utf-8");
+  if (init === undefined) {
+    const res = new Response(JSON.stringify(data), {
+      status: 200,
+      headers: defaultJsonHeaders(),
+    }) as TypedResponse<T, ExtractStatus<200, TInit>>;
+    (res as any)._data = data;
+    (res as any)._status = 200;
+    return res;
+  }
+
+  if (typeof init === "number") {
+    const res = new Response(JSON.stringify(data), {
+      status: init,
+      headers: defaultJsonHeaders(),
+    }) as TypedResponse<T, ExtractStatus<200, TInit>>;
+    (res as any)._data = data;
+    (res as any)._status = init;
+    return res;
+  }
+
+  const status = (init?.status ?? 200) as ExtractStatus<200, TInit>;
+  let headers: HeadersInit;
+  if (init.headers) {
+    const h = new Headers(init.headers);
+    if (!h.has("content-type")) {
+      h.set("content-type", "application/json; charset=utf-8");
+    }
+    headers = h;
+  } else {
+    headers = defaultJsonHeaders();
   }
 
   const res = new Response(JSON.stringify(data), {
-    ...(typeof init === "object" ? init : {}),
+    ...init,
     status,
     headers,
   }) as TypedResponse<T, ExtractStatus<200, TInit>>;
 
-  Object.defineProperty(res, "_data", {
-    value: data,
-    enumerable: true,
-    writable: false,
-    configurable: true,
-  });
-  Object.defineProperty(res, "_status", {
-    value: status,
-    enumerable: true,
-    writable: false,
-    configurable: true,
-  });
+  (res as any)._data = data;
+  (res as any)._status = status;
 
   return res;
 }
@@ -132,8 +151,17 @@ export function redirect<const TInit extends number | ResponseInit = ResponseIni
     302,
     TInit
   >;
-  const headers = new Headers(typeof init === "object" ? init?.headers : undefined);
-  headers.set("location", typeof url === "string" ? url : url.toString());
+  const location = typeof url === "string" ? url : url.toString();
+  let headers: HeadersInit;
+  if (init === undefined || typeof init === "number") {
+    headers = { location };
+  } else if (init.headers) {
+    const h = new Headers(init.headers);
+    h.set("location", location);
+    headers = h;
+  } else {
+    headers = { location };
+  }
 
   const res = new Response(null, {
     ...(typeof init === "object" ? init : {}),
@@ -141,18 +169,8 @@ export function redirect<const TInit extends number | ResponseInit = ResponseIni
     headers,
   }) as TypedResponse<null, ExtractStatus<302, TInit>>;
 
-  Object.defineProperty(res, "_data", {
-    value: null,
-    enumerable: true,
-    writable: false,
-    configurable: true,
-  });
-  Object.defineProperty(res, "_status", {
-    value: status,
-    enumerable: true,
-    writable: false,
-    configurable: true,
-  });
+  (res as any)._data = null;
+  (res as any)._status = status;
 
   return res;
 }
@@ -171,9 +189,17 @@ function createErrorReply<TStatus extends number>(defaultStatus: TStatus) {
     const bodyPayload =
       data !== undefined ? data : ({ message: `HTTP ${defaultStatus}` } as unknown as T);
 
-    const headers = new Headers(typeof init === "object" ? init?.headers : undefined);
-    if (!headers.has("content-type")) {
-      headers.set("content-type", "application/json; charset=utf-8");
+    let headers: HeadersInit;
+    if (init === undefined || typeof init === "number") {
+      headers = defaultJsonHeaders();
+    } else if (init.headers) {
+      const h = new Headers(init.headers);
+      if (!h.has("content-type")) {
+        h.set("content-type", "application/json; charset=utf-8");
+      }
+      headers = h;
+    } else {
+      headers = defaultJsonHeaders();
     }
 
     const res = new Response(JSON.stringify(bodyPayload), {
@@ -182,18 +208,8 @@ function createErrorReply<TStatus extends number>(defaultStatus: TStatus) {
       headers,
     }) as TypedResponse<T, ExtractStatus<TStatus, TInit>>;
 
-    Object.defineProperty(res, "_data", {
-      value: bodyPayload,
-      enumerable: true,
-      writable: false,
-      configurable: true,
-    });
-    Object.defineProperty(res, "_status", {
-      value: status,
-      enumerable: true,
-      writable: false,
-      configurable: true,
-    });
+    (res as any)._data = bodyPayload;
+    (res as any)._status = status;
 
     return res;
   };

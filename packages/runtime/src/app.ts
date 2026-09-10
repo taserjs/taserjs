@@ -7,6 +7,13 @@ import { createPipeline } from "./pipeline.js";
 import { createTaserRequest } from "./request.js";
 import type { RouteManifest, TaserApp, TaserDefinition, TaserRequest } from "./types.js";
 
+function catchResponse(err: unknown): Response {
+  if (err instanceof Response) {
+    return err;
+  }
+  throw err;
+}
+
 export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<any>): TaserApp {
   const options = taser?.options;
   const app = options?.basePath ? new Hono().basePath(options.basePath) : new Hono();
@@ -78,6 +85,9 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
       const routeDefinition = entry.route;
       const method = (routeDefinition.method || methodKey).toUpperCase();
       const targetPath = routeDefinition.path || routePath;
+      const isStatic = Boolean(
+        targetPath && !targetPath.includes(":") && !targetPath.includes("*"),
+      );
 
       const middlewares = resolveMiddlewares(entry, manifest);
       const pipeline = createPipeline(
@@ -86,18 +96,23 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
         routeDefinition.schemas,
       );
 
-      app.on(method, targetPath, async (c: Context) => {
+      app.on(method, targetPath, (c: Context) => {
         try {
-          const req = createTaserRequest(c, targetPath);
-          const ctx = !hasContext
-            ? { context: c }
-            : (resolveContextSync(c) ?? (await resolveContext(c, req)));
-          return await pipeline(req, ctx);
-        } catch (err) {
-          if (err instanceof Response) {
-            return err;
+          const req = createTaserRequest(c, targetPath, isStatic);
+          const syncCtx = resolveContextSync(c);
+          if (syncCtx) {
+            const res = pipeline(req, syncCtx);
+            if (res instanceof Promise) {
+              return res.catch(catchResponse);
+            }
+            return res;
           }
-          throw err;
+
+          return resolveContext(c, req)
+            .then((asyncCtx) => pipeline(req, asyncCtx))
+            .catch(catchResponse);
+        } catch (err) {
+          return catchResponse(err);
         }
       });
     }

@@ -14,6 +14,7 @@ export type CookieJarOptions = CookieOptions & {
 export class TaserCookieJar {
   readonly #c: Context;
   readonly #defaultOptions: CookieJarOptions;
+  #dirty = false;
 
   constructor(c: Context, defaultOptions?: CookieJarOptions) {
     this.#c = c;
@@ -57,6 +58,7 @@ export class TaserCookieJar {
   }
 
   set(name: string, value: string, opt?: CookieOptions): this {
+    this.#dirty = true;
     const mergedOpt = opt ? { ...this.#defaultOptions, ...opt } : this.#defaultOptions;
     setCookie(this.#c, name, value, mergedOpt);
     return this;
@@ -68,6 +70,7 @@ export class TaserCookieJar {
     secretOrOpt?: string | BufferSource | CookieOptions,
     opt?: CookieOptions,
   ): Promise<this> {
+    this.#dirty = true;
     let secret: string | BufferSource;
     let options: CookieOptions | undefined;
 
@@ -89,6 +92,7 @@ export class TaserCookieJar {
   }
 
   delete(name: string, opt?: CookieOptions): string | undefined {
+    this.#dirty = true;
     const mergedOpt = opt ? { ...this.#defaultOptions, ...opt } : this.#defaultOptions;
     return deleteCookie(this.#c, name, mergedOpt);
   }
@@ -101,6 +105,9 @@ export class TaserCookieJar {
   }
 
   flush(res: Response): Response {
+    if (!this.#dirty) {
+      return res;
+    }
     return mergeResponseCookies(this.#c, res);
   }
 }
