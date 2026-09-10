@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { isAbsolute, join, normalize, relative, resolve } from "pathe";
 import {
   generateManifest,
   loadConfig,
@@ -80,12 +80,20 @@ function isRunnableEnvironment(environment: any): boolean {
   return true;
 }
 
-function isSubPath(child: string, parent: string): boolean {
-  const rel = relative(parent, child).replace(/\\/g, "/");
+export function normalizeImportPath(pathStr: string): string {
+  let normalized = normalize(pathStr);
+  if (!isAbsolute(normalized) && !normalized.startsWith("./") && !normalized.startsWith("../")) {
+    normalized = `./${normalized}`;
+  }
+  return normalized;
+}
+
+export function isSubPath(child: string, parent: string): boolean {
+  const rel = relative(parent, child);
   return !rel.startsWith("../") && rel !== ".." && !isAbsolute(rel);
 }
 
-function isOutputDir(filePath: string, outputDir: string): boolean {
+export function isOutputDir(filePath: string, outputDir: string): boolean {
   const normalizedFile = resolve(filePath);
   const normalizedOutput = resolve(outputDir);
   return (
@@ -190,7 +198,7 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
   }
 
   function emitServeShim(serveShimPath: string, routesGenImportPath: string): void {
-    const normalizedRoutesPath = routesGenImportPath.replace(/\\/g, "/");
+    const normalizedRoutesPath = normalizeImportPath(routesGenImportPath);
     const code = `// @ts-nocheck
 import { FastResponse } from "srvx";
 globalThis.Response = FastResponse;

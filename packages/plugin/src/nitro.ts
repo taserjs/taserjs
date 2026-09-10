@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve } from "pathe";
 import {
   generateManifest,
   loadConfig,
@@ -9,7 +9,7 @@ import {
   type ResolvedTaserConfig,
 } from "@taserjs/cli";
 import { watch, type FSWatcher } from "chokidar";
-import { taserPlugin, type TaserPluginOptions } from "./index.js";
+import { normalizeImportPath, taserPlugin, type TaserPluginOptions } from "./index.js";
 
 export function buildNitroRoutingVirtualSource(): string {
   return [
@@ -21,7 +21,7 @@ export function buildNitroRoutingVirtualSource(): string {
 }
 
 export function buildNitroStandaloneAppSource(routesGenPath: string): string {
-  const normalizedPath = routesGenPath.replace(/\\/g, "/");
+  const normalizedPath = normalizeImportPath(routesGenPath);
 
   return `// @ts-nocheck
 import { app as taserApp } from "${normalizedPath}";
@@ -49,7 +49,7 @@ export default app;
 }
 
 export function buildNitroMiddlewareHandlerSource(routesGenPath: string): string {
-  const normalizedPath = routesGenPath.replace(/\\/g, "/");
+  const normalizedPath = normalizeImportPath(routesGenPath);
 
   return `// @ts-nocheck
 import { app as taserApp } from "${normalizedPath}";

@@ -141,4 +141,43 @@ describe("paths and URL normalization", () => {
     expect(rootIndex.layoutId).toBe("/index/*");
     expect(rootIndex.targetSegment).toBe("index");
   });
+
+  it("handles Windows-style backslash relative paths across utilities", () => {
+    // isIgnoredPath
+    expect(isIgnoredPath("-utils\\helper.ts")).toBe(true);
+    expect(isIgnoredPath("admin\\-components\\button.tsx")).toBe(true);
+    expect(isIgnoredPath("admin\\users.get.ts")).toBe(false);
+
+    // parseFilePath with Windows backslashes
+    const route = parseFilePath("admin\\users.get.ts", ["ts", "tsx"]);
+    expect(route).toEqual({
+      dir: "admin",
+      name: "users.get",
+      ext: "ts",
+      verb: "get",
+      stem: "users",
+    });
+
+    const nested = parseFilePath("nested\\sub\\$id.post.tsx", ["ts", "tsx"]);
+    expect(nested).toEqual({
+      dir: "nested/sub",
+      name: "$id.post",
+      ext: "tsx",
+      verb: "post",
+      stem: "$id",
+    });
+
+    const layout = parseFilePath("admin\\$.ts", ["ts", "tsx"]);
+    expect(layout).toEqual({
+      dir: "admin",
+      name: "$",
+      ext: "ts",
+      verb: null,
+      stem: "$",
+    });
+
+    // deriveCanonicalUrl with Windows-derived dir
+    const canonical = deriveCanonicalUrl(route!.dir, route!.stem);
+    expect(canonical.canonicalPath).toBe("/admin/users");
+  });
 });

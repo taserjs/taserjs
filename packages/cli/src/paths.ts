@@ -1,4 +1,4 @@
-import { posix } from "node:path";
+import { basename, dirname, normalize } from "pathe";
 
 export const HTTP_METHODS = ["get", "post", "put", "delete", "patch"] as const;
 export type HttpMethodLower = (typeof HTTP_METHODS)[number];
@@ -107,7 +107,7 @@ export function normalizeSegmentToUrl(rawSegment: string): {
  * Checks if a relative file path is ignored (starts with '-' in any segment).
  */
 export function isIgnoredPath(relativePath: string): boolean {
-  const normalized = relativePath.replace(/\\/g, "/");
+  const normalized = normalize(relativePath);
   const segments = normalized.split("/");
   return segments.some((segment) => segment.startsWith("-"));
 }
@@ -125,7 +125,7 @@ export function parseFilePath(
   verb: HttpMethodLower | null;
   stem: string;
 } | null {
-  const normalized = relativePath.replace(/\\/g, "/");
+  const normalized = normalize(relativePath);
   const extMatch = normalized.match(new RegExp(`\\.(${allowedExtensions.join("|")})$`));
   if (!extMatch) {
     return null;
@@ -133,8 +133,8 @@ export function parseFilePath(
 
   const ext = extMatch[1]!;
   const withoutExt = normalized.slice(0, -ext.length - 1);
-  const dir = posix.dirname(withoutExt) === "." ? "" : posix.dirname(withoutExt);
-  const filenameWithoutExt = posix.basename(withoutExt);
+  const dir = dirname(withoutExt) === "." ? "" : dirname(withoutExt);
+  const filenameWithoutExt = basename(withoutExt);
 
   // Check if filename ends with .<verb>
   const parts = splitUnescapedDots(filenameWithoutExt);

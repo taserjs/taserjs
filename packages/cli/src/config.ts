@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
 import { createJiti } from "jiti";
+import { isAbsolute, normalize, resolve } from "pathe";
 
 export interface TaserFormattingConfig {
   quotes?: "single" | "double" | undefined;
@@ -70,24 +70,21 @@ export function defineConfig(config: TaserConfig = {}): TaserConfig {
   };
 }
 
-const ABSOLUTE_PATH_REGEX = /^[a-zA-Z]:[/\\]/;
-const LEADING_DOT_SLASH_REGEX = /^\.[/\\]/;
+const LEADING_DOT_SLASH_REGEX = /^\.\//;
 
 function resolveServerSubPath(serverDir: string, subPath: string, cwd: string): string {
-  if (subPath.startsWith("/") || ABSOLUTE_PATH_REGEX.test(subPath)) {
+  if (isAbsolute(subPath)) {
     return resolve(subPath);
   }
-  const cleanServerDir = serverDir.replace(LEADING_DOT_SLASH_REGEX, "");
-  const cleanSubPath = subPath.replace(LEADING_DOT_SLASH_REGEX, "");
+  const cleanServerDir = normalize(serverDir).replace(LEADING_DOT_SLASH_REGEX, "");
+  const cleanSubPath = normalize(subPath).replace(LEADING_DOT_SLASH_REGEX, "");
   if (
     cleanServerDir &&
-    (cleanSubPath === cleanServerDir ||
-      cleanSubPath.startsWith(`${cleanServerDir}/`) ||
-      cleanSubPath.startsWith(`${cleanServerDir}\\`))
+    (cleanSubPath === cleanServerDir || cleanSubPath.startsWith(`${cleanServerDir}/`))
   ) {
     return resolve(cwd, cleanSubPath);
   }
-  return resolve(cwd, serverDir, subPath);
+  return resolve(cwd, cleanServerDir, cleanSubPath);
 }
 
 export function resolveServerDir(config: ResolvedTaserConfig, cwd: string = process.cwd()): string {

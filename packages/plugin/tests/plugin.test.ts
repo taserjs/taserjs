@@ -1,8 +1,9 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join } from "pathe";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { taserPlugin, taser } from "../src/index.js";
+import { isOutputDir, isSubPath, normalizeImportPath, taserPlugin, taser } from "../src/index.js";
+import { buildNitroMiddlewareHandlerSource, buildNitroStandaloneAppSource } from "../src/nitro.js";
 
 describe("@taserjs/plugin core", () => {
   let tempDir: string;
@@ -310,6 +311,54 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
 
       const serveShimPath = join(outputDir, "serve.mjs");
       expect(existsSync(serveShimPath)).toBe(false);
+    });
+  });
+
+  describe("cross-platform Windows path support", () => {
+    it("normalizeImportPath formats relative and absolute Windows paths correctly", () => {
+      expect(normalizeImportPath(".\\routes.gen.js")).toBe("./routes.gen.js");
+      expect(normalizeImportPath("./routes.gen.js")).toBe("./routes.gen.js");
+      expect(normalizeImportPath("..\\routes.gen.js")).toBe("../routes.gen.js");
+      expect(normalizeImportPath("C:\\Users\\alice\\project\\src\\.taserjs\\routes.gen.ts")).toBe(
+        "C:/Users/alice/project/src/.taserjs/routes.gen.ts",
+      );
+    });
+
+    it("isSubPath correctly detects containment with Windows-style backslashes", () => {
+      const parent = "C:\\Users\\alice\\project\\src\\routes";
+      const child = "C:\\Users\\alice\\project\\src\\routes\\users\\$id.get.ts";
+      const outside = "C:\\Users\\alice\\project\\src\\other\\file.ts";
+      const differentDrive = "D:\\Users\\alice\\project\\src\\routes\\users.get.ts";
+
+      expect(isSubPath(child, parent)).toBe(true);
+      expect(isSubPath(outside, parent)).toBe(false);
+      expect(isSubPath(differentDrive, parent)).toBe(false);
+    });
+
+    it("isOutputDir matches identical paths and subpaths on Windows", () => {
+      const outputDir = "C:\\Users\\alice\\project\\src\\.taserjs";
+      const exact = "C:\\Users\\alice\\project\\src\\.taserjs";
+      const inside = "C:\\Users\\alice\\project\\src\\.taserjs\\routes.gen.ts";
+      const outside = "C:\\Users\\alice\\project\\src\\routes\\users.get.ts";
+
+      expect(isOutputDir(exact, outputDir)).toBe(true);
+      expect(isOutputDir(inside, outputDir)).toBe(true);
+      expect(isOutputDir(outside, outputDir)).toBe(false);
+    });
+
+    it("nitro code generators normalize Windows-style backslashes", () => {
+      const windowsPath = "C:\\Users\\alice\\project\\src\\.taserjs\\routes.gen.ts";
+      const standalone = buildNitroStandaloneAppSource(windowsPath);
+      expect(standalone).toContain(
+        'import { app as taserApp } from "C:/Users/alice/project/src/.taserjs/routes.gen.ts";',
+      );
+      expect(standalone).not.toContain("C:\\Users");
+
+      const middleware = buildNitroMiddlewareHandlerSource(windowsPath);
+      expect(middleware).toContain(
+        'import { app as taserApp } from "C:/Users/alice/project/src/.taserjs/routes.gen.ts";',
+      );
+      expect(middleware).not.toContain("C:\\Users");
     });
   });
 });

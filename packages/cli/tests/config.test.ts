@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join } from "pathe";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_CONFIG,
@@ -201,6 +201,34 @@ export default async () => ({
     expect(resolveRoutesDir(config, tempDir)).toBe(join(tempDir, "src", "routes"));
     expect(resolveOutputDir(config, tempDir)).toBe(join(tempDir, "src", ".taserjs"));
     expect(resolveAppFile(config, tempDir)).toBe(join(tempDir, "src", "taser.ts"));
+  });
+
+  it("handles Windows-style paths and drive letter resolution", () => {
+    const windowsCwd = "C:/Users/alice/project";
+
+    // 1. Relative subpath with backslashes
+    const config1 = {
+      ...DEFAULT_CONFIG,
+      serverDir: "src",
+      routesDir: "src\\routes",
+      outputDir: "src\\.taserjs",
+      app: "src\\taser.ts",
+    };
+    expect(resolveRoutesDir(config1, windowsCwd)).toBe("C:/Users/alice/project/src/routes");
+    expect(resolveOutputDir(config1, windowsCwd)).toBe("C:/Users/alice/project/src/.taserjs");
+    expect(resolveAppFile(config1, windowsCwd)).toBe("C:/Users/alice/project/src/taser.ts");
+
+    // 2. Absolute Windows paths with drive letter and backslashes
+    const config2 = {
+      ...DEFAULT_CONFIG,
+      serverDir: "src",
+      routesDir: "D:\\custom\\routes",
+      outputDir: "D:\\custom\\.taserjs",
+      app: "D:\\custom\\app.ts",
+    };
+    expect(resolveRoutesDir(config2, windowsCwd)).toBe("D:/custom/routes");
+    expect(resolveOutputDir(config2, windowsCwd)).toBe("D:/custom/.taserjs");
+    expect(resolveAppFile(config2, windowsCwd)).toBe("D:/custom/app.ts");
   });
 
   it("throws when a specified custom config file is not found", async () => {

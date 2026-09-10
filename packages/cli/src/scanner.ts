@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { posix, resolve } from "node:path";
+import { join, resolve } from "pathe";
 import { parseSync } from "oxc-parser";
 import type { TaserFormattingConfig } from "./config.js";
 import {
@@ -251,7 +251,7 @@ export function scanRoutes(options: ScanOptions): ScanResult {
     }
 
     for (const entry of entries) {
-      const entryRelPath = relativeDir ? posix.join(relativeDir, entry) : entry;
+      const entryRelPath = relativeDir ? join(relativeDir, entry) : entry;
       const entryFullPath = resolve(currentDir, entry);
 
       if (isIgnoredPath(entryRelPath)) {

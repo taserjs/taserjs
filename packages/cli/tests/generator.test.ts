@@ -1,10 +1,10 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join } from "pathe";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG } from "../src/config.js";
-import { generateManifest } from "../src/generator.js";
-import { scanRoutes } from "../src/scanner.js";
+import { generateManifest, generateManifestCode } from "../src/generator.js";
+import { scanRoutes, type ScanResult } from "../src/scanner.js";
 
 describe("manifest codegen and content-hash caching", () => {
   let tempDir: string;
@@ -227,5 +227,38 @@ export default defineTaser().context(createContext({
     expect(genTs.content).toContain('import taser from "../taser.ts";');
     expect(genTs.content).toContain('import layout_0 from "../routes/$.ts";');
     expect(genTs.content).toContain('import route_0 from "../routes/hello.get.ts";');
+  });
+
+  it("generates valid POSIX manifest imports from Windows-style paths", () => {
+    const cwd = "C:/Users/alice/my-project";
+    const scanResult: ScanResult = {
+      routes: [
+        {
+          kind: "route",
+          filePath: "routes\\users.get.ts",
+          absolutePath: "C:\\Users\\alice\\my-project\\src\\routes\\users.get.ts",
+          method: "GET",
+          canonicalPath: "/users",
+          segmentHierarchy: ["", "users"],
+        },
+      ],
+      layouts: [
+        {
+          kind: "layout",
+          filePath: "routes\\$.tsx",
+          absolutePath: "C:\\Users\\alice\\my-project\\src\\routes\\$.tsx",
+          layoutId: "/*",
+          targetSegment: "",
+          isSibling: false,
+        },
+      ],
+      diagnostics: [],
+    };
+
+    const { manifestCode } = generateManifestCode(scanResult, DEFAULT_CONFIG, cwd);
+
+    expect(manifestCode).toContain('import layout_0 from "../routes/$.js";');
+    expect(manifestCode).toContain('import route_0 from "../routes/users.get.js";');
+    expect(manifestCode).not.toContain("\\");
   });
 });

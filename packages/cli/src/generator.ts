@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, posix, relative, resolve } from "node:path";
+import { dirname, relative, resolve } from "pathe";
 import {
   resolveAppFile,
   resolveImportExtension,
@@ -111,7 +111,7 @@ export function generateManifestCode(
 
   let appRelPath = "";
   if (hasApp) {
-    let rel = posix.normalize(relative(outputDirFull, appFile).replace(/\\/g, "/"));
+    let rel = relative(outputDirFull, appFile);
     if (!rel.startsWith("./") && !rel.startsWith("../")) {
       rel = `./${rel}`;
     }
@@ -133,7 +133,7 @@ export function generateManifestCode(
     const ident = `layout_${idx}`;
     layoutIdentifierMap.set(layout.layoutId, ident);
 
-    let relPath = posix.normalize(relative(outputDirFull, layout.absolutePath).replace(/\\/g, "/"));
+    let relPath = relative(outputDirFull, layout.absolutePath);
     if (!relPath.startsWith("./") && !relPath.startsWith("../")) {
       relPath = `./${relPath}`;
     }
@@ -147,7 +147,7 @@ export function generateManifestCode(
     const ident = `route_${idx}`;
     routeIdentifierMap.set(route, ident);
 
-    let relPath = posix.normalize(relative(outputDirFull, route.absolutePath).replace(/\\/g, "/"));
+    let relPath = relative(outputDirFull, route.absolutePath);
     if (!relPath.startsWith("./") && !relPath.startsWith("../")) {
       relPath = `./${relPath}`;
     }
