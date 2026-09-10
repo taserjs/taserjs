@@ -166,4 +166,130 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
     expect(layout.middlewares).toHaveLength(1);
     expect(layout.middlewares[0]).toBe(mwDef);
   });
+
+  it("infers phantom types (_state, _services, _params, _query, _body) on t.middleware()", () => {
+    const mockSchema = <T>(val: T) => ({
+      "~standard": {
+        version: 1 as const,
+        vendor: "test",
+        validate: () => ({ value: val }),
+        types: { input: val, output: val },
+      },
+    });
+
+    const mw = t
+      .middleware()
+      .params(mockSchema({ id: 123 }))
+      .query(mockSchema({ search: "hello" }))
+      .body(mockSchema({ title: "post" }))
+      .handler(async (_args, next) => {
+        return await next.provide({ logger: 42 }, { userId: "user-1" });
+      });
+
+    // Static type assertions
+    type Assert<T extends true> = T;
+    type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+      ? true
+      : false;
+
+    type _S = Assert<Equal<NonNullable<typeof mw._services>, { logger: number }>>;
+    type _St = Assert<Equal<NonNullable<typeof mw._state>, { userId: string }>>;
+    type _P = Assert<Equal<NonNullable<typeof mw._params>, { id: number }>>;
+    type _Q = Assert<Equal<NonNullable<typeof mw._query>, { search: string }>>;
+    type _B = Assert<Equal<NonNullable<typeof mw._body>, { title: string }>>;
+
+    expect(mw.schemas?.params).toBeDefined();
+    expect(mw.schemas?.query).toBeDefined();
+    expect(mw.schemas?.body?.schema).toBeDefined();
+  });
+
+  it("accumulates typed state and services sequentially across chained .use() on LayoutBuilder and RouteBuilder", () => {
+    const l = t
+      .layout("/*")
+      .use(async (_args, next) => {
+        return await next({ token: "auth-123" });
+      })
+      .use(async ({ state }, next) => {
+        const token: string = state.token;
+        return await next.provide({ authService: { verify: () => true } }, { role: "admin" });
+      })
+      .use(async ({ state, authService }, next) => {
+        const token: string = state.token;
+        const role: string = state.role;
+        const isValid: boolean = authService.verify();
+        return await next({ verified: isValid });
+      });
+
+    type Assert<T extends true> = T;
+    type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+      ? true
+      : false;
+
+    type _LS = Assert<Equal<NonNullable<typeof l._services>, { authService: { verify: () => true } }>>;
+    type _LSt = Assert<Equal<NonNullable<typeof l._state>, { token: string } & { role: string } & { verified: true }>>;
+
+    const r = t
+      .get("/chained")
+      .use(async (_args, next) => {
+        return await next({ step1: 1 });
+      })
+      .use(async ({ state }, next) => {
+        const s1: number = state.step1;
+        return await next.provide({ myService: "active" }, { step2: "two" });
+      })
+      .use(async ({ state, myService }, next) => {
+        const s1: number = state.step1;
+        const s2: string = state.step2;
+        const srv: string = myService;
+        return await next();
+      })
+      .handler(({ state, myService }) => {
+        const s1: number = state.step1;
+        const s2: string = state.step2;
+        const srv: string = myService;
+        return new Response(`${s1}-${s2}-${srv}`);
+      });
+
+    expect(l.middlewares).toHaveLength(3);
+    expect(r.middlewares).toHaveLength(3);
+  });
+
+  it("supports schema builder methods (.params, .query, .body) on LayoutBuilder", () => {
+    const mockSchema = <T>(val: T) => ({
+      "~standard": {
+        version: 1 as const,
+        vendor: "test",
+        validate: () => ({ value: val }),
+        types: { input: val, output: val },
+      },
+    });
+
+    const l = t
+      .layout("/admin/:id/*")
+      .params(mockSchema({ id: 100 }))
+      .query(mockSchema({ filter: "active" }))
+      .body(mockSchema({ data: true as boolean }), "json")
+      .use(async ({ req }, next) => {
+        const id: number = req.params.id;
+        const filter: string = req.query.filter;
+        const data: boolean = req.body!.data;
+        return await next();
+      });
+
+    type Assert<T extends true> = T;
+    type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+      ? true
+      : false;
+
+    type _P_id = Assert<Equal<NonNullable<typeof l._params>["id"], number>>;
+    type _P_splat = Assert<Equal<NonNullable<typeof l._params>["_splat"], string>>;
+    type _Q_filter = Assert<Equal<NonNullable<typeof l._query>["filter"], string>>;
+    type _B_data = Assert<Equal<NonNullable<typeof l._body>["data"], boolean>>;
+
+    expect(l.schemas).toBeDefined();
+    expect(l.schemas?.params).toBeDefined();
+    expect(l.schemas?.query).toBeDefined();
+    expect(l.schemas?.body?.schema).toBeDefined();
+    expect(l.schemas?.body?.mode).toBe("json");
+  });
 });

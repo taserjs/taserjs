@@ -31,7 +31,7 @@ export function tsconfigTemplate(): string {
         skipLibCheck: true,
         esModuleInterop: true,
       },
-      include: ["src/**/*", "taserjs.config.ts", "vite.config.ts", "nitro.config.ts"],
+      include: ["src/**/*", "src/.taserjs/**/*", "taserjs.config.ts", "vite.config.ts", "nitro.config.ts"],
     },
     null,
     2,
@@ -152,6 +152,10 @@ import taser from "../taser.js";
 import layout_0 from "../routes/$.js";
 import route_0 from "../routes/index.get.js";
 
+export type LayoutTree = {
+  "/*": typeof layout_0;
+};
+
 export const layoutManifest = {
   "/*": layout_0,
 } as const;
@@ -168,7 +172,7 @@ export const routeManifest = {
   },
 } as const;
 
-export type LayoutManifest = typeof layoutManifest;
+export type LayoutManifest = LayoutTree;
 export type RouteManifest = typeof routeManifest;
 export type AppManifest = {
   readonly routes: RouteManifest;
@@ -182,7 +186,9 @@ export const createApp = (overrideTaser?: typeof taser) =>
 
 export type RoutePath = "/";
 
-export type LayoutTree = LayoutManifest;
+export type LayoutHierarchy = {
+  "/*": readonly [];
+};
 
 export type LayoutMiddlewares = {
   [K in keyof LayoutTree]: LayoutTree[K]["middlewares"];
@@ -202,6 +208,7 @@ declare module "@taserjs/router" {
   interface RouterRegister {
     RoutePath: RoutePath;
     LayoutTree: LayoutTree;
+    LayoutHierarchy: LayoutHierarchy;
     LayoutMiddlewares: LayoutMiddlewares;
     RouteByPathMethod: RouteByPathMethod;
     AppContext: AppContext;

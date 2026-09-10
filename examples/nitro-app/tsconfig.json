@@ -9,6 +9,7 @@
   },
   "include": [
     "src/**/*",
+    "src/.taserjs/**/*",
     "taserjs.config.ts",
     "nitro.config.ts"
   ]

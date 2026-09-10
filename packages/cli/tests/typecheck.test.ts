@@ -249,4 +249,133 @@ export default t.get("/items/:id").handler(async ({ req }) => {
     expect(mismatchResult.success).toBe(false);
     expect(mismatchResult.output).toMatch(/Type 'string' is not assignable to type 'number'/);
   });
+
+  it("verifies downstream state and schema inheritance from parent layouts and compile error on undeclared state", () => {
+    setupTsConfig(tempDir);
+
+    const routesDir = join(tempDir, "src", "routes");
+    mkdirSync(join(routesDir, "_auth", "items", "$id"), { recursive: true });
+
+    // Mock schema helper
+    writeFileSync(
+      join(tempDir, "src", "schema.ts"),
+      `export const numSchema = {
+  "~standard": {
+    version: 1 as const,
+    vendor: "test",
+    validate: (v: unknown) => ({ value: { id: Number((v as any)?.id) } }),
+    types: { input: { id: "123" }, output: { id: 123 } },
+  },
+};
+export const querySchema = {
+  "~standard": {
+    version: 1 as const,
+    vendor: "test",
+    validate: (v: unknown) => ({ value: { filter: String((v as any)?.filter ?? "") } }),
+    types: { input: { filter: "active" }, output: { filter: "active" } },
+  },
+};
+`,
+    );
+
+    // 1. Root layout with state: src/routes/$.ts
+    writeFileSync(
+      join(routesDir, "$.ts"),
+      `import { t } from "@taserjs/router";
+export default t.layout("/*").use(async (_args, next) => {
+  return await next({ appEnv: "production" });
+});
+`,
+    );
+
+    // 2. Auth layout inheriting root and adding token state and query schema: src/routes/_auth.ts
+    writeFileSync(
+      join(routesDir, "_auth.ts"),
+      `import { t } from "@taserjs/router";
+import { querySchema } from "../schema.js";
+export default t.layout("/_auth/*")
+  .query(querySchema)
+  .use(async ({ state, req }, next) => {
+    const env: string = state.appEnv;
+    const filter: string = req.query.filter;
+    return await next({ token: "token-abc" });
+  });
+`,
+    );
+
+    // 3. Child layout with params schema: src/routes/_auth/items/$id.ts
+    writeFileSync(
+      join(routesDir, "_auth", "items", "$id.ts"),
+      `import { t } from "@taserjs/router";
+import { numSchema } from "../../../schema.js";
+export default t.layout("/_auth/items/:id/*")
+  .params(numSchema)
+  .use(async ({ req, state }, next) => {
+    const id: number = req.params.id;
+    const token: string = state.token;
+    const filter: string = req.query.filter;
+    return await next({ itemId: id });
+  });
+`,
+    );
+
+    // 4. Downstream route inheriting params, query, and cascading state: src/routes/_auth/items/$id/index.get.ts
+    writeFileSync(
+      join(routesDir, "_auth", "items", "$id", "index.get.ts"),
+      `import { t } from "@taserjs/router";
+export default t.get("/items/:id").handler(async ({ req, state }) => {
+  const id: number = req.params.id;
+  const filter: string = req.query.filter;
+  const token: string = state.token;
+  const env: string = state.appEnv;
+  const itemId: number = state.itemId;
+  return new Response(\`\${id}-\${filter}-\${token}-\${env}-\${itemId}\`);
+});
+`,
+    );
+
+    const config = { ...DEFAULT_CONFIG };
+    const scan = scanRoutes({ routesDir, cwd: tempDir });
+    generateManifest(scan, config, tempDir);
+
+    const validResult = runTsc(tempDir);
+    if (!validResult.success) {
+      console.error("FAIL ON VALID:", validResult.output);
+    }
+    expect(validResult.success).toBe(true);
+
+    // 5. Undeclared state property fails compile
+    writeFileSync(
+      join(routesDir, "_auth", "items", "$id", "index.get.ts"),
+      `import { t } from "@taserjs/router";
+export default t.get("/items/:id").handler(async ({ state }) => {
+  // @ts-expect-error undeclared property
+  const invalid = state.nonExistent;
+  return new Response("ok");
+});
+`,
+    );
+
+    const step5Result = runTsc(tempDir);
+    if (!step5Result.success) {
+      console.error("FAIL ON STEP 5:", step5Result.output);
+    }
+    // Should compile because of @ts-expect-error
+    expect(step5Result.success).toBe(true);
+
+    // Remove @ts-expect-error -> must fail compile
+    writeFileSync(
+      join(routesDir, "_auth", "items", "$id", "index.get.ts"),
+      `import { t } from "@taserjs/router";
+export default t.get("/items/:id").handler(async ({ state }) => {
+  const invalid = state.nonExistent;
+  return new Response("ok");
+});
+`,
+    );
+
+    const errorResult = runTsc(tempDir);
+    expect(errorResult.success).toBe(false);
+    expect(errorResult.output).toMatch(/Property 'nonExistent' does not exist/);
+  });
 });

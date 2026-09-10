@@ -116,7 +116,7 @@ describe("manifest codegen and content-hash caching", () => {
 
     const config = {
       ...DEFAULT_CONFIG,
-      formatting: { quotes: "single" as const },
+      formatting: { ...DEFAULT_CONFIG.formatting, quotes: "single" as const },
     };
 
     const scan = scanRoutes({ routesDir, cwd: tempDir });

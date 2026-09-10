@@ -3,12 +3,29 @@ import { hono } from "./hono.js";
 import { defineTaser } from "./taser.js";
 import type {
   BodyMode,
+  ExtractBodyFromMiddleware,
+  ExtractParamsFromMiddleware,
+  ExtractQueryFromMiddleware,
   HttpMethod,
+  InferEffectiveParams,
+  InferLayoutBody,
+  InferLayoutParams,
+  InferLayoutQuery,
+  InferLayoutServices,
+  InferLayoutState,
+  InferRouteBody,
+  InferRouteParams,
+  InferRouteQuery,
   InferRouteServices,
   InferRouteState,
+  InferServicesFromMw,
+  InferStateFromMw,
   LayoutDefinition,
+  MiddlewareArgs,
   MiddlewareDefinition,
   MiddlewareHandler,
+  NextFunction,
+  Overwrite,
   RegisteredRoutePath,
   RouteDefaultParams,
   RouteDefinition,
@@ -17,58 +34,120 @@ import type {
   StatusCode,
 } from "./types.js";
 
-export function toMiddlewareDefinition<TServices = {}, TState = {}>(
-  input: MiddlewareDefinition<TServices, TState, any> | MiddlewareHandler<any, any>,
-): MiddlewareDefinition<TServices, TState> {
+export function toMiddlewareDefinition<TMw>(
+  input: TMw,
+): MiddlewareDefinition<
+  InferServicesFromMw<TMw>,
+  InferStateFromMw<TMw>,
+  unknown,
+  unknown,
+  unknown
+> {
   if (typeof input === "function") {
     return {
       kind: "middleware",
       handler: input as MiddlewareHandler,
-    };
+    } as any;
   }
-  return input as MiddlewareDefinition<TServices, TState>;
+  return input as any;
 }
 
-export class MiddlewareBuilder {
+export class MiddlewareBuilder<
+  TParams = unknown,
+  TQuery = unknown,
+  TBody = unknown,
+> {
   public readonly schemas: RouteSchemas = {};
 
-  params(schema: StandardSchemaV1): this {
+  params<TSchema extends StandardSchemaV1>(
+    schema: TSchema,
+  ): MiddlewareBuilder<StandardSchemaV1.InferOutput<TSchema>, TQuery, TBody> {
     this.schemas.params = schema;
-    return this;
+    return this as unknown as MiddlewareBuilder<
+      StandardSchemaV1.InferOutput<TSchema>,
+      TQuery,
+      TBody
+    >;
   }
 
-  query(schema: StandardSchemaV1): this {
+  query<TSchema extends StandardSchemaV1>(
+    schema: TSchema,
+  ): MiddlewareBuilder<TParams, StandardSchemaV1.InferOutput<TSchema>, TBody> {
     this.schemas.query = schema;
-    return this;
+    return this as unknown as MiddlewareBuilder<
+      TParams,
+      StandardSchemaV1.InferOutput<TSchema>,
+      TBody
+    >;
   }
 
-  body(schema: StandardSchemaV1, mode?: BodyMode): this {
+  body<TSchema extends StandardSchemaV1>(
+    schema: TSchema,
+    mode?: BodyMode,
+  ): MiddlewareBuilder<TParams, TQuery, StandardSchemaV1.InferOutput<TSchema>> {
     this.schemas.body = { schema, mode };
-    return this;
+    return this as unknown as MiddlewareBuilder<
+      TParams,
+      TQuery,
+      StandardSchemaV1.InferOutput<TSchema>
+    >;
   }
 
-  handler<TServices = {}, TState = {}>(
-    fn: MiddlewareHandler<TServices, any>,
-  ): MiddlewareDefinition<TServices, TState> {
+  handler<
+    F extends (
+      args: MiddlewareArgs<
+        {},
+        {},
+        [TParams] extends [never]
+          ? Record<string, string>
+          : unknown extends TParams
+            ? Record<string, string>
+            : TParams,
+        [TQuery] extends [never]
+          ? Record<string, string | string[]>
+          : unknown extends TQuery
+            ? Record<string, string | string[]>
+            : TQuery,
+        TBody
+      >,
+      next: NextFunction,
+    ) => any,
+  >(
+    fn: F,
+  ): MiddlewareDefinition<
+    InferServicesFromMw<F>,
+    InferStateFromMw<F>,
+    TParams,
+    TQuery,
+    TBody
+  > {
     return {
       kind: "middleware",
-      handler: fn as MiddlewareHandler,
+      handler: fn as unknown as MiddlewareHandler,
       schemas: Object.keys(this.schemas).length > 0 ? { ...this.schemas } : undefined,
-    };
+    } as unknown as MiddlewareDefinition<
+      InferServicesFromMw<F>,
+      InferStateFromMw<F>,
+      TParams,
+      TQuery,
+      TBody
+    >;
   }
 }
 
-export function middleware<TServices = {}, TState = {}>(
-  fn: MiddlewareHandler<TServices, any>,
-): MiddlewareDefinition<TServices, TState>;
+export function middleware<
+  F extends (args: MiddlewareArgs<{}, {}>, next: NextFunction) => any,
+>(
+  fn: F,
+): MiddlewareDefinition<InferServicesFromMw<F>, InferStateFromMw<F>>;
 export function middleware(): MiddlewareBuilder;
 export function middleware(
-  fn?: MiddlewareHandler<any, any>,
+  fn?: (...args: any[]) => any,
 ): MiddlewareBuilder | MiddlewareDefinition<any, any> {
   if (fn) {
     return {
       kind: "middleware",
-      handler: fn,
+      handler: fn as MiddlewareHandler,
     };
   }
   return new MiddlewareBuilder();
@@ -79,27 +158,145 @@ export class LayoutBuilder<
   TParams = RouteDefaultParams<TPath>,
   TServices = {},
   TState = {},
-> implements LayoutDefinition<TPath, TServices, TState> {
+  TQuery = Record<string, string | string[]>,
+  TBody = unknown,
+> implements LayoutDefinition<TPath, TServices, TState, TParams, TQuery, TBody> {
   readonly kind = "layout" as const;
   public readonly path: TPath;
-  public readonly middlewares: MiddlewareDefinition<any, any>[] = [];
+  public readonly middlewares: MiddlewareDefinition<any, any, any, any, any>[] = [];
 
   readonly _services?: TServices;
   readonly _state?: TState;
+  readonly _params?: TParams;
+  readonly _query?: TQuery;
+  readonly _body?: TBody;
+
+  public readonly schemas: RouteSchemas = {};
 
   constructor(path: TPath) {
     this.path = path;
   }
 
-  use<TMwServices = {}, TMwState = {}>(
-    middleware: MiddlewareDefinition<TMwServices, TMwState, any> | MiddlewareHandler<any, TParams>,
-  ): LayoutBuilder<TPath, TParams, TServices & TMwServices, TState & TMwState> {
-    this.middlewares.push(toMiddlewareDefinition(middleware));
+  private pushSchemaMiddleware(schemas: RouteSchemas): void {
+    this.middlewares.push({
+      kind: "middleware",
+      handler: async (_args, next) => next(),
+      schemas,
+    });
+  }
+
+  params<TSchema extends StandardSchemaV1>(
+    schema: TSchema,
+  ): LayoutBuilder<
+    TPath,
+    Overwrite<TParams, StandardSchemaV1.InferOutput<TSchema>>,
+    TServices,
+    TState,
+    TQuery,
+    TBody
+  > {
+    this.schemas.params = schema;
+    this.pushSchemaMiddleware({ params: schema });
+    return this as unknown as LayoutBuilder<
+      TPath,
+      Overwrite<TParams, StandardSchemaV1.InferOutput<TSchema>>,
+      TServices,
+      TState,
+      TQuery,
+      TBody
+    >;
+  }
+
+  query<TSchema extends StandardSchemaV1>(
+    schema: TSchema,
+  ): LayoutBuilder<
+    TPath,
+    TParams,
+    TServices,
+    TState,
+    StandardSchemaV1.InferOutput<TSchema>,
+    TBody
+  > {
+    this.schemas.query = schema;
+    this.pushSchemaMiddleware({ query: schema });
     return this as unknown as LayoutBuilder<
       TPath,
       TParams,
-      TServices & TMwServices,
-      TState & TMwState
+      TServices,
+      TState,
+      StandardSchemaV1.InferOutput<TSchema>,
+      TBody
+    >;
+  }
+
+  body<TSchema extends StandardSchemaV1>(
+    schema: TSchema,
+    mode?: BodyMode,
+  ): LayoutBuilder<
+    TPath,
+    TParams,
+    TServices,
+    TState,
+    TQuery,
+    StandardSchemaV1.InferOutput<TSchema>
+  > {
+    this.schemas.body = { schema, mode };
+    this.pushSchemaMiddleware({ body: { schema, mode } });
+    return this as unknown as LayoutBuilder<
+      TPath,
+      TParams,
+      TServices,
+      TState,
+      TQuery,
+      StandardSchemaV1.InferOutput<TSchema>
+    >;
+  }
+
+  use<
+    TMw extends
+      | MiddlewareDefinition<any, any, any, any, any>
+      | ((
+          args: MiddlewareArgs<
+            InferLayoutServices<TPath> & TServices,
+            InferLayoutState<TPath> & TState,
+            [keyof InferLayoutParams<TPath>] extends [never]
+              ? [TParams] extends [never]
+                ? Record<string, string>
+                : unknown extends TParams
+                  ? Record<string, string>
+                  : TParams
+              : Overwrite<InferLayoutParams<TPath>, TParams>,
+            string extends keyof TQuery
+              ? [keyof InferLayoutQuery<TPath>] extends [never]
+                ? Record<string, string | string[]>
+                : InferLayoutQuery<TPath>
+              : [keyof InferLayoutQuery<TPath>] extends [never]
+                ? TQuery
+                : Overwrite<InferLayoutQuery<TPath>, TQuery>,
+            [keyof InferLayoutBody<TPath>] extends [never]
+              ? TBody
+              : Overwrite<InferLayoutBody<TPath>, TBody>
+          >,
+          next: NextFunction,
+        ) => any),
+  >(
+    middleware: TMw,
+  ): LayoutBuilder<
+    TPath,
+    Overwrite<TParams, ExtractParamsFromMiddleware<TMw>>,
+    TServices & InferServicesFromMw<TMw>,
+    TState & InferStateFromMw<TMw>,
+    Overwrite<TQuery, ExtractQueryFromMiddleware<TMw>>,
+    Overwrite<TBody, ExtractBodyFromMiddleware<TMw>>
+  > {
+    this.middlewares.push(toMiddlewareDefinition(middleware));
+    return this as unknown as LayoutBuilder<
+      TPath,
+      Overwrite<TParams, ExtractParamsFromMiddleware<TMw>>,
+      TServices & InferServicesFromMw<TMw>,
+      TState & InferStateFromMw<TMw>,
+      Overwrite<TQuery, ExtractQueryFromMiddleware<TMw>>,
+      Overwrite<TBody, ExtractBodyFromMiddleware<TMw>>
     >;
   }
 }
@@ -123,7 +320,7 @@ export class RouteBuilder<
   TQueryIn = TQuery,
   TBodyIn = TBody,
 > {
-  public readonly middlewares: MiddlewareDefinition<any, any>[] = [];
+  public readonly middlewares: MiddlewareDefinition<any, any, any, any, any>[] = [];
   public readonly schemas: RouteSchemas = {};
 
   constructor(
@@ -131,16 +328,37 @@ export class RouteBuilder<
     public readonly path: TPath,
   ) {}
 
-  use<TMwServices = {}, TMwState = {}>(
-    middleware: MiddlewareDefinition<TMwServices, TMwState, any> | MiddlewareHandler<any, TParams>,
+  use<
+    TMw extends
+      | MiddlewareDefinition<any, any, any, any, any>
+      | ((
+          args: MiddlewareArgs<
+            InferRouteServices<TPath, TMethod> & TRouteServices,
+            InferRouteState<TPath, TMethod> & TRouteState,
+            [TParams] extends [never]
+              ? Record<string, string>
+              : unknown extends TParams
+                ? Record<string, string>
+                : TParams,
+            [TQuery] extends [never]
+              ? Record<string, string | string[]>
+              : unknown extends TQuery
+                ? Record<string, string | string[]>
+                : TQuery,
+            TBody
+          >,
+          next: NextFunction,
+        ) => any),
+  >(
+    middleware: TMw,
   ): RouteBuilder<
     TMethod,
     TPath,
-    TParams,
-    TQuery,
-    TBody,
-    TRouteServices & TMwServices,
-    TRouteState & TMwState,
+    Overwrite<TParams, ExtractParamsFromMiddleware<TMw>>,
+    Overwrite<TQuery, ExtractQueryFromMiddleware<TMw>>,
+    Overwrite<TBody, ExtractBodyFromMiddleware<TMw>>,
+    TRouteServices & InferServicesFromMw<TMw>,
+    TRouteState & InferStateFromMw<TMw>,
     TReturns,
     TParamsIn,
     TQueryIn,
@@ -150,11 +368,11 @@ export class RouteBuilder<
     return this as unknown as RouteBuilder<
       TMethod,
       TPath,
-      TParams,
-      TQuery,
-      TBody,
-      TRouteServices & TMwServices,
-      TRouteState & TMwState,
+      Overwrite<TParams, ExtractParamsFromMiddleware<TMw>>,
+      Overwrite<TQuery, ExtractQueryFromMiddleware<TMw>>,
+      Overwrite<TBody, ExtractBodyFromMiddleware<TMw>>,
+      TRouteServices & InferServicesFromMw<TMw>,
+      TRouteState & InferStateFromMw<TMw>,
       TReturns,
       TParamsIn,
       TQueryIn,
@@ -289,9 +507,17 @@ export class RouteBuilder<
 
   handler<TReturn extends Response | Promise<Response> = Response | Promise<Response>>(
     fn: RouteHandler<
-      TParams,
-      TQuery,
-      TBody,
+      InferEffectiveParams<TPath, TMethod, TParams>,
+      [TQuery] extends [Record<string, string | string[]>]
+        ? [keyof InferRouteQuery<TPath, TMethod>] extends [never]
+          ? TQuery
+          : Overwrite<TQuery, InferRouteQuery<TPath, TMethod>>
+        : TQuery,
+      unknown extends TBody
+        ? [keyof InferRouteBody<TPath, TMethod>] extends [never]
+          ? unknown
+          : InferRouteBody<TPath, TMethod>
+        : TBody,
       InferRouteServices<TPath, TMethod> & TRouteServices,
       InferRouteState<TPath, TMethod> & TRouteState,
       TReturn

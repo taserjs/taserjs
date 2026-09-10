@@ -5,6 +5,10 @@ exports[`manifest codegen and content-hash caching > defaults AppContext to Reco
 import { createTaserApp, type TaserDefinition } from "@taserjs/runtime";
 import route_0 from "../routes/index.get.js";
 
+export type LayoutTree = {
+
+};
+
 export const layoutManifest = {
 
 } as const;
@@ -21,7 +25,7 @@ export const routeManifest = {
   },
 } as const;
 
-export type LayoutManifest = typeof layoutManifest;
+export type LayoutManifest = LayoutTree;
 export type RouteManifest = typeof routeManifest;
 export type AppManifest = {
   readonly routes: RouteManifest;
@@ -35,7 +39,9 @@ export const createApp = (overrideTaser?: TaserDefinition) =>
 
 export type RoutePath = "/";
 
-export type LayoutTree = LayoutManifest;
+export type LayoutHierarchy = {
+
+};
 
 export type LayoutMiddlewares = {
   [K in keyof LayoutTree]: LayoutTree[K]["middlewares"];
@@ -55,6 +61,7 @@ declare module "@taserjs/router" {
   interface RouterRegister {
     RoutePath: RoutePath;
     LayoutTree: LayoutTree;
+    LayoutHierarchy: LayoutHierarchy;
     LayoutMiddlewares: LayoutMiddlewares;
     RouteByPathMethod: RouteByPathMethod;
     AppContext: AppContext;
@@ -69,6 +76,10 @@ import { createTaserApp } from "@taserjs/runtime";
 import taser from "../taser.js";
 import layout_0 from "../routes/$.js";
 import route_0 from "../routes/users.get.js";
+
+export type LayoutTree = {
+  "/*": typeof layout_0;
+};
 
 export const layoutManifest = {
     "/*": layout_0,
@@ -86,7 +97,7 @@ export const routeManifest = {
   },
 } as const;
 
-export type LayoutManifest = typeof layoutManifest;
+export type LayoutManifest = LayoutTree;
 export type RouteManifest = typeof routeManifest;
 export type AppManifest = {
   readonly routes: RouteManifest;
@@ -100,7 +111,9 @@ export const createApp = (overrideTaser?: typeof taser) =>
 
 export type RoutePath = "/users";
 
-export type LayoutTree = LayoutManifest;
+export type LayoutHierarchy = {
+  "/*": readonly [];
+};
 
 export type LayoutMiddlewares = {
   [K in keyof LayoutTree]: LayoutTree[K]["middlewares"];
@@ -120,6 +133,7 @@ declare module "@taserjs/router" {
   interface RouterRegister {
     RoutePath: RoutePath;
     LayoutTree: LayoutTree;
+    LayoutHierarchy: LayoutHierarchy;
     LayoutMiddlewares: LayoutMiddlewares;
     RouteByPathMethod: RouteByPathMethod;
     AppContext: AppContext;
@@ -136,6 +150,11 @@ import layout_1 from "../routes/admin/$.js";
 import route_0 from "../routes/admin/index.get.js";
 import route_1 from "../routes/admin/users.$id.get.js";
 import route_2 from "../routes/index.get.js";
+
+export type LayoutTree = {
+  "/*": typeof layout_0;
+  "/admin/*": typeof layout_1;
+};
 
 export const layoutManifest = {
     "/*": layout_0,
@@ -166,7 +185,7 @@ export const routeManifest = {
   },
 } as const;
 
-export type LayoutManifest = typeof layoutManifest;
+export type LayoutManifest = LayoutTree;
 export type RouteManifest = typeof routeManifest;
 export type AppManifest = {
   readonly routes: RouteManifest;
@@ -180,7 +199,10 @@ export const createApp = (overrideTaser?: TaserDefinition) =>
 
 export type RoutePath = "/admin" | "/admin/users/:id" | "/";
 
-export type LayoutTree = LayoutManifest;
+export type LayoutHierarchy = {
+  "/*": readonly [];
+  "/admin/*": readonly ["/*"];
+};
 
 export type LayoutMiddlewares = {
   [K in keyof LayoutTree]: LayoutTree[K]["middlewares"];
@@ -210,6 +232,7 @@ declare module "@taserjs/router" {
   interface RouterRegister {
     RoutePath: RoutePath;
     LayoutTree: LayoutTree;
+    LayoutHierarchy: LayoutHierarchy;
     LayoutMiddlewares: LayoutMiddlewares;
     RouteByPathMethod: RouteByPathMethod;
     AppContext: AppContext;
@@ -223,6 +246,10 @@ exports[`manifest codegen and content-hash caching > handles pathless segment la
 import { createTaserApp, type TaserDefinition } from "@taserjs/runtime";
 import layout_0 from "../routes/_auth.js";
 import route_0 from "../routes/_auth/login.post.js";
+
+export type LayoutTree = {
+  "/_auth/*": typeof layout_0;
+};
 
 export const layoutManifest = {
     "/_auth/*": layout_0,
@@ -240,7 +267,7 @@ export const routeManifest = {
   },
 } as const;
 
-export type LayoutManifest = typeof layoutManifest;
+export type LayoutManifest = LayoutTree;
 export type RouteManifest = typeof routeManifest;
 export type AppManifest = {
   readonly routes: RouteManifest;
@@ -254,7 +281,9 @@ export const createApp = (overrideTaser?: TaserDefinition) =>
 
 export type RoutePath = "/login";
 
-export type LayoutTree = LayoutManifest;
+export type LayoutHierarchy = {
+  "/_auth/*": readonly [];
+};
 
 export type LayoutMiddlewares = {
   [K in keyof LayoutTree]: LayoutTree[K]["middlewares"];
@@ -274,6 +303,7 @@ declare module "@taserjs/router" {
   interface RouterRegister {
     RoutePath: RoutePath;
     LayoutTree: LayoutTree;
+    LayoutHierarchy: LayoutHierarchy;
     LayoutMiddlewares: LayoutMiddlewares;
     RouteByPathMethod: RouteByPathMethod;
     AppContext: AppContext;
@@ -286,6 +316,10 @@ exports[`manifest codegen and content-hash caching > supports single quote forma
 "// Generated by @taserjs/cli. Do not edit directly.
 import { createTaserApp, type TaserDefinition } from "@taserjs/runtime";
 import route_0 from '../routes/index.get.js';
+
+export type LayoutTree = {
+
+};
 
 export const layoutManifest = {
 
@@ -303,7 +337,7 @@ export const routeManifest = {
   },
 } as const;
 
-export type LayoutManifest = typeof layoutManifest;
+export type LayoutManifest = LayoutTree;
 export type RouteManifest = typeof routeManifest;
 export type AppManifest = {
   readonly routes: RouteManifest;
@@ -317,7 +351,9 @@ export const createApp = (overrideTaser?: TaserDefinition) =>
 
 export type RoutePath = '/';
 
-export type LayoutTree = LayoutManifest;
+export type LayoutHierarchy = {
+
+};
 
 export type LayoutMiddlewares = {
   [K in keyof LayoutTree]: LayoutTree[K]["middlewares"];
@@ -337,6 +373,7 @@ declare module "@taserjs/router" {
   interface RouterRegister {
     RoutePath: RoutePath;
     LayoutTree: LayoutTree;
+    LayoutHierarchy: LayoutHierarchy;
     LayoutMiddlewares: LayoutMiddlewares;
     RouteByPathMethod: RouteByPathMethod;
     AppContext: AppContext;
