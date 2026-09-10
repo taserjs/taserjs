@@ -7,10 +7,22 @@ export class ValidationError extends Error {
   readonly facet: ValidationFacet;
 
   constructor(issues: readonly StandardSchemaV1.Issue[], facet: ValidationFacet, message?: string) {
-    super(message ?? `Validation failed for ${facet}`);
+    const errorConstructor = Error as unknown as { stackTraceLimit?: number };
+    const prevLimit = errorConstructor.stackTraceLimit;
+    if (typeof prevLimit === "number") {
+      errorConstructor.stackTraceLimit = 0;
+    }
+    try {
+      super(message ?? `Validation failed for ${facet}`);
+    } finally {
+      if (typeof prevLimit === "number") {
+        errorConstructor.stackTraceLimit = prevLimit;
+      }
+    }
     this.name = "ValidationError";
     this.issues = issues;
     this.facet = facet;
+    this.stack = `${this.name}: ${this.message}`;
   }
 }
 

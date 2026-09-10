@@ -15,8 +15,27 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
   const customOnError = options?.onError;
   const bootManager = createBootManager(contextDef);
 
+  const hasContext = Boolean(contextDef);
+  const hasRequestHook = Boolean(contextDef?.request);
+
+  function resolveContextSync(c: Context): Record<string, unknown> | null {
+    if (!hasContext) {
+      return { context: c };
+    }
+    if (!hasRequestHook) {
+      const boot = bootManager.getBootSync();
+      if (boot) {
+        return { ...boot, context: c };
+      }
+    }
+    return null;
+  }
+
   async function resolveContext(c: Context, req: TaserRequest): Promise<Record<string, unknown>> {
-    const bootData = await bootManager.getBoot();
+    const syncResult = resolveContextSync(c);
+    if (syncResult) return syncResult;
+
+    const bootData = bootManager.getBootSync() ?? (await bootManager.getBoot());
     const reqData = contextDef?.request ? await contextDef.request(req) : {};
     return {
       ...bootData,
@@ -49,7 +68,7 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
   if (customNotFound) {
     app.notFound(async (c: Context) => {
       const req = createTaserRequest(c);
-      const ctx = await resolveContext(c, req);
+      const ctx = resolveContextSync(c) ?? (await resolveContext(c, req));
       return await customNotFound({ req, ctx });
     });
   }
@@ -67,20 +86,32 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
         routeDefinition.schemas,
       );
 
-      app.on(method, targetPath, async (c: Context) => {
-        try {
-          const req = createTaserRequest(c);
-          const ctx = await resolveContext(c, req);
-
-          const res = await pipeline(req, ctx);
-          return res;
-        } catch (err) {
-          if (err instanceof Response) {
-            return err;
+      if (!hasContext) {
+        app.on(method, targetPath, async (c: Context) => {
+          try {
+            const req = createTaserRequest(c, targetPath);
+            return await pipeline(req, { context: c });
+          } catch (err) {
+            if (err instanceof Response) {
+              return err;
+            }
+            throw err;
           }
-          throw err;
-        }
-      });
+        });
+      } else {
+        app.on(method, targetPath, async (c: Context) => {
+          try {
+            const req = createTaserRequest(c, targetPath);
+            const ctx = resolveContextSync(c) ?? (await resolveContext(c, req));
+            return await pipeline(req, ctx);
+          } catch (err) {
+            if (err instanceof Response) {
+              return err;
+            }
+            throw err;
+          }
+        });
+      }
     }
   }
 

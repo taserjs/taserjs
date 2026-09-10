@@ -9,6 +9,10 @@ import type {
   TaserRequest,
 } from "./types.js";
 
+export function hasSchemas(schemas?: RouteSchemas | undefined): boolean {
+  return Boolean(schemas && (schemas.params || schemas.query || schemas.body));
+}
+
 function isPlainObject(val: unknown): val is Record<string, unknown> {
   return (
     typeof val === "object" &&
@@ -57,6 +61,37 @@ export function createPipeline(
   terminalHandler: RouteHandler,
   routeSchemas?: RouteSchemas | undefined,
 ) {
+  const hasRouteSchemas = hasSchemas(routeSchemas);
+
+  // Fast-path: routes with 0 middlewares bypass onion dispatch closure allocations completely
+  if (middlewares.length === 0) {
+    if (!hasRouteSchemas) {
+      return async function executeDirect(
+        req: TaserRequest,
+        ctx: Record<string, unknown>,
+      ): Promise<Response> {
+        const res = await terminalHandler({ req, ctx, state: {} } as any);
+        if (!(res instanceof Response)) {
+          throw new TypeError(`Route handler must return a Response, received: ${typeof res}`);
+        }
+        return res;
+      };
+    }
+
+    return async function executeDirectWithSchemas(
+      req: TaserRequest,
+      ctx: Record<string, unknown>,
+    ): Promise<Response> {
+      const honoContext = ctx.context as Context | undefined;
+      await validateSchemas(routeSchemas, req, honoContext);
+      const res = await terminalHandler({ req, ctx, state: {} } as any);
+      if (!(res instanceof Response)) {
+        throw new TypeError(`Route handler must return a Response, received: ${typeof res}`);
+      }
+      return res;
+    };
+  }
+
   return async function executePipeline(
     req: TaserRequest,
     ctx: Record<string, unknown>,
@@ -124,12 +159,10 @@ export function createPipeline(
         await validateSchemas(routeSchemas, req, honoContext);
       }
 
-      const handlerArgs = {
-        req,
-        ctx,
-        state: currentState,
-        ...currentServices,
-      };
+      const handlerArgs =
+        Object.keys(currentServices).length > 0
+          ? { req, ctx, state: currentState, ...currentServices }
+          : { req, ctx, state: currentState };
 
       const res = await terminalHandler(handlerArgs as any);
       if (!(res instanceof Response)) {

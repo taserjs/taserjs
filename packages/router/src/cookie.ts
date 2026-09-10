@@ -57,7 +57,7 @@ export class TaserCookieJar {
   }
 
   set(name: string, value: string, opt?: CookieOptions): this {
-    const mergedOpt = { ...this.#defaultOptions, ...opt };
+    const mergedOpt = opt ? { ...this.#defaultOptions, ...opt } : this.#defaultOptions;
     setCookie(this.#c, name, value, mergedOpt);
     return this;
   }
@@ -89,7 +89,7 @@ export class TaserCookieJar {
   }
 
   delete(name: string, opt?: CookieOptions): string | undefined {
-    const mergedOpt = { ...this.#defaultOptions, ...opt };
+    const mergedOpt = opt ? { ...this.#defaultOptions, ...opt } : this.#defaultOptions;
     return deleteCookie(this.#c, name, mergedOpt);
   }
 

@@ -1,6 +1,5 @@
 import type { Context } from "hono";
-import type { RouteSchemas } from "@taserjs/router";
-import { validateSchemas } from "./pipeline.js";
+import { hasSchemas, validateSchemas } from "./pipeline.js";
 import type {
   MiddlewareDefinition,
   MiddlewareHandler,
@@ -8,9 +7,7 @@ import type {
   RouteManifestEntry,
 } from "./types.js";
 
-export function hasSchemas(schemas?: RouteSchemas | undefined): boolean {
-  return Boolean(schemas && (schemas.params || schemas.query || schemas.body));
-}
+export { hasSchemas };
 
 export function resolveMiddleware(mw: MiddlewareDefinition): MiddlewareHandler {
   if (hasSchemas(mw.schemas)) {

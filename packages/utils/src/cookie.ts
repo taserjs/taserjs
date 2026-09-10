@@ -12,15 +12,30 @@ export function mergeResponseCookies(c: ResponseContext, res: Response): Respons
     typeof c.res?.headers?.getSetCookie === "function" ? c.res.headers.getSetCookie() : [];
   const resCookies =
     typeof res.headers?.getSetCookie === "function" ? res.headers.getSetCookie() : [];
-  const allCookies = Array.from(new Set([...cCookies, ...resCookies]));
+
+  if (cCookies.length === 0 && resCookies.length === 0) {
+    c.res = res;
+    return res;
+  }
 
   c.res = res;
 
-  if (allCookies.length > 0) {
-    c.res.headers.delete("set-cookie");
-    for (const cookieStr of allCookies) {
-      c.res.headers.append("set-cookie", cookieStr);
+  if (resCookies.length === 0) {
+    for (let i = 0; i < cCookies.length; i++) {
+      res.headers.append("set-cookie", cCookies[i]!);
     }
+    return res;
+  }
+
+  if (cCookies.length === 0) {
+    return res;
+  }
+
+  // Both sources have cookies: deduplicate and re-append
+  const allCookies = Array.from(new Set([...cCookies, ...resCookies]));
+  c.res.headers.delete("set-cookie");
+  for (let i = 0; i < allCookies.length; i++) {
+    c.res.headers.append("set-cookie", allCookies[i]!);
   }
 
   return c.res;

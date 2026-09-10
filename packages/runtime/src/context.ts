@@ -4,6 +4,7 @@ export { createContext } from "@taserjs/router";
 
 export interface BootManager {
   getBoot: () => Promise<Record<string, unknown>>;
+  getBootSync: () => Record<string, unknown> | null;
 }
 
 export function createBootManager(
@@ -11,6 +12,10 @@ export function createBootManager(
 ): BootManager {
   let bootPromise: Promise<Record<string, unknown>> | null = null;
   let bootResult: Record<string, unknown> | null = null;
+
+  const getBootSync = (): Record<string, unknown> | null => {
+    return bootResult;
+  };
 
   const getBoot = async (): Promise<Record<string, unknown>> => {
     if (bootResult) return bootResult;
@@ -31,7 +36,9 @@ export function createBootManager(
 
   if (contextDef?.boot) {
     getBoot().catch(() => {});
+  } else {
+    bootResult = {};
   }
 
-  return { getBoot };
+  return { getBoot, getBootSync };
 }
