@@ -71,7 +71,10 @@ const personBodySchema = createStandardSchema<PersonBody>((val: unknown) => {
   if (typeof record.name !== "string" || typeof record.age !== "number") {
     return {
       issues: [
-        { message: "Invalid name or age", path: typeof record.name !== "string" ? ["name"] : ["age"] },
+        {
+          message: "Invalid name or age",
+          path: typeof record.name !== "string" ? ["name"] : ["age"],
+        },
       ],
     };
   }
@@ -170,7 +173,10 @@ const routeMwTaserApp = createTaserApp({
   routes: {
     "/route-mw": {
       GET: {
-        route: t.get("/route-mw").use(routeMw).handler(() => json({ message: "ok" })),
+        route: t
+          .get("/route-mw")
+          .use(routeMw)
+          .handler(() => json({ message: "ok" })),
       },
     },
   },
@@ -213,7 +219,9 @@ const layoutStateTaserApp = createTaserApp({
   routes: {
     "/layout-state/profile": {
       GET: {
-        route: t.get("/layout-state/profile").handler(({ state }: any) => json({ user: state.user })),
+        route: t
+          .get("/layout-state/profile")
+          .handler(({ state }: any) => json({ user: state.user })),
         layouts: ["/layout-state"],
       },
     },

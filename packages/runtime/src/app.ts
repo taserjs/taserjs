@@ -86,32 +86,20 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
         routeDefinition.schemas,
       );
 
-      if (!hasContext) {
-        app.on(method, targetPath, async (c: Context) => {
-          try {
-            const req = createTaserRequest(c, targetPath);
-            return await pipeline(req, { context: c });
-          } catch (err) {
-            if (err instanceof Response) {
-              return err;
-            }
-            throw err;
+      app.on(method, targetPath, async (c: Context) => {
+        try {
+          const req = createTaserRequest(c, targetPath);
+          const ctx = !hasContext
+            ? { context: c }
+            : (resolveContextSync(c) ?? (await resolveContext(c, req)));
+          return await pipeline(req, ctx);
+        } catch (err) {
+          if (err instanceof Response) {
+            return err;
           }
-        });
-      } else {
-        app.on(method, targetPath, async (c: Context) => {
-          try {
-            const req = createTaserRequest(c, targetPath);
-            const ctx = resolveContextSync(c) ?? (await resolveContext(c, req));
-            return await pipeline(req, ctx);
-          } catch (err) {
-            if (err instanceof Response) {
-              return err;
-            }
-            throw err;
-          }
-        });
-      }
+          throw err;
+        }
+      });
     }
   }
 

@@ -52,9 +52,11 @@ export function toMiddlewareDefinition<TMw>(
   return input as any;
 }
 
-export class MiddlewareBuilder<TParams = unknown, TQuery = unknown, TBody = unknown>
-  implements MiddlewareDefinition<{}, {}, TParams, TQuery, TBody>
-{
+export class MiddlewareBuilder<
+  TParams = unknown,
+  TQuery = unknown,
+  TBody = unknown,
+> implements MiddlewareDefinition<{}, {}, TParams, TQuery, TBody> {
   public readonly kind = "middleware" as const;
   public readonly schemas: RouteSchemas = {};
 
@@ -105,7 +107,11 @@ export class MiddlewareBuilder<TParams = unknown, TQuery = unknown, TBody = unkn
   handler(
     args: MiddlewareArgs<any, any, any, any, any>,
     next: NextFunction,
-  ): Response | Promise<Response> | MiddlewareResponse<any, any> | Promise<MiddlewareResponse<any, any>>;
+  ):
+    | Response
+    | Promise<Response>
+    | MiddlewareResponse<any, any>
+    | Promise<MiddlewareResponse<any, any>>;
   handler<
     F extends (
       args: MiddlewareArgs<

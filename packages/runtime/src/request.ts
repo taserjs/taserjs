@@ -31,8 +31,6 @@ function parseQuery(c: Context): Record<string, string | string[]> {
   return query;
 }
 
-const EMPTY_RECORD: Record<string, string> = Object.freeze({});
-
 class TaserRequestImpl implements TaserRequest {
   #c: Context;
   #parsedQuery: Record<string, string | string[]> | undefined;
@@ -58,7 +56,7 @@ class TaserRequestImpl implements TaserRequest {
 
   get headers(): TaserHeaders {
     if (this.#headersCache === undefined) {
-      this.#headersCache = this.#c.req.raw.headers as unknown as TaserHeaders;
+      this.#headersCache = createTaserHeaders(this.#c);
     }
     return this.#headersCache;
   }
@@ -84,7 +82,7 @@ export function createTaserRequest(c: Context, targetPath?: string): TaserReques
   let params: Record<string, string>;
 
   if (targetPath && !targetPath.includes(":") && !targetPath.includes("*")) {
-    params = EMPTY_RECORD;
+    params = {};
   } else {
     try {
       params = { ...c.req.param() };
@@ -92,13 +90,15 @@ export function createTaserRequest(c: Context, targetPath?: string): TaserReques
       params = {};
     }
 
-    const routePath = targetPath ?? (() => {
-      try {
-        return c.req.routePath;
-      } catch {
-        return undefined;
-      }
-    })();
+    const routePath =
+      targetPath ??
+      (() => {
+        try {
+          return c.req.routePath;
+        } catch {
+          return undefined;
+        }
+      })();
 
     if (routePath && routePath.includes("*")) {
       const starIdx = routePath.indexOf("*");

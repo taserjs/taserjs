@@ -56,6 +56,17 @@ export async function validateSchemas(
   }
 }
 
+async function invokeTerminalHandler(
+  terminalHandler: RouteHandler,
+  args: unknown,
+): Promise<Response> {
+  const res = await terminalHandler(args as any);
+  if (!(res instanceof Response)) {
+    throw new TypeError(`Route handler must return a Response, received: ${typeof res}`);
+  }
+  return res;
+}
+
 export function createPipeline(
   middlewares: readonly MiddlewareHandler[],
   terminalHandler: RouteHandler,
@@ -66,15 +77,11 @@ export function createPipeline(
   // Fast-path: routes with 0 middlewares bypass onion dispatch closure allocations completely
   if (middlewares.length === 0) {
     if (!hasRouteSchemas) {
-      return async function executeDirect(
+      return function executeDirect(
         req: TaserRequest,
         ctx: Record<string, unknown>,
       ): Promise<Response> {
-        const res = await terminalHandler({ req, ctx, state: {} } as any);
-        if (!(res instanceof Response)) {
-          throw new TypeError(`Route handler must return a Response, received: ${typeof res}`);
-        }
-        return res;
+        return invokeTerminalHandler(terminalHandler, { req, ctx, state: {} });
       };
     }
 
@@ -84,11 +91,7 @@ export function createPipeline(
     ): Promise<Response> {
       const honoContext = ctx.context as Context | undefined;
       await validateSchemas(routeSchemas, req, honoContext);
-      const res = await terminalHandler({ req, ctx, state: {} } as any);
-      if (!(res instanceof Response)) {
-        throw new TypeError(`Route handler must return a Response, received: ${typeof res}`);
-      }
-      return res;
+      return await invokeTerminalHandler(terminalHandler, { req, ctx, state: {} });
     };
   }
 
@@ -164,11 +167,7 @@ export function createPipeline(
           ? { req, ctx, state: currentState, ...currentServices }
           : { req, ctx, state: currentState };
 
-      const res = await terminalHandler(handlerArgs as any);
-      if (!(res instanceof Response)) {
-        throw new TypeError(`Route handler must return a Response, received: ${typeof res}`);
-      }
-      return res;
+      return await invokeTerminalHandler(terminalHandler, handlerArgs);
     }
 
     const finalRes = await dispatch(0, {}, {});
