@@ -4,7 +4,7 @@ import { UnsupportedMediaTypeError, ValidationError } from "@taserjs/utils";
 import { createBootManager } from "./context.js";
 import { resolveMiddlewares } from "./layout.js";
 import { createPipeline } from "./pipeline.js";
-import { createTaserRequest } from "./request.js";
+import { createTaserRequest, isStaticRoutePath } from "./request.js";
 import type { RouteManifest, TaserApp, TaserDefinition, TaserRequest } from "./types.js";
 
 function catchResponse(err: unknown): Response {
@@ -85,9 +85,7 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
       const routeDefinition = entry.route;
       const method = (routeDefinition.method || methodKey).toUpperCase();
       const targetPath = routeDefinition.path || routePath;
-      const isStatic = Boolean(
-        targetPath && !targetPath.includes(":") && !targetPath.includes("*"),
-      );
+      const isStatic = isStaticRoutePath(targetPath);
 
       const middlewares = resolveMiddlewares(entry, manifest);
       const pipeline = createPipeline(

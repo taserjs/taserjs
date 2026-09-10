@@ -84,12 +84,16 @@ class TaserRequestImpl implements TaserRequest {
   }
 }
 
+export function isStaticRoutePath(path: string | undefined): boolean {
+  return Boolean(path && !path.includes(":") && !path.includes("*"));
+}
+
 export function createTaserRequest(
   c: Context,
   targetPath?: string,
   isStatic?: boolean,
 ): TaserRequest {
-  if (isStatic || (targetPath && !targetPath.includes(":") && !targetPath.includes("*"))) {
+  if (isStatic || isStaticRoutePath(targetPath)) {
     return new TaserRequestImpl(c, EMPTY_PARAMS);
   }
 

@@ -99,17 +99,9 @@ export function createPipeline(
       ctx: Record<string, unknown>,
     ): Promise<Response> {
       const honoContext = ctx.context as Context | undefined;
-      const val = validateSchemas(routeSchemas, req, honoContext);
-      if (val instanceof Promise) {
-        return val.then(() =>
-          invokeTerminalHandler(terminalHandler, { req, ctx, state: EMPTY_STATE }),
-        );
-      }
-      return invokeTerminalHandler(terminalHandler, {
-        req,
-        ctx,
-        state: EMPTY_STATE,
-      }) as Promise<Response>;
+      return validateSchemas(routeSchemas, req, honoContext).then(() =>
+        invokeTerminalHandler(terminalHandler, { req, ctx, state: EMPTY_STATE }),
+      );
     };
   }
 
@@ -129,9 +121,7 @@ export function createPipeline(
           throw new Error("next() called multiple times");
         }
         called = true;
-        if (nextState) {
-          currentState = nextState;
-        }
+        currentState = nextState ? { ...currentState, ...nextState } : currentState;
         const handlerArgs = currentServices
           ? { req, ctx, state: currentState, ...currentServices }
           : { req, ctx, state: currentState };
@@ -147,9 +137,7 @@ export function createPipeline(
         }
         called = true;
         currentServices = providedServices;
-        if (nextState) {
-          currentState = nextState;
-        }
+        currentState = nextState ? { ...currentState, ...nextState } : currentState;
         return await invokeTerminalHandler(terminalHandler, {
           req,
           ctx,
