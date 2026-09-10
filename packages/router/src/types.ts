@@ -248,40 +248,16 @@ type GetLayoutServices<LId extends string> = [LId] extends [never]
   : RouterRegister extends { LayoutTree: infer LT }
     ? LId extends keyof LT
       ? ExtractServicesFromLayout<LT[LId]>
-      : RouterRegister extends { LayoutMiddlewares: infer LM }
-        ? LId extends keyof LM
-          ? LM[LId] extends readonly (infer M)[]
-            ? ExtractServicesFromMiddleware<M>
-            : {}
-          : {}
-        : {}
-    : RouterRegister extends { LayoutMiddlewares: infer LM }
-      ? LId extends keyof LM
-        ? LM[LId] extends readonly (infer M)[]
-          ? ExtractServicesFromMiddleware<M>
-          : {}
-        : {}
-      : {};
+      : {}
+    : {};
 
 type GetLayoutState<LId extends string> = [LId] extends [never]
   ? never
   : RouterRegister extends { LayoutTree: infer LT }
     ? LId extends keyof LT
       ? ExtractStateFromLayout<LT[LId]>
-      : RouterRegister extends { LayoutMiddlewares: infer LM }
-        ? LId extends keyof LM
-          ? LM[LId] extends readonly (infer M)[]
-            ? ExtractStateFromMiddleware<M>
-            : {}
-          : {}
-        : {}
-    : RouterRegister extends { LayoutMiddlewares: infer LM }
-      ? LId extends keyof LM
-        ? LM[LId] extends readonly (infer M)[]
-          ? ExtractStateFromMiddleware<M>
-          : {}
-        : {}
-      : {};
+      : {}
+    : {};
 
 export type InferRouteServices<TPath extends string, TMethod extends HttpMethod> = SafeIntersect<
   GetLayoutServices<GetRouteLayoutIds<TPath, TMethod>>
@@ -296,60 +272,24 @@ type GetLayoutParams<LId extends string> = [LId] extends [never]
   : RouterRegister extends { LayoutTree: infer LT }
     ? LId extends keyof LT
       ? ExtractParamsFromLayout<LT[LId]>
-      : RouterRegister extends { LayoutMiddlewares: infer LM }
-        ? LId extends keyof LM
-          ? LM[LId] extends readonly (infer M)[]
-            ? ExtractParamsFromMiddleware<M>
-            : {}
-          : {}
-        : {}
-    : RouterRegister extends { LayoutMiddlewares: infer LM }
-      ? LId extends keyof LM
-        ? LM[LId] extends readonly (infer M)[]
-          ? ExtractParamsFromMiddleware<M>
-          : {}
-        : {}
-      : {};
+      : {}
+    : {};
 
 type GetLayoutQuery<LId extends string> = [LId] extends [never]
   ? never
   : RouterRegister extends { LayoutTree: infer LT }
     ? LId extends keyof LT
       ? ExtractQueryFromLayout<LT[LId]>
-      : RouterRegister extends { LayoutMiddlewares: infer LM }
-        ? LId extends keyof LM
-          ? LM[LId] extends readonly (infer M)[]
-            ? ExtractQueryFromMiddleware<M>
-            : {}
-          : {}
-        : {}
-    : RouterRegister extends { LayoutMiddlewares: infer LM }
-      ? LId extends keyof LM
-        ? LM[LId] extends readonly (infer M)[]
-          ? ExtractQueryFromMiddleware<M>
-          : {}
-        : {}
-      : {};
+      : {}
+    : {};
 
 type GetLayoutBody<LId extends string> = [LId] extends [never]
   ? never
   : RouterRegister extends { LayoutTree: infer LT }
     ? LId extends keyof LT
       ? ExtractBodyFromLayout<LT[LId]>
-      : RouterRegister extends { LayoutMiddlewares: infer LM }
-        ? LId extends keyof LM
-          ? LM[LId] extends readonly (infer M)[]
-            ? ExtractBodyFromMiddleware<M>
-            : {}
-          : {}
-        : {}
-    : RouterRegister extends { LayoutMiddlewares: infer LM }
-      ? LId extends keyof LM
-        ? LM[LId] extends readonly (infer M)[]
-          ? ExtractBodyFromMiddleware<M>
-          : {}
-        : {}
-      : {};
+      : {}
+    : {};
 
 export type InferRouteParams<TPath extends string, TMethod extends HttpMethod> = SafeIntersect<
   GetLayoutParams<GetRouteLayoutIds<TPath, TMethod>>

@@ -256,12 +256,7 @@ ${routeEntries.join("\n")}
   },
 } as const;
 
-export type LayoutManifest = LayoutTree;
 export type RouteManifest = typeof routeManifest;
-export type AppManifest = {
-  readonly routes: RouteManifest;
-  readonly layouts: LayoutManifest;
-};
 
 ${appCompilation}
 
@@ -269,10 +264,6 @@ export type RoutePath = ${routePathUnion};
 
 export type LayoutHierarchy = {
 ${layoutHierarchyEntries.join("\n")}
-};
-
-export type LayoutMiddlewares = {
-  [K in keyof LayoutTree]: LayoutTree[K]["middlewares"];
 };
 
 export type RouteByPathMethod = {
@@ -286,7 +277,6 @@ declare module "@taserjs/router" {
     RoutePath: RoutePath;
     LayoutTree: LayoutTree;
     LayoutHierarchy: LayoutHierarchy;
-    LayoutMiddlewares: LayoutMiddlewares;
     RouteByPathMethod: RouteByPathMethod;
     AppContext: AppContext;
   }

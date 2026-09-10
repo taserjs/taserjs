@@ -174,12 +174,7 @@ export const routeManifest = {
   },
 } as const;
 
-export type LayoutManifest = LayoutTree;
 export type RouteManifest = typeof routeManifest;
-export type AppManifest = {
-  readonly routes: RouteManifest;
-  readonly layouts: LayoutManifest;
-};
 
 export const app = createTaserApp(routeManifest, taser);
 export default app;
@@ -190,10 +185,6 @@ export type RoutePath = "/";
 
 export type LayoutHierarchy = {
   "/*": readonly [];
-};
-
-export type LayoutMiddlewares = {
-  [K in keyof LayoutTree]: LayoutTree[K]["middlewares"];
 };
 
 export type RouteByPathMethod = {
@@ -211,7 +202,6 @@ declare module "@taserjs/router" {
     RoutePath: RoutePath;
     LayoutTree: LayoutTree;
     LayoutHierarchy: LayoutHierarchy;
-    LayoutMiddlewares: LayoutMiddlewares;
     RouteByPathMethod: RouteByPathMethod;
     AppContext: AppContext;
   }

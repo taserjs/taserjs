@@ -1,6 +1,6 @@
 import { createClient } from "@taserjs/client";
-import type { AppManifest } from "./.taserjs/routes.gen.js";
+import type { RouteManifest } from "./.taserjs/routes.gen.js";
 
-export const client = createClient<AppManifest>({
+export const client = createClient<RouteManifest>({
   baseUrl: "http://localhost:5173",
 });
