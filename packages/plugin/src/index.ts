@@ -4,6 +4,7 @@ import {
   generateManifest,
   loadConfig,
   resolveAppFile,
+  resolveImportExtension,
   resolveOutputDir,
   resolveRoutesDir,
   scanRoutes,
@@ -70,7 +71,6 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
       const scanResult = scanRoutes({
         routesDir,
         cwd,
-        extensions: config.extensions,
       });
 
       generateManifest(scanResult, config, cwd);
@@ -135,7 +135,8 @@ serve(app);
       const outputDir = resolveOutputDir(config, cwd);
       const routesGenPath = join(outputDir, "routes.gen.ts");
       const serveShimPath = join(outputDir, "serve.mjs");
-      emitServeShim(serveShimPath, "./routes.gen.js");
+      const ext = resolveImportExtension(config.extension);
+      emitServeShim(serveShimPath, `./routes.gen${ext}`);
     },
 
     async watchChange(id, _change) {
@@ -181,12 +182,14 @@ serve(app);
           const taserConfig = await getConfig();
           const outputDir = resolveOutputDir(taserConfig, cwd);
           const serveShimPath = join(outputDir, "serve.mjs");
-          emitServeShim(serveShimPath, "./routes.gen.js");
+          const ext = resolveImportExtension(taserConfig.extension);
+          emitServeShim(serveShimPath, `./routes.gen${ext}`);
 
           return {
             build: {
               ssr: serveShimPath,
               rollupOptions: {
+                external: ["srvx", "srvx/node", "@taserjs/runtime", "hono"],
                 output: {
                   entryFileNames: "serve.mjs",
                 },

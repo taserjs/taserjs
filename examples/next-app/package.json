@@ -6,22 +6,26 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "generate": "taser generate"
+    "pretypecheck": "taser generate",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@taserjs/client": "workspace:*",
     "@taserjs/router": "workspace:*",
-    "@taserjs/router-client": "workspace:*",
+    "@taserjs/runtime": "workspace:*",
     "next": "16.3.3",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@taserjs/router-cli": "workspace:*",
-    "@taserjs/router-plugin": "workspace:*",
+    "@taserjs/cli": "workspace:*",
+    "@taserjs/plugin": "workspace:*",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
+    "rimraf": "^6.0.1",
     "typescript": "^5"
   },
   "packageManager": "pnpm@10.6.2"

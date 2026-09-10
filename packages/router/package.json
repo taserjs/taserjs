@@ -38,6 +38,16 @@
         "default": "./dist/cookie.cjs"
       }
     },
+    "./reply": {
+      "import": {
+        "types": "./dist/reply.d.ts",
+        "default": "./dist/reply.js"
+      },
+      "require": {
+        "types": "./dist/reply.d.cts",
+        "default": "./dist/reply.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {

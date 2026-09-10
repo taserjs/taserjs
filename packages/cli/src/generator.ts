@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, posix, relative, resolve } from "node:path";
-import { resolveAppFile, resolveOutputDir, type ResolvedTaserConfig } from "./config.js";
+import {
+  resolveAppFile,
+  resolveImportExtension,
+  resolveOutputDir,
+  type ResolvedTaserConfig,
+} from "./config.js";
 import type { DiscoveredLayout, DiscoveredRoute, ScanResult } from "./scanner.js";
 
 export interface GenerateResult {
@@ -67,6 +72,7 @@ export function generateManifestCode(
   cwd: string = process.cwd(),
 ): { manifestCode: string } {
   const quote = config.formatting.quotes === "single" ? "'" : '"';
+  const ext = resolveImportExtension(config.extension);
   const outputDirFull = resolveOutputDir(config, cwd);
   const appFile = resolveAppFile(config, cwd);
   const hasApp = existsSync(appFile);
@@ -77,7 +83,7 @@ export function generateManifestCode(
     if (!rel.startsWith("./") && !rel.startsWith("../")) {
       rel = `./${rel}`;
     }
-    appRelPath = rel.replace(/\.(ts|tsx|mts|cts|js|mjs|cjs)$/, ".js");
+    appRelPath = rel.replace(/\.(ts|tsx|mts|cts|js|mjs|cjs)$/, "") + ext;
   }
 
   // Group layouts by segment
@@ -99,6 +105,7 @@ export function generateManifestCode(
     if (!relPath.startsWith("./") && !relPath.startsWith("../")) {
       relPath = `./${relPath}`;
     }
+    relPath = relPath.replace(/\.(ts|tsx|mts|cts|js|mjs|cjs)$/, "") + ext;
 
     importLines.push(`import ${ident} from ${quote}${relPath}${quote};`);
   });
@@ -112,6 +119,7 @@ export function generateManifestCode(
     if (!relPath.startsWith("./") && !relPath.startsWith("../")) {
       relPath = `./${relPath}`;
     }
+    relPath = relPath.replace(/\.(ts|tsx|mts|cts|js|mjs|cjs)$/, "") + ext;
 
     importLines.push(`import ${ident} from ${quote}${relPath}${quote};`);
   });

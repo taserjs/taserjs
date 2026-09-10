@@ -179,4 +179,49 @@ export default defineTaser().context(createContext({
 
     expect(gen.content).toMatchSnapshot();
   });
+
+  it("respects extension configuration for module import specifiers", () => {
+    const routesDir = join(tempDir, "src", "routes");
+    mkdirSync(routesDir, { recursive: true });
+    mkdirSync(join(tempDir, "src"), { recursive: true });
+
+    writeFileSync(
+      join(tempDir, "src", "taser.ts"),
+      'import { defineTaser } from "@taserjs/router";\nexport default defineTaser();',
+    );
+    writeFileSync(
+      join(routesDir, "hello.get.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.get("/hello").handler(() => new Response("hello"));',
+    );
+    writeFileSync(
+      join(routesDir, "$.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.layout("/*");',
+    );
+
+    const scanResult = scanRoutes({ routesDir, cwd: tempDir });
+
+    // 1. extension: true (default -> .js)
+    const genDefault = generateManifest(scanResult, { ...DEFAULT_CONFIG, extension: true }, tempDir);
+    expect(genDefault.content).toContain('import taser from "../taser.js";');
+    expect(genDefault.content).toContain('import layout_0 from "../routes/$.js";');
+    expect(genDefault.content).toContain('import route_0 from "../routes/hello.get.js";');
+
+    // 2. extension: false (no extension)
+    const genNoExt = generateManifest(scanResult, { ...DEFAULT_CONFIG, extension: false }, tempDir);
+    expect(genNoExt.content).toContain('import taser from "../taser";');
+    expect(genNoExt.content).toContain('import layout_0 from "../routes/$";');
+    expect(genNoExt.content).toContain('import route_0 from "../routes/hello.get";');
+
+    // 3. extension: "mjs"
+    const genMjs = generateManifest(scanResult, { ...DEFAULT_CONFIG, extension: "mjs" }, tempDir);
+    expect(genMjs.content).toContain('import taser from "../taser.mjs";');
+    expect(genMjs.content).toContain('import layout_0 from "../routes/$.mjs";');
+    expect(genMjs.content).toContain('import route_0 from "../routes/hello.get.mjs";');
+
+    // 4. extension: ".ts"
+    const genTs = generateManifest(scanResult, { ...DEFAULT_CONFIG, extension: ".ts" }, tempDir);
+    expect(genTs.content).toContain('import taser from "../taser.ts";');
+    expect(genTs.content).toContain('import layout_0 from "../routes/$.ts";');
+    expect(genTs.content).toContain('import route_0 from "../routes/hello.get.ts";');
+  });
 });

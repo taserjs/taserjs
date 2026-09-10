@@ -6,6 +6,7 @@ import {
   deriveLayoutInfo,
   isIgnoredPath,
   parseFilePath,
+  ROUTE_EXTENSIONS,
   type ParsedLayoutFileInfo,
   type ParsedRouteFileInfo,
 } from "./paths.js";
@@ -34,7 +35,7 @@ export interface ScanResult {
 export interface ScanOptions {
   routesDir: string;
   cwd?: string | undefined;
-  extensions?: string[] | undefined;
+  extensions?: readonly string[] | undefined;
 }
 
 function findRootCall(node: any): { rootMethod: string | null; rootArgs: any[] } | null {
@@ -230,7 +231,7 @@ export function validateAst(
 export function scanRoutes(options: ScanOptions): ScanResult {
   const cwd = options.cwd ?? process.cwd();
   const fullRoutesDir = resolve(cwd, options.routesDir);
-  const extensions = options.extensions ?? ["ts", "tsx"];
+  const extensions = options.extensions ?? ROUTE_EXTENSIONS;
 
   const routes: DiscoveredRoute[] = [];
   const layouts: DiscoveredLayout[] = [];

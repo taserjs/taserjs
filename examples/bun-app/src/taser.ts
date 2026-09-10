@@ -1,6 +1,4 @@
-import { createTaserApp } from "@taserjs/router";
+import { defineTaser } from "@taserjs/router";
 import { context } from "./context.js";
 
-export default createTaserApp({
-  response: { validate: true },
-}).context(context);
+export default defineTaser().context(context);

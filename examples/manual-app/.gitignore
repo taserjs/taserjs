@@ -1,9 +1,0 @@
-node_modules
-dist
-.output
-.taser
-.turbo
-*.local
-*.log
-.DS_Store
-.env*

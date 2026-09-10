@@ -25,7 +25,6 @@ export async function runGenerate(options: {
       const scanResult = scanRoutes({
         routesDir,
         cwd,
-        extensions: config.extensions,
       });
 
       const generateResult = generateManifest(scanResult, config, cwd);

@@ -1,18 +1,15 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "strict": true,
     "skipLibCheck": true,
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "types": ["node"]
+    "noEmit": true
   },
   "include": [
-    "src",
-    ".taser/types/**/*.d.ts",
-    ".taser/types/routes.d.ts",
-    "./.taser/types/routes.d.ts"
+    "src/**/*",
+    "taserjs.config.ts",
+    "vite.config.ts"
   ]
 }

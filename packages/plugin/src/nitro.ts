@@ -85,7 +85,6 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
       const scanResult = scanRoutes({
         routesDir,
         cwd,
-        extensions: config.extensions,
       });
       generateManifest(scanResult, config, cwd);
     }

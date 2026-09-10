@@ -1,5 +1,6 @@
-import { createTaserApp } from "@taserjs/router";
+import { defineTaser } from "@taserjs/router";
+import { notFound } from "@taserjs/router/reply";
 
-// Without a .notFound() handler, non-taser requests fall through to the host
-// (TanStack Start's SSR handler) instead of returning a 404 response.
-export default createTaserApp().notFound(() => new Response("Not Found", { status: 404 }));
+export default defineTaser()
+  .basePath("/api")
+  .notFound(() => notFound({ message: "Not Found" }));

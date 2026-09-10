@@ -1,17 +1,15 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "strict": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noEmit": true
   },
   "include": [
     "src/**/*",
-    "nitro.config.ts",
-    ".taser/**/*",
-    ".taser/types/routes.d.ts",
-    "./.taser/types/routes.d.ts"
+    "taserjs.config.ts",
+    "vite.config.ts"
   ]
 }

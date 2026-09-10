@@ -3,6 +3,9 @@ import { posix } from "node:path";
 export const HTTP_METHODS = ["get", "post", "put", "delete", "patch"] as const;
 export type HttpMethodLower = (typeof HTTP_METHODS)[number];
 
+export const ROUTE_EXTENSIONS = ["ts", "tsx"] as const;
+export type RouteExtension = (typeof ROUTE_EXTENSIONS)[number];
+
 export interface ParsedRouteFileInfo {
   kind: "route";
   filePath: string; // Relative path, e.g. "admin/users.get.ts"
@@ -114,7 +117,7 @@ export function isIgnoredPath(relativePath: string): boolean {
  */
 export function parseFilePath(
   relativePath: string,
-  allowedExtensions: string[] = ["ts", "tsx"],
+  allowedExtensions: readonly string[] = ROUTE_EXTENSIONS,
 ): {
   dir: string;
   name: string;

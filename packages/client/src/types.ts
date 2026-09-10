@@ -228,7 +228,9 @@ type PathToChain<
 > = Remaining extends ""
   ? ClientMethods<Methods>
   : Remaining extends `${infer Segment}/${infer Rest}`
-    ? { [K in SegmentKey<Segment>]: PathToChain<Path, Methods, Rest> }
+    ? Segment extends ""
+      ? PathToChain<Path, Methods, Rest>
+      : { [K in SegmentKey<Segment>]: PathToChain<Path, Methods, Rest> }
     : {
         [K in SegmentKey<Remaining>]: ClientMethods<Methods>;
       };
@@ -240,9 +242,17 @@ type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : never) e
   : never;
 
 export type InferRoutes<TApp> = TApp extends { readonly routes: infer R }
-  ? R
+  ? R extends { readonly routes: infer NestedR }
+    ? NestedR
+    : R extends { routes: infer NestedR }
+      ? NestedR
+      : R
   : TApp extends { routes: infer R }
-    ? R
+    ? R extends { readonly routes: infer NestedR }
+      ? NestedR
+      : R extends { routes: infer NestedR }
+        ? NestedR
+        : R
     : TApp extends { readonly routeManifest: { readonly routes: infer R } }
       ? R
       : TApp extends { routeManifest: { routes: infer R } }
@@ -256,8 +266,9 @@ type ClientFromRoutes<Routes extends Record<string, any>> = UnionToIntersection<
       [Path in keyof Routes & string]: PathToChain<Path, Routes[Path]>;
     }[keyof Routes & string]
   | {
-      [Path in keyof Routes & string]: ClientMethods<Routes[Path]>;
+      [Path in keyof Routes & string]: Path extends "/" ? ClientMethods<Routes[Path]> : ClientMethods<Routes[Path]>;
     }
+  | ("/" extends keyof Routes ? ClientMethods<Routes["/"]> : {})
 >;
 
 export type Client<TApp = never> = [TApp] extends [never]

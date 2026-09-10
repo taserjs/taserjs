@@ -14,7 +14,7 @@
   ],
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.cjs",
+  "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -23,9 +23,9 @@
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
       },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
+      "default": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
       }
     },
     "./vite": {
@@ -33,9 +33,9 @@
         "types": "./dist/vite.d.ts",
         "default": "./dist/vite.js"
       },
-      "require": {
-        "types": "./dist/vite.d.cts",
-        "default": "./dist/vite.cjs"
+      "default": {
+        "types": "./dist/vite.d.ts",
+        "default": "./dist/vite.js"
       }
     },
     "./rollup": {
@@ -43,9 +43,9 @@
         "types": "./dist/rollup.d.ts",
         "default": "./dist/rollup.js"
       },
-      "require": {
-        "types": "./dist/rollup.d.cts",
-        "default": "./dist/rollup.cjs"
+      "default": {
+        "types": "./dist/rollup.d.ts",
+        "default": "./dist/rollup.js"
       }
     },
     "./webpack": {
@@ -53,9 +53,9 @@
         "types": "./dist/webpack.d.ts",
         "default": "./dist/webpack.js"
       },
-      "require": {
-        "types": "./dist/webpack.d.cts",
-        "default": "./dist/webpack.cjs"
+      "default": {
+        "types": "./dist/webpack.d.ts",
+        "default": "./dist/webpack.js"
       }
     },
     "./rspack": {
@@ -63,9 +63,9 @@
         "types": "./dist/rspack.d.ts",
         "default": "./dist/rspack.js"
       },
-      "require": {
-        "types": "./dist/rspack.d.cts",
-        "default": "./dist/rspack.cjs"
+      "default": {
+        "types": "./dist/rspack.d.ts",
+        "default": "./dist/rspack.js"
       }
     },
     "./esbuild": {
@@ -73,9 +73,9 @@
         "types": "./dist/esbuild.d.ts",
         "default": "./dist/esbuild.js"
       },
-      "require": {
-        "types": "./dist/esbuild.d.cts",
-        "default": "./dist/esbuild.cjs"
+      "default": {
+        "types": "./dist/esbuild.d.ts",
+        "default": "./dist/esbuild.js"
       }
     },
     "./nitro": {
@@ -83,9 +83,19 @@
         "types": "./dist/nitro.d.ts",
         "default": "./dist/nitro.js"
       },
-      "require": {
-        "types": "./dist/nitro.d.cts",
-        "default": "./dist/nitro.cjs"
+      "default": {
+        "types": "./dist/nitro.d.ts",
+        "default": "./dist/nitro.js"
+      }
+    },
+    "./next": {
+      "import": {
+        "types": "./dist/next.d.ts",
+        "default": "./dist/next.js"
+      },
+      "default": {
+        "types": "./dist/next.d.ts",
+        "default": "./dist/next.js"
       }
     },
     "./package.json": "./package.json"

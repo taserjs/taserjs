@@ -151,4 +151,42 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
       : false;
     expect(isIgnored).toBe(true);
   });
+
+  it("emitServeShim respects config.extension setting", async () => {
+    // 1. Default config (extension: true -> ./routes.gen.js)
+    const rawPluginDefault = taserPlugin.raw({ cwd: tempDir }, { framework: "rollup" });
+    const pluginDefault = (Array.isArray(rawPluginDefault) ? rawPluginDefault[0] : rawPluginDefault)!;
+
+    await (pluginDefault.buildStart as any)?.call({
+      addWatchFile: vi.fn(),
+      emitFile: vi.fn(),
+      getWatchFiles: vi.fn(),
+      parse: vi.fn(),
+    });
+
+    const serveShimPath = join(outputDir, "serve.mjs");
+    expect(existsSync(serveShimPath)).toBe(true);
+    let serveContent = readFileSync(serveShimPath, "utf-8");
+    expect(serveContent).toContain('import { app } from "./routes.gen.js";');
+
+    // 2. Custom config with extension: false (extensionless -> ./routes.gen)
+    writeFileSync(
+      join(tempDir, "taserjs.config.ts"),
+      'export default { extension: false };',
+      "utf-8",
+    );
+
+    const rawPluginNoExt = taserPlugin.raw({ cwd: tempDir }, { framework: "rollup" });
+    const pluginNoExt = (Array.isArray(rawPluginNoExt) ? rawPluginNoExt[0] : rawPluginNoExt)!;
+
+    await (pluginNoExt.buildStart as any)?.call({
+      addWatchFile: vi.fn(),
+      emitFile: vi.fn(),
+      getWatchFiles: vi.fn(),
+      parse: vi.fn(),
+    });
+
+    serveContent = readFileSync(serveShimPath, "utf-8");
+    expect(serveContent).toContain('import { app } from "./routes.gen";');
+  });
 });

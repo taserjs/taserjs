@@ -1,9 +1,6 @@
-import { createClient } from "@taserjs/router-client";
-import type { RouteManifest } from "#taserjs/virtual/manifest";
+import { createClient } from "@taserjs/client";
+import type { AppManifest } from "./.taserjs/routes.gen.js";
 
-const client = createClient<RouteManifest>({
-  baseUrl: "http://localhost:3000",
+export const client = createClient<AppManifest>({
+  baseUrl: "http://localhost:5173",
 });
-
-const res = await client.$well_known.$get();
-console.log(await res.json());

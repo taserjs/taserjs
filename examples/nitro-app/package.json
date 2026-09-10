@@ -1,0 +1,28 @@
+{
+  "name": "nitro-app",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "clean": "rimraf dist .output .taserjs .nitro",
+    "pretypecheck": "taser generate",
+    "dev": "nitro dev",
+    "build": "nitro build",
+    "start": "node .output/server/index.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@taserjs/client": "workspace:*",
+    "@taserjs/router": "workspace:*",
+    "@taserjs/runtime": "workspace:*",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@taserjs/cli": "workspace:*",
+    "@taserjs/plugin": "workspace:*",
+    "@types/node": "^22.13.10",
+    "nitro": "^3.0.260610-beta",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.3"
+  }
+}

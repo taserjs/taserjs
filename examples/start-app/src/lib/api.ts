@@ -1,6 +1,6 @@
-import { createClient } from "@taserjs/router-client";
-import type { routeManifest } from "#taserjs/virtual/manifest";
+import { createClient } from "@taserjs/client";
+import type { AppManifest } from "../server/.taserjs/routes.gen";
 
-export const api = createClient<typeof routeManifest>({
-  baseUrl: `/api`,
+export const api = createClient<AppManifest>({
+  baseUrl: "/api",
 });

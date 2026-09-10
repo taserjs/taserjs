@@ -11,7 +11,7 @@ export interface TaserConfig {
   routesDir?: string | undefined;
   outputDir?: string | undefined;
   app?: string | undefined;
-  extensions?: string[] | undefined;
+  extension?: boolean | string | undefined;
   formatting?: TaserFormattingConfig | undefined;
 }
 
@@ -23,7 +23,7 @@ export interface ResolvedTaserConfig {
   routesDir: string;
   outputDir: string;
   app: string;
-  extensions: string[];
+  extension: boolean | string;
   formatting: {
     quotes: "single" | "double";
   };
@@ -35,18 +35,29 @@ export const DEFAULT_CONFIG: ResolvedTaserConfig = {
   routesDir: "routes",
   outputDir: ".taserjs",
   app: "taser.ts",
-  extensions: ["ts", "tsx"],
+  extension: true,
   formatting: {
     quotes: "double",
   },
 };
+
+export function resolveImportExtension(extension: boolean | string | undefined = true): string {
+  if (extension === true) {
+    return ".js";
+  }
+  if (extension === false) {
+    return "";
+  }
+  const trimmed = extension.trim().replace(/^\.+/, "");
+  return trimmed ? `.${trimmed}` : "";
+}
 
 export function defineConfig(config: TaserConfig = {}): TaserConfig {
   return {
     ...config,
     routesDir: config.routesDir ?? DEFAULT_CONFIG.routesDir,
     outputDir: config.outputDir ?? DEFAULT_CONFIG.outputDir,
-    extensions: config.extensions ? [...config.extensions] : [...DEFAULT_CONFIG.extensions],
+    extension: config.extension ?? DEFAULT_CONFIG.extension,
     formatting: {
       quotes: config.formatting?.quotes ?? DEFAULT_CONFIG.formatting.quotes,
     },
@@ -151,7 +162,7 @@ export async function loadConfig(
       routesDir: rawConfig.routesDir ?? DEFAULT_CONFIG.routesDir,
       outputDir: rawConfig.outputDir ?? DEFAULT_CONFIG.outputDir,
       app: rawConfig.app ?? DEFAULT_CONFIG.app,
-      extensions: rawConfig.extensions ? [...rawConfig.extensions] : DEFAULT_CONFIG.extensions,
+      extension: rawConfig.extension ?? DEFAULT_CONFIG.extension,
       formatting: {
         quotes: rawConfig.formatting?.quotes ?? DEFAULT_CONFIG.formatting.quotes,
       },

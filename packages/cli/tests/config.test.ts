@@ -7,10 +7,12 @@ import {
   defineConfig,
   loadConfig,
   resolveAppFile,
+  resolveImportExtension,
   resolveOutputDir,
   resolveRoutesDir,
   resolveServerDir,
 } from "../src/config.js";
+import { ROUTE_EXTENSIONS } from "../src/paths.js";
 
 describe("cli config loader", () => {
   let tempDir: string;
@@ -25,23 +27,40 @@ describe("cli config loader", () => {
     } catch {}
   });
 
-  it("defineConfig returns defaults for routesDir, outputDir, extensions, and formatting when empty", () => {
+  it("defineConfig returns defaults for routesDir, outputDir, and formatting when empty", () => {
     const config = defineConfig();
     expect(config.routesDir).toBe("routes");
     expect(config.outputDir).toBe(".taserjs");
-    expect(config.extensions).toEqual(["ts", "tsx"]);
+    expect(config.extension).toBe(true);
     expect(config.formatting).toEqual({ quotes: "double" });
   });
 
   it("defineConfig merges user options with defaults", () => {
     const config = defineConfig({
       routesDir: "api",
+      extension: false,
       formatting: { quotes: "single" },
     });
     expect(config.routesDir).toBe("api");
     expect(config.outputDir).toBe(".taserjs");
-    expect(config.extensions).toEqual(["ts", "tsx"]);
+    expect(config.extension).toBe(false);
     expect(config.formatting).toEqual({ quotes: "single" });
+  });
+
+  it("exports ROUTE_EXTENSIONS constant", () => {
+    expect(ROUTE_EXTENSIONS).toEqual(["ts", "tsx"]);
+  });
+
+  it("resolveImportExtension handles booleans and strings correctly", () => {
+    expect(resolveImportExtension(true)).toBe(".js");
+    expect(resolveImportExtension(false)).toBe("");
+    expect(resolveImportExtension("js")).toBe(".js");
+    expect(resolveImportExtension(".js")).toBe(".js");
+    expect(resolveImportExtension("..js")).toBe(".js");
+    expect(resolveImportExtension("mjs")).toBe(".mjs");
+    expect(resolveImportExtension(".ts")).toBe(".ts");
+    expect(resolveImportExtension("")).toBe("");
+    expect(resolveImportExtension(undefined)).toBe(".js");
   });
 
   it("defineConfig returns the configuration object when all options are specified", () => {
@@ -50,7 +69,7 @@ describe("cli config loader", () => {
       routesDir: "routes",
       outputDir: ".taserjs",
       app: "taser.ts",
-      extensions: ["ts"],
+      extension: "js",
       formatting: { quotes: "single" },
     });
 
@@ -59,7 +78,7 @@ describe("cli config loader", () => {
       routesDir: "routes",
       outputDir: ".taserjs",
       app: "taser.ts",
-      extensions: ["ts"],
+      extension: "js",
       formatting: { quotes: "single" },
     });
   });
@@ -83,6 +102,7 @@ export default {
   routesDir: "api",
   outputDir: ".taser",
   app: "app.ts",
+  extension: "mjs",
   formatting: { quotes: "single" },
 };
 `;
@@ -93,6 +113,7 @@ export default {
     expect(loaded.routesDir).toBe("api");
     expect(loaded.outputDir).toBe(".taser");
     expect(loaded.app).toBe("app.ts");
+    expect(loaded.extension).toBe("mjs");
     expect(loaded.formatting.quotes).toBe("single");
     expect(loaded.configFile).toBe(join(tempDir, "taserjs.config.ts"));
   });

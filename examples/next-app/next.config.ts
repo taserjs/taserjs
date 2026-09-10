@@ -1,14 +1,12 @@
 import type { NextConfig } from "next";
-import { createTaser } from "@taserjs/router-plugin/next";
+import { createTaser } from "@taserjs/plugin/next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
 };
 
 const withTaser = createTaser({
   serverDir: "src/server",
-  basePath: "/api",
 });
 
 export default withTaser(nextConfig);

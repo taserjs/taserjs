@@ -4,25 +4,26 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "clean": "rimraf dist .output .taser .nitro",
+    "clean": "rimraf dist .taserjs",
+    "pretypecheck": "taser generate",
     "dev": "vite",
     "build": "vite build",
-    "start": "node .output/server/index.mjs",
+    "start": "node dist/serve.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@taserjs/client": "workspace:*",
     "@taserjs/router": "workspace:*",
-    "dotenv": "^16.4.7",
-    "hono": "^4.12.33",
-    "srvx": "^0.11.22",
+    "@taserjs/runtime": "workspace:*",
+    "hono": "^4.10.3",
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@taserjs/router-cli": "workspace:*",
-    "@taserjs/router-plugin": "workspace:*",
+    "@taserjs/cli": "workspace:*",
+    "@taserjs/plugin": "workspace:*",
     "@types/node": "^22.13.10",
-    "nitro": "^3.0.260610-beta",
+    "rimraf": "^6.0.1",
     "typescript": "^5.9.3",
-    "vite": "^8.1.5"
+    "vite": "^8.2.2"
   }
 }
