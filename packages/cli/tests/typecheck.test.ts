@@ -378,4 +378,119 @@ export default t.get("/items/:id").handler(async ({ state }) => {
     expect(errorResult.success).toBe(false);
     expect(errorResult.output).toMatch(/Property 'nonExistent' does not exist/);
   });
+
+  it("enforces that tsc rejects chaining .use() after route schema validations", () => {
+    setupTsConfig(tempDir);
+
+    const routesDir = join(tempDir, "src", "routes");
+    mkdirSync(routesDir, { recursive: true });
+
+    writeFileSync(
+      join(tempDir, "src", "schema.ts"),
+      `export const schema = {
+  "~standard": {
+    version: 1 as const,
+    vendor: "test",
+    validate: (v: unknown) => ({ value: v }),
+    types: { input: {}, output: {} },
+  },
+};
+`,
+    );
+
+    // 1. Valid: .use() before .params()
+    writeFileSync(
+      join(routesDir, "valid.get.ts"),
+      `import { t } from "@taserjs/router";
+import { schema } from "../schema.js";
+export default t
+  .get("/valid")
+  .use(async (_args, next) => next())
+  .params(schema)
+  .handler(() => new Response("ok"));
+`,
+    );
+
+    const config = { ...DEFAULT_CONFIG };
+    const scan = scanRoutes({ routesDir, cwd: tempDir });
+    generateManifest(scan, config, tempDir);
+
+    const validResult = runTsc(tempDir);
+    expect(validResult.success).toBe(true);
+
+    // 2. Invalid: .use() after .params()
+    writeFileSync(
+      join(routesDir, "invalid.get.ts"),
+      `import { t } from "@taserjs/router";
+import { schema } from "../schema.js";
+export default t
+  .get("/invalid")
+  .params(schema)
+  .use(async (_args, next) => next())
+  .handler(() => new Response("ok"));
+`,
+    );
+    const scanInvalid = scanRoutes({ routesDir, cwd: tempDir });
+    generateManifest(scanInvalid, config, tempDir);
+
+    const paramsError = runTsc(tempDir);
+    expect(paramsError.success).toBe(false);
+    expect(paramsError.output).toMatch(
+      /Property 'use' does not exist on type 'RouteValidationBuilder/,
+    );
+
+    // 3. Invalid: .use() after .body()
+    writeFileSync(
+      join(routesDir, "invalid.get.ts"),
+      `import { t } from "@taserjs/router";
+import { schema } from "../schema.js";
+export default t
+  .get("/invalid")
+  .body(schema)
+  .use(async (_args, next) => next())
+  .handler(() => new Response("ok"));
+`,
+    );
+    const bodyError = runTsc(tempDir);
+    expect(bodyError.success).toBe(false);
+    expect(bodyError.output).toMatch(
+      /Property 'use' does not exist on type 'RouteValidationBuilder/,
+    );
+
+    // 4. Invalid: .use() after .query()
+    writeFileSync(
+      join(routesDir, "invalid.get.ts"),
+      `import { t } from "@taserjs/router";
+import { schema } from "../schema.js";
+export default t
+  .get("/invalid")
+  .query(schema)
+  .use(async (_args, next) => next())
+  .handler(() => new Response("ok"));
+`,
+    );
+    const queryError = runTsc(tempDir);
+    expect(queryError.success).toBe(false);
+    expect(queryError.output).toMatch(
+      /Property 'use' does not exist on type 'RouteValidationBuilder/,
+    );
+
+    // 5. Invalid: .use() after .returns()
+    writeFileSync(
+      join(routesDir, "invalid.get.ts"),
+      `import { t } from "@taserjs/router";
+import { schema } from "../schema.js";
+export default t
+  .get("/invalid")
+  .returns({ 200: schema })
+  .use(async (_args, next) => next())
+  .handler(() => new Response("ok"));
+`,
+    );
+    const returnsError = runTsc(tempDir);
+    expect(returnsError.success).toBe(false);
+    expect(returnsError.output).toMatch(
+      /Property 'use' does not exist on type 'RouteValidationBuilder/,
+    );
+  });
 });

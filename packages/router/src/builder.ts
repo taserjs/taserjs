@@ -294,7 +294,7 @@ export function layout<TPath extends string>(
   return new LayoutBuilder<TPath, RouteDefaultParams<TPath>>(path);
 }
 
-export class RouteBuilder<
+export class RouteValidationBuilder<
   TMethod extends HttpMethod = HttpMethod,
   TPath extends string = string,
   TParams = RouteDefaultParams<TPath>,
@@ -315,61 +315,9 @@ export class RouteBuilder<
     public readonly path: TPath,
   ) {}
 
-  use<
-    TMw extends
-      | MiddlewareDefinition<any, any, any, any, any>
-      | ((
-          args: MiddlewareArgs<
-            InferRouteServices<TPath, TMethod> & TRouteServices,
-            InferRouteState<TPath, TMethod> & TRouteState,
-            [TParams] extends [never]
-              ? Record<string, string>
-              : unknown extends TParams
-                ? Record<string, string>
-                : TParams,
-            [TQuery] extends [never]
-              ? Record<string, string | string[]>
-              : unknown extends TQuery
-                ? Record<string, string | string[]>
-                : TQuery,
-            TBody
-          >,
-          next: NextFunction,
-        ) => any),
-  >(
-    middleware: TMw,
-  ): RouteBuilder<
-    TMethod,
-    TPath,
-    Overwrite<TParams, ExtractParamsFromMiddleware<TMw>>,
-    Overwrite<TQuery, ExtractQueryFromMiddleware<TMw>>,
-    Overwrite<TBody, ExtractBodyFromMiddleware<TMw>>,
-    TRouteServices & InferServicesFromMw<TMw>,
-    TRouteState & InferStateFromMw<TMw>,
-    TReturns,
-    TParamsIn,
-    TQueryIn,
-    TBodyIn
-  > {
-    this.middlewares.push(toMiddlewareDefinition(middleware));
-    return this as unknown as RouteBuilder<
-      TMethod,
-      TPath,
-      Overwrite<TParams, ExtractParamsFromMiddleware<TMw>>,
-      Overwrite<TQuery, ExtractQueryFromMiddleware<TMw>>,
-      Overwrite<TBody, ExtractBodyFromMiddleware<TMw>>,
-      TRouteServices & InferServicesFromMw<TMw>,
-      TRouteState & InferStateFromMw<TMw>,
-      TReturns,
-      TParamsIn,
-      TQueryIn,
-      TBodyIn
-    >;
-  }
-
   params<TSchema extends StandardSchemaV1>(
     schema: TSchema,
-  ): RouteBuilder<
+  ): RouteValidationBuilder<
     TMethod,
     TPath,
     StandardSchemaV1.InferOutput<TSchema>,
@@ -383,7 +331,7 @@ export class RouteBuilder<
     TBodyIn
   > {
     this.schemas.params = schema;
-    return this as unknown as RouteBuilder<
+    return this as unknown as RouteValidationBuilder<
       TMethod,
       TPath,
       StandardSchemaV1.InferOutput<TSchema>,
@@ -400,7 +348,7 @@ export class RouteBuilder<
 
   query<TSchema extends StandardSchemaV1>(
     schema: TSchema,
-  ): RouteBuilder<
+  ): RouteValidationBuilder<
     TMethod,
     TPath,
     TParams,
@@ -414,7 +362,7 @@ export class RouteBuilder<
     TBodyIn
   > {
     this.schemas.query = schema;
-    return this as unknown as RouteBuilder<
+    return this as unknown as RouteValidationBuilder<
       TMethod,
       TPath,
       TParams,
@@ -432,7 +380,7 @@ export class RouteBuilder<
   body<TSchema extends StandardSchemaV1>(
     schema: TSchema,
     mode?: BodyMode,
-  ): RouteBuilder<
+  ): RouteValidationBuilder<
     TMethod,
     TPath,
     TParams,
@@ -446,7 +394,7 @@ export class RouteBuilder<
     StandardSchemaV1.InferInput<TSchema>
   > {
     this.schemas.body = { schema, mode };
-    return this as unknown as RouteBuilder<
+    return this as unknown as RouteValidationBuilder<
       TMethod,
       TPath,
       TParams,
@@ -463,7 +411,7 @@ export class RouteBuilder<
 
   returns<const TMap extends Record<StatusCode, StandardSchemaV1>>(
     map: TMap,
-  ): RouteBuilder<
+  ): RouteValidationBuilder<
     TMethod,
     TPath,
     TParams,
@@ -477,7 +425,7 @@ export class RouteBuilder<
     TBodyIn
   > {
     this.schemas.returns = { ...this.schemas.returns, ...map };
-    return this as unknown as RouteBuilder<
+    return this as unknown as RouteValidationBuilder<
       TMethod,
       TPath,
       TParams,
@@ -535,6 +483,88 @@ export class RouteBuilder<
       TBody,
       TReturns,
       TReturn,
+      TParamsIn,
+      TQueryIn,
+      TBodyIn
+    >;
+  }
+}
+
+export class RouteBuilder<
+  TMethod extends HttpMethod = HttpMethod,
+  TPath extends string = string,
+  TParams = RouteDefaultParams<TPath>,
+  TQuery = Record<string, string | string[]>,
+  TBody = unknown,
+  TRouteServices = {},
+  TRouteState = {},
+  TReturns = undefined,
+  TParamsIn = TParams,
+  TQueryIn = TQuery,
+  TBodyIn = TBody,
+> extends RouteValidationBuilder<
+  TMethod,
+  TPath,
+  TParams,
+  TQuery,
+  TBody,
+  TRouteServices,
+  TRouteState,
+  TReturns,
+  TParamsIn,
+  TQueryIn,
+  TBodyIn
+> {
+  constructor(method: TMethod, path: TPath) {
+    super(method, path);
+  }
+
+  use<
+    TMw extends
+      | MiddlewareDefinition<any, any, any, any, any>
+      | ((
+          args: MiddlewareArgs<
+            InferRouteServices<TPath, TMethod> & TRouteServices,
+            InferRouteState<TPath, TMethod> & TRouteState,
+            [TParams] extends [never]
+              ? Record<string, string>
+              : unknown extends TParams
+                ? Record<string, string>
+                : TParams,
+            [TQuery] extends [never]
+              ? Record<string, string | string[]>
+              : unknown extends TQuery
+                ? Record<string, string | string[]>
+                : TQuery,
+            TBody
+          >,
+          next: NextFunction,
+        ) => any),
+  >(
+    middleware: TMw,
+  ): RouteBuilder<
+    TMethod,
+    TPath,
+    Overwrite<TParams, ExtractParamsFromMiddleware<TMw>>,
+    Overwrite<TQuery, ExtractQueryFromMiddleware<TMw>>,
+    Overwrite<TBody, ExtractBodyFromMiddleware<TMw>>,
+    TRouteServices & InferServicesFromMw<TMw>,
+    TRouteState & InferStateFromMw<TMw>,
+    TReturns,
+    TParamsIn,
+    TQueryIn,
+    TBodyIn
+  > {
+    this.middlewares.push(toMiddlewareDefinition(middleware));
+    return this as unknown as RouteBuilder<
+      TMethod,
+      TPath,
+      Overwrite<TParams, ExtractParamsFromMiddleware<TMw>>,
+      Overwrite<TQuery, ExtractQueryFromMiddleware<TMw>>,
+      Overwrite<TBody, ExtractBodyFromMiddleware<TMw>>,
+      TRouteServices & InferServicesFromMw<TMw>,
+      TRouteState & InferStateFromMw<TMw>,
+      TReturns,
       TParamsIn,
       TQueryIn,
       TBodyIn

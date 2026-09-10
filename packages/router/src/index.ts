@@ -2,6 +2,7 @@ export {
   t,
   layout,
   RouteBuilder,
+  RouteValidationBuilder,
   LayoutBuilder,
   MiddlewareBuilder,
   middleware,

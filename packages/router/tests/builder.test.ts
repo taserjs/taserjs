@@ -293,4 +293,80 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
     expect(l.schemas?.body?.schema).toBeDefined();
     expect(l.schemas?.body?.mode).toBe("json");
   });
+
+  it("enforces fluent ordering restricting .use() before route validations", () => {
+    const mockSchema = <T>(val: T) => ({
+      "~standard": {
+        version: 1 as const,
+        vendor: "test",
+        validate: () => ({ value: val }),
+        types: { input: val, output: val },
+      },
+    });
+
+    const mw1 = async (_args: any, next: any) => next();
+    const mw2 = async (_args: any, next: any) => next();
+
+    // Valid chaining: zero or more .use() before validations across HTTP verbs
+    const validGetRoute = t
+      .get("/items/:id")
+      .use(mw1)
+      .use(mw2)
+      .params(mockSchema({ id: "123" }))
+      .query(mockSchema({ search: "test" }))
+      .body(mockSchema({ count: 1 }))
+      .returns({ 200: mockSchema({ ok: true }) })
+      .handler(({ req }) => new Response(req.params.id));
+
+    expect(validGetRoute.middlewares).toHaveLength(2);
+    expect(validGetRoute.schemas?.params).toBeDefined();
+
+    const validPostRoute = t
+      .post("/items")
+      .use(mw1)
+      .body(mockSchema({ title: "hello" }))
+      .handler(() => new Response("ok"));
+    expect(validPostRoute.middlewares).toHaveLength(1);
+
+    const validPutRoute = t
+      .put("/items/:id")
+      .use(mw1)
+      .params(mockSchema({ id: "123" }))
+      .handler(() => new Response("ok"));
+    expect(validPutRoute.middlewares).toHaveLength(1);
+
+    const validDeleteRoute = t
+      .delete("/items/:id")
+      .use(mw1)
+      .params(mockSchema({ id: "123" }))
+      .handler(() => new Response("ok"));
+    expect(validDeleteRoute.middlewares).toHaveLength(1);
+
+    const validPatchRoute = t
+      .patch("/items/:id")
+      .use(mw1)
+      .params(mockSchema({ id: "123" }))
+      .handler(() => new Response("ok"));
+    expect(validPatchRoute.middlewares).toHaveLength(1);
+
+    // Invalid chaining: .use() after .params()
+    const builderAfterParams = t.get("/items/:id").params(mockSchema({ id: "123" }));
+    // @ts-expect-error .use() must not be callable after .params()
+    builderAfterParams.use(mw1);
+
+    // Invalid chaining: .use() after .body()
+    const builderAfterBody = t.post("/items").body(mockSchema({ count: 1 }));
+    // @ts-expect-error .use() must not be callable after .body()
+    builderAfterBody.use(mw1);
+
+    // Invalid chaining: .use() after .query()
+    const builderAfterQuery = t.get("/items").query(mockSchema({ search: "test" }));
+    // @ts-expect-error .use() must not be callable after .query()
+    builderAfterQuery.use(mw1);
+
+    // Invalid chaining: .use() after .returns()
+    const builderAfterReturns = t.get("/items").returns({ 200: mockSchema({ ok: true }) });
+    // @ts-expect-error .use() must not be callable after .returns()
+    builderAfterReturns.use(mw1);
+  });
 });
