@@ -29,6 +29,12 @@ describe("@taserjs/utils reply helpers", () => {
     expect(res._data).toEqual({ hello: "world" });
     expect(res.headers.get("content-type")).toContain("application/json");
     expect(await res.json()).toEqual({ hello: "world" });
+
+    // json(...) with string forces JSON serialization and application/json header
+    const resStr = json("hello string");
+    expect(resStr.status).toBe(200);
+    expect(resStr.headers.get("content-type")).toContain("application/json");
+    expect(await resStr.json()).toBe("hello string");
   });
 
   it("creates json response with custom ResponseInit", async () => {
@@ -83,9 +89,36 @@ describe("@taserjs/utils reply helpers", () => {
     expect(resEmpty.body).toBeNull();
     expect(resEmpty.headers.get("content-type")).toBeNull();
 
+    const resString = created("item created");
+    expect(resString.status).toBe(201);
+    expect(resString.headers.get("content-type")).toContain("text/plain");
+    expect(await resString.text()).toBe("item created");
+
     const withHeaders = created({ id: "456" }, { headers: { "X-Custom": "custom-value" } });
     expect(withHeaders.headers.get("X-Custom")).toBe("custom-value");
     expect(withHeaders.headers.get("content-type")).toContain("application/json");
+
+    const withCustomContentType = created({ id: "789" }, {
+      headers: { "content-type": "application/vnd.api+json" },
+    });
+    expect(withCustomContentType.headers.get("content-type")).toBe("application/vnd.api+json");
+  });
+
+  it("distinguishes plain objects from web standard streams and blobs in auto-detection", async () => {
+    const blob = new Blob(["blob contents"], { type: "application/octet-stream" });
+    const resBlob = ok(blob);
+    expect(resBlob.headers.get("content-type")).toBe("application/octet-stream");
+    expect(await resBlob.text()).toBe("blob contents");
+
+    const searchParams = new URLSearchParams({ q: "test" });
+    const resParams = ok(searchParams);
+    expect(resParams.headers.get("content-type")).toContain("application/x-www-form-urlencoded");
+
+    const nullProtoObj = Object.create(null);
+    nullProtoObj.key = "value";
+    const resNullProto = ok(nullProtoObj);
+    expect(resNullProto.headers.get("content-type")).toContain("application/json");
+    expect(await resNullProto.json()).toEqual({ key: "value" });
   });
 
   it("creates accepted response defaulting to 202 with headers and auto-detection", async () => {
