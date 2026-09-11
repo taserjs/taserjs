@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { createContext, defineTaser, t, type StandardSchemaV1 } from "@taserjs/router";
-import { cookie } from "@taserjs/router/cookie";
+import { cookie } from "@taserjs/router/middleware/cookie";
 import { json } from "@taserjs/utils";
 import { createTaserApp } from "../src/index.js";
 import type { RouteManifest } from "../src/types.js";

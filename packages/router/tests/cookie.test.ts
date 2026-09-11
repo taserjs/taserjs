@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Context } from "hono";
-import { TaserCookieJar, cookie } from "../src/cookie.js";
+import { TaserCookieJar, cookie } from "../src/middleware/cookie.js";
 
 function createHonoContext(cookieHeader?: string): Context {
   const headers = new Headers();

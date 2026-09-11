@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { t } from "@taserjs/router";
-import { cookie } from "@taserjs/router/cookie";
+import { cookie } from "@taserjs/router/middleware/cookie";
 import { cors } from "hono/cors";
 import { setCookie } from "hono/cookie";
 import { json } from "@taserjs/utils";

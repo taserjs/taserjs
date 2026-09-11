@@ -44,7 +44,18 @@ export function hono<
         mergeResponseCookies(c, downstreamResponse);
       };
 
-      const result = await honoMw(c, honoNext);
+      let result: Response | void;
+      try {
+        result = await honoMw(c, honoNext);
+      } catch (err: any) {
+        if (typeof err?.getResponse === "function") {
+          return err.getResponse();
+        }
+        if (err?.res instanceof Response) {
+          return err.res;
+        }
+        throw err;
+      }
 
       if (result instanceof Response) {
         return result;

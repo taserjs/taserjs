@@ -144,7 +144,7 @@ export default defineTaser().context(createContext({
     // Root layout with cookies
     writeFileSync(
       join(routesDir, "$.ts"),
-      'import { t } from "@taserjs/router";\nimport { cookie } from "@taserjs/router/cookie";\nexport default t.layout("/*").use(cookie());',
+      'import { t } from "@taserjs/router";\nimport { cookie } from "@taserjs/router/middleware/cookie";\nexport default t.layout("/*").use(cookie());',
     );
 
     // Users route

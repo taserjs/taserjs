@@ -37,7 +37,7 @@ describe("TypeScript ambient types and route context inference (tsc)", { timeout
           baseUrl: ".",
           paths: {
             "@taserjs/router": [routerDir + "/index.ts"],
-            "@taserjs/router/cookie": [routerDir + "/cookie.ts"],
+            "@taserjs/router/middleware/*": [routerDir + "/middleware/*.ts"],
             "@taserjs/router/*": [routerDir + "/*.ts"],
             "@taserjs/runtime": [runtimeDir + "/index.ts"],
             "@taserjs/runtime/*": [runtimeDir + "/*.ts"],
@@ -84,7 +84,7 @@ export default defineTaser().context(createContext({
     writeFileSync(
       join(routesDir, "$.ts"),
       `import { t } from "@taserjs/router";
-import { cookie } from "@taserjs/router/cookie";
+import { cookie } from "@taserjs/router/middleware/cookie";
 export default t.layout("/*").use(cookie());
 `,
     );
@@ -158,7 +158,7 @@ t.get("/invalid/misspelled");
     writeFileSync(
       join(routesDir, "admin.ts"),
       `import { t } from "@taserjs/router";
-import { cookie } from "@taserjs/router/cookie";
+import { cookie } from "@taserjs/router/middleware/cookie";
 export default t.layout("/admin/*").use(cookie());
 `,
     );

@@ -28,14 +28,24 @@
         "default": "./dist/index.cjs"
       }
     },
-    "./cookie": {
+    "./middleware": {
       "import": {
-        "types": "./dist/cookie.d.ts",
-        "default": "./dist/cookie.js"
+        "types": "./dist/middleware/index.d.ts",
+        "default": "./dist/middleware/index.js"
       },
       "require": {
-        "types": "./dist/cookie.d.cts",
-        "default": "./dist/cookie.cjs"
+        "types": "./dist/middleware/index.d.cts",
+        "default": "./dist/middleware/index.cjs"
+      }
+    },
+    "./middleware/*": {
+      "import": {
+        "types": "./dist/middleware/*.d.ts",
+        "default": "./dist/middleware/*.js"
+      },
+      "require": {
+        "types": "./dist/middleware/*.d.cts",
+        "default": "./dist/middleware/*.cjs"
       }
     },
     "./reply": {

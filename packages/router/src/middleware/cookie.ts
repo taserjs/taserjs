@@ -2,8 +2,8 @@ import { Context } from "hono";
 import { deleteCookie, getCookie, getSignedCookie, setCookie, setSignedCookie } from "hono/cookie";
 import type { Cookie, CookieOptions, CookiePrefixOptions, SignedCookie } from "hono/utils/cookie";
 import { mergeResponseCookies } from "@taserjs/utils";
-import { middleware } from "./builder.js";
-import type { MiddlewareDefinition } from "./types.js";
+import { middleware } from "../builder.js";
+import type { MiddlewareDefinition } from "../types.js";
 
 export type { Cookie, CookieOptions, CookiePrefixOptions, SignedCookie };
 
