@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Hono } from "hono";
 import { t } from "@taserjs/router";
-import { json } from "@taserjs/utils";
+import { created, json } from "@taserjs/utils";
 import { createTaserApp } from "../src/index.js";
 
 describe("createTaserApp and Hono runtime dispatch", () => {
@@ -83,7 +83,7 @@ describe("createTaserApp and Hono runtime dispatch", () => {
 
   it("supports multiple HTTP methods on different paths", async () => {
     const postRoute = t.post("/items").handler(({ req }) => {
-      return json({ created: true, path: req.url }, 201);
+      return created({ created: true, path: req.url });
     });
 
     const app = createTaserApp({

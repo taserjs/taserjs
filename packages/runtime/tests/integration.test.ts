@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createContext, defineTaser, t } from "@taserjs/router";
-import { json } from "@taserjs/utils";
+import { forbidden, json, unauthorized } from "@taserjs/utils";
 import { createTaserApp } from "../src/index.js";
 
 describe("Composed Onion Pipeline Integration", () => {
@@ -30,7 +30,7 @@ describe("Composed Onion Pipeline Integration", () => {
       trace.push("auth:enter");
       const authHeader = req.headers.get("authorization");
       if (!authHeader) {
-        return json({ error: "unauthorized" }, 401);
+        return unauthorized({ error: "unauthorized" });
       }
       const res = await next({ user: "alice" });
       trace.push("auth:exit");
@@ -107,7 +107,7 @@ describe("Composed Onion Pipeline Integration", () => {
     const authLayout = t.layout("/_auth/*").use(async ({ req }, next) => {
       const auth = req.headers.get("authorization");
       if (!auth) {
-        return json({ error: "missing auth header" }, 401);
+        return unauthorized({ error: "missing auth header" });
       }
       return next();
     });
@@ -263,7 +263,7 @@ describe("Composed Onion Pipeline Integration", () => {
     });
 
     const innerLayout = t.layout("/inner/*").use(async () => {
-      return json({ error: "forbidden" }, 403);
+      return forbidden({ error: "forbidden" });
     });
 
     const route = t.get("/nested-short-circuit").handler(async () => json({ ok: true }));

@@ -107,3 +107,12 @@ _Avoid_: external layout, inner layout
 **Route Scaffolding**:
 The automated generation of starter boilerplate into an empty (0-byte or whitespace-only) route or layout file upon creation during interactive watch and dev modes, pre-configuring canonical path patterns, layout scopes, destructured callback arguments, and typed reply helpers.
 _Avoid_: file generation, code template, auto-create, route stubbing
+
+**Host Server Entry**:
+An optional host server file (`server.ts` for Fetch-native hosts or `server.node.ts` for Node HTTP frameworks like Express or Fastify) detected and assembled by `@taserjs/plugin` into the production entry/dev middleware, dispatching unmatched requests to the host framework via `toFetchHandler` from `srvx/node`.
+_Avoid_: server wrapper, legacy entry, express host, server.js
+
+**Response Contract**:
+A compile-time and optional runtime schema validation contract declared on route endpoints via `.returns({ [status]: Schema })` that enforces return shapes and powers prioritized client SDK typing.
+_Avoid_: response schema, return validator, output contract
+
