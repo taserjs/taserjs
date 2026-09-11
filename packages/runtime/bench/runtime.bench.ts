@@ -205,9 +205,8 @@ describe("2. Route Middleware (1 inline middleware)", () => {
 // Scenario 3: Layout Middleware with State (GET /layout-state/profile)
 // ============================================================================
 
-const layoutStateMw = t.middleware(async ({ state }: any, next) => {
-  state.user = { id: 1, role: "admin" };
-  return await next();
+const layoutStateMw = t.middleware(async (_args: any, next) => {
+  return await next({ user: { id: 1, role: "admin" } });
 });
 
 const layoutStateTaserApp = createTaserApp({
@@ -249,14 +248,12 @@ describe("3. Layout Middleware with State", () => {
 // Scenario 4: Composed Layout + Route Middleware (GET /composed/item)
 // ============================================================================
 
-const composedLayoutMw = t.middleware(async ({ state }: any, next) => {
-  state.user = { id: 42 };
-  return await next();
+const composedLayoutMw = t.middleware(async (_args: any, next) => {
+  return await next({ user: { id: 42 } });
 });
 
-const composedRouteMw = t.middleware(async ({ state }: any, next) => {
-  state.reqId = "req-bench-123";
-  return await next();
+const composedRouteMw = t.middleware(async (_args: any, next) => {
+  return await next({ reqId: "req-bench-123" });
 });
 
 const composedTaserApp = createTaserApp({
@@ -310,9 +307,8 @@ const mockCalcService = {
   compute: (a: number, b: number) => a + b,
 };
 
-const serviceLayoutMw = t.middleware(async ({ state }: any, next) => {
-  state.user = { id: 100 };
-  return await next.provide({ calcService: mockCalcService });
+const serviceLayoutMw = t.middleware(async (_args: any, next) => {
+  return await next.provide({ calcService: mockCalcService }, { user: { id: 100 } });
 });
 
 const serviceTaserApp = createTaserApp({
