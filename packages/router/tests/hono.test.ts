@@ -189,4 +189,191 @@ describe("t.hono adapter", () => {
     expect(getRes.headers.get("Vary")).toContain("Origin");
     expect(await getRes.json()).toEqual({ ok: true });
   });
+
+  describe("t.hono(mw, refine?)", () => {
+    it("works without refine callback by default", async () => {
+      const mw = t.hono(async (_c, next) => {
+        await next();
+      });
+
+      const c = new Context(new Request("http://localhost/test"));
+      const req = createDummyRequest();
+      const ctx = { context: c };
+
+      let downstreamCalled = false;
+      const nextFn = Object.assign(
+        async () => {
+          downstreamCalled = true;
+          return new Response("bare-hono-ok");
+        },
+        { provide: async () => new Response("ok") },
+      );
+
+      const res = await mw.handler({ req, ctx, state: {} }, nextFn as any);
+      expect(downstreamCalled).toBe(true);
+      expect(await res.text()).toBe("bare-hono-ok");
+    });
+
+    it("injects state via refine callback: (c, next) => next(state)", async () => {
+      const authHonoMw = t.hono(
+        async (c, next) => {
+          c.set("jwtUser", { id: "user_123", role: "admin" });
+          await next();
+        },
+        (c, next) => {
+          const user = c.get("jwtUser");
+          return next({ user });
+        },
+      );
+
+      const c = new Context(new Request("http://localhost/test"));
+      const req = createDummyRequest();
+      const ctx = { context: c };
+
+      let receivedState: any = null;
+      const nextFn = Object.assign(
+        async (state?: any) => {
+          receivedState = state;
+          return new Response("refined-ok");
+        },
+        {
+          provide: async (_services: any, state?: any) => {
+            receivedState = state;
+            return new Response("refined-ok");
+          },
+        },
+      );
+
+      const res = await authHonoMw.handler({ req, ctx, state: {} }, nextFn as any);
+      expect(receivedState).toEqual({ user: { id: "user_123", role: "admin" } });
+      expect(await res.text()).toBe("refined-ok");
+    });
+
+    it("injects services via refine callback: (c, next) => next.provide(services, state)", async () => {
+      const serviceHonoMw = t.hono(
+        async (c, next) => {
+          c.set("tenantId", "tenant_xyz");
+          await next();
+        },
+        (c, next) => {
+          const tenantId = c.get("tenantId");
+          const tenantService = { getTenant: () => tenantId };
+          return next.provide({ tenantService }, { tenantId });
+        },
+      );
+
+      const c = new Context(new Request("http://localhost/test"));
+      const req = createDummyRequest();
+      const ctx = { context: c };
+
+      let receivedServices: any = null;
+      let receivedState: any = null;
+      const nextFn = Object.assign(
+        async (state?: any) => {
+          receivedState = state;
+          return new Response("ok");
+        },
+        {
+          provide: async (services: any, state?: any) => {
+            receivedServices = services;
+            receivedState = state;
+            return new Response("services-provided-ok");
+          },
+        },
+      );
+
+      const res = await serviceHonoMw.handler({ req, ctx, state: {} }, nextFn as any);
+      expect(receivedServices).toBeDefined();
+      expect(receivedServices.tenantService.getTenant()).toBe("tenant_xyz");
+      expect(receivedState).toEqual({ tenantId: "tenant_xyz" });
+      expect(await res.text()).toBe("services-provided-ok");
+    });
+
+    it("preserves bi-directional post-next modifications in hono middleware", async () => {
+      const timingMw = t.hono(
+        async (c, next) => {
+          c.set("injected", "yes");
+          await next();
+          c.res.headers.set("X-Post-Processed", "true");
+        },
+        (c, next) => {
+          return next({ injected: c.get("injected") });
+        },
+      );
+
+      const c = new Context(new Request("http://localhost/test"));
+      const req = createDummyRequest();
+      const ctx = { context: c };
+
+      let seenState: any = null;
+      const nextFn = Object.assign(
+        async (state?: any) => {
+          seenState = state;
+          return new Response("timing-body", {
+            status: 200,
+            headers: { "Content-Type": "text/plain" },
+          });
+        },
+        { provide: async () => new Response("ok") },
+      );
+
+      const res = await timingMw.handler({ req, ctx, state: {} }, nextFn as any);
+      expect(seenState).toEqual({ injected: "yes" });
+      expect(res.headers.get("X-Post-Processed")).toBe("true");
+      expect(await res.text()).toBe("timing-body");
+    });
+
+    it("short-circuits and does not invoke refine callback if Hono middleware returns early", async () => {
+      let refineCalled = false;
+      const blockedMw = t.hono(
+        async (c) => {
+          return c.json({ error: "unauthorized" }, 401);
+        },
+        (_c, next) => {
+          refineCalled = true;
+          return next({ fail: true });
+        },
+      );
+
+      const c = new Context(new Request("http://localhost/test"));
+      const req = createDummyRequest();
+      const ctx = { context: c };
+
+      const nextFn = Object.assign(
+        async () => new Response("ok"),
+        { provide: async () => new Response("ok") },
+      );
+
+      const res = await blockedMw.handler({ req, ctx, state: {} }, nextFn as any);
+      expect(refineCalled).toBe(false);
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({ error: "unauthorized" });
+    });
+
+    it("statically typechecks services and state propagated by refine callback to RouteBuilder", () => {
+      const authMw = t.hono(
+        async (c, next) => {
+          c.set("jwtUser", { id: "u1", name: "Alice" });
+          await next();
+        },
+        (c, next) => {
+          const user = c.get("jwtUser") as { id: string; name: string };
+          const helper = { greet: () => `Hello ${user.name}` };
+          return next.provide({ helper }, { user });
+        },
+      );
+
+      // RouteBuilder.use(authMw) should typecheck handler accessing helper and state.user
+      const route = t
+        .get("/test-typecheck")
+        .use(authMw)
+        .handler(({ state, helper }) => {
+          const userName: string = state.user.name;
+          const greeting: string = helper.greet();
+          return new Response(`${userName}: ${greeting}`);
+        });
+
+      expect(route).toBeDefined();
+    });
+  });
 });

@@ -277,4 +277,72 @@ describe("Dynamic Services, Cookie Middleware, and t.hono Adapter Integration", 
     expect(apiRes.headers.get("X-Custom-Api")).toBe("true");
     expect(await apiRes.json()).toEqual({ data: 123 });
   });
+
+  it("integrates t.hono(mw, refine) seamlessly into createTaserApp pipeline and handlers", async () => {
+    // 1. Root layout with bare t.hono middleware (e.g. CORS)
+    // 2. Sub-layout with t.hono(mw, refine) simulating JWT / auth middleware setting c.set("user")
+    const authMw = t.hono(
+      async (c, next) => {
+        const authHeader = c.req.header("Authorization");
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+          return c.json({ error: "missing_token" }, 401);
+        }
+        const token = authHeader.slice(7);
+        c.set("jwtUser", { id: "user_42", username: "kazi", token });
+        c.set("permissions", ["read", "write"]);
+        await next();
+        c.res.headers.set("X-Auth-Processed", "v1");
+      },
+      (c, next) => {
+        const user = c.get("jwtUser");
+        const permissions = c.get("permissions");
+        const authService = {
+          hasPermission: (perm: string) => permissions.includes(perm),
+        };
+        return next.provide({ authService }, { user });
+      },
+    );
+
+    const protectedLayout = t.layout("/protected/*").use(authMw);
+
+    const profileRoute = t
+      .get("/protected/profile")
+      .handler(async ({ state, authService }: any) => {
+        return json({
+          user: state.user,
+          canWrite: authService.hasPermission("write"),
+        });
+      });
+
+    const app = createTaserApp({
+      layouts: {
+        "/protected/*": protectedLayout,
+      },
+      routes: {
+        "/protected/profile": {
+          GET: { layouts: ["/protected/*"], route: profileRoute },
+        },
+      },
+    });
+
+    // Request without token gets 401
+    const unauthRes = await app.request("/protected/profile", { method: "GET" });
+    expect(unauthRes.status).toBe(401);
+    expect(await unauthRes.json()).toEqual({ error: "missing_token" });
+
+    // Request with token succeeds, access state.user and injected authService
+    const authRes = await app.request("/protected/profile", {
+      method: "GET",
+      headers: {
+        Authorization: "Bearer secret-jwt-token",
+      },
+    });
+    expect(authRes.status).toBe(200);
+    expect(authRes.headers.get("X-Auth-Processed")).toBe("v1");
+    const body = await authRes.json();
+    expect(body).toEqual({
+      user: { id: "user_42", username: "kazi", token: "secret-jwt-token" },
+      canWrite: true,
+    });
+  });
 });

@@ -1,9 +1,30 @@
 import { Context } from "hono";
 import type { MiddlewareHandler as HonoMiddlewareHandler, Next as HonoNext } from "hono";
 import { mergeResponseCookies } from "@taserjs/utils";
-import type { MiddlewareDefinition } from "./types.js";
+import type {
+  DistributeServices,
+  DistributeState,
+  MiddlewareDefinition,
+  MiddlewareResponse,
+  NextFunction,
+} from "./types.js";
 
-export function hono(honoMw: HonoMiddlewareHandler): MiddlewareDefinition {
+export function hono<
+  R extends
+    | Response
+    | Promise<Response>
+    | MiddlewareResponse<any, any>
+    | Promise<MiddlewareResponse<any, any>> = Promise<Response>,
+>(
+  honoMw: HonoMiddlewareHandler,
+  refine?: (c: Context, next: NextFunction) => R,
+): MiddlewareDefinition<
+  DistributeServices<Awaited<R>>,
+  DistributeState<Awaited<R>>,
+  unknown,
+  unknown,
+  unknown
+> {
   return {
     kind: "middleware",
     handler: async (args, next) => {
@@ -18,9 +39,8 @@ export function hono(honoMw: HonoMiddlewareHandler): MiddlewareDefinition {
 
       const honoNext: HonoNext = async () => {
         nextCalled = true;
-        // Access c.res before next() to ensure #preparedHeaders are materialized into #res
         void c.res;
-        downstreamResponse = await next();
+        downstreamResponse = refine ? await refine(c, next) : await next();
         mergeResponseCookies(c, downstreamResponse);
       };
 
