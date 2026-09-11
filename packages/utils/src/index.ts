@@ -32,3 +32,13 @@ export {
   isStandardSchema,
   validateStandardSchema,
 } from "./validation.js";
+export {
+  blob,
+  buffer,
+  formatSSE,
+  pipe,
+  sse,
+  type SSEController,
+  type SSEInit,
+  type SSEMessage,
+} from "./stream.js";

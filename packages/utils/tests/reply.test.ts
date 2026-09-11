@@ -98,9 +98,12 @@ describe("@taserjs/utils reply helpers", () => {
     expect(withHeaders.headers.get("X-Custom")).toBe("custom-value");
     expect(withHeaders.headers.get("content-type")).toContain("application/json");
 
-    const withCustomContentType = created({ id: "789" }, {
-      headers: { "content-type": "application/vnd.api+json" },
-    });
+    const withCustomContentType = created(
+      { id: "789" },
+      {
+        headers: { "content-type": "application/vnd.api+json" },
+      },
+    );
     expect(withCustomContentType.headers.get("content-type")).toBe("application/vnd.api+json");
   });
 

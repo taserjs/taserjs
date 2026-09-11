@@ -339,10 +339,9 @@ describe("t.hono adapter", () => {
       const req = createDummyRequest();
       const ctx = { context: c };
 
-      const nextFn = Object.assign(
-        async () => new Response("ok"),
-        { provide: async () => new Response("ok") },
-      );
+      const nextFn = Object.assign(async () => new Response("ok"), {
+        provide: async () => new Response("ok"),
+      });
 
       const res = await blockedMw.handler({ req, ctx, state: {} }, nextFn as any);
       expect(refineCalled).toBe(false);

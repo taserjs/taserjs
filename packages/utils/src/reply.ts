@@ -53,9 +53,7 @@ export function createTypedResponse<T, TStatus extends number>(
   return res;
 }
 
-export function isPlainObjectOrArray(
-  value: unknown,
-): value is Record<string, unknown> | unknown[] {
+export function isPlainObjectOrArray(value: unknown): value is Record<string, unknown> | unknown[] {
   if (value === null || typeof value !== "object") {
     return false;
   }

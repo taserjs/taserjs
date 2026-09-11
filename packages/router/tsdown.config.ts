@@ -1,7 +1,7 @@
 import { defineConfig } from "tsdown";
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/cookie.ts", "src/reply.ts"],
+  entry: ["src/index.ts", "src/cookie.ts", "src/reply.ts", "src/stream.ts"],
   format: ["esm", "cjs"],
   dts: true,
   clean: true,
