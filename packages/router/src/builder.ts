@@ -23,8 +23,6 @@ import type {
   InferLayoutState,
   InferMiddlewareArgs,
   InferReturnsResponse,
-  InferRouteBody,
-  InferRouteQuery,
   InferRouteServices,
   InferRouteState,
   InferServicesFromMw,
@@ -250,15 +248,7 @@ export function middleware<
 >;
 export function middleware<TLayoutId extends RegisteredLayoutId>(
   layoutId: TLayoutId,
-): MiddlewareBuilder<
-  InferLayoutBranchParams<TLayoutId>,
-  unknown,
-  unknown,
-  {},
-  {},
-  TLayoutId,
-  {}
->;
+): MiddlewareBuilder<InferLayoutBranchParams<TLayoutId>, unknown, unknown, {}, {}, TLayoutId, {}>;
 export function middleware<F extends (args: MiddlewareArgs<{}, {}>, next: NextFunction) => any>(
   fn: F,
 ): MiddlewareDefinition<
@@ -274,7 +264,9 @@ export function middleware(): MiddlewareBuilder<unknown, unknown, unknown, {}, {
 export function middleware(
   arg1?: any,
   arg2?: any,
-): MiddlewareBuilder<any, any, any, any, any, any, any> | MiddlewareDefinition<any, any, any, any, any, any, any> {
+):
+  | MiddlewareBuilder<any, any, any, any, any, any, any>
+  | MiddlewareDefinition<any, any, any, any, any, any, any> {
   if (typeof arg1 === "string") {
     if (typeof arg2 === "function") {
       return {
@@ -595,13 +587,13 @@ export class RouteValidationBuilder<
   }
 
   handler<
-    TReturn extends [TReturns] extends [undefined]
+    TReturn extends ([TReturns] extends [undefined]
       ? any
       : [TReturns] extends [never]
         ? any
         : unknown extends TReturns
           ? any
-          : InferReturnsResponse<TReturns> | Promise<InferReturnsResponse<TReturns>>,
+          : InferReturnsResponse<TReturns> | Promise<InferReturnsResponse<TReturns>>),
   >(
     fn: RouteHandler<
       InferEffectiveParams<TPath, TMethod, TParams>,
@@ -670,11 +662,7 @@ export class RouteBuilder<
   TQueryIn,
   TBodyIn
 > {
-  constructor(
-    method: TMethod,
-    path: TPath,
-    methods?: readonly string[] | undefined,
-  ) {
+  constructor(method: TMethod, path: TPath, methods?: readonly string[] | undefined) {
     super(method, path, methods);
   }
 
