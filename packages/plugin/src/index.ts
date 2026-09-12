@@ -364,7 +364,7 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
         const config = await getConfig();
         const outputDir = resolveOutputDir(config, cwd);
         const hostServer = getHostServer(config, cwd, options);
-        const serveShimPath = join(outputDir, "serve.mjs");
+        const serveShimPath = join(outputDir, "serve.ts");
         const ext = resolveImportExtension(config.extension);
         emitServeShim(serveShimPath, `./routes.gen${ext}`, hostServer, ext);
       }
@@ -409,7 +409,7 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
           const taserConfig = await getConfig();
           const outputDir = resolveOutputDir(taserConfig, cwd);
           const hostServer = getHostServer(taserConfig, cwd, options);
-          const serveShimPath = join(outputDir, "serve.mjs");
+          const serveShimPath = join(outputDir, "serve.ts");
           const ext = resolveImportExtension(taserConfig.extension);
           emitServeShim(serveShimPath, `./routes.gen${ext}`, hostServer, ext);
 

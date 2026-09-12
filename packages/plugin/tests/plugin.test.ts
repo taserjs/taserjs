@@ -177,7 +177,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
       parse: vi.fn(),
     });
 
-    const serveShimPath = join(outputDir, "serve.mjs");
+    const serveShimPath = join(outputDir, "serve.ts");
     expect(existsSync(serveShimPath)).toBe(true);
     let serveContent = readFileSync(serveShimPath, "utf-8");
     expect(serveContent).toContain('import { app } from "./routes.gen.js";');
@@ -204,7 +204,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
   });
 
   describe("server option and full-stack auto-detection", () => {
-    it("disables serve.mjs emission when server is false", async () => {
+    it("disables serve.ts emission when server is false", async () => {
       const rawPlugin = taserPlugin.raw({ cwd: tempDir, server: false }, { framework: "vite" });
       const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
 
@@ -216,11 +216,11 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
       });
 
       const manifestPath = join(outputDir, "routes.gen.ts");
-      const serveShimPath = join(outputDir, "serve.mjs");
+      const serveShimPath = join(outputDir, "serve.ts");
 
       // routes.gen.ts should still be generated
       expect(existsSync(manifestPath)).toBe(true);
-      // serve.mjs should NOT be generated
+      // serve.ts should NOT be generated
       expect(existsSync(serveShimPath)).toBe(false);
     });
 
@@ -265,7 +265,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
             parse: vi.fn(),
           });
 
-          const serveShimPath = join(outputDir, "serve.mjs");
+          const serveShimPath = join(outputDir, "serve.ts");
           expect(existsSync(serveShimPath)).toBe(false);
         }),
       );
@@ -291,7 +291,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
         parse: vi.fn(),
       });
 
-      const serveShimPath = join(outputDir, "serve.mjs");
+      const serveShimPath = join(outputDir, "serve.ts");
       expect(existsSync(serveShimPath)).toBe(true);
     });
 
@@ -319,7 +319,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
         parse: vi.fn(),
       });
 
-      const serveShimPath = join(outputDir, "serve.mjs");
+      const serveShimPath = join(outputDir, "serve.ts");
       expect(existsSync(serveShimPath)).toBe(false);
     });
   });
@@ -434,7 +434,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
     });
 
     it("emitServeShim generates standalone shim with node host fallback", () => {
-      const shimPath = join(outputDir, "serve.mjs");
+      const shimPath = join(outputDir, "serve.ts");
       const hostPath = join(tempDir, "src", "server.node.ts");
       writeFileSync(hostPath, "export default (req, res) => res.end();", "utf-8");
 
@@ -450,7 +450,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
     });
 
     it("emitServeShim generates standalone shim with fetch host fallback", () => {
-      const shimPath = join(outputDir, "serve.mjs");
+      const shimPath = join(outputDir, "serve.ts");
       const hostPath = join(tempDir, "src", "server.ts");
       writeFileSync(hostPath, "export default (req) => new Response();", "utf-8");
 

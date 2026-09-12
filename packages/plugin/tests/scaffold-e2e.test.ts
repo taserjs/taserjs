@@ -111,9 +111,10 @@ describe(
         logLevel: "silent",
       });
 
-      // 4. Verify generated manifest and compiled output
+      // 4. Verify generated manifest, serve shim in .taserjs/, and compiled output in dist/
       const manifestPath = join(projectDir, "src", ".taserjs", "routes.gen.ts");
       expect(existsSync(manifestPath)).toBe(true);
+      expect(existsSync(join(projectDir, "src", ".taserjs", "serve.ts"))).toBe(true);
       expect(existsSync(join(projectDir, "dist", "serve.mjs"))).toBe(true);
 
       // 5. Import compiled serve bundle or routes manifest and verify request dispatch
@@ -214,6 +215,7 @@ describe(
         stdio: "pipe",
       });
 
+      expect(existsSync(join(projectDir, "src", ".taserjs", "serve.ts"))).toBe(true);
       expect(existsSync(join(projectDir, "dist", "serve.mjs"))).toBe(true);
 
       const routesModule = await import(join(projectDir, "src", ".taserjs", "routes.gen.ts"));

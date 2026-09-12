@@ -566,7 +566,7 @@ export default function legacyHost(req, res) {
       },
     });
 
-    const serveShimPath = join(tempDir, "src", ".taserjs", "serve.mjs");
+    const serveShimPath = join(tempDir, "src", ".taserjs", "serve.ts");
     expect(existsSync(serveShimPath)).toBe(true);
 
     const shimContent = readFileSync(serveShimPath, "utf-8");
