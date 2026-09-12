@@ -5,11 +5,19 @@ import {
   loadConfig,
   resolveOutputDir,
   resolveRoutesDir,
+  resolveServerDir,
   scanRoutes,
   type ResolvedTaserConfig,
 } from "@taserjs/cli";
 import { watch, type FSWatcher } from "chokidar";
-import { normalizeImportPath, taserPlugin, type TaserPluginOptions } from "./index.js";
+import {
+  buildHostFallbackCode,
+  getHostServer,
+  normalizeImportPath,
+  taserPlugin,
+  type HostServerInfo,
+  type TaserPluginOptions,
+} from "./index.js";
 
 export function buildNitroRoutingVirtualSource(): string {
   return [
@@ -20,14 +28,23 @@ export function buildNitroRoutingVirtualSource(): string {
   ].join("\n");
 }
 
-export function buildNitroStandaloneAppSource(routesGenPath: string): string {
+export function buildNitroStandaloneAppSource(
+  routesGenPath: string,
+  hostServer?: HostServerInfo | null,
+): string {
   const normalizedPath = normalizeImportPath(routesGenPath);
+  const fallback = hostServer
+    ? buildHostFallbackCode(normalizeImportPath(hostServer.path), hostServer.type, "taserApp")
+    : null;
 
   return `// @ts-nocheck
 import { app as taserApp } from "${normalizedPath}";
 import { FastResponse } from "srvx";
+${fallback ? fallback.imports : ""}
 
 globalThis.Response = FastResponse;
+
+${fallback ? fallback.setup : ""}
 
 export const handler = (req, ...args) => taserApp.fetch(req, ...args);
 
@@ -48,12 +65,21 @@ export default app;
 `;
 }
 
-export function buildNitroMiddlewareHandlerSource(routesGenPath: string): string {
+export function buildNitroMiddlewareHandlerSource(
+  routesGenPath: string,
+  hostServer?: HostServerInfo | null,
+): string {
   const normalizedPath = normalizeImportPath(routesGenPath);
+  const fallback = hostServer
+    ? buildHostFallbackCode(normalizeImportPath(hostServer.path), hostServer.type, "taserApp")
+    : null;
 
   return `// @ts-nocheck
 import { app as taserApp } from "${normalizedPath}";
 import { toWebRequest } from "h3";
+${fallback ? fallback.imports : ""}
+
+${fallback ? fallback.setup : ""}
 
 export default defineEventHandler((event) => {
   return taserApp.fetch(toWebRequest(event));
@@ -77,6 +103,7 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
   const cwd = resolve(nitro.options.rootDir || options.cwd || process.cwd());
   const config: ResolvedTaserConfig = await loadConfig(cwd, options.config);
   const routesDir = resolveRoutesDir(config, cwd);
+  const serverDir = resolveServerDir(config, cwd);
   const outputDir = resolveOutputDir(config, cwd);
   const routesGenPath = resolve(outputDir, "routes.gen.ts");
 
@@ -98,13 +125,17 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
   const isStandalone = options.standalone === true;
 
   if (isStandalone) {
-    nitro.options.virtual["#nitro/virtual/app"] = () =>
-      buildNitroStandaloneAppSource(routesGenPath);
+    nitro.options.virtual["#nitro/virtual/app"] = () => {
+      const currentHost = getHostServer(config, cwd, options);
+      return buildNitroStandaloneAppSource(routesGenPath, currentHost);
+    };
     nitro.options.virtual["#nitro/virtual/routing"] = () => buildNitroRoutingVirtualSource();
   } else {
     const VIRTUAL_NITRO_HANDLER_ID = "#taserjs/virtual/nitro-handler";
-    nitro.options.virtual[VIRTUAL_NITRO_HANDLER_ID] = () =>
-      buildNitroMiddlewareHandlerSource(routesGenPath);
+    nitro.options.virtual[VIRTUAL_NITRO_HANDLER_ID] = () => {
+      const currentHost = getHostServer(config, cwd, options);
+      return buildNitroMiddlewareHandlerSource(routesGenPath, currentHost);
+    };
 
     nitro.options.handlers = nitro.options.handlers || [];
     nitro.options.handlers.unshift({
@@ -116,7 +147,11 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
 
   let watcher: FSWatcher | undefined;
   if (nitro.options.dev && existsSync(routesDir)) {
-    watcher = watch([routesDir], {
+    const watchDirs = [routesDir];
+    if (existsSync(serverDir) && !watchDirs.includes(serverDir)) {
+      watchDirs.push(serverDir);
+    }
+    watcher = watch(watchDirs, {
       ignoreInitial: true,
       ignored: [/(^|[/\\])\../, /(^|[/\\])-/, /node_modules/, /\.taserjs/],
     });

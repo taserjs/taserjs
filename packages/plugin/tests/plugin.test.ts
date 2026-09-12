@@ -2,7 +2,17 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "pathe";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { isOutputDir, isSubPath, normalizeImportPath, taserPlugin, taser } from "../src/index.js";
+import {
+  detectHostServer,
+  emitServeShim,
+  isOutputDir,
+  isSubPath,
+  mountHostFallback,
+  normalizeImportPath,
+  resolveHostFetchHandler,
+  taserPlugin,
+  taser,
+} from "../src/index.js";
 import { buildNitroMiddlewareHandlerSource, buildNitroStandaloneAppSource } from "../src/nitro.js";
 
 describe("@taserjs/plugin core", () => {
@@ -359,6 +369,159 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
         'import { app as taserApp } from "C:/Users/alice/project/src/.taserjs/routes.gen.ts";',
       );
       expect(middleware).not.toContain("C:\\Users");
+    });
+  });
+
+  describe("host server entry detection and assembly", () => {
+    it("detectHostServer returns null when no host server entry exists", () => {
+      const result = detectHostServer(join(tempDir, "src"));
+      expect(result).toBeNull();
+    });
+
+    it("detectHostServer detects server.node.ts as node host", () => {
+      const serverDir = join(tempDir, "src");
+      const hostFile = join(serverDir, "server.node.ts");
+      writeFileSync(hostFile, "export default (req, res) => res.end();", "utf-8");
+
+      const result = detectHostServer(serverDir);
+      expect(result).toEqual({
+        type: "node",
+        path: hostFile,
+      });
+    });
+
+    it("detectHostServer detects server.ts as fetch host", () => {
+      const serverDir = join(tempDir, "src");
+      const hostFile = join(serverDir, "server.ts");
+      writeFileSync(hostFile, "export default (req) => new Response();", "utf-8");
+
+      const result = detectHostServer(serverDir);
+      expect(result).toEqual({
+        type: "fetch",
+        path: hostFile,
+      });
+    });
+
+    it("detectHostServer prioritizes server.node.ts over server.ts if both exist", () => {
+      const serverDir = join(tempDir, "src");
+      writeFileSync(join(serverDir, "server.node.ts"), "export default (req, res) => res.end();", "utf-8");
+      writeFileSync(join(serverDir, "server.ts"), "export default (req) => new Response();", "utf-8");
+
+      const result = detectHostServer(serverDir);
+      expect(result).toEqual({
+        type: "node",
+        path: join(serverDir, "server.node.ts"),
+      });
+    });
+
+    it("detectHostServer supports explicit entry path", () => {
+      const customPath = join(tempDir, "custom-host.node.ts");
+      writeFileSync(customPath, "export default (req, res) => res.end();", "utf-8");
+
+      const result = detectHostServer(join(tempDir, "src"), tempDir, "custom-host.node.ts");
+      expect(result).toEqual({
+        type: "node",
+        path: customPath,
+      });
+    });
+
+    it("emitServeShim generates standalone shim with node host fallback", () => {
+      const shimPath = join(outputDir, "serve.mjs");
+      const hostPath = join(tempDir, "src", "server.node.ts");
+      writeFileSync(hostPath, "export default (req, res) => res.end();", "utf-8");
+
+      emitServeShim(shimPath, "./routes.gen.js", { type: "node", path: hostPath }, ".js");
+
+      const content = readFileSync(shimPath, "utf-8");
+      expect(content).toContain('import { serve } from "srvx/node";');
+      expect(content).toContain('import { toFetchHandler } from "srvx/node";');
+      expect(content).toContain('import hostServerEntry from "../server.node.js";');
+      expect(content).toContain("toFetchHandler(nodeHandler)");
+      expect(content).toContain('app.all("*", (c) => hostFetch(c.req.raw));');
+      expect(content).toContain("serve(app);");
+    });
+
+    it("emitServeShim generates standalone shim with fetch host fallback", () => {
+      const shimPath = join(outputDir, "serve.mjs");
+      const hostPath = join(tempDir, "src", "server.ts");
+      writeFileSync(hostPath, "export default (req) => new Response();", "utf-8");
+
+      emitServeShim(shimPath, "./routes.gen.js", { type: "fetch", path: hostPath }, ".js");
+
+      const content = readFileSync(shimPath, "utf-8");
+      expect(content).toContain('import { serve } from "srvx/node";');
+      expect(content).toContain('import hostServerEntry from "../server.js";');
+      expect(content).not.toContain("toFetchHandler");
+      expect(content).toContain('app.all("*", (c) => hostFetch(c.req.raw));');
+      expect(content).toContain("serve(app);");
+    });
+
+    it("buildNitroStandaloneAppSource generates host server fallback code for node host", () => {
+      const routesGenPath = join(outputDir, "routes.gen.ts");
+      const hostPath = join(tempDir, "src", "server.node.ts");
+
+      const code = buildNitroStandaloneAppSource(routesGenPath, { type: "node", path: hostPath });
+      expect(code).toContain('import { toFetchHandler } from "srvx/node";');
+      expect(code).toContain("toFetchHandler(nodeHandler)");
+      expect(code).toContain('taserApp.all("*", (c) => hostFetch(c.req.raw));');
+    });
+
+    it("buildNitroMiddlewareHandlerSource generates host server fallback code for fetch host", () => {
+      const routesGenPath = join(outputDir, "routes.gen.ts");
+      const hostPath = join(tempDir, "src", "server.ts");
+
+      const code = buildNitroMiddlewareHandlerSource(routesGenPath, { type: "fetch", path: hostPath });
+      expect(code).toContain('taserApp.all("*", (c) => hostFetch(c.req.raw));');
+    });
+
+    it("resolveHostFetchHandler correctly handles node request listener and routing fastify", async () => {
+      const nodeFn = (req: any, res: any) => {
+        res.end("node response");
+      };
+      const fetchHandler1 = resolveHostFetchHandler(nodeFn, "node");
+      expect(typeof fetchHandler1).toBe("function");
+
+      const fastifyLike = {
+        routing: (req: any, res: any) => {
+          res.end("fastify response");
+        },
+      };
+      const fetchHandler2 = resolveHostFetchHandler(fastifyLike, "node");
+      expect(typeof fetchHandler2).toBe("function");
+    });
+
+    it("resolveHostFetchHandler correctly handles fetch host object or function", async () => {
+      const fetchObj = {
+        fetch: (_req: Request) => new Response("ok"),
+      };
+      const fetchHandler1 = resolveHostFetchHandler(fetchObj, "fetch");
+      expect(typeof fetchHandler1).toBe("function");
+      const res1 = await fetchHandler1!(new Request("http://localhost/test"));
+      expect(await res1.text()).toBe("ok");
+
+      const fetchFn = (_req: Request) => new Response("direct");
+      const fetchHandler2 = resolveHostFetchHandler(fetchFn, "fetch");
+      expect(typeof fetchHandler2).toBe("function");
+      const res2 = await fetchHandler2!(new Request("http://localhost/test"));
+      expect(await res2.text()).toBe("direct");
+    });
+
+    it("mountHostFallback mounts app.all once and prevents re-mounting", () => {
+      const calls: string[] = [];
+      const mockApp: any = {
+        all(path: string, _fn: any) {
+          calls.push(path);
+        },
+      };
+
+      const mounted1 = mountHostFallback(mockApp, () => {}, "node");
+      expect(mounted1).toBe(true);
+      expect(mockApp._hasHostFallback).toBe(true);
+      expect(calls).toEqual(["*"]);
+
+      const mounted2 = mountHostFallback(mockApp, () => {}, "node");
+      expect(mounted2).toBe(false);
+      expect(calls.length).toBe(1);
     });
   });
 });

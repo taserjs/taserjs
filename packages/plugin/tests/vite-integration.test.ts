@@ -9,7 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { createServer, type ViteDevServer } from "vite";
+import { build, createServer, type ViteDevServer } from "vite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { taser } from "../src/vite.js";
 
@@ -309,11 +309,15 @@ export default t.get("/ping").handler(() => Response.json({ pong: true }));
 `;
     writeFileSync(join(tempDir, "src", "routes", "ping.get.ts"), routeContent, "utf-8");
 
+    let originalConstructorName: string | undefined;
+    let ssrConstructor: any;
     // Plugin simulating fullstack environment API with a FetchableDevEnvironment (no runner)
     const mockFullstackEnvPlugin = {
       name: "mock-fetchable-env-plugin",
       configureServer(s: any) {
         if (s.environments?.ssr) {
+          ssrConstructor = s.environments.ssr.constructor;
+          originalConstructorName = ssrConstructor.name;
           // Mutate ssr environment to act like FetchableDevEnvironment
           Object.defineProperty(s.environments.ssr, "runner", {
             get() {
@@ -330,19 +334,245 @@ export default t.get("/ping").handler(() => Response.json({ pong: true }));
       },
     };
 
+    try {
+      server = await createServer(
+        getViteConfig({
+          // Explicit server: true to force registration of middleware
+          plugins: [taser({ cwd: tempDir, server: true }), mockFullstackEnvPlugin],
+        }),
+      );
+
+      await server.listen();
+      const port = (server.httpServer!.address() as any).port;
+
+      // The defensive guard should see non-runnable ssr environment and call next(),
+      // avoiding a 500 crash from ssrLoadModule
+      const res = await fetch(`http://localhost:${port}/ping`);
+      expect(res.status).not.toBe(500);
+    } finally {
+      if (ssrConstructor && originalConstructorName !== undefined) {
+        Object.defineProperty(ssrConstructor, "name", {
+          value: originalConstructorName,
+          configurable: true,
+        });
+      }
+    }
+  });
+
+  it("dev server falls through unmatched requests to legacy Express/Fastify host in server.node.ts across verbs", async () => {
+    // 1. Taser route
+    const taserRoute = `
+import { t } from "@taserjs/router";
+export default t.get("/health").handler(() => Response.json({ from: "taser" }));
+`;
+    writeFileSync(join(tempDir, "src", "routes", "health.get.ts"), taserRoute, "utf-8");
+
+    // 2. Legacy Node server handler in src/server.node.ts
+    const legacyNodeServer = `
+export default function legacyHost(req, res) {
+  let body = "";
+  req.on("data", (chunk) => { body += chunk; });
+  req.on("end", () => {
+    const parsedUrl = new URL(req.url, "http://localhost");
+    if (parsedUrl.pathname === "/health") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ from: "legacy-host-should-not-reach" }));
+      return;
+    }
+    if (parsedUrl.pathname === "/legacy-api") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        method: req.method,
+        receivedBody: body ? JSON.parse(body) : null,
+      }));
+      return;
+    }
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "not found in legacy" }));
+  });
+}
+`;
+    writeFileSync(join(tempDir, "src", "server.node.ts"), legacyNodeServer, "utf-8");
+
     server = await createServer(
       getViteConfig({
-        // Explicit server: true to force registration of middleware
-        plugins: [taser({ cwd: tempDir, server: true }), mockFullstackEnvPlugin],
+        plugins: [taser({ cwd: tempDir })],
       }),
     );
 
     await server.listen();
     const port = (server.httpServer!.address() as any).port;
 
-    // The defensive guard should see non-runnable ssr environment and call next(),
-    // avoiding a 500 crash from ssrLoadModule
-    const res = await fetch(`http://localhost:${port}/ping`);
-    expect(res.status).not.toBe(500);
+    // A. Taser route takes precedence over host server
+    const healthRes = await fetch(`http://localhost:${port}/health`);
+    expect(healthRes.status).toBe(200);
+    const healthBody = await healthRes.json();
+    expect(healthBody).toEqual({ from: "taser" });
+
+    // B. Unmatched GET falls through to host
+    const getRes = await fetch(`http://localhost:${port}/legacy-api`);
+    expect(getRes.status).toBe(200);
+    const getBody = await getRes.json();
+    expect(getBody).toEqual({ method: "GET", receivedBody: null });
+
+    // C. Unmatched POST with JSON body falls through to host
+    const postRes = await fetch(`http://localhost:${port}/legacy-api`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ item: "widget", count: 42 }),
+    });
+    expect(postRes.status).toBe(200);
+    const postBody = await postRes.json();
+    expect(postBody).toEqual({ method: "POST", receivedBody: { item: "widget", count: 42 } });
+
+    // D. Unmatched PUT falls through to host
+    const putRes = await fetch(`http://localhost:${port}/legacy-api`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ updated: true }),
+    });
+    expect(putRes.status).toBe(200);
+    const putBody = await putRes.json();
+    expect(putBody).toEqual({ method: "PUT", receivedBody: { updated: true } });
+
+    // E. Unmatched DELETE falls through to host
+    const deleteRes = await fetch(`http://localhost:${port}/legacy-api`, {
+      method: "DELETE",
+    });
+    expect(deleteRes.status).toBe(200);
+    const deleteBody = await deleteRes.json();
+    expect(deleteBody).toEqual({ method: "DELETE", receivedBody: null });
+
+    // F. Truly unhandled route falls through to host 404
+    const notFoundRes = await fetch(`http://localhost:${port}/unhandled-route`);
+    expect(notFoundRes.status).toBe(404);
+    const notFoundBody = await notFoundRes.json();
+    expect(notFoundBody).toEqual({ error: "not found in legacy" });
+  });
+
+  it("dev server falls through unmatched requests to Fetch-native host in server.ts", async () => {
+    // 1. Taser route
+    const taserRoute = `
+import { t } from "@taserjs/router";
+export default t.get("/api/v1/users").handler(() => Response.json({ users: ["Alice"] }));
+`;
+    mkdirSync(join(tempDir, "src", "routes", "api", "v1"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "routes", "api", "v1", "users.get.ts"), taserRoute, "utf-8");
+
+    // 2. Fetch-native host server in src/server.ts
+    const fetchHostServer = `
+export default {
+  async fetch(req) {
+    const url = new URL(req.url);
+    if (url.pathname === "/api/v1/users") {
+      return Response.json({ users: ["From Host"] });
+    }
+    if (url.pathname === "/host-info") {
+      const body = req.method === "POST" ? await req.json() : null;
+      return Response.json({ host: "fetch-native", method: req.method, body });
+    }
+    return new Response(JSON.stringify({ error: "host 404" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  },
+};
+`;
+    writeFileSync(join(tempDir, "src", "server.ts"), fetchHostServer, "utf-8");
+
+    server = await createServer(
+      getViteConfig({
+        plugins: [taser({ cwd: tempDir })],
+      }),
+    );
+
+    await server.listen();
+    const port = (server.httpServer!.address() as any).port;
+
+    // A. Taser route takes precedence
+    const userRes = await fetch(`http://localhost:${port}/api/v1/users`);
+    expect(userRes.status).toBe(200);
+    const userBody = await userRes.json();
+    expect(userBody).toEqual({ users: ["Alice"] });
+
+    // B. Unmatched GET falls through to Fetch host
+    const hostGetRes = await fetch(`http://localhost:${port}/host-info`);
+    expect(hostGetRes.status).toBe(200);
+    const hostGetBody = await hostGetRes.json();
+    expect(hostGetBody).toEqual({ host: "fetch-native", method: "GET", body: null });
+
+    // C. Unmatched POST falls through to Fetch host
+    const hostPostRes = await fetch(`http://localhost:${port}/host-info`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "deploy" }),
+    });
+    expect(hostPostRes.status).toBe(200);
+    const hostPostBody = await hostPostRes.json();
+    expect(hostPostBody).toEqual({ host: "fetch-native", method: "POST", body: { action: "deploy" } });
+
+    // D. Unmatched PUT falls through to Fetch host
+    const hostPutRes = await fetch(`http://localhost:${port}/host-info`, {
+      method: "PUT",
+    });
+    expect(hostPutRes.status).toBe(200);
+    const hostPutBody = await hostPutRes.json();
+    expect(hostPutBody).toEqual({ host: "fetch-native", method: "PUT", body: null });
+
+    // E. Unmatched DELETE falls through to Fetch host
+    const hostDeleteRes = await fetch(`http://localhost:${port}/host-info`, {
+      method: "DELETE",
+    });
+    expect(hostDeleteRes.status).toBe(200);
+    const hostDeleteBody = await hostDeleteRes.json();
+    expect(hostDeleteBody).toEqual({ host: "fetch-native", method: "DELETE", body: null });
+  });
+
+  it("production standalone SSR build generates serve.mjs binding host server fallback", async () => {
+    // 1. Taser route
+    const taserRoute = `
+import { t } from "@taserjs/router";
+export default t.get("/api/ping").handler(() => Response.json({ pong: true }));
+`;
+    mkdirSync(join(tempDir, "src", "routes", "api"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "routes", "api", "ping.get.ts"), taserRoute, "utf-8");
+
+    // 2. Legacy server.node.ts
+    const legacyNodeServer = `
+export default function legacyHost(req, res) {
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ legacy: true }));
+}
+`;
+    writeFileSync(join(tempDir, "src", "server.node.ts"), legacyNodeServer, "utf-8");
+
+    // Run build
+    await build({
+      root: tempDir,
+      plugins: [taser({ cwd: tempDir })],
+      logLevel: "silent",
+      resolve: {
+        alias: {
+          "@taserjs/runtime": resolve(process.cwd(), "../runtime/src/index.ts"),
+          "@taserjs/router": resolve(process.cwd(), "../router/src/index.ts"),
+        },
+      },
+      build: {
+        outDir: join(tempDir, "dist"),
+      },
+    });
+
+    const serveShimPath = join(tempDir, "src", ".taserjs", "serve.mjs");
+    expect(existsSync(serveShimPath)).toBe(true);
+
+    const shimContent = readFileSync(serveShimPath, "utf-8");
+    expect(shimContent).toContain("toFetchHandler");
+    expect(shimContent).toContain('app.all("*", (c) => hostFetch(c.req.raw));');
+    expect(shimContent).toContain("hostServerEntry");
+
+    const distServePath = join(tempDir, "dist", "serve.mjs");
+    expect(existsSync(distServePath)).toBe(true);
+    const distContent = readFileSync(distServePath, "utf-8");
+    expect(distContent).toContain("app.all");
   });
 });
