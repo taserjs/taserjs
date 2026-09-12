@@ -9,6 +9,7 @@ function createDummyRequest(url = "http://localhost/test", method = "GET"): Tase
   return {
     params: {},
     query: {},
+    body: undefined,
     headers: raw.headers as any,
     method,
     url: raw.url,

@@ -7,6 +7,7 @@ function createDummyRequest(): TaserRequest {
   return {
     params: {},
     query: {},
+    body: undefined,
     headers: raw.headers,
     method: "GET",
     url: raw.url,

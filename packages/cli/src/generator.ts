@@ -223,7 +223,7 @@ export const createApp = (overrideTaser?: TaserDefinition) =>
   // Build context type declaration without AST parsing
   const contextDeclaration = hasApp
     ? `export type AppContext = typeof taser.$Infer.Context;`
-    : `export type AppContext = Record<string, unknown>;`;
+    : `export type AppContext = {};`;
 
   const uniquePaths = Array.from(new Set(scanResult.routes.map((r) => r.canonicalPath)));
   const routePathUnion =

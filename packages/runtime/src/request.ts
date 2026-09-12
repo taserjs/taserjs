@@ -42,7 +42,7 @@ class TaserRequestImpl implements TaserRequest {
   #parsedQuery: Record<string, string | string[]> | undefined;
   #headersCache: TaserHeaders | undefined;
   params: Record<string, string>;
-  body?: unknown;
+  body: unknown = undefined;
 
   constructor(c: Context, params: Record<string, string>) {
     this.#c = c;

@@ -512,7 +512,10 @@ const queryTaserApp = createTaserApp({
     "/search": {
       GET: {
         route: t.get("/search").handler(({ req }) => {
-          return json({ q: req.query.q, limit: req.query.limit, page: req.query.page });
+          const q = (req.query as Record<string, unknown>).q;
+          const limit = (req.query as Record<string, unknown>).limit;
+          const page = (req.query as Record<string, unknown>).page;
+          return json({ q, limit, page });
         }),
       },
     },

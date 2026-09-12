@@ -1,3 +1,4 @@
+// oxlint-disable no-await-in-loop
 import { describe, it, expect } from "vitest";
 import { Hono } from "hono";
 import { t } from "@taserjs/router";
@@ -46,7 +47,7 @@ describe("createTaserApp and Hono runtime dispatch", () => {
     const userRoute = t.get("/users/:id").handler(({ req }) => {
       return json({
         userId: req.params.id,
-        filter: req.query.filter,
+        filter: (req.query as any).filter,
       });
     });
 
@@ -114,7 +115,7 @@ describe("createTaserApp and Hono runtime dispatch", () => {
     let capturedHonoContext: unknown = null;
 
     const route = t.get("/escape-hatch").handler(({ ctx }) => {
-      capturedHonoContext = ctx.context;
+      capturedHonoContext = (ctx as any).context;
       return json({ ok: true });
     });
 
@@ -196,7 +197,7 @@ describe("createTaserApp and Hono runtime dispatch", () => {
       const optionsRoute = t.options("/cors").handler(() => {
         return new Response(null, {
           status: 204,
-          headers: { "allow": "GET, POST, OPTIONS" },
+          headers: { allow: "GET, POST, OPTIONS" },
         });
       });
 
@@ -241,38 +242,34 @@ describe("createTaserApp and Hono runtime dispatch", () => {
     });
 
     it("executes layout-scoped middleware and injects state and services into ctx.state and ctx.services", async () => {
-      const adminLayout = t
-        .layout("/admin/*")
-        .use(async ({ req, ctx, state }, next) => {
-          return await next.provide(
-            { authService: { getRole: () => "superadmin" } },
-            { user: "admin-1" },
-          );
-        });
+      const adminLayout = t.layout("/admin/*").use(async (_args, next) => {
+        return await next.provide(
+          { authService: { getRole: () => "superadmin" } },
+          { user: "admin-1" },
+        );
+      });
 
-      const adminMw = t
-        .middleware("/admin/*")
-        .handler(async ({ ctx }, next) => {
-          // ctx.state and ctx.services are accessible
-          expect(ctx.state).toBeDefined();
-          expect((ctx.state as any).user).toBe("admin-1");
-          expect(ctx.services).toBeDefined();
-          expect((ctx.services as any).authService).toBeDefined();
+      const adminMw = t.middleware("/admin/*").handler(async ({ ctx }, next) => {
+        // ctx.state and ctx.services are accessible
+        expect((ctx as any).state).toBeDefined();
+        expect((ctx as any).state.user).toBe("admin-1");
+        expect((ctx as any).services).toBeDefined();
+        expect((ctx as any).services.authService).toBeDefined();
 
-          const authService = (ctx.services as any).authService;
-          return await next({ role: authService.getRole() });
-        });
+        const authService = (ctx as any).services.authService;
+        return await next({ role: authService.getRole() });
+      });
 
       const adminRoute = t
         .get("/admin/users")
         .use(adminMw)
         .handler(({ ctx, state }) => {
-          expect((ctx.state as any).role).toBe("superadmin");
-          expect((ctx.services as any).authService).toBeDefined();
+          expect((ctx as any).state.role).toBe("superadmin");
+          expect((ctx as any).services.authService).toBeDefined();
           return json({
-            user: (ctx.state as any).user,
+            user: (ctx as any).state.user,
             role: state.role,
-            fromService: (ctx.services as any).authService.getRole(),
+            fromService: (ctx as any).services.authService.getRole(),
           });
         });
 

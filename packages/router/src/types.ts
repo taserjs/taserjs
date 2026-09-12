@@ -37,6 +37,15 @@ export type StandardHttpMethod =
   | "QUERY";
 
 export type HttpMethod = StandardHttpMethod | "ALL" | "ANY";
+export type HttpNoBodyMethod = "GET" | "HEAD";
+
+export type Simplify<T> = unknown extends T
+  ? T
+  : T extends (...args: any[]) => any
+    ? T
+    : T extends readonly any[]
+      ? T
+      : { [K in keyof T]: T[K] } & {};
 
 type ExtractParamName<T extends string> = T extends `:${infer P}` ? P : never;
 
@@ -48,29 +57,36 @@ type ExtractPathSegments<T extends string> = T extends `/${infer Rest}`
       ? never
       : T;
 
-type HasWildcard<T extends string> = T extends `${string}*${string}` ? true : false;
+type HasWildcard<T extends string> = string extends T
+  ? false
+  : T extends `${string}*${string}`
+    ? true
+    : false;
 
-type ParamsFromSegments<T extends string> = {
+type ParamsFromSegments<T extends string> = Simplify<{
   [K in ExtractPathSegments<T> as ExtractParamName<K>]: string;
-};
+}>;
 
 export type RouteDefaultParams<TPath extends string = string> = string extends TPath
   ? Record<string, string>
-  : (HasWildcard<TPath> extends true ? { _splat: string } : {}) & ParamsFromSegments<TPath>;
+  : Simplify<
+      (HasWildcard<TPath> extends true ? { _splat: string } : {}) &
+        ParamsFromSegments<TPath>
+    >;
 
 export interface TaserRequest<
-  TParams = Record<string, string>,
-  TQuery = Record<string, string | string[]>,
+  TParams = {},
+  TQuery = {},
   TBody = unknown,
 > {
-  params: TParams;
-  query: TQuery;
+  params: Simplify<TParams>;
+  query: Simplify<TQuery>;
   headers: TaserHeaders;
   method: string;
   url: string;
   path: string;
   raw: Request;
-  body?: TBody;
+  body: TBody;
 }
 
 export interface RouterRegister {}
@@ -89,7 +105,7 @@ export type RegisteredLayoutId = RouterRegister extends { LayoutTree: infer LT }
 
 export type InferredAppContext = RouterRegister extends { AppContext: infer C }
   ? C
-  : Record<string, unknown>;
+  : {};
 
 export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   k: infer I,
@@ -97,13 +113,13 @@ export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) ex
   ? I
   : never;
 
-export type SafeIntersect<U> = [U] extends [never] ? {} : UnionToIntersection<U>;
+export type SafeIntersect<U> = [U] extends [never] ? {} : Simplify<UnionToIntersection<U>>;
 
 export type Overwrite<T, U> = unknown extends U
   ? T
   : [U] extends [never]
     ? T
-    : Omit<T, keyof U> & U;
+    : Simplify<Omit<T, keyof U> & U>;
 
 export type DistributeServices<T> = T extends { readonly _services?: infer S }
   ? [S] extends [never]
@@ -206,11 +222,15 @@ export type ExtractStateFromLayout<TLayout> = TLayout extends { readonly _state?
 export type ExtractParamsFromLayout<TLayout> = TLayout extends { readonly _params?: infer P }
   ? [P] extends [never]
     ? {}
-    : NonNullable<P>
+    : unknown extends P
+      ? {}
+      : NonNullable<P>
   : TLayout extends LayoutDefinition<any, any, any, infer P, any, any>
     ? [P] extends [never]
       ? {}
-      : NonNullable<P>
+      : unknown extends P
+        ? {}
+        : NonNullable<P>
     : TLayout extends { readonly middlewares: readonly (infer M)[] }
       ? ExtractParamsFromMiddleware<M>
       : {};
@@ -218,11 +238,15 @@ export type ExtractParamsFromLayout<TLayout> = TLayout extends { readonly _param
 export type ExtractQueryFromLayout<TLayout> = TLayout extends { readonly _query?: infer Q }
   ? [Q] extends [never]
     ? {}
-    : NonNullable<Q>
+    : unknown extends Q
+      ? {}
+      : NonNullable<Q>
   : TLayout extends LayoutDefinition<any, any, any, any, infer Q, any>
     ? [Q] extends [never]
       ? {}
-      : NonNullable<Q>
+      : unknown extends Q
+        ? {}
+        : NonNullable<Q>
     : TLayout extends { readonly middlewares: readonly (infer M)[] }
       ? ExtractQueryFromMiddleware<M>
       : {};
@@ -230,11 +254,15 @@ export type ExtractQueryFromLayout<TLayout> = TLayout extends { readonly _query?
 export type ExtractBodyFromLayout<TLayout> = TLayout extends { readonly _body?: infer B }
   ? [B] extends [never]
     ? {}
-    : NonNullable<B>
+    : unknown extends B
+      ? {}
+      : NonNullable<B>
   : TLayout extends LayoutDefinition<any, any, any, any, any, infer B>
     ? [B] extends [never]
       ? {}
-      : NonNullable<B>
+      : unknown extends B
+        ? {}
+        : NonNullable<B>
     : TLayout extends { readonly middlewares: readonly (infer M)[] }
       ? ExtractBodyFromMiddleware<M>
       : {};
@@ -307,8 +335,11 @@ type GetLayoutBody<LId extends string> = [LId] extends [never]
       : {}
     : {};
 
-export type InferRouteParams<TPath extends string, TMethod extends HttpMethod> = SafeIntersect<
-  GetLayoutParams<GetRouteLayoutIds<TPath, TMethod>>
+export type InferRouteParams<TPath extends string, TMethod extends HttpMethod> = Simplify<
+  Omit<
+    SafeIntersect<GetLayoutParams<GetRouteLayoutIds<TPath, TMethod>>>,
+    "_splat"
+  >
 >;
 
 export type InferRouteQuery<TPath extends string, TMethod extends HttpMethod> = SafeIntersect<
@@ -339,8 +370,11 @@ export type InferLayoutServices<TPath extends string> = SafeIntersect<
   GetLayoutServices<GetParentLayoutIds<TPath>>
 >;
 
-export type InferLayoutParams<TPath extends string> = SafeIntersect<
-  GetLayoutParams<GetParentLayoutIds<TPath>>
+export type InferLayoutParams<TPath extends string> = Simplify<
+  Omit<
+    SafeIntersect<GetLayoutParams<GetParentLayoutIds<TPath>>>,
+    "_splat"
+  >
 >;
 
 export type InferLayoutQuery<TPath extends string> = SafeIntersect<
@@ -367,14 +401,16 @@ export type InferLayoutBranchServices<LId extends string | undefined> = [LId] ex
         GetLayoutServices<NonNullable<LId> | GetParentLayoutIds<NonNullable<LId>>>
       >;
 
-export type InferLayoutBranchParams<LId extends string | undefined> = [LId] extends [undefined]
-  ? {}
-  : [LId] extends [never]
-    ? {}
-    : RouteDefaultParams<NonNullable<LId>> &
-        SafeIntersect<
-          GetLayoutParams<NonNullable<LId> | GetParentLayoutIds<NonNullable<LId>>>
-        >;
+export type InferLayoutBranchParams<LId extends string | undefined> = Simplify<
+  [LId] extends [undefined]
+    ? { _splat: string }
+    : [LId] extends [never]
+      ? { _splat: string }
+      : RouteDefaultParams<NonNullable<LId>> &
+          SafeIntersect<
+            GetLayoutParams<NonNullable<LId> | GetParentLayoutIds<NonNullable<LId>>>
+          >
+>;
 
 export interface MiddlewarePreconditions {
   state?: Record<string, any> | undefined;
@@ -388,27 +424,46 @@ export type InferEffectiveParams<
   TPath extends string,
   TMethod extends HttpMethod,
   TRouteParams = unknown,
-> = [keyof InferRouteParams<TPath, TMethod>] extends [never]
-  ? TRouteParams
-  : [TRouteParams] extends [RouteDefaultParams<TPath>]
-    ? Overwrite<RouteDefaultParams<TPath>, InferRouteParams<TPath, TMethod>>
-    : Overwrite<InferRouteParams<TPath, TMethod>, TRouteParams>;
+> = Simplify<
+  (HasWildcard<TPath> extends true ? { _splat: string } : {}) &
+    ([keyof InferRouteParams<TPath, TMethod>] extends [never]
+      ? TRouteParams
+      : [TRouteParams] extends [RouteDefaultParams<TPath>]
+        ? Overwrite<RouteDefaultParams<TPath>, InferRouteParams<TPath, TMethod>>
+        : Overwrite<InferRouteParams<TPath, TMethod>, TRouteParams>)
+>;
+
+export type InferEffectiveQuery<
+  TPath extends string,
+  TMethod extends HttpMethod,
+  TRouteQuery = unknown,
+> = Simplify<Overwrite<InferRouteQuery<TPath, TMethod>, TRouteQuery>>;
+
+export type InferEffectiveBody<
+  TPath extends string,
+  TMethod extends HttpMethod,
+  TRouteBody = unknown,
+> = [TMethod] extends [HttpNoBodyMethod]
+  ? never
+  : Simplify<Overwrite<InferRouteBody<TPath, TMethod>, TRouteBody>>;
 
 export type RouteHandlerArgs<
-  TParams = Record<string, string>,
-  TQuery = Record<string, string | string[]>,
+  TParams = {},
+  TQuery = {},
   TBody = unknown,
   TServices = {},
   TState = {},
-> = {
-  req: TaserRequest<TParams, TQuery, TBody>;
-  ctx: InferredAppContext;
-  state: [keyof TState] extends [never] ? {} : TState;
-} & TServices;
+> = Simplify<
+  {
+    req: Simplify<TaserRequest<Simplify<TParams>, Simplify<TQuery>, TBody>>;
+    ctx: InferredAppContext;
+    state: [keyof TState] extends [never] ? {} : Simplify<TState>;
+  } & TServices
+>;
 
 export type RouteHandler<
-  TParams = Record<string, string>,
-  TQuery = Record<string, string | string[]>,
+  TParams = {},
+  TQuery = {},
   TBody = unknown,
   TServices = {},
   TState = {},
@@ -436,11 +491,13 @@ export type MiddlewareArgs<
   TParams = Record<string, string>,
   TQuery = Record<string, string | string[]>,
   TBody = unknown,
-> = {
-  req: TaserRequest<TParams, TQuery, TBody>;
-  ctx: InferredAppContext;
-  state: [keyof TState] extends [never] ? Record<string, unknown> : TState;
-} & TServices;
+> = Simplify<
+  {
+    req: Simplify<TaserRequest<Simplify<TParams & { _splat: string }>, Simplify<TQuery>, TBody>>;
+    ctx: InferredAppContext;
+    state: [keyof TState] extends [never] ? Record<string, unknown> : Simplify<TState>;
+  } & TServices
+>;
 
 export type MiddlewareHandler<
   TServices = Record<string, any>,
@@ -719,26 +776,26 @@ export type InferMiddlewareArgs<
 >;
 
 export interface ContextOptions<
-  TBoot extends Record<string, unknown> = Record<string, unknown>,
-  TRequest extends Record<string, unknown> = Record<string, unknown>,
+  TBoot extends Record<string, unknown> = {},
+  TRequest extends Record<string, unknown> = {},
 > {
   boot?: (() => TBoot | Promise<TBoot>) | undefined;
-  request?: ((req: TaserRequest) => TRequest | Promise<TRequest>) | undefined;
+  request?: ((req: TaserRequest<any, any, any>) => TRequest | Promise<TRequest>) | undefined;
 }
 
 export interface ContextDefinition<
-  TBoot extends Record<string, unknown> = Record<string, unknown>,
-  TRequest extends Record<string, unknown> = Record<string, unknown>,
+  TBoot extends Record<string, unknown> = {},
+  TRequest extends Record<string, unknown> = {},
 > extends ContextOptions<TBoot, TRequest> {
   readonly kind: "context";
 }
 
-export type NotFoundHandler<TContext = Record<string, unknown>> = (args: {
-  req: TaserRequest;
+export type NotFoundHandler<TContext = {}> = (args: {
+  req: TaserRequest<any, any, any>;
   ctx: TContext;
 }) => Response | Promise<Response>;
 
-export type OnErrorHandler = (err: unknown, req: TaserRequest) => Response | Promise<Response>;
+export type OnErrorHandler = (err: unknown, req: TaserRequest<any, any, any>) => Response | Promise<Response>;
 
 export interface ResponseOptions {
   validate?: boolean | undefined;
@@ -759,7 +816,7 @@ export type InferReturnsResponse<TReturns> = [TReturns] extends [undefined]
           >;
         }[keyof TReturns & number];
 
-export interface TaserAppOptions<TContext = Record<string, unknown>> {
+export interface TaserAppOptions<TContext = {}> {
   basePath?: string | undefined;
   context?: ContextDefinition<any, any> | undefined;
   notFound?: NotFoundHandler<TContext> | undefined;
@@ -767,7 +824,7 @@ export interface TaserAppOptions<TContext = Record<string, unknown>> {
   response?: ResponseOptions | undefined;
 }
 
-export interface TaserDefinition<TContext = Record<string, unknown>> {
+export interface TaserDefinition<TContext = {}> {
   readonly _context?: TContext;
   readonly $Infer: {
     Context: TContext;

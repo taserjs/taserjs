@@ -3,11 +3,12 @@ import type {
   NotFoundHandler,
   OnErrorHandler,
   ResponseOptions,
+  Simplify,
   TaserAppOptions,
   TaserDefinition,
 } from "./types.js";
 
-export class TaserBuilder<TContext = Record<string, unknown>> implements TaserDefinition<TContext> {
+export class TaserBuilder<TContext = {}> implements TaserDefinition<TContext> {
   readonly _context?: TContext;
   declare readonly $Infer: {
     Context: TContext;
@@ -29,11 +30,11 @@ export class TaserBuilder<TContext = Record<string, unknown>> implements TaserDe
   }
 
   context<
-    TBoot extends Record<string, unknown> = Record<string, unknown>,
-    TRequest extends Record<string, unknown> = Record<string, unknown>,
-  >(ctxDef: ContextDefinition<TBoot, TRequest>): TaserBuilder<TBoot & TRequest> {
+    TBoot extends Record<string, unknown> = {},
+    TRequest extends Record<string, unknown> = {},
+  >(ctxDef: ContextDefinition<TBoot, TRequest>): TaserBuilder<Simplify<TBoot & TRequest>> {
     this.options.context = ctxDef;
-    return this as unknown as TaserBuilder<TBoot & TRequest>;
+    return this as unknown as TaserBuilder<Simplify<TBoot & TRequest>>;
   }
 
   notFound(fn: NotFoundHandler<TContext>): this {
@@ -47,7 +48,7 @@ export class TaserBuilder<TContext = Record<string, unknown>> implements TaserDe
   }
 }
 
-export function defineTaser<TContext = Record<string, unknown>>(
+export function defineTaser<TContext = {}>(
   options?: TaserAppOptions<TContext>,
 ): TaserBuilder<TContext> {
   return new TaserBuilder<TContext>(options);

@@ -16,6 +16,7 @@ function createDummyRequest(url = "http://localhost/test", init: RequestInit = {
   return {
     params: {},
     query: {},
+    body: undefined,
     headers: raw.headers as any,
     method: raw.method,
     url: raw.url,

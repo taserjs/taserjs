@@ -266,7 +266,7 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
     const layout = t.layout("/*").use(queryMw);
 
     const route = t.get("/test").handler(({ req }) => {
-      return Response.json({ limit: req.query.limit });
+      return Response.json({ limit: (req.query as any).limit });
     });
 
     const app = createTaserApp({

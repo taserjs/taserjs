@@ -83,7 +83,7 @@ function mergeValidated(original: unknown, validated: unknown): unknown {
 
 export async function validateSchemas(
   schemas: RouteSchemas | undefined,
-  req: TaserRequest,
+  req: TaserRequest<any, any, any>,
   c?: Context,
 ): Promise<void> {
   if (!schemas) return;

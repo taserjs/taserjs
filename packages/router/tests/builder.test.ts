@@ -120,6 +120,8 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       // Type assertion compile check
       const _id: string = req.params.id;
       const _postId: string = req.params.postId;
+      // @ts-expect-error _splat should not exist on non-wildcard route
+      void req.params._splat;
       return new Response(`${_id}-${_postId}`);
     });
     expect(routeWithParams.path).toBe("/users/:id/posts/:postId");
@@ -136,6 +138,37 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       return next();
     });
     expect(layoutWithSplat.path).toBe("/admin/:id/*");
+
+    // All middlewares have _splat available
+    const rootMw = t.middleware(async ({ req }, next) => {
+      const _splat: string = req.params._splat;
+      return next();
+    });
+    expect(rootMw.kind).toBe("middleware");
+
+    // Route-level middleware also has _splat available
+    const routeWithMw = t
+      .get("/users/:id")
+      .use(async ({ req }, next) => {
+        const _splat: string = req.params._splat;
+        return next();
+      })
+      .handler(({ req }) => {
+        // @ts-expect-error _splat should not exist on non-wildcard route handler
+        void req.params._splat;
+        return new Response(req.params.id);
+      });
+    expect(routeWithMw.middlewares).toHaveLength(1);
+  });
+
+  it("simplifies accumulated state, req.params, and handler args into flat types", () => {
+    // In RouterRegister, /admin/users has layouts ["/*", "/admin/*", "/admin/users/*"]
+    const route = t.get("/admin/users").handler(({ req }) => {
+      // @ts-expect-error non-wildcard route must not have _splat
+      void req.params._splat;
+      return new Response("ok");
+    });
+    expect(route.path).toBe("/admin/users");
   });
 
   it("supports schema builder methods (.params, .query, .body, .returns) on route builder", () => {
@@ -416,7 +449,6 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       .use(mw2)
       .params(mockSchema({ id: "123" }))
       .query(mockSchema({ search: "test" }))
-      .body(mockSchema({ count: 1 }))
       .returns({ 200: mockSchema({ ok: true }) })
       .handler(({ req }) => new Response(req.params.id));
 
@@ -427,6 +459,7 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       .post("/items")
       .use(mw1)
       .body(mockSchema({ title: "hello" }))
+      .returns({ 200: mockSchema({ ok: true }) })
       .handler(() => new Response("ok"));
     expect(validPostRoute.middlewares).toHaveLength(1);
 
@@ -578,7 +611,7 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       const mw = t
         .middleware("/admin/*")
         .requires<{ state?: { token: string } }>()
-        .handler(async ({ state }, next) => {
+        .handler(async (_args, next) => {
           return await next({ adminChecked: true });
         });
 
@@ -598,10 +631,16 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       expect(nestedAdminLayout.middlewares).toHaveLength(1);
 
       // Allowed on matching route paths
-      const adminRoute = t.get("/admin/users").use(adminMw).handler(() => new Response("ok"));
+      const adminRoute = t
+        .get("/admin/users")
+        .use(adminMw)
+        .handler(() => new Response("ok"));
       expect(adminRoute.middlewares).toHaveLength(1);
 
-      const adminSubRoute = t.get("/admin/settings/profile").use(adminMw).handler(() => new Response("ok"));
+      const adminSubRoute = t
+        .get("/admin/settings/profile")
+        .use(adminMw)
+        .handler(() => new Response("ok"));
       expect(adminSubRoute.middlewares).toHaveLength(1);
     });
 
@@ -746,10 +785,7 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
         });
 
       // Valid: layout declares query schema satisfying { q: string }
-      const validLayout = t
-        .layout("/search/*")
-        .query(searchSchema)
-        .use(requireSearchQuery);
+      const validLayout = t.layout("/search/*").query(searchSchema).use(requireSearchQuery);
       expect(validLayout.middlewares).toHaveLength(2);
 
       // Invalid: layout does not define query schema
@@ -763,20 +799,127 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       const requireBodyTitle = t
         .middleware()
         .requires<{ body: { title: string } }>()
-        .handler(async ({ req }, next) => {
+        .handler(async (_args, next) => {
           return await next();
         });
 
       // Valid: layout declares body schema satisfying { title: string }
-      const validLayout = t
-        .layout("/items/*")
-        .body(createItemSchema)
-        .use(requireBodyTitle);
+      const validLayout = t.layout("/items/*").body(createItemSchema).use(requireBodyTitle);
       expect(validLayout.middlewares).toHaveLength(2);
 
       // Invalid: layout does not define body schema
       // @ts-expect-error Layout lacks body schema satisfying { title: string }
       t.layout("/items/*").use(requireBodyTitle);
+    });
+  });
+
+  describe("Strict context, expanded req shape, default-empty facets, and GET body restriction", () => {
+    const mockSchema = <T>(val: T) => ({
+      "~standard": {
+        version: 1 as const,
+        vendor: "test",
+        validate: (_value: unknown) => ({ value: val }),
+        types: { input: val, output: val },
+      },
+    });
+
+    it("disallows calling .body() on GET routes at compile-time", () => {
+      const getRoute = t.get("/test");
+      // @ts-expect-error GET routes do not accept request bodies
+      getRoute.body(mockSchema({ foo: "bar" }));
+
+      // Also disallows after chaining .params() or .query()
+      // @ts-expect-error GET routes do not accept request bodies even after .params()
+      t.get("/items/:id").params(mockSchema({ id: "1" })).body(mockSchema({ foo: "bar" }));
+
+      // Also disallows on HEAD routes
+      // @ts-expect-error HEAD routes do not accept request bodies
+      t.head("/test").body(mockSchema({ foo: "bar" }));
+    });
+
+    it("infers req.body as never on GET routes", () => {
+      const route = t.get("/test").handler(({ req }) => {
+        // req.body has type never
+        type Body = typeof req.body;
+        const test: [Body] extends [never] ? true : false = true;
+        expect(test).toBe(true);
+        return new Response("ok");
+      });
+      expect(route.method).toBe("GET");
+    });
+
+    it("infers req.body as strict non-optional type without undefined when validated on POST", () => {
+      const route = t
+        .post("/users")
+        .body(mockSchema({ name: "Alice", age: 30 }))
+        .handler(({ req }) => {
+          // req.body has exact type { name: string; age: number }
+          const name: string = req.body.name;
+          const age: number = req.body.age;
+          expect(name).toBeDefined();
+          expect(age).toBeDefined();
+
+          type Body = typeof req.body;
+          const testUndefined: undefined extends Body ? false : true = true;
+          expect(testUndefined).toBe(true);
+
+          return new Response(req.body.name);
+        });
+      expect(route.method).toBe("POST");
+    });
+
+    it("defaults unvalidated POST req.body to {}", () => {
+      t.post("/unvalidated").handler(({ req }) => {
+        // req.body defaults to {}
+        type Body = typeof req.body;
+        const test: [Body] extends [{}] ? true : false = true;
+        expect(test).toBe(true);
+        // @ts-expect-error unvalidated body has no undeclared properties
+        const _bad = req.body.foo;
+        return new Response("ok");
+      });
+    });
+
+    it("defaults req.query to {} and rejects undeclared query keys", () => {
+      t.get("/search").handler(({ req }) => {
+        // @ts-expect-error undeclared query keys are not accessible on default {}
+        const _bad = req.query.q;
+        return new Response("ok");
+      });
+
+      t.get("/search")
+        .query(mockSchema({ q: "test" }))
+        .handler(({ req }) => {
+          const q: string = req.query.q;
+          expect(q).toBeDefined();
+          // @ts-expect-error undeclared query keys still rejected
+          const _bad = req.query.other;
+          return new Response(req.query.q);
+        });
+    });
+
+    it("defaults parameterless route req.params to {}", () => {
+      t.get("/static-path").handler(({ req }) => {
+        // @ts-expect-error parameterless route has no params
+        const _bad = req.params.id;
+        return new Response("ok");
+      });
+
+      t.get("/users/:id").handler(({ req }) => {
+        const id: string = req.params.id;
+        expect(id).toBeDefined();
+        // @ts-expect-error non-wildcard route does not have _splat
+        const _badSplat = req.params._splat;
+        return new Response(req.params.id);
+      });
+    });
+
+    it("defaults ctx to {} when AppContext is empty, rejecting undeclared keys", () => {
+      t.get("/context-test").handler(({ ctx }) => {
+        // @ts-expect-error undeclared context properties are rejected
+        const _bad = ctx.nonExistent;
+        return new Response("ok");
+      });
     });
   });
 });

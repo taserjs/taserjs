@@ -163,7 +163,7 @@ export default defineTaser().context(createContext({
     expect(gen.content).toMatchSnapshot();
   });
 
-  it("defaults AppContext to Record<string, unknown> when src/taser.ts does not exist", () => {
+  it("defaults AppContext to {} when src/taser.ts does not exist", () => {
     const routesDir = join(tempDir, "src", "routes");
     mkdirSync(routesDir, { recursive: true });
 

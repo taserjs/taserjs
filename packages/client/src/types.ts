@@ -155,11 +155,13 @@ type BodyArg<Route, Method> = Method extends "GET" | "HEAD" | "OPTIONS"
   : RouteBodyIn<Route> extends infer B
     ? [unknown] extends [B]
       ? { body?: unknown }
-      : B extends Record<string, FormBodyField>
-        ? { body: FormBodyInput<B> }
-        : HasRequiredKeys<B> extends true
-          ? { body: B }
-          : { body?: B }
+      : [keyof B] extends [never]
+        ? { body?: unknown }
+        : B extends Record<string, FormBodyField>
+          ? { body: FormBodyInput<B> }
+          : HasRequiredKeys<B> extends true
+            ? { body: B }
+            : { body?: B }
     : { body?: unknown };
 
 export type ClientArgsFor<Entry, Method> = Entry extends { readonly route: infer Route }

@@ -9,7 +9,10 @@ import type {
   ExtractPreconditionsFromMiddleware,
   ExtractQueryFromMiddleware,
   HttpMethod,
+  HttpNoBodyMethod,
+  InferEffectiveBody,
   InferEffectiveParams,
+  InferEffectiveQuery,
   InferLayoutBody,
   InferLayoutBranchParams,
   InferLayoutBranchServices,
@@ -296,8 +299,8 @@ export class LayoutBuilder<
   TParams = RouteDefaultParams<TPath>,
   TServices = {},
   TState = {},
-  TQuery = Record<string, string | string[]>,
-  TBody = unknown,
+  TQuery = {},
+  TBody = {},
 > implements LayoutDefinition<TPath, TServices, TState, TParams, TQuery, TBody> {
   readonly kind = "layout" as const;
   public readonly path: TPath;
@@ -398,31 +401,21 @@ export class LayoutBuilder<
             InferLayoutServices<TPath> & TServices,
             InferLayoutState<TPath> & TState,
             [keyof InferLayoutParams<TPath>] extends [never]
-              ? [TParams] extends [never]
-                ? Record<string, string>
-                : unknown extends TParams
-                  ? Record<string, string>
-                  : TParams
+              ? TParams
               : Overwrite<InferLayoutParams<TPath>, TParams>,
-            string extends keyof TQuery
-              ? [keyof InferLayoutQuery<TPath>] extends [never]
-                ? Record<string, string | string[]>
-                : InferLayoutQuery<TPath>
-              : [keyof InferLayoutQuery<TPath>] extends [never]
-                ? TQuery
-                : Overwrite<InferLayoutQuery<TPath>, TQuery>,
-            [keyof InferLayoutBody<TPath>] extends [never]
-              ? TBody
-              : Overwrite<InferLayoutBody<TPath>, TBody>
+            Overwrite<InferLayoutQuery<TPath>, TQuery>,
+            Overwrite<InferLayoutBody<TPath>, TBody>
           >,
           next: NextFunction,
         ) => any),
   >(
     middleware: ValidateLayoutMiddlewareUse<
       TPath,
-      TParams,
-      TQuery,
-      TBody,
+      [keyof InferLayoutParams<TPath>] extends [never]
+        ? TParams
+        : Overwrite<InferLayoutParams<TPath>, TParams>,
+      Overwrite<InferLayoutQuery<TPath>, TQuery>,
+      Overwrite<InferLayoutBody<TPath>, TBody>,
       TServices,
       TState,
       TMw
@@ -457,8 +450,8 @@ export class RouteValidationBuilder<
   TMethod extends HttpMethod = HttpMethod,
   TPath extends string = string,
   TParams = RouteDefaultParams<TPath>,
-  TQuery = Record<string, string | string[]>,
-  TBody = unknown,
+  TQuery = {},
+  TBody = [TMethod] extends [HttpNoBodyMethod] ? never : {},
   TRouteServices = {},
   TRouteState = {},
   TReturns = undefined,
@@ -538,6 +531,7 @@ export class RouteValidationBuilder<
   }
 
   body<TSchema extends StandardSchemaV1>(
+    this: [TMethod] extends [HttpNoBodyMethod] ? never : any,
     schema: TSchema,
     mode?: BodyMode,
   ): RouteValidationBuilder<
@@ -553,7 +547,7 @@ export class RouteValidationBuilder<
     TQueryIn,
     StandardSchemaV1.InferInput<TSchema>
   > {
-    this.schemas.body = { schema, mode };
+    (this as any).schemas.body = { schema, mode };
     return this as unknown as RouteValidationBuilder<
       TMethod,
       TPath,
@@ -611,16 +605,8 @@ export class RouteValidationBuilder<
   >(
     fn: RouteHandler<
       InferEffectiveParams<TPath, TMethod, TParams>,
-      [TQuery] extends [Record<string, string | string[]>]
-        ? [keyof InferRouteQuery<TPath, TMethod>] extends [never]
-          ? TQuery
-          : Overwrite<TQuery, InferRouteQuery<TPath, TMethod>>
-        : TQuery,
-      unknown extends TBody
-        ? [keyof InferRouteBody<TPath, TMethod>] extends [never]
-          ? unknown
-          : InferRouteBody<TPath, TMethod>
-        : TBody,
+      InferEffectiveQuery<TPath, TMethod, TQuery>,
+      InferEffectiveBody<TPath, TMethod, TBody>,
       InferRouteServices<TPath, TMethod> & TRouteServices,
       InferRouteState<TPath, TMethod> & TRouteState,
       TReturn
@@ -663,8 +649,8 @@ export class RouteBuilder<
   TMethod extends HttpMethod = HttpMethod,
   TPath extends string = string,
   TParams = RouteDefaultParams<TPath>,
-  TQuery = Record<string, string | string[]>,
-  TBody = unknown,
+  TQuery = {},
+  TBody = [TMethod] extends [HttpNoBodyMethod] ? never : {},
   TRouteServices = {},
   TRouteState = {},
   TReturns = undefined,
@@ -699,17 +685,9 @@ export class RouteBuilder<
           args: MiddlewareArgs<
             InferRouteServices<TPath, TMethod> & TRouteServices,
             InferRouteState<TPath, TMethod> & TRouteState,
-            [TParams] extends [never]
-              ? Record<string, string>
-              : unknown extends TParams
-                ? Record<string, string>
-                : TParams,
-            [TQuery] extends [never]
-              ? Record<string, string | string[]>
-              : unknown extends TQuery
-                ? Record<string, string | string[]>
-                : TQuery,
-            TBody
+            InferEffectiveParams<TPath, TMethod, TParams>,
+            InferEffectiveQuery<TPath, TMethod, TQuery>,
+            InferEffectiveBody<TPath, TMethod, TBody>
           >,
           next: NextFunction,
         ) => any),
@@ -717,9 +695,9 @@ export class RouteBuilder<
     middleware: ValidateRouteMiddlewareUse<
       TPath,
       TMethod,
-      TParams,
-      TQuery,
-      TBody,
+      InferEffectiveParams<TPath, TMethod, TParams>,
+      InferEffectiveQuery<TPath, TMethod, TQuery>,
+      InferEffectiveBody<TPath, TMethod, TBody>,
       TRouteServices,
       TRouteState,
       TMw

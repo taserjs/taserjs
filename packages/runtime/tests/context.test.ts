@@ -25,8 +25,8 @@ describe("createContext & context resolution", () => {
 
     const route = t.get("/test").handler(({ ctx }) => {
       return json({
-        db: ctx.db,
-        requestId: ctx.requestId,
+        db: (ctx as any).db,
+        requestId: (ctx as any).requestId,
       });
     });
 
@@ -71,7 +71,7 @@ describe("createContext & context resolution", () => {
     let capturedHonoContext: unknown = null;
 
     const route = t.get("/escape").handler(({ ctx }) => {
-      capturedHonoContext = ctx.context;
+      capturedHonoContext = (ctx as any).context;
       return json({ ok: true });
     });
 
