@@ -13,6 +13,7 @@ import type {
   InferLayoutQuery,
   InferLayoutServices,
   InferLayoutState,
+  InferReturnsResponse,
   InferRouteBody,
   InferRouteQuery,
   InferRouteServices,
@@ -465,7 +466,15 @@ export class RouteValidationBuilder<
     >;
   }
 
-  handler<TReturn extends Response | Promise<Response> = Response | Promise<Response>>(
+  handler<
+    TReturn extends [TReturns] extends [undefined]
+      ? any
+      : [TReturns] extends [never]
+        ? any
+        : unknown extends TReturns
+          ? any
+          : InferReturnsResponse<TReturns> | Promise<InferReturnsResponse<TReturns>>,
+  >(
     fn: RouteHandler<
       InferEffectiveParams<TPath, TMethod, TParams>,
       [TQuery] extends [Record<string, string | string[]>]

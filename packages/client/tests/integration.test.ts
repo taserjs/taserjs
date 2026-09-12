@@ -78,7 +78,12 @@ describe("@taserjs/client integration with running Hono server", () => {
   const getUserRoute = t
     .get("/users/:id")
     .params(idParamSchema)
-    .returns({ 200: returnUserSchema })
+    .returns({
+      200: returnUserSchema,
+      404: createSchema<{ error: string }>((val) => ({
+        value: (val as { error: string }) ?? { error: "Unknown" },
+      })),
+    })
     .handler(async ({ req }) => {
       const user = usersDatabase.find((u) => u.id === req.params.id);
       if (!user) {

@@ -2,6 +2,7 @@ import type {
   ContextDefinition,
   NotFoundHandler,
   OnErrorHandler,
+  ResponseOptions,
   TaserAppOptions,
   TaserDefinition,
 } from "./types.js";
@@ -11,10 +12,19 @@ export class TaserBuilder<TContext = Record<string, unknown>> implements TaserDe
   declare readonly $Infer: {
     Context: TContext;
   };
-  public readonly options: TaserAppOptions<any> = {};
+  public readonly options: TaserAppOptions<any>;
+
+  constructor(options?: TaserAppOptions<any>) {
+    this.options = options ? { ...options } : {};
+  }
 
   basePath(path: string): this {
     this.options.basePath = path;
+    return this;
+  }
+
+  response(options: ResponseOptions): this {
+    this.options.response = { ...this.options.response, ...options };
     return this;
   }
 
@@ -37,6 +47,8 @@ export class TaserBuilder<TContext = Record<string, unknown>> implements TaserDe
   }
 }
 
-export function defineTaser<TContext = Record<string, unknown>>(): TaserBuilder<TContext> {
-  return new TaserBuilder<TContext>();
+export function defineTaser<TContext = Record<string, unknown>>(
+  options?: TaserAppOptions<TContext>,
+): TaserBuilder<TContext> {
+  return new TaserBuilder<TContext>(options);
 }

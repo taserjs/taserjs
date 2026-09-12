@@ -53,16 +53,9 @@ export function createTypedResponse<T, TStatus extends number>(
   return res;
 }
 
-export function isPlainObjectOrArray(value: unknown): value is Record<string, unknown> | unknown[] {
-  if (value === null || typeof value !== "object") {
-    return false;
-  }
-  if (Array.isArray(value)) {
-    return true;
-  }
-  const proto = Object.getPrototypeOf(value);
-  return (proto === null || proto === Object.prototype) && !(Symbol.toStringTag in value);
-}
+import { isPlainObjectOrArray } from "./object.js";
+
+export { isPlainObjectOrArray };
 
 /**
  * Creates a generic TypedResponse helper factory with zero default headers and auto-detection.

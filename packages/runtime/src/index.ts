@@ -4,7 +4,7 @@ export { createContext, createBootManager } from "./context.js";
 export { resolveMiddlewares, resolveMiddleware, normalizeMiddleware } from "./layout.js";
 export { createPipeline, validateSchemas } from "./pipeline.js";
 export { createTaserHeaders, createTaserRequest } from "./request.js";
-export { ValidationError, UnsupportedMediaTypeError } from "@taserjs/utils";
+export { ValidationError, ResponseValidationError, UnsupportedMediaTypeError } from "@taserjs/utils";
 export type { BootManager } from "./context.js";
 export type {
   ContextDefinition,

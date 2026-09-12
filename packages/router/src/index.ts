@@ -13,6 +13,7 @@ export { createContext } from "./context.js";
 export { defineTaser, TaserBuilder } from "./taser.js";
 export {
   ValidationError,
+  ResponseValidationError,
   unsupportedMediaType,
   UnsupportedMediaTypeError,
   isStandardSchema,
@@ -53,8 +54,10 @@ export type {
   ExtractStateFromMiddleware,
   InferRouteServices,
   InferRouteState,
+  InferReturnsResponse,
   NotFoundHandler,
   OnErrorHandler,
+  ResponseOptions,
   TaserAppOptions,
   TaserDefinition,
 } from "./types.js";

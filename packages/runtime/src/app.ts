@@ -1,6 +1,10 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
-import { UnsupportedMediaTypeError, ValidationError } from "@taserjs/utils";
+import {
+  ResponseValidationError,
+  UnsupportedMediaTypeError,
+  ValidationError,
+} from "@taserjs/utils";
 import { createBootManager } from "./context.js";
 import { resolveMiddlewares } from "./layout.js";
 import { createPipeline } from "./pipeline.js";
@@ -56,6 +60,18 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
       return c.json({ errors: err.issues }, 422);
     }
 
+    if (err instanceof ResponseValidationError) {
+      return c.json(
+        {
+          message: "Response Validation Failed",
+          status: err.status,
+          issues: err.issues,
+          data: err.data,
+        },
+        500,
+      );
+    }
+
     if (err instanceof UnsupportedMediaTypeError) {
       return c.json({ message: err.message || "Unsupported Media Type" }, 415);
     }
@@ -92,6 +108,7 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
         middlewares,
         routeDefinition.handler,
         routeDefinition.schemas,
+        options?.response,
       );
 
       app.on(method, targetPath, (c: Context) => {

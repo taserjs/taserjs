@@ -1,7 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { t } from "../src/index.js";
+import { ok, notFound } from "../src/reply.js";
 
 describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
+  const createMockSchema = <T>(val: T) => ({
+    "~standard": {
+      version: 1 as const,
+      vendor: "test",
+      validate: () => ({ value: val }),
+      types: { input: val, output: val },
+    },
+  });
   it("builds a GET route definition with method, path, and handler", () => {
     const handler = () => new Response("ok");
     const route = t.get("/hello").handler(handler);
@@ -422,5 +431,42 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
     const builderAfterReturns = t.get("/items").returns({ 200: mockSchema({ ok: true }) });
     // @ts-expect-error .use() must not be callable after .returns()
     builderAfterReturns.use(mw1);
+  });
+
+  it("constrains handler return types when .returns() is specified", () => {
+    const userSchema = createMockSchema({ id: "u-1", name: "Alice" });
+    const notFoundSchema = createMockSchema({ error: "not found" });
+
+    // Valid returns matching contract with reply helpers
+    const validRoute = t
+      .get("/user")
+      .returns({
+        200: userSchema,
+        404: notFoundSchema,
+      })
+      .handler(async () => {
+        return ok({ id: "u-1", name: "Alice" });
+      });
+    expect(validRoute).toBeDefined();
+
+    // Invalid returns with mismatched status code using notFound()
+    t.get("/user")
+      .returns({
+        200: userSchema,
+      })
+      // @ts-expect-error Handler returning 404 response when only 200 is declared in .returns()
+      .handler(async () => {
+        return notFound({ error: "not found" });
+      });
+
+    // Invalid returns with mismatched data type for 200 using ok()
+    t.get("/user")
+      .returns({
+        200: userSchema,
+      })
+      // @ts-expect-error Handler returning string for id instead of user object
+      .handler(async () => {
+        return ok({ id: 123, name: 456 });
+      });
   });
 });

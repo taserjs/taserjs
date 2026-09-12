@@ -1,5 +1,5 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import type { BodyMode, ValidationFacet } from "@taserjs/utils";
+import type { BodyMode, TypedResponse, ValidationFacet } from "@taserjs/utils";
 import type { RequestHeader } from "hono/utils/headers";
 
 export type { BodyMode, ValidationFacet, RequestHeader };
@@ -504,11 +504,31 @@ export type NotFoundHandler<TContext = Record<string, unknown>> = (args: {
 
 export type OnErrorHandler = (err: unknown, req: TaserRequest) => Response | Promise<Response>;
 
+export interface ResponseOptions {
+  validate?: boolean | undefined;
+}
+
+export type InferReturnsResponse<TReturns> = [TReturns] extends [undefined]
+  ? Response
+  : [TReturns] extends [never]
+    ? Response
+    : unknown extends TReturns
+      ? Response
+      : {
+          [K in keyof TReturns & number]: TypedResponse<
+            TReturns[K] extends StandardSchemaV1
+              ? StandardSchemaV1.InferOutput<TReturns[K]>
+              : unknown,
+            K
+          >;
+        }[keyof TReturns & number];
+
 export interface TaserAppOptions<TContext = Record<string, unknown>> {
   basePath?: string | undefined;
   context?: ContextDefinition<any, any> | undefined;
   notFound?: NotFoundHandler<TContext> | undefined;
   onError?: OnErrorHandler | undefined;
+  response?: ResponseOptions | undefined;
 }
 
 export interface TaserDefinition<TContext = Record<string, unknown>> {

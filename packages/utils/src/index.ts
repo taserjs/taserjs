@@ -8,7 +8,6 @@ export {
   forbidden,
   html,
   internalServerError,
-  isPlainObjectOrArray,
   json,
   methodNotAllowed,
   noContent,
@@ -29,9 +28,14 @@ export { type ResponseContext, mergeResponseCookies } from "./cookie.js";
 export {
   type ValidationFacet,
   ValidationError,
+  ResponseValidationError,
+  executeSchema,
   isStandardSchema,
   validateStandardSchema,
+  validateResponseSchema,
 } from "./validation.js";
+export { isPlainObject, isPlainObjectOrArray } from "./object.js";
+export { isProduction } from "./env.js";
 export {
   blob,
   buffer,

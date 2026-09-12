@@ -1,29 +1,74 @@
 import type { Context } from "hono";
-import { validateStandardSchema } from "@taserjs/utils";
+import {
+  isPlainObject,
+  isProduction,
+  validateResponseSchema,
+  validateStandardSchema,
+} from "@taserjs/utils";
 import { extractBody } from "./body.js";
 import type {
   MiddlewareHandler,
   NextFunction,
+  ResponseOptions,
   RouteHandler,
   RouteSchemas,
   TaserRequest,
 } from "./types.js";
 
+const EMPTY_STATE: Record<string, unknown> = Object.freeze({});
+
 export function hasSchemas(schemas?: RouteSchemas | undefined): boolean {
   return Boolean(schemas && (schemas.params || schemas.query || schemas.body));
 }
 
-function isPlainObject(val: unknown): val is Record<string, unknown> {
-  return (
-    typeof val === "object" &&
-    val !== null &&
-    (val.constructor === Object || Object.getPrototypeOf(val) === null)
-  );
+export function shouldValidateResponse(
+  options?: ResponseOptions | undefined,
+  schemas?: RouteSchemas | undefined,
+): boolean {
+  if (!schemas?.returns) return false;
+  // Hard gate: strictly disabled in production for zero overhead
+  if (isProduction()) return false;
+  // If explicitly disabled via response.validate: false
+  if (options?.validate === false) return false;
+  return true;
+}
+
+async function extractResponsePayload(res: Response): Promise<unknown> {
+  if ("_data" in res && (res as { _data?: unknown })._data !== undefined) {
+    return (res as { _data?: unknown })._data;
+  }
+
+  try {
+    const cloned = res.clone();
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      return await cloned.json();
+    }
+    return await cloned.text();
+  } catch {
+    return undefined;
+  }
+}
+
+export async function validateResponseContract(
+  res: Response,
+  schemas: RouteSchemas | undefined,
+): Promise<Response> {
+  const returns = schemas?.returns;
+  if (!returns) return res;
+
+  const status = res.status;
+  const statusSchema = returns[status as keyof typeof returns];
+  if (!statusSchema) return res;
+
+  const payload = await extractResponsePayload(res);
+  await validateResponseSchema(statusSchema, payload, status);
+  return res;
 }
 
 function mergeValidated(original: unknown, validated: unknown): unknown {
   return isPlainObject(validated) && isPlainObject(original)
-    ? { ...original, ...validated }
+    ? Object.assign({}, original, validated)
     : validated;
 }
 
@@ -56,8 +101,6 @@ export async function validateSchemas(
   }
 }
 
-const EMPTY_STATE: Record<string, unknown> = Object.freeze({});
-
 function ensureResponse(res: unknown): Response {
   if (!(res instanceof Response)) {
     throw new TypeError(`Route handler must return a Response, received: ${typeof res}`);
@@ -65,23 +108,46 @@ function ensureResponse(res: unknown): Response {
   return res;
 }
 
-function invokeTerminalHandler(
+/**
+ * Compiles a lean terminal execution function tailored to whether
+ * response contract validation is active or inactive.
+ */
+function compileTerminalExecutor(
   terminalHandler: RouteHandler,
-  args: unknown,
-): Response | Promise<Response> {
-  const res = terminalHandler(args as any);
-  if (res instanceof Promise) {
-    return res.then(ensureResponse);
+  schemas: RouteSchemas | undefined,
+  validateResponse: boolean,
+): (args: unknown) => Response | Promise<Response> {
+  if (!validateResponse || !schemas?.returns) {
+    return (args: unknown) => {
+      const res = terminalHandler(args as any);
+      return res instanceof Promise ? res.then(ensureResponse) : ensureResponse(res);
+    };
   }
-  return ensureResponse(res);
+
+  return (args: unknown) => {
+    const res = terminalHandler(args as any);
+    if (res instanceof Promise) {
+      return res
+        .then(ensureResponse)
+        .then((finalRes) => validateResponseContract(finalRes, schemas));
+    }
+    return validateResponseContract(ensureResponse(res), schemas);
+  };
 }
 
 export function createPipeline(
   middlewares: readonly MiddlewareHandler[],
   terminalHandler: RouteHandler,
   routeSchemas?: RouteSchemas | undefined,
+  responseOptions?: ResponseOptions | undefined,
 ): (req: TaserRequest, ctx: Record<string, unknown>) => Response | Promise<Response> {
   const hasRouteSchemas = hasSchemas(routeSchemas);
+  const responseValidationEnabled = shouldValidateResponse(responseOptions, routeSchemas);
+  const executeTerminal = compileTerminalExecutor(
+    terminalHandler,
+    routeSchemas,
+    responseValidationEnabled,
+  );
 
   // Fast-path: routes with 0 middlewares bypass onion dispatch closure allocations completely
   if (middlewares.length === 0) {
@@ -90,7 +156,7 @@ export function createPipeline(
         req: TaserRequest,
         ctx: Record<string, unknown>,
       ): Response | Promise<Response> {
-        return invokeTerminalHandler(terminalHandler, { req, ctx, state: EMPTY_STATE });
+        return executeTerminal({ req, ctx, state: EMPTY_STATE });
       };
     }
 
@@ -100,13 +166,13 @@ export function createPipeline(
     ): Promise<Response> {
       const honoContext = ctx.context as Context | undefined;
       return validateSchemas(routeSchemas, req, honoContext).then(() =>
-        invokeTerminalHandler(terminalHandler, { req, ctx, state: EMPTY_STATE }),
+        executeTerminal({ req, ctx, state: EMPTY_STATE }),
       );
     };
   }
 
   // Fast-path: single middleware with no schemas bypasses recursive dispatch
-  if (middlewares.length === 1 && !hasRouteSchemas) {
+  if (middlewares.length === 1 && !hasRouteSchemas && !responseValidationEnabled) {
     const middleware = middlewares[0]!;
     return async function executeSingleMiddleware(
       req: TaserRequest,
@@ -125,7 +191,7 @@ export function createPipeline(
         const handlerArgs = currentServices
           ? { req, ctx, state: currentState, ...currentServices }
           : { req, ctx, state: currentState };
-        return await invokeTerminalHandler(terminalHandler, handlerArgs);
+        return await executeTerminal(handlerArgs);
       }) as NextFunction;
 
       next.provide = async (
@@ -138,7 +204,7 @@ export function createPipeline(
         called = true;
         currentServices = providedServices;
         currentState = nextState ? { ...currentState, ...nextState } : currentState;
-        return await invokeTerminalHandler(terminalHandler, {
+        return await executeTerminal({
           req,
           ctx,
           state: currentState,
@@ -156,6 +222,7 @@ export function createPipeline(
     };
   }
 
+  // Composed Onion Pipeline for multi-middleware routes
   return async function executePipeline(
     req: TaserRequest,
     ctx: Record<string, unknown>,
@@ -218,8 +285,8 @@ export function createPipeline(
         return res;
       }
 
-      // Route middlewares finished: validate route schemas immediately before route handler
-      if (routeSchemas) {
+      // Terminal handler dispatch
+      if (hasRouteSchemas) {
         await validateSchemas(routeSchemas, req, honoContext);
       }
 
@@ -227,7 +294,7 @@ export function createPipeline(
         ? { req, ctx, state: currentState, ...currentServices }
         : { req, ctx, state: currentState };
 
-      return await invokeTerminalHandler(terminalHandler, handlerArgs);
+      return await executeTerminal(handlerArgs);
     }
 
     const finalRes = await dispatch(0, EMPTY_STATE, {}, false);

@@ -115,4 +115,3 @@ _Avoid_: server wrapper, legacy entry, express host, server.js
 **Response Contract**:
 A compile-time and optional runtime schema validation contract declared on route endpoints via `.returns({ [status]: Schema })` that enforces return shapes and powers prioritized client SDK typing.
 _Avoid_: response schema, return validator, output contract
-
