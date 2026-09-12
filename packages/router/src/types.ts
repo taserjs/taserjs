@@ -219,50 +219,32 @@ export type ExtractStateFromLayout<TLayout> = TLayout extends { readonly _state?
       ? ExtractStateFromMiddleware<M>
       : {};
 
-export type ExtractParamsFromLayout<TLayout> = TLayout extends { readonly _params?: infer P }
-  ? [P] extends [never]
+type NormalizeFacet<T> = unknown extends T
+  ? {}
+  : [T] extends [never]
     ? {}
-    : unknown extends P
-      ? {}
-      : NonNullable<P>
+    : NonNullable<T>;
+
+export type ExtractParamsFromLayout<TLayout> = TLayout extends { readonly _params?: infer P }
+  ? NormalizeFacet<P>
   : TLayout extends LayoutDefinition<any, any, any, infer P, any, any>
-    ? [P] extends [never]
-      ? {}
-      : unknown extends P
-        ? {}
-        : NonNullable<P>
+    ? NormalizeFacet<P>
     : TLayout extends { readonly middlewares: readonly (infer M)[] }
       ? ExtractParamsFromMiddleware<M>
       : {};
 
 export type ExtractQueryFromLayout<TLayout> = TLayout extends { readonly _query?: infer Q }
-  ? [Q] extends [never]
-    ? {}
-    : unknown extends Q
-      ? {}
-      : NonNullable<Q>
+  ? NormalizeFacet<Q>
   : TLayout extends LayoutDefinition<any, any, any, any, infer Q, any>
-    ? [Q] extends [never]
-      ? {}
-      : unknown extends Q
-        ? {}
-        : NonNullable<Q>
+    ? NormalizeFacet<Q>
     : TLayout extends { readonly middlewares: readonly (infer M)[] }
       ? ExtractQueryFromMiddleware<M>
       : {};
 
 export type ExtractBodyFromLayout<TLayout> = TLayout extends { readonly _body?: infer B }
-  ? [B] extends [never]
-    ? {}
-    : unknown extends B
-      ? {}
-      : NonNullable<B>
+  ? NormalizeFacet<B>
   : TLayout extends LayoutDefinition<any, any, any, any, any, infer B>
-    ? [B] extends [never]
-      ? {}
-      : unknown extends B
-        ? {}
-        : NonNullable<B>
+    ? NormalizeFacet<B>
     : TLayout extends { readonly middlewares: readonly (infer M)[] }
       ? ExtractBodyFromMiddleware<M>
       : {};
@@ -488,8 +470,8 @@ export interface NextFunction {
 export type MiddlewareArgs<
   TServices = {},
   TState = {},
-  TParams = Record<string, string>,
-  TQuery = Record<string, string | string[]>,
+  TParams = {},
+  TQuery = {},
   TBody = unknown,
 > = Simplify<
   {
