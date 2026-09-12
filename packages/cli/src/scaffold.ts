@@ -20,11 +20,16 @@ export function generateRouteStub({
   const semi = formatting?.semi === false ? "" : ";";
   const verb = method.toLowerCase();
 
+  const callExpr =
+    verb === "any"
+      ? `t.any(${quote}${canonicalPath}${quote}, [${quote}GET${quote}, ${quote}POST${quote}])`
+      : `t.${verb}(${quote}${canonicalPath}${quote})`;
+
   return [
     `import { t } from ${quote}@taserjs/router${quote}${semi}`,
     `import { json } from ${quote}@taserjs/router/reply${quote}${semi}`,
     ``,
-    `export default t.${verb}(${quote}${canonicalPath}${quote}).handler(async () => {`,
+    `export default ${callExpr}.handler(async () => {`,
     `  return json({ message: ${quote}Hello from ${canonicalPath}${quote} })${semi}`,
     `})${semi}`,
     ``,

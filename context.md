@@ -115,3 +115,16 @@ _Avoid_: server wrapper, legacy entry, express host, server.js
 **Response Contract**:
 A compile-time and optional runtime schema validation contract declared on route endpoints via `.returns({ [status]: Schema })` that enforces return shapes and powers prioritized client SDK typing.
 _Avoid_: response schema, return validator, output contract
+
+**Layout-Scoped Middleware**:
+A reusable middleware bound to a specific layout branch by passing a single layout identifier (e.g. `middleware("/admin", ...)`), guaranteeing compile-time layout state and services access and ensuring branch-safe attachment via `.use()`.
+_Avoid_: route middleware, layout plugin, branch guard
+
+**Precondition Requirement (`.requires()`)**:
+A compile-time assertion declared on a middleware via `.requires<{ state?, services?, params?, query?, body? }>()` verifying that preceding middlewares, parent layouts, or route paths satisfy all required facets before allowing `.use()`.
+_Avoid_: prerequisite schema, middleware validator, guard contract
+
+**Multi-Method Route**:
+An endpoint definition handling multiple HTTP methods via explicit verb lists (`.any.ts` / `t.any(path, methods)`) or catch-all verb dispatch (`.all.ts` / `t.all(path)`).
+_Avoid_: wildcard route, any route, method router
+

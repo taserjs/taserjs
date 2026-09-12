@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -227,5 +227,103 @@ describe("route scanner and AST validation", () => {
     expect(result.diagnostics).toHaveLength(1);
     expect(result.diagnostics[0]?.message).toMatch(/Mismatched layout path/);
     expect(result.diagnostics[0]?.message).toMatch(/Expected path pattern "\/admin\/\*"/);
+  });
+
+  it("discovers .all, .any, .query, .options, and .head route files and verifies AST", () => {
+    const routesDir = join(tempDir, "routes-multimethod");
+    mkdirSync(routesDir, { recursive: true });
+
+    writeFileSync(
+      join(routesDir, "proxy.$.all.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.all("/proxy/*").handler(() => new Response("all"));',
+    );
+    writeFileSync(
+      join(routesDir, "webhook.any.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.any("/webhook", ["GET", "POST"]).handler(() => new Response("any"));',
+    );
+    writeFileSync(
+      join(routesDir, "search.query.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.query("/search").handler(() => new Response("query"));',
+    );
+    writeFileSync(
+      join(routesDir, "cors.options.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.options("/cors").handler(() => new Response("options"));',
+    );
+    writeFileSync(
+      join(routesDir, "health.head.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.head("/health").handler(() => new Response("head"));',
+    );
+
+    const result = scanRoutes({ routesDir, cwd: tempDir });
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.routes).toHaveLength(5);
+
+    const allRoute = result.routes.find((r) => r.method === "ALL");
+    expect(allRoute).toBeDefined();
+    expect(allRoute?.canonicalPath).toBe("/proxy/*");
+
+    const anyRoute = result.routes.find((r) => r.method === "ANY");
+    expect(anyRoute).toBeDefined();
+    expect(anyRoute?.canonicalPath).toBe("/webhook");
+
+    const queryRoute = result.routes.find((r) => r.method === "QUERY");
+    expect(queryRoute).toBeDefined();
+    expect(queryRoute?.canonicalPath).toBe("/search");
+
+    const optionsRoute = result.routes.find((r) => r.method === "OPTIONS");
+    expect(optionsRoute).toBeDefined();
+    expect(optionsRoute?.canonicalPath).toBe("/cors");
+
+    const headRoute = result.routes.find((r) => r.method === "HEAD");
+    expect(headRoute).toBeDefined();
+    expect(headRoute?.canonicalPath).toBe("/health");
+  });
+
+  it("reports diagnostic error when AST method does not match .all or .query suffix", () => {
+    const routesDir = join(tempDir, "routes-mismatch-verb");
+    mkdirSync(routesDir, { recursive: true });
+
+    writeFileSync(
+      join(routesDir, "users.all.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.get("/users").handler(() => new Response("ok"));',
+    );
+
+    const result = scanRoutes({ routesDir, cwd: tempDir });
+    expect(result.diagnostics).toHaveLength(1);
+    expect(result.diagnostics[0]?.message).toMatch(/Mismatched HTTP method/);
+    expect(result.diagnostics[0]?.message).toMatch(/File name specifies verb "\.all", but default export defines "t\.get\(\.\.\.\)"/);
+  });
+
+  it("reports diagnostic error when t.any is missing methods array argument", () => {
+    const routesDir = join(tempDir, "routes-missing-any-args");
+    mkdirSync(routesDir, { recursive: true });
+
+    writeFileSync(
+      join(routesDir, "events.any.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.any("/events").handler(() => new Response("ok"));',
+    );
+
+    const result = scanRoutes({ routesDir, cwd: tempDir });
+    expect(result.diagnostics).toHaveLength(1);
+    expect(result.diagnostics[0]?.message).toMatch(/must provide an array of HTTP methods as the second argument/);
+  });
+
+  it("scaffolds empty .all.ts and .any.ts files correctly", () => {
+    const routesDir = join(tempDir, "routes-scaffold-multimethod");
+    mkdirSync(routesDir, { recursive: true });
+
+    const allFile = join(routesDir, "proxy.all.ts");
+    const anyFile = join(routesDir, "webhook.any.ts");
+    writeFileSync(allFile, "");
+    writeFileSync(anyFile, "");
+
+    const result = scanRoutes({ routesDir, cwd: tempDir, scaffold: true });
+    expect(result.diagnostics).toHaveLength(0);
+
+    const allContent = readFileSync(allFile, "utf-8");
+    expect(allContent).toContain('export default t.all("/proxy")');
+
+    const anyContent = readFileSync(anyFile, "utf-8");
+    expect(anyContent).toContain('export default t.any("/webhook", ["GET", "POST"])');
   });
 });

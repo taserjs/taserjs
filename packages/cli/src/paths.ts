@@ -1,6 +1,17 @@
 import { basename, dirname, normalize } from "pathe";
 
-export const HTTP_METHODS = ["get", "post", "put", "delete", "patch"] as const;
+export const HTTP_METHODS = [
+  "get",
+  "post",
+  "put",
+  "delete",
+  "patch",
+  "options",
+  "head",
+  "query",
+  "all",
+  "any",
+] as const;
 export type HttpMethodLower = (typeof HTTP_METHODS)[number];
 
 export const ROUTE_EXTENSIONS = ["ts", "tsx"] as const;

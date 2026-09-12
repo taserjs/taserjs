@@ -191,6 +191,14 @@ export function validateAst(
       });
       return diagnostics;
     }
+
+    if (actualMethod === "any" && rootCall.rootArgs.length < 2) {
+      diagnostics.push({
+        filePath,
+        message: `Route definition for "t.any" in "${filePath}" must provide an array of HTTP methods as the second argument (e.g. 't.any("${canonicalPath}", ["GET", "POST"])').`,
+      });
+      return diagnostics;
+    }
   } else {
     // Layout file
     if (actualMethod !== "layout") {

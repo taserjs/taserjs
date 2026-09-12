@@ -2,6 +2,45 @@ import { describe, it, expect } from "vitest";
 import { t } from "../src/index.js";
 import { ok, notFound } from "../src/reply.js";
 
+declare module "../src/types.js" {
+  interface RouterRegister {
+    LayoutTree: {
+      "/*": true;
+      "/admin/*": true;
+      "/admin/users/*": true;
+      "/_auth/*": true;
+    };
+    LayoutHierarchy: {
+      "/*": readonly [];
+      "/admin/*": readonly ["/*"];
+      "/admin/users/*": readonly ["/*", "/admin/*"];
+      "/_auth/*": readonly ["/*"];
+    };
+    RouteByPathMethod: {
+      "/admin/users": {
+        GET: {
+          layouts: readonly ["/*", "/admin/*", "/admin/users/*"];
+        };
+      };
+      "/admin/settings/profile": {
+        GET: {
+          layouts: readonly ["/*", "/admin/*"];
+        };
+      };
+      "/public": {
+        GET: {
+          layouts: readonly ["/*"];
+        };
+      };
+      "/users/:id": {
+        GET: {
+          layouts: readonly ["/*"];
+        };
+      };
+    };
+  }
+}
+
 describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
   const createMockSchema = <T>(val: T) => ({
     "~standard": {
@@ -468,5 +507,276 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       .handler(async () => {
         return ok({ id: 123, name: 456 });
       });
+  });
+
+  describe("Multi-method and catch-all route builders (t.all, t.any, t.query, t.options, t.head)", () => {
+    it("builds t.all() catch-all route definition", () => {
+      const handler = () => new Response("all-methods");
+      const route = t.all("/proxy/*").handler(handler);
+
+      expect(route.kind).toBe("route");
+      expect(route.method).toBe("ALL");
+      expect(route.path).toBe("/proxy/*");
+      expect(route.handler).toBe(handler);
+    });
+
+    it("builds t.any() multi-method route definition with explicit HTTP verbs", () => {
+      const handler = () => new Response("any-methods");
+      const route = t.any("/webhook", ["GET", "post"]).handler(handler);
+
+      expect(route.kind).toBe("route");
+      expect(route.method).toBe("ANY");
+      expect(route.methods).toEqual(["GET", "POST"]);
+      expect(route.path).toBe("/webhook");
+      expect(route.handler).toBe(handler);
+    });
+
+    it("builds t.query(), t.options(), and t.head() route definitions", () => {
+      const dummyHandler = () => new Response("ok");
+
+      const queryRoute = t.query("/search").handler(dummyHandler);
+      expect(queryRoute.method).toBe("QUERY");
+      expect(queryRoute.path).toBe("/search");
+
+      const optionsRoute = t.options("/cors").handler(dummyHandler);
+      expect(optionsRoute.method).toBe("OPTIONS");
+      expect(optionsRoute.path).toBe("/cors");
+
+      const headRoute = t.head("/health").handler(dummyHandler);
+      expect(headRoute.method).toBe("HEAD");
+      expect(headRoute.path).toBe("/health");
+    });
+  });
+
+  describe("Layout-scoped middleware and compile-time branch safety", () => {
+    it("supports direct handler signature middleware(layoutId, handler) and t.middleware(layoutId, handler)", () => {
+      const mw1 = t.middleware("/admin/*", async (_args, next) => next());
+      expect(mw1.kind).toBe("middleware");
+      expect(mw1.layoutId).toBe("/admin/*");
+
+      const mw2 = t.middleware("/_auth/*", async (_args, next) => next());
+      expect(mw2.kind).toBe("middleware");
+      expect(mw2.layoutId).toBe("/_auth/*");
+    });
+
+    it("statically restricts layoutId to RegisteredLayoutId (keyof LayoutTree) and rejects arbitrary strings", () => {
+      // Valid: registered layout IDs
+      const validMw1 = t.middleware("/admin/*", async (_args, next) => next());
+      const validMw2 = t.middleware("/_auth/*");
+      expect(validMw1.layoutId).toBe("/admin/*");
+      expect(validMw2).toBeDefined();
+
+      // Invalid: arbitrary string not in keyof LayoutTree
+      // @ts-expect-error Arbitrary string "auth" is not in keyof LayoutTree
+      t.middleware("auth", async (_args, next) => next());
+
+      // @ts-expect-error Arbitrary string "/random/*" is not in keyof LayoutTree
+      t.middleware("/random/*");
+    });
+
+    it("supports chained builder signature middleware(layoutId) and creates definitions with layoutId", () => {
+      const mw = t
+        .middleware("/admin/*")
+        .requires<{ state?: { token: string } }>()
+        .handler(async ({ state }, next) => {
+          return await next({ adminChecked: true });
+        });
+
+      expect(mw.kind).toBe("middleware");
+      expect(mw.layoutId).toBe("/admin/*");
+    });
+
+    it("allows mounting layout-scoped middleware on matching layout branches and route paths", () => {
+      const adminMw = t.middleware("/admin/*", async (_args, next) => next());
+
+      // Allowed on matching layout branch
+      const adminLayout = t.layout("/admin/*").use(adminMw);
+      expect(adminLayout.middlewares).toHaveLength(1);
+
+      // Allowed on sub-layout branch
+      const nestedAdminLayout = t.layout("/admin/users/*").use(adminMw);
+      expect(nestedAdminLayout.middlewares).toHaveLength(1);
+
+      // Allowed on matching route paths
+      const adminRoute = t.get("/admin/users").use(adminMw).handler(() => new Response("ok"));
+      expect(adminRoute.middlewares).toHaveLength(1);
+
+      const adminSubRoute = t.get("/admin/settings/profile").use(adminMw).handler(() => new Response("ok"));
+      expect(adminSubRoute.middlewares).toHaveLength(1);
+    });
+
+    it("statically prevents mounting layout-scoped middleware on unrelated branches", () => {
+      const adminMw = t.middleware("/admin/*", async (_args, next) => next());
+
+      // @ts-expect-error Layout-scoped middleware "/admin/*" cannot be mounted on root layout "/*"
+      t.layout("/*").use(adminMw);
+
+      // @ts-expect-error Layout-scoped middleware "/admin/*" cannot be mounted on unrelated layout "/public/*"
+      t.layout("/public/*").use(adminMw);
+
+      // @ts-expect-error Layout-scoped middleware "/admin/*" cannot be mounted on unrelated route "/public"
+      t.get("/public").use(adminMw);
+
+      // @ts-expect-error Layout-scoped middleware "/admin/*" cannot be mounted on unrelated route "/users/:id"
+      t.get("/users/:id").use(adminMw);
+    });
+  });
+
+  describe("Precondition requirements (.requires<{ state?, services?, params?, query?, body? }>)", () => {
+    it("validates state preconditions satisfied by preceding middleware", () => {
+      type User = { id: string; role: "admin" | "user" };
+
+      const authMw = t.middleware().handler(async (_args, next) => {
+        return await next({ user: { id: "u-1", role: "admin" as const } });
+      });
+
+      const requireAdmin = t
+        .middleware()
+        .requires<{ state: { user: User } }>()
+        .handler(async ({ state }, next) => {
+          const _role: "admin" | "user" = state.user.role;
+          return await next({ isAdmin: true });
+        });
+
+      // Valid: authMw precedes requireAdmin and satisfies state.user
+      const validRoute = t
+        .get("/admin/dashboard")
+        .use(authMw)
+        .use(requireAdmin)
+        .handler(({ state }) => {
+          const _isAdmin: boolean = state.isAdmin;
+          return new Response("admin");
+        });
+      expect(validRoute.middlewares).toHaveLength(2);
+
+      // Invalid: requireAdmin placed without preceding authMw providing state.user
+      // @ts-expect-error Missing required state: { user: User }
+      t.get("/admin/dashboard").use(requireAdmin);
+    });
+
+    it("validates services preconditions satisfied by preceding middleware", () => {
+      type DB = { query: () => string[] };
+      const dummyDb: DB = { query: () => ["a"] };
+
+      const dbMw = t.middleware().handler(async (_args, next) => {
+        return await next.provide({ db: dummyDb });
+      });
+
+      const requireDb = t
+        .middleware()
+        .requires<{ services: { db: DB } }>()
+        .handler(async (args, next) => {
+          const _db: DB = args.db;
+          return await next();
+        });
+
+      // Valid: dbMw precedes requireDb
+      const validRoute = t
+        .get("/data")
+        .use(dbMw)
+        .use(requireDb)
+        .handler(({ db }) => {
+          return new Response(db.query().join(","));
+        });
+      expect(validRoute.middlewares).toHaveLength(2);
+
+      // Invalid: requireDb placed without preceding db service
+      // @ts-expect-error Missing required services: { db: DB }
+      t.get("/data").use(requireDb);
+    });
+
+    it("validates route params preconditions against route path and preceding schemas", () => {
+      const requireUserId = t
+        .middleware()
+        .requires<{ params: { userId: string } }>()
+        .handler(async ({ req }, next) => {
+          const _userId: string = req.params.userId;
+          return await next();
+        });
+
+      // Valid: Route path defines :userId
+      const validRoute = t
+        .get("/users/:userId/profile")
+        .use(requireUserId)
+        .handler(({ req }) => new Response(req.params.userId));
+      expect(validRoute.middlewares).toHaveLength(1);
+
+      // Invalid: Route path does not define :userId
+      // @ts-expect-error Route path "/profile" has no :userId parameter
+      t.get("/profile").use(requireUserId);
+
+      // Invalid: Route path defines :id instead of :userId
+      // @ts-expect-error Route path defines :id, but middleware requires :userId
+      t.get("/users/:id").use(requireUserId);
+    });
+
+    it("validates preconditions on layouts", () => {
+      type Tenant = { tenantId: string };
+
+      const tenantMw = t.middleware().handler(async (_args, next) => {
+        return await next({ tenant: { tenantId: "tenant-1" } });
+      });
+
+      const requireTenant = t
+        .middleware()
+        .requires<{ state: { tenant: Tenant } }>()
+        .handler(async ({ state }, next) => {
+          const _t: string = state.tenant.tenantId;
+          return await next();
+        });
+
+      // Valid on layout when tenantMw precedes
+      const validLayout = t.layout("/workspace/*").use(tenantMw).use(requireTenant);
+      expect(validLayout.middlewares).toHaveLength(2);
+
+      // Invalid on layout without preceding tenant
+      // @ts-expect-error Layout does not satisfy state: { tenant: Tenant }
+      t.layout("/workspace/*").use(requireTenant);
+    });
+
+    it("validates query preconditions against layout query schema", () => {
+      const searchSchema = createMockSchema({ q: "hello", page: 1 });
+
+      const requireSearchQuery = t
+        .middleware()
+        .requires<{ query: { q: string } }>()
+        .handler(async ({ req }, next) => {
+          const _q: string = (req.query as any).q;
+          return await next();
+        });
+
+      // Valid: layout declares query schema satisfying { q: string }
+      const validLayout = t
+        .layout("/search/*")
+        .query(searchSchema)
+        .use(requireSearchQuery);
+      expect(validLayout.middlewares).toHaveLength(2);
+
+      // Invalid: layout does not define query schema
+      // @ts-expect-error Layout lacks query schema satisfying { q: string }
+      t.layout("/search/*").use(requireSearchQuery);
+    });
+
+    it("validates body preconditions against layout body schema", () => {
+      const createItemSchema = createMockSchema({ title: "Widget", price: 100 });
+
+      const requireBodyTitle = t
+        .middleware()
+        .requires<{ body: { title: string } }>()
+        .handler(async ({ req }, next) => {
+          return await next();
+        });
+
+      // Valid: layout declares body schema satisfying { title: string }
+      const validLayout = t
+        .layout("/items/*")
+        .body(createItemSchema)
+        .use(requireBodyTitle);
+      expect(validLayout.middlewares).toHaveLength(2);
+
+      // Invalid: layout does not define body schema
+      // @ts-expect-error Layout lacks body schema satisfying { title: string }
+      t.layout("/items/*").use(requireBodyTitle);
+    });
   });
 });

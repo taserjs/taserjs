@@ -4,11 +4,16 @@ import { defineTaser } from "./taser.js";
 import type {
   BodyMode,
   ExtractBodyFromMiddleware,
+  ExtractLayoutIdFromMiddleware,
   ExtractParamsFromMiddleware,
+  ExtractPreconditionsFromMiddleware,
   ExtractQueryFromMiddleware,
   HttpMethod,
   InferEffectiveParams,
   InferLayoutBody,
+  InferLayoutBranchParams,
+  InferLayoutBranchServices,
+  InferLayoutBranchState,
   InferLayoutParams,
   InferLayoutQuery,
   InferLayoutServices,
@@ -24,26 +29,34 @@ import type {
   MiddlewareArgs,
   MiddlewareDefinition,
   MiddlewareHandler,
+  MiddlewarePreconditions,
   MiddlewareResponse,
   NextFunction,
   Overwrite,
   RegisteredRoutePath,
+  RegisteredLayoutId,
   RouteDefaultParams,
   RouteDefinition,
   RouteHandler,
   RouteSchemas,
   StatusCode,
+  ValidateLayoutMiddlewareUse,
+  ValidateRouteMiddlewareUse,
 } from "./types.js";
 
 export function toMiddlewareDefinition<TMw>(
   input: TMw,
-): MiddlewareDefinition<
-  InferServicesFromMw<TMw>,
-  InferStateFromMw<TMw>,
-  ExtractParamsFromMiddleware<TMw>,
-  ExtractQueryFromMiddleware<TMw>,
-  ExtractBodyFromMiddleware<TMw>
-> {
+): TMw extends MiddlewareDefinition<any, any, any, any, any, any, any>
+  ? TMw
+  : MiddlewareDefinition<
+      InferServicesFromMw<TMw>,
+      InferStateFromMw<TMw>,
+      ExtractParamsFromMiddleware<TMw>,
+      ExtractQueryFromMiddleware<TMw>,
+      ExtractBodyFromMiddleware<TMw>,
+      ExtractLayoutIdFromMiddleware<TMw>,
+      ExtractPreconditionsFromMiddleware<TMw>
+    > {
   if (typeof input === "function") {
     return {
       kind: "middleware",
@@ -57,51 +70,115 @@ export class MiddlewareBuilder<
   TParams = unknown,
   TQuery = unknown,
   TBody = unknown,
-> implements MiddlewareDefinition<{}, {}, TParams, TQuery, TBody> {
+  TServices = {},
+  TState = {},
+  TLayoutId extends string | undefined = undefined,
+  TRequires extends MiddlewarePreconditions = {},
+> implements MiddlewareDefinition<TServices, TState, TParams, TQuery, TBody, TLayoutId, TRequires> {
   public readonly kind = "middleware" as const;
   public readonly schemas: RouteSchemas = {};
+  public readonly layoutId?: string | undefined;
 
-  readonly _services?: {};
-  readonly _state?: {};
+  readonly _services?: TServices;
+  readonly _state?: TState;
   readonly _params?: TParams;
   readonly _query?: TQuery;
   readonly _body?: TBody;
+  readonly _layoutId?: TLayoutId;
+  readonly _requires?: TRequires;
 
-  constructor() {
+  constructor(layoutId?: string | undefined) {
+    this.layoutId = layoutId;
     this.handler = this.handler.bind(this);
+  }
+
+  requires<TPreconditions extends MiddlewarePreconditions>(): MiddlewareBuilder<
+    TParams,
+    TQuery,
+    TBody,
+    TServices,
+    TState,
+    TLayoutId,
+    TRequires & TPreconditions
+  > {
+    return this as unknown as MiddlewareBuilder<
+      TParams,
+      TQuery,
+      TBody,
+      TServices,
+      TState,
+      TLayoutId,
+      TRequires & TPreconditions
+    >;
   }
 
   params<TSchema extends StandardSchemaV1>(
     schema: TSchema,
-  ): MiddlewareBuilder<StandardSchemaV1.InferOutput<TSchema>, TQuery, TBody> {
+  ): MiddlewareBuilder<
+    StandardSchemaV1.InferOutput<TSchema>,
+    TQuery,
+    TBody,
+    TServices,
+    TState,
+    TLayoutId,
+    TRequires
+  > {
     this.schemas.params = schema;
     return this as unknown as MiddlewareBuilder<
       StandardSchemaV1.InferOutput<TSchema>,
       TQuery,
-      TBody
+      TBody,
+      TServices,
+      TState,
+      TLayoutId,
+      TRequires
     >;
   }
 
   query<TSchema extends StandardSchemaV1>(
     schema: TSchema,
-  ): MiddlewareBuilder<TParams, StandardSchemaV1.InferOutput<TSchema>, TBody> {
+  ): MiddlewareBuilder<
+    TParams,
+    StandardSchemaV1.InferOutput<TSchema>,
+    TBody,
+    TServices,
+    TState,
+    TLayoutId,
+    TRequires
+  > {
     this.schemas.query = schema;
     return this as unknown as MiddlewareBuilder<
       TParams,
       StandardSchemaV1.InferOutput<TSchema>,
-      TBody
+      TBody,
+      TServices,
+      TState,
+      TLayoutId,
+      TRequires
     >;
   }
 
   body<TSchema extends StandardSchemaV1>(
     schema: TSchema,
     mode?: BodyMode,
-  ): MiddlewareBuilder<TParams, TQuery, StandardSchemaV1.InferOutput<TSchema>> {
+  ): MiddlewareBuilder<
+    TParams,
+    TQuery,
+    StandardSchemaV1.InferOutput<TSchema>,
+    TServices,
+    TState,
+    TLayoutId,
+    TRequires
+  > {
     this.schemas.body = { schema, mode };
     return this as unknown as MiddlewareBuilder<
       TParams,
       TQuery,
-      StandardSchemaV1.InferOutput<TSchema>
+      StandardSchemaV1.InferOutput<TSchema>,
+      TServices,
+      TState,
+      TLayoutId,
+      TRequires
     >;
   }
 
@@ -116,29 +193,70 @@ export class MiddlewareBuilder<
   handler<
     F extends (
       args: MiddlewareArgs<
-        {},
-        {},
+        InferLayoutBranchServices<TLayoutId> &
+          (TRequires extends { services?: infer S }
+            ? [S] extends [undefined]
+              ? {}
+              : NonNullable<S>
+            : {}),
+        InferLayoutBranchState<TLayoutId> &
+          (TRequires extends { state?: infer St }
+            ? [St] extends [undefined]
+              ? {}
+              : NonNullable<St>
+            : {}),
         [TParams] extends [never]
-          ? Record<string, string>
+          ? TRequires extends { params?: infer P }
+            ? [P] extends [undefined]
+              ? Record<string, string>
+              : NonNullable<P>
+            : Record<string, string>
           : unknown extends TParams
-            ? Record<string, string>
+            ? TRequires extends { params?: infer P }
+              ? [P] extends [undefined]
+                ? Record<string, string>
+                : NonNullable<P>
+              : Record<string, string>
             : TParams,
         [TQuery] extends [never]
-          ? Record<string, string | string[]>
+          ? TRequires extends { query?: infer Q }
+            ? [Q] extends [undefined]
+              ? Record<string, string | string[]>
+              : NonNullable<Q>
+            : Record<string, string | string[]>
           : unknown extends TQuery
-            ? Record<string, string | string[]>
+            ? TRequires extends { query?: infer Q }
+              ? [Q] extends [undefined]
+                ? Record<string, string | string[]>
+                : NonNullable<Q>
+              : Record<string, string | string[]>
             : TQuery,
-        TBody
+        unknown extends TBody
+          ? TRequires extends { body?: infer B }
+            ? [B] extends [undefined]
+              ? unknown
+              : B
+            : unknown
+          : TBody
       >,
       next: NextFunction,
     ) => any,
   >(
     fn: F,
-  ): MiddlewareDefinition<InferServicesFromMw<F>, InferStateFromMw<F>, TParams, TQuery, TBody>;
+  ): MiddlewareDefinition<
+    InferServicesFromMw<F>,
+    InferStateFromMw<F>,
+    TParams,
+    TQuery,
+    TBody,
+    TLayoutId,
+    TRequires
+  >;
   handler(arg1?: any, arg2?: any): any {
     if (typeof arg1 === "function" && arg2 === undefined) {
       return {
         kind: "middleware",
+        layoutId: this.layoutId,
         handler: arg1 as unknown as MiddlewareHandler,
         schemas: Object.keys(this.schemas).length > 0 ? { ...this.schemas } : undefined,
       };
@@ -150,17 +268,69 @@ export class MiddlewareBuilder<
   }
 }
 
+export function middleware<
+  TLayoutId extends RegisteredLayoutId,
+  F extends (
+    args: MiddlewareArgs<
+      InferLayoutBranchServices<TLayoutId>,
+      InferLayoutBranchState<TLayoutId>,
+      InferLayoutBranchParams<TLayoutId>
+    >,
+    next: NextFunction,
+  ) => any,
+>(
+  layoutId: TLayoutId,
+  fn: F,
+): MiddlewareDefinition<
+  InferServicesFromMw<F>,
+  InferStateFromMw<F>,
+  InferLayoutBranchParams<TLayoutId>,
+  unknown,
+  unknown,
+  TLayoutId,
+  {}
+>;
+export function middleware<TLayoutId extends RegisteredLayoutId>(
+  layoutId: TLayoutId,
+): MiddlewareBuilder<
+  InferLayoutBranchParams<TLayoutId>,
+  unknown,
+  unknown,
+  {},
+  {},
+  TLayoutId,
+  {}
+>;
 export function middleware<F extends (args: MiddlewareArgs<{}, {}>, next: NextFunction) => any>(
   fn: F,
-): MiddlewareDefinition<InferServicesFromMw<F>, InferStateFromMw<F>>;
-export function middleware(): MiddlewareBuilder;
+): MiddlewareDefinition<
+  InferServicesFromMw<F>,
+  InferStateFromMw<F>,
+  unknown,
+  unknown,
+  unknown,
+  undefined,
+  {}
+>;
+export function middleware(): MiddlewareBuilder<unknown, unknown, unknown, {}, {}, undefined, {}>;
 export function middleware(
-  fn?: (...args: any[]) => any,
-): MiddlewareBuilder | MiddlewareDefinition<any, any> {
-  if (fn) {
+  arg1?: any,
+  arg2?: any,
+): MiddlewareBuilder<any, any, any, any, any, any, any> | MiddlewareDefinition<any, any, any, any, any, any, any> {
+  if (typeof arg1 === "string") {
+    if (typeof arg2 === "function") {
+      return {
+        kind: "middleware",
+        layoutId: arg1,
+        handler: arg2 as MiddlewareHandler,
+      };
+    }
+    return new MiddlewareBuilder(arg1);
+  }
+  if (typeof arg1 === "function") {
     return {
       kind: "middleware",
-      handler: fn as MiddlewareHandler,
+      handler: arg1 as MiddlewareHandler,
     };
   }
   return new MiddlewareBuilder();
@@ -267,7 +437,7 @@ export class LayoutBuilder<
 
   use<
     TMw extends
-      | MiddlewareDefinition<any, any, any, any, any>
+      | MiddlewareDefinition<any, any, any, any, any, any, any>
       | ((
           args: MiddlewareArgs<
             InferLayoutServices<TPath> & TServices,
@@ -293,7 +463,15 @@ export class LayoutBuilder<
           next: NextFunction,
         ) => any),
   >(
-    middleware: TMw,
+    middleware: ValidateLayoutMiddlewareUse<
+      TPath,
+      TParams,
+      TQuery,
+      TBody,
+      TServices,
+      TState,
+      TMw
+    >,
   ): LayoutBuilder<
     TPath,
     Overwrite<TParams, ExtractParamsFromMiddleware<TMw>>,
@@ -333,12 +511,13 @@ export class RouteValidationBuilder<
   TQueryIn = TQuery,
   TBodyIn = TBody,
 > {
-  public readonly middlewares: MiddlewareDefinition<any, any, any, any, any>[] = [];
+  public readonly middlewares: MiddlewareDefinition<any, any, any, any, any, any, any>[] = [];
   public readonly schemas: RouteSchemas = {};
 
   constructor(
     public readonly method: TMethod,
     public readonly path: TPath,
+    public readonly methods?: readonly string[] | undefined,
   ) {}
 
   params<TSchema extends StandardSchemaV1>(
@@ -505,6 +684,7 @@ export class RouteValidationBuilder<
     return {
       kind: "route",
       method: this.method,
+      methods: this.methods,
       path: this.path,
       middlewares: [...this.middlewares],
       handler: fn as RouteHandler<any, any, any, any, any>,
@@ -549,13 +729,17 @@ export class RouteBuilder<
   TQueryIn,
   TBodyIn
 > {
-  constructor(method: TMethod, path: TPath) {
-    super(method, path);
+  constructor(
+    method: TMethod,
+    path: TPath,
+    methods?: readonly string[] | undefined,
+  ) {
+    super(method, path, methods);
   }
 
   use<
     TMw extends
-      | MiddlewareDefinition<any, any, any, any, any>
+      | MiddlewareDefinition<any, any, any, any, any, any, any>
       | ((
           args: MiddlewareArgs<
             InferRouteServices<TPath, TMethod> & TRouteServices,
@@ -575,7 +759,16 @@ export class RouteBuilder<
           next: NextFunction,
         ) => any),
   >(
-    middleware: TMw,
+    middleware: ValidateRouteMiddlewareUse<
+      TPath,
+      TMethod,
+      TParams,
+      TQuery,
+      TBody,
+      TRouteServices,
+      TRouteState,
+      TMw
+    >,
   ): RouteBuilder<
     TMethod,
     TPath,
@@ -617,6 +810,23 @@ export const t = {
     new RouteBuilder<"DELETE", TPath>("DELETE", path),
   patch: <TPath extends RegisteredRoutePath>(path: TPath) =>
     new RouteBuilder<"PATCH", TPath>("PATCH", path),
+  options: <TPath extends RegisteredRoutePath>(path: TPath) =>
+    new RouteBuilder<"OPTIONS", TPath>("OPTIONS", path),
+  head: <TPath extends RegisteredRoutePath>(path: TPath) =>
+    new RouteBuilder<"HEAD", TPath>("HEAD", path),
+  query: <TPath extends RegisteredRoutePath>(path: TPath) =>
+    new RouteBuilder<"QUERY", TPath>("QUERY", path),
+  all: <TPath extends RegisteredRoutePath>(path: TPath) =>
+    new RouteBuilder<"ALL", TPath>("ALL", path),
+  any: <TPath extends RegisteredRoutePath, const TMethods extends readonly string[]>(
+    path: TPath,
+    methods: TMethods,
+  ) =>
+    new RouteBuilder<"ANY", TPath>(
+      "ANY",
+      path,
+      methods.map((m) => m.toUpperCase()),
+    ),
   layout,
   middleware,
   hono,

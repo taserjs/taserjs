@@ -17,6 +17,15 @@ import type {
 
 const EMPTY_STATE: Record<string, unknown> = Object.freeze({});
 
+function syncCtxState(
+  ctx: Record<string, unknown>,
+  state: Record<string, unknown>,
+  services?: Record<string, unknown> | undefined,
+): void {
+  (ctx as any).state = state;
+  (ctx as any).services = services ?? {};
+}
+
 export function hasSchemas(schemas?: RouteSchemas | undefined): boolean {
   return Boolean(schemas && (schemas.params || schemas.query || schemas.body));
 }
@@ -156,7 +165,8 @@ export function createPipeline(
         req: TaserRequest,
         ctx: Record<string, unknown>,
       ): Response | Promise<Response> {
-        return executeTerminal({ req, ctx, state: EMPTY_STATE });
+        syncCtxState(ctx, EMPTY_STATE);
+        return executeTerminal({ req, ctx, state: EMPTY_STATE, params: req.params, query: req.query });
       };
     }
 
@@ -165,8 +175,9 @@ export function createPipeline(
       ctx: Record<string, unknown>,
     ): Promise<Response> {
       const honoContext = ctx.context as Context | undefined;
+      syncCtxState(ctx, EMPTY_STATE);
       return validateSchemas(routeSchemas, req, honoContext).then(() =>
-        executeTerminal({ req, ctx, state: EMPTY_STATE }),
+        executeTerminal({ req, ctx, state: EMPTY_STATE, params: req.params, query: req.query }),
       );
     };
   }
@@ -188,9 +199,10 @@ export function createPipeline(
         }
         called = true;
         currentState = nextState ? { ...currentState, ...nextState } : currentState;
+        syncCtxState(ctx, currentState, currentServices);
         const handlerArgs = currentServices
-          ? { req, ctx, state: currentState, ...currentServices }
-          : { req, ctx, state: currentState };
+          ? { req, ctx, state: currentState, params: req.params, query: req.query, ...currentServices }
+          : { req, ctx, state: currentState, params: req.params, query: req.query };
         return await executeTerminal(handlerArgs);
       }) as NextFunction;
 
@@ -204,15 +216,22 @@ export function createPipeline(
         called = true;
         currentServices = providedServices;
         currentState = nextState ? { ...currentState, ...nextState } : currentState;
+        syncCtxState(ctx, currentState, currentServices);
         return await executeTerminal({
           req,
           ctx,
           state: currentState,
+          params: req.params,
+          query: req.query,
           ...providedServices,
         });
       };
 
-      const res = await middleware({ req, ctx, state: EMPTY_STATE } as any, next);
+      syncCtxState(ctx, EMPTY_STATE);
+      const res = await middleware(
+        { req, ctx, state: EMPTY_STATE, params: req.params, query: req.query } as any,
+        next,
+      );
       if (!(res instanceof Response)) {
         throw new TypeError(
           `Middleware at index 0 must return a Response, received: ${typeof res}`,
@@ -241,6 +260,7 @@ export function createPipeline(
       currentState = state;
       currentServices = services;
       hasServices = servicesPresent;
+      syncCtxState(ctx, currentState, currentServices);
 
       if (index < middlewares.length) {
         const middleware = middlewares[index]!;
@@ -273,8 +293,8 @@ export function createPipeline(
         };
 
         const middlewareArgs = hasServices
-          ? { req, ctx, state: currentState, ...currentServices }
-          : { req, ctx, state: currentState };
+          ? { req, ctx, state: currentState, params: req.params, query: req.query, ...currentServices }
+          : { req, ctx, state: currentState, params: req.params, query: req.query };
 
         const res = await middleware(middlewareArgs as any, next);
         if (!(res instanceof Response)) {
@@ -291,8 +311,8 @@ export function createPipeline(
       }
 
       const handlerArgs = hasServices
-        ? { req, ctx, state: currentState, ...currentServices }
-        : { req, ctx, state: currentState };
+        ? { req, ctx, state: currentState, params: req.params, query: req.query, ...currentServices }
+        : { req, ctx, state: currentState, params: req.params, query: req.query };
 
       return await executeTerminal(handlerArgs);
     }

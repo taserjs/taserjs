@@ -80,6 +80,51 @@ describe("paths and URL normalization", () => {
       stem: "$id",
     });
 
+    const routeAll = parseFilePath("proxy/$.all.ts", ["ts", "tsx"]);
+    expect(routeAll).toEqual({
+      dir: "proxy",
+      name: "$.all",
+      ext: "ts",
+      verb: "all",
+      stem: "$",
+    });
+
+    const routeAny = parseFilePath("webhook.any.ts", ["ts", "tsx"]);
+    expect(routeAny).toEqual({
+      dir: "",
+      name: "webhook.any",
+      ext: "ts",
+      verb: "any",
+      stem: "webhook",
+    });
+
+    const routeQuery = parseFilePath("search.query.ts", ["ts", "tsx"]);
+    expect(routeQuery).toEqual({
+      dir: "",
+      name: "search.query",
+      ext: "ts",
+      verb: "query",
+      stem: "search",
+    });
+
+    const routeOptions = parseFilePath("cors.options.ts", ["ts", "tsx"]);
+    expect(routeOptions).toEqual({
+      dir: "",
+      name: "cors.options",
+      ext: "ts",
+      verb: "options",
+      stem: "cors",
+    });
+
+    const routeHead = parseFilePath("health.head.ts", ["ts", "tsx"]);
+    expect(routeHead).toEqual({
+      dir: "",
+      name: "health.head",
+      ext: "ts",
+      verb: "head",
+      stem: "health",
+    });
+
     const layout = parseFilePath("admin/$.ts", ["ts", "tsx"]);
     expect(layout).toEqual({
       dir: "admin",

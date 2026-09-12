@@ -26,7 +26,17 @@ export interface RouteSchemas {
   returns?: Record<StatusCode, StandardSchemaV1> | undefined;
 }
 
-export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+export type StandardHttpMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "DELETE"
+  | "PATCH"
+  | "OPTIONS"
+  | "HEAD"
+  | "QUERY";
+
+export type HttpMethod = StandardHttpMethod | "ALL" | "ANY";
 
 type ExtractParamName<T extends string> = T extends `:${infer P}` ? P : never;
 
@@ -70,6 +80,12 @@ export type RegisteredRoutePath = RouterRegister extends { RoutePath: infer P ex
     ? string
     : P
   : string;
+
+export type RegisteredLayoutId = RouterRegister extends { LayoutTree: infer LT }
+  ? [keyof LT] extends [never]
+    ? never
+    : keyof LT & string
+  : never;
 
 export type InferredAppContext = RouterRegister extends { AppContext: infer C }
   ? C
@@ -335,6 +351,39 @@ export type InferLayoutBody<TPath extends string> = SafeIntersect<
   GetLayoutBody<GetParentLayoutIds<TPath>>
 >;
 
+export type InferLayoutBranchState<LId extends string | undefined> = [LId] extends [undefined]
+  ? {}
+  : [LId] extends [never]
+    ? {}
+    : SafeIntersect<
+        GetLayoutState<NonNullable<LId> | GetParentLayoutIds<NonNullable<LId>>>
+      >;
+
+export type InferLayoutBranchServices<LId extends string | undefined> = [LId] extends [undefined]
+  ? {}
+  : [LId] extends [never]
+    ? {}
+    : SafeIntersect<
+        GetLayoutServices<NonNullable<LId> | GetParentLayoutIds<NonNullable<LId>>>
+      >;
+
+export type InferLayoutBranchParams<LId extends string | undefined> = [LId] extends [undefined]
+  ? {}
+  : [LId] extends [never]
+    ? {}
+    : RouteDefaultParams<NonNullable<LId>> &
+        SafeIntersect<
+          GetLayoutParams<NonNullable<LId> | GetParentLayoutIds<NonNullable<LId>>>
+        >;
+
+export interface MiddlewarePreconditions {
+  state?: Record<string, any> | undefined;
+  services?: Record<string, any> | undefined;
+  params?: Record<string, any> | undefined;
+  query?: Record<string, any> | undefined;
+  body?: any;
+}
+
 export type InferEffectiveParams<
   TPath extends string,
   TMethod extends HttpMethod,
@@ -414,18 +463,23 @@ export interface MiddlewareDefinition<
   TParams = unknown,
   TQuery = unknown,
   TBody = unknown,
+  TLayoutId extends string | undefined = undefined,
+  TRequires extends MiddlewarePreconditions = {},
 > {
   readonly kind: "middleware";
   readonly handler: MiddlewareHandler<any, any, any, any, any>;
   readonly schemas?: RouteSchemas | undefined;
+  readonly layoutId?: string | undefined;
   readonly _services?: TServices;
   readonly _state?: TState;
   readonly _params?: TParams;
   readonly _query?: TQuery;
   readonly _body?: TBody;
+  readonly _layoutId?: TLayoutId;
+  readonly _requires?: TRequires;
 }
 
-export type MiddlewareInput = MiddlewareHandler | MiddlewareDefinition<any, any, any, any, any>;
+export type MiddlewareInput = MiddlewareHandler | MiddlewareDefinition<any, any, any, any, any, any, any>;
 
 export interface LayoutDefinition<
   TPath extends string = string,
@@ -437,7 +491,7 @@ export interface LayoutDefinition<
 > {
   readonly kind: "layout";
   readonly path: TPath;
-  readonly middlewares: readonly MiddlewareDefinition<any, any, any, any, any>[];
+  readonly middlewares: readonly MiddlewareDefinition<any, any, any, any, any, any, any>[];
   readonly schemas?: RouteSchemas | undefined;
   readonly _services?: TServices;
   readonly _state?: TState;
@@ -459,8 +513,9 @@ export interface RouteDefinition<
 > {
   readonly kind: "route";
   readonly method: HttpMethod;
+  readonly methods?: readonly string[] | undefined;
   readonly path: TPath;
-  readonly middlewares?: readonly MiddlewareDefinition<any, any>[] | undefined;
+  readonly middlewares?: readonly MiddlewareDefinition<any, any, any, any, any, any, any>[] | undefined;
   readonly handler: RouteHandler<any, any, any, any, any>;
   readonly schemas?: RouteSchemas | undefined;
   readonly returns?: Record<StatusCode, StandardSchemaV1> | undefined;
@@ -481,6 +536,221 @@ export interface RouteDefinition<
     Output: TReturns;
   };
 }
+
+export type ExtractPreconditionsFromMiddleware<TMw> = TMw extends {
+  readonly _requires?: infer R;
+}
+  ? [R] extends [MiddlewarePreconditions]
+    ? R
+    : {}
+  : TMw extends MiddlewareDefinition<any, any, any, any, any, any, infer R>
+    ? [R] extends [MiddlewarePreconditions]
+      ? R
+      : {}
+    : {};
+
+export type ExtractLayoutIdFromMiddleware<TMw> = TMw extends {
+  readonly _layoutId?: infer L;
+}
+  ? [L] extends [string]
+    ? L
+    : undefined
+  : TMw extends MiddlewareDefinition<any, any, any, any, any, infer L, any>
+    ? [L] extends [string]
+      ? L
+      : undefined
+    : undefined;
+
+export type IsBranchAllowedForLayout<
+  TCurrentLayoutPath extends string,
+  TTargetLayoutId extends string | undefined,
+> = [TTargetLayoutId] extends [undefined]
+  ? true
+  : [TTargetLayoutId] extends [never]
+    ? true
+    : string extends TTargetLayoutId
+      ? true
+      : string extends TCurrentLayoutPath
+        ? true
+        : TTargetLayoutId extends TCurrentLayoutPath
+          ? true
+          : RouterRegister extends { LayoutHierarchy: infer LH }
+            ? TCurrentLayoutPath extends keyof LH
+              ? TTargetLayoutId extends GetParentLayoutIds<TCurrentLayoutPath>
+                ? true
+                : false
+              : false
+            : true;
+
+export type IsBranchAllowedForRoute<
+  TRoutePath extends string,
+  TMethod extends HttpMethod,
+  TTargetLayoutId extends string | undefined,
+> = [TTargetLayoutId] extends [undefined]
+  ? true
+  : [TTargetLayoutId] extends [never]
+    ? true
+    : string extends TTargetLayoutId
+      ? true
+      : string extends TRoutePath
+        ? true
+        : RouterRegister extends { RouteByPathMethod: infer R }
+          ? TRoutePath extends keyof R
+            ? TMethod extends keyof R[TRoutePath]
+              ? TTargetLayoutId extends GetRouteLayoutIds<TRoutePath, TMethod>
+                ? true
+                : false
+              : false
+            : false
+          : true;
+
+export type CheckFacetPrecondition<TAvailable, TRequired> = [TRequired] extends [never]
+  ? true
+  : [TRequired] extends [undefined]
+    ? true
+    : unknown extends TRequired
+      ? true
+      : [Exclude<TRequired, undefined>] extends [never]
+        ? true
+        : [TAvailable] extends [never]
+          ? false
+          : TAvailable extends Exclude<TRequired, undefined>
+            ? true
+            : false;
+
+export type CheckMiddlewarePreconditions<
+  TState,
+  TServices,
+  TParams,
+  TQuery,
+  TBody,
+  TRequires extends MiddlewarePreconditions,
+> = CheckFacetPrecondition<TState, TRequires["state"]> extends false
+  ? false
+  : CheckFacetPrecondition<TServices, TRequires["services"]> extends false
+    ? false
+    : CheckFacetPrecondition<TParams, TRequires["params"]> extends false
+      ? false
+      : CheckFacetPrecondition<TQuery, TRequires["query"]> extends false
+        ? false
+        : CheckFacetPrecondition<TBody, TRequires["body"]> extends false
+          ? false
+          : true;
+
+export type CompileError<TMessage extends string> = {
+  readonly __compile_error: TMessage;
+} & never;
+
+export type ValidateRouteMiddlewareUse<
+  TPath extends string,
+  TMethod extends HttpMethod,
+  TParams,
+  TQuery,
+  TBody,
+  TRouteServices,
+  TRouteState,
+  TMw,
+> = TMw extends {
+  readonly _layoutId?: infer L extends string | undefined;
+  readonly _requires?: infer R extends MiddlewarePreconditions;
+}
+  ? IsBranchAllowedForRoute<TPath, TMethod, L> extends false
+    ? CompileError<`Cannot mount layout-scoped middleware: route "${TPath}" is outside layout branch "${NonNullable<L>}"`>
+    : CheckMiddlewarePreconditions<
+        InferRouteState<TPath, TMethod> & TRouteState,
+        InferRouteServices<TPath, TMethod> & TRouteServices,
+        [TParams] extends [never]
+          ? Record<string, string>
+          : unknown extends TParams
+            ? Record<string, string>
+            : TParams,
+        [TQuery] extends [never]
+          ? Record<string, string | string[]>
+          : unknown extends TQuery
+            ? Record<string, string | string[]>
+            : TQuery,
+        TBody,
+        R
+      > extends false
+      ? CompileError<`Cannot mount middleware: route does not satisfy declared preconditions`>
+      : TMw
+  : TMw extends MiddlewareDefinition<any, any, any, any, any, infer L, infer R>
+    ? IsBranchAllowedForRoute<TPath, TMethod, L> extends false
+      ? CompileError<`Cannot mount layout-scoped middleware: route "${TPath}" is outside layout branch "${NonNullable<L>}"`>
+      : CheckMiddlewarePreconditions<
+          InferRouteState<TPath, TMethod> & TRouteState,
+          InferRouteServices<TPath, TMethod> & TRouteServices,
+          [TParams] extends [never]
+            ? Record<string, string>
+            : unknown extends TParams
+              ? Record<string, string>
+              : TParams,
+          [TQuery] extends [never]
+            ? Record<string, string | string[]>
+            : unknown extends TQuery
+              ? Record<string, string | string[]>
+              : TQuery,
+          TBody,
+          R
+        > extends false
+        ? CompileError<`Cannot mount middleware: route does not satisfy declared preconditions`>
+        : TMw
+    : TMw;
+
+export type ValidateLayoutMiddlewareUse<
+  TPath extends string,
+  TParams,
+  TQuery,
+  TBody,
+  TServices,
+  TState,
+  TMw,
+> = TMw extends {
+  readonly _layoutId?: infer L extends string | undefined;
+  readonly _requires?: infer R extends MiddlewarePreconditions;
+}
+  ? IsBranchAllowedForLayout<TPath, L> extends false
+    ? CompileError<`Cannot mount layout-scoped middleware: layout "${TPath}" is outside layout branch "${NonNullable<L>}"`>
+    : CheckMiddlewarePreconditions<
+        InferLayoutState<TPath> & TState,
+        InferLayoutServices<TPath> & TServices,
+        [TParams] extends [never]
+          ? Record<string, string>
+          : unknown extends TParams
+            ? Record<string, string>
+            : TParams,
+        [TQuery] extends [never]
+          ? Record<string, string | string[]>
+          : unknown extends TQuery
+            ? Record<string, string | string[]>
+            : TQuery,
+        TBody,
+        R
+      > extends false
+      ? CompileError<`Cannot mount middleware: layout does not satisfy declared preconditions`>
+      : TMw
+  : TMw extends MiddlewareDefinition<any, any, any, any, any, infer L, infer R>
+    ? IsBranchAllowedForLayout<TPath, L> extends false
+      ? CompileError<`Cannot mount layout-scoped middleware: layout "${TPath}" is outside layout branch "${NonNullable<L>}"`>
+      : CheckMiddlewarePreconditions<
+          InferLayoutState<TPath> & TState,
+          InferLayoutServices<TPath> & TServices,
+          [TParams] extends [never]
+            ? Record<string, string>
+            : unknown extends TParams
+              ? Record<string, string>
+              : TParams,
+          [TQuery] extends [never]
+            ? Record<string, string | string[]>
+            : unknown extends TQuery
+              ? Record<string, string | string[]>
+              : TQuery,
+          TBody,
+          R
+        > extends false
+        ? CompileError<`Cannot mount middleware: layout does not satisfy declared preconditions`>
+        : TMw
+    : TMw;
 
 export interface ContextOptions<
   TBoot extends Record<string, unknown> = Record<string, unknown>,
