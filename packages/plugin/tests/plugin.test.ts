@@ -404,8 +404,16 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
 
     it("detectHostServer prioritizes server.node.ts over server.ts if both exist", () => {
       const serverDir = join(tempDir, "src");
-      writeFileSync(join(serverDir, "server.node.ts"), "export default (req, res) => res.end();", "utf-8");
-      writeFileSync(join(serverDir, "server.ts"), "export default (req) => new Response();", "utf-8");
+      writeFileSync(
+        join(serverDir, "server.node.ts"),
+        "export default (req, res) => res.end();",
+        "utf-8",
+      );
+      writeFileSync(
+        join(serverDir, "server.ts"),
+        "export default (req) => new Response();",
+        "utf-8",
+      );
 
       const result = detectHostServer(serverDir);
       expect(result).toEqual({
@@ -470,7 +478,10 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
       const routesGenPath = join(outputDir, "routes.gen.ts");
       const hostPath = join(tempDir, "src", "server.ts");
 
-      const code = buildNitroMiddlewareHandlerSource(routesGenPath, { type: "fetch", path: hostPath });
+      const code = buildNitroMiddlewareHandlerSource(routesGenPath, {
+        type: "fetch",
+        path: hostPath,
+      });
       expect(code).toContain('taserApp.all("*", (c) => hostFetch(c.req.raw));');
     });
 

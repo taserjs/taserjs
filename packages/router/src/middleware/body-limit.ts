@@ -12,8 +12,7 @@ export interface BodyLimitOptions {
 }
 
 export function bodyLimit(options: BodyLimitOptions): MiddlewareDefinition {
-  const onError =
-    options.onError ?? (() => payloadTooLarge({ message: "Payload Too Large" }));
+  const onError = options.onError ?? (() => payloadTooLarge({ message: "Payload Too Large" }));
   const honoMw = honoBodyLimit({
     maxSize: options.maxSize,
     onError,

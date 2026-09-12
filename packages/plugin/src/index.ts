@@ -38,12 +38,7 @@ const NODE_SERVER_CANDIDATES = [
   "server.node.cjs",
 ];
 
-const FETCH_SERVER_CANDIDATES = [
-  "server.ts",
-  "server.js",
-  "server.mjs",
-  "server.cjs",
-];
+const FETCH_SERVER_CANDIDATES = ["server.ts", "server.js", "server.mjs", "server.cjs"];
 
 export function detectHostServer(
   serverDir: string,
@@ -200,11 +195,7 @@ export function resolveHostFetchHandler(
   return typeof rawHost === "function" ? (rawHost as any) : null;
 }
 
-export function mountHostFallback(
-  app: any,
-  hostMod: unknown,
-  type: "node" | "fetch",
-): boolean {
+export function mountHostFallback(app: any, hostMod: unknown, type: "node" | "fetch"): boolean {
   if (!app || typeof app.all !== "function" || app._hasHostFallback) {
     return false;
   }
@@ -457,11 +448,7 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
           const serverDir = resolveServerDir(config, cwd);
           const appFile = resolveAppFile(config, cwd);
 
-          if (
-            file === appFile ||
-            isSubPath(file, routesDir) ||
-            isSubPath(file, serverDir)
-          ) {
+          if (file === appFile || isSubPath(file, routesDir) || isSubPath(file, serverDir)) {
             triggerDebouncedGeneration();
           }
         };

@@ -1,7 +1,4 @@
-import {
-  compress as honoCompress,
-  COMPRESSIBLE_CONTENT_TYPE_REGEX,
-} from "hono/compress";
+import { compress as honoCompress, COMPRESSIBLE_CONTENT_TYPE_REGEX } from "hono/compress";
 import { hono } from "../hono.js";
 import type { MiddlewareDefinition } from "../types.js";
 

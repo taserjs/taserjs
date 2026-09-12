@@ -166,7 +166,13 @@ export function createPipeline(
         ctx: Record<string, unknown>,
       ): Response | Promise<Response> {
         syncCtxState(ctx, EMPTY_STATE);
-        return executeTerminal({ req, ctx, state: EMPTY_STATE, params: req.params, query: req.query });
+        return executeTerminal({
+          req,
+          ctx,
+          state: EMPTY_STATE,
+          params: req.params,
+          query: req.query,
+        });
       };
     }
 
@@ -201,7 +207,14 @@ export function createPipeline(
         currentState = nextState ? { ...currentState, ...nextState } : currentState;
         syncCtxState(ctx, currentState, currentServices);
         const handlerArgs = currentServices
-          ? { req, ctx, state: currentState, params: req.params, query: req.query, ...currentServices }
+          ? {
+              req,
+              ctx,
+              state: currentState,
+              params: req.params,
+              query: req.query,
+              ...currentServices,
+            }
           : { req, ctx, state: currentState, params: req.params, query: req.query };
         return await executeTerminal(handlerArgs);
       }) as NextFunction;
@@ -293,7 +306,14 @@ export function createPipeline(
         };
 
         const middlewareArgs = hasServices
-          ? { req, ctx, state: currentState, params: req.params, query: req.query, ...currentServices }
+          ? {
+              req,
+              ctx,
+              state: currentState,
+              params: req.params,
+              query: req.query,
+              ...currentServices,
+            }
           : { req, ctx, state: currentState, params: req.params, query: req.query };
 
         const res = await middleware(middlewareArgs as any, next);
@@ -311,7 +331,14 @@ export function createPipeline(
       }
 
       const handlerArgs = hasServices
-        ? { req, ctx, state: currentState, params: req.params, query: req.query, ...currentServices }
+        ? {
+            req,
+            ctx,
+            state: currentState,
+            params: req.params,
+            query: req.query,
+            ...currentServices,
+          }
         : { req, ctx, state: currentState, params: req.params, query: req.query };
 
       return await executeTerminal(handlerArgs);

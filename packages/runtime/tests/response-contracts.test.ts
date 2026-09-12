@@ -10,7 +10,9 @@ import { json, ok } from "@taserjs/router/reply";
 import { createTaserApp } from "../src/index.js";
 
 function createTestSchema<T>(
-  validateFn: (val: unknown) => { value: T } | { issues: Array<{ message: string; path?: Array<string | number> }> },
+  validateFn: (
+    val: unknown,
+  ) => { value: T } | { issues: Array<{ message: string; path?: Array<string | number> }> },
 ): StandardSchemaV1<unknown, T> {
   return {
     "~standard": {

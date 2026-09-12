@@ -509,7 +509,11 @@ export default {
     });
     expect(hostPostRes.status).toBe(200);
     const hostPostBody = await hostPostRes.json();
-    expect(hostPostBody).toEqual({ host: "fetch-native", method: "POST", body: { action: "deploy" } });
+    expect(hostPostBody).toEqual({
+      host: "fetch-native",
+      method: "POST",
+      body: { action: "deploy" },
+    });
 
     // D. Unmatched PUT falls through to Fetch host
     const hostPutRes = await fetch(`http://localhost:${port}/host-info`, {

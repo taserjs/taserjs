@@ -135,8 +135,7 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
         }
         try {
           const req = createTaserRequest(c, targetPath, isStatic);
-          const activePipeline =
-            c.req.method === "HEAD" && headPipeline ? headPipeline : pipeline;
+          const activePipeline = c.req.method === "HEAD" && headPipeline ? headPipeline : pipeline;
           const syncCtx = resolveContextSync(c);
           if (syncCtx) {
             const res = activePipeline(req, syncCtx);

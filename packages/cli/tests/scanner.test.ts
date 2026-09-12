@@ -291,7 +291,9 @@ describe("route scanner and AST validation", () => {
     const result = scanRoutes({ routesDir, cwd: tempDir });
     expect(result.diagnostics).toHaveLength(1);
     expect(result.diagnostics[0]?.message).toMatch(/Mismatched HTTP method/);
-    expect(result.diagnostics[0]?.message).toMatch(/File name specifies verb "\.all", but default export defines "t\.get\(\.\.\.\)"/);
+    expect(result.diagnostics[0]?.message).toMatch(
+      /File name specifies verb "\.all", but default export defines "t\.get\(\.\.\.\)"/,
+    );
   });
 
   it("reports diagnostic error when t.any is missing methods array argument", () => {
@@ -305,7 +307,9 @@ describe("route scanner and AST validation", () => {
 
     const result = scanRoutes({ routesDir, cwd: tempDir });
     expect(result.diagnostics).toHaveLength(1);
-    expect(result.diagnostics[0]?.message).toMatch(/must provide an array of HTTP methods as the second argument/);
+    expect(result.diagnostics[0]?.message).toMatch(
+      /must provide an array of HTTP methods as the second argument/,
+    );
   });
 
   it("scaffolds empty .all.ts and .any.ts files correctly", () => {

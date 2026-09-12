@@ -830,7 +830,9 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
 
       // Also disallows after chaining .params() or .query()
       // @ts-expect-error GET routes do not accept request bodies even after .params()
-      t.get("/items/:id").params(mockSchema({ id: "1" })).body(mockSchema({ foo: "bar" }));
+      t.get("/items/:id")
+        .params(mockSchema({ id: "1" }))
+        .body(mockSchema({ foo: "bar" }));
 
       // Also disallows on HEAD routes
       // @ts-expect-error HEAD routes do not accept request bodies

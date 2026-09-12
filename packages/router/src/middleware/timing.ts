@@ -1,10 +1,4 @@
-import {
-  timing as honoTiming,
-  startTime,
-  endTime,
-  setMetric,
-  wrapTime,
-} from "hono/timing";
+import { timing as honoTiming, startTime, endTime, setMetric, wrapTime } from "hono/timing";
 import type { TimingVariables } from "hono/timing";
 import { hono } from "../hono.js";
 import type { MiddlewareDefinition } from "../types.js";

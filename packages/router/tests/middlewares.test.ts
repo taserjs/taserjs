@@ -178,11 +178,7 @@ describe("First-Party Typed Middlewares Suite", () => {
       privateJwk.alg = "RS256";
       privateJwk.kid = "test-key-1";
 
-      const token = await sign(
-        { sub: "jwk_user", email: "user@taserjs.dev" },
-        privateJwk,
-        "RS256",
-      );
+      const token = await sign({ sub: "jwk_user", email: "user@taserjs.dev" }, privateJwk, "RS256");
 
       const mw = jwk<{ sub: string; email: string }>({
         keys: [publicJwk],
@@ -216,7 +212,10 @@ describe("First-Party Typed Middlewares Suite", () => {
       });
 
       const req = createDummyRequest("http://localhost/api/profile");
-      const res = await mw.handler({ req, ctx: {} }, createNext(async () => new Response("ok")));
+      const res = await mw.handler(
+        { req, ctx: {} },
+        createNext(async () => new Response("ok")),
+      );
 
       expect(res.status).toBe(401);
     });
@@ -304,7 +303,10 @@ describe("First-Party Typed Middlewares Suite", () => {
         body: "12345678901234567890",
       });
 
-      const res = await mw.handler({ req, ctx: {} }, createNext(async () => new Response("ok")));
+      const res = await mw.handler(
+        { req, ctx: {} },
+        createNext(async () => new Response("ok")),
+      );
 
       expect(res.status).toBe(413);
       expect(await res.text()).toBe("file too large");
