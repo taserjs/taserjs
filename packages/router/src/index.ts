@@ -57,6 +57,7 @@ export type {
   ExtractStateFromMiddleware,
   InferRouteServices,
   InferRouteState,
+  InferMiddlewareArgs,
   InferReturnsResponse,
   NotFoundHandler,
   OnErrorHandler,

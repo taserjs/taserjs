@@ -18,6 +18,7 @@ import type {
   InferLayoutQuery,
   InferLayoutServices,
   InferLayoutState,
+  InferMiddlewareArgs,
   InferReturnsResponse,
   InferRouteBody,
   InferRouteQuery,
@@ -192,53 +193,7 @@ export class MiddlewareBuilder<
     | Promise<MiddlewareResponse<any, any>>;
   handler<
     F extends (
-      args: MiddlewareArgs<
-        InferLayoutBranchServices<TLayoutId> &
-          (TRequires extends { services?: infer S }
-            ? [S] extends [undefined]
-              ? {}
-              : NonNullable<S>
-            : {}),
-        InferLayoutBranchState<TLayoutId> &
-          (TRequires extends { state?: infer St }
-            ? [St] extends [undefined]
-              ? {}
-              : NonNullable<St>
-            : {}),
-        [TParams] extends [never]
-          ? TRequires extends { params?: infer P }
-            ? [P] extends [undefined]
-              ? Record<string, string>
-              : NonNullable<P>
-            : Record<string, string>
-          : unknown extends TParams
-            ? TRequires extends { params?: infer P }
-              ? [P] extends [undefined]
-                ? Record<string, string>
-                : NonNullable<P>
-              : Record<string, string>
-            : TParams,
-        [TQuery] extends [never]
-          ? TRequires extends { query?: infer Q }
-            ? [Q] extends [undefined]
-              ? Record<string, string | string[]>
-              : NonNullable<Q>
-            : Record<string, string | string[]>
-          : unknown extends TQuery
-            ? TRequires extends { query?: infer Q }
-              ? [Q] extends [undefined]
-                ? Record<string, string | string[]>
-                : NonNullable<Q>
-              : Record<string, string | string[]>
-            : TQuery,
-        unknown extends TBody
-          ? TRequires extends { body?: infer B }
-            ? [B] extends [undefined]
-              ? unknown
-              : B
-            : unknown
-          : TBody
-      >,
+      args: InferMiddlewareArgs<TLayoutId, TParams, TQuery, TBody, TRequires>,
       next: NextFunction,
     ) => any,
   >(

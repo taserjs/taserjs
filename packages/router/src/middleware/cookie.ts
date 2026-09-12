@@ -104,11 +104,11 @@ export class TaserCookieJar {
       : [];
   }
 
-  flush(res: Response): Response {
+  flush<TRes extends Response>(res: TRes): TRes {
     if (!this.#dirty) {
       return res;
     }
-    return mergeResponseCookies(this.#c, res);
+    return mergeResponseCookies(this.#c, res) as TRes;
   }
 }
 
@@ -124,5 +124,5 @@ export function cookie(
     const jar = new TaserCookieJar(c, options);
     const res = await next.provide({ cookies: jar });
     return jar.flush(res);
-  }) as unknown as MiddlewareDefinition<{ cookies: TaserCookieJar }>;
+  });
 }
