@@ -129,11 +129,11 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
   "responses/reply-helpers":
     "Send clean, status-discriminated HTTP responses with tree-shakeable json(), ok(), notFound(), and redirect().",
   "responses/cookies":
-    "Read, set, sign, and delete HTTP cookies using ctx.cookies. Configure global defaults, HMAC signing, and __Host- / __Secure- prefixes.",
+    "Mount cookie() middleware to get a Cookie Jar Instance. Read, set, sign, and delete HTTP cookies from handlers.",
   "responses/response-contracts":
     "Enforce strict compile-time return guarantees with .returns(). Guarantee 100% type safety and eliminate response drift.",
   "responses/streaming-and-files":
-    "Stream binary chunks, SSE events, Web ReadableStreams, and disk files safely using stream.pipe() and stream.file().",
+    "Stream Web ReadableStreams, binary buffers, Blobs, and Server-Sent Events with pipe, buffer, blob, and sse.",
   "responses/error-handling":
     "Centralize unhandled runtime crashes with defineTaser().onError() and customize 404s with .notFound(). Validation and response contracts bypass onError.",
   "middleware/cors":
@@ -184,7 +184,7 @@ export const docsImageAlts: Record<string, string> = {
   "responses/reply-helpers": "Taser.js Docs: Status Reply Helpers",
   "responses/cookies": "Taser.js Docs: Cookie and Signed Cookie Management",
   "responses/response-contracts": "Taser.js Docs: Compile-Time Response Contracts",
-  "responses/streaming-and-files": "Taser.js Docs: Streaming and File Responses",
+  "responses/streaming-and-files": "Taser.js Docs: Streaming and Web Payloads",
   "responses/error-handling": "Taser.js Docs: Global Error Handling",
   "middleware/cors": "Taser.js Docs: CORS Middleware Configuration",
   "middleware/jwt-and-jwk": "Taser.js Docs: JWT and JWKS Authentication",

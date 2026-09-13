@@ -21,13 +21,13 @@ Creates a new `TaserRouter` builder instance.
 function createTaserApp(options?: CreateTaserAppOptions): TaserRouter;
 ```
 
-#### Options (`CreateTaserAppOptions`)
+#### Options (`TaserAppOptions` on `defineTaser`)
 
 <TypeTable
   type={{
     "response.validate": {
       description:
-        "Enables runtime validation of outgoing response bodies against .returns() schemas.",
+        "Enables runtime validation of outgoing response bodies against .returns() schemas (disabled in production).",
       type: "boolean",
       default: "true",
     },
@@ -36,12 +36,13 @@ function createTaserApp(options?: CreateTaserAppOptions): TaserRouter;
         "Custom callback triggered when a handler response does not match its declared schema.",
       type: "(info: { status: number; issues: unknown[]; data: unknown }) => void",
     },
-    cookies: {
-      description: "Global cookie options for cookie serialization.",
-      type: "CookieOptions",
-    },
   }}
 />
+
+<Callout type="info" title="Cookies are middleware, not defineTaser options">
+  Mount `cookie({ secret, ... })` from `@taserjs/router/middleware/cookie` on a layout. See
+  [Cookie Management](/docs/responses/cookies).
+</Callout>
 
 ---
 
@@ -257,123 +258,137 @@ Imported as `import { t } from "@taserjs/router"`. `t` provides builder factory 
 <TypeTable
   type={{
     json: {
-      description: "Returns a JSON serialized response with application/json header.",
-      type: "<T>(data: T, init?: ReplyInit) => ReplyOf<200, T>",
+      description: "JSON response with application/json; charset=utf-8.",
+      type: "<T>(data: T, init?: ResponseInit) => TypedResponse<T, status>",
     },
     text: {
-      description: "Returns a plain text response with text/plain header.",
-      type: "(text: string, init?: ReplyInit) => ReplyOf<200, string>",
+      description: "Plain text response with text/plain; charset=utf-8.",
+      type: "(data: string, init?: ResponseInit) => TypedResponse<string, status>",
     },
     html: {
-      description: "Returns an HTML response with text/html header.",
-      type: "(html: string, init?: ReplyInit) => ReplyOf<200, string>",
+      description: "HTML response with text/html; charset=utf-8.",
+      type: "(data: string, init?: ResponseInit) => TypedResponse<string, status>",
     },
     noContent: {
-      description: "Returns an empty 204 No Content response.",
-      type: "(init?: ReplyInit) => ReplyOf<204, null>",
+      description: "Empty 204 No Content response.",
+      type: "(init?: ResponseInit) => TypedResponse<null, 204>",
     },
     redirect: {
-      description: "Returns an HTTP redirect (default: 302 Found).",
-      type: "(url: string, init?: RedirectInit) => ReplyOf<302, string>",
+      description: "HTTP redirect (default 302) with Location header.",
+      type: "(url: string | URL, init?: ResponseInit) => TypedResponse<null, status>",
     },
     ok: {
-      description: "Returns a generic 200 OK response.",
-      type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<200, T>",
+      description: "200 OK with auto JSON for plain objects/arrays.",
+      type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 200>",
     },
     created: {
-      description: "Returns a 201 Created response.",
-      type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<201, T>",
+      description: "201 Created.",
+      type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 201>",
     },
     accepted: {
-      description: "Returns a 202 Accepted response.",
-      type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<202, T>",
+      description: "202 Accepted.",
+      type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 202>",
     },
     badRequest: {
-      description: "Returns a 400 Bad Request error response.",
-      type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<400, T>",
+      description: "400 Bad Request.",
+      type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 400>",
     },
     unauthorized: {
-      description: "Returns a 401 Unauthorized error response.",
-      type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<401, T>",
+      description: "401 Unauthorized.",
+      type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 401>",
     },
     forbidden: {
-      description: "Returns a 403 Forbidden error response.",
-      type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<403, T>",
+      description: "403 Forbidden.",
+      type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 403>",
     },
     notFound: {
-      description: "Returns a 404 Not Found error response.",
-      type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<404, T>",
+      description: "404 Not Found.",
+      type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 404>",
+    },
+    methodNotAllowed: {
+      description: "405 Method Not Allowed.",
+      type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 405>",
     },
     conflict: {
-      description: "Returns a 409 Conflict error response.",
-      type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<409, T>",
+      description: "409 Conflict.",
+      type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 409>",
     },
-    unprocessableEntity: {
-      description: "Returns a 422 Unprocessable Entity validation failure response.",
-      type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<422, T>",
+    payloadTooLarge: {
+      description: "413 Payload Too Large.",
+      type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 413>",
+    },
+    unprocessable: {
+      description: "422 Unprocessable Entity (validation failures).",
+      type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 422>",
+    },
+    tooManyRequests: {
+      description: "429 Too Many Requests.",
+      type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 429>",
     },
     internalServerError: {
-      description: "Returns a 500 Internal Server Error response.",
-      type: "<T>(data?: T, init?: ReplyInit) => ReplyOf<500, T>",
+      description: "500 Internal Server Error.",
+      type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 500>",
     },
   }}
 />
 
 ---
 
-## `stream` Helpers Reference
+## `stream` Helpers (`@taserjs/router/stream`)
+
+Edge-compatible Web Standard helpers (no filesystem `file()` helper):
 
 <TypeTable
   type={{
-    "stream.pipe": {
-      description: "Pipes a Web ReadableStream or Node.js ReadableStream to the client.",
-      type: "(stream: ReadableStream | NodeJS.ReadableStream, init?: ReplyInit) => ReplyOf<200, null>",
+    pipe: {
+      description: "Wrap a Web ReadableStream in a Response.",
+      type: "(stream: ReadableStream, init?: ResponseInit) => Response",
     },
-    "stream.buffer": {
-      description: "Sends raw binary data (Uint8Array, ArrayBuffer, or Buffer).",
-      type: "(data: Uint8Array | Buffer, init?: ReplyInit) => ReplyOf<200, BinaryBody>",
+    buffer: {
+      description: "Send ArrayBuffer or Uint8Array (default content-type application/octet-stream).",
+      type: "(data: ArrayBuffer | Uint8Array, init?: ResponseInit) => Response",
     },
-    "stream.blob": {
-      description: "Sends a Blob instance with automatic content-type preservation.",
-      type: "(blob: Blob, init?: ReplyInit) => ReplyOf<200, Blob>",
+    blob: {
+      description: "Send a Blob, preserving blob.type when content-type is unset.",
+      type: "(data: Blob, init?: ResponseInit) => Response",
     },
-    "stream.file": {
-      description: "Safely streams a file from the filesystem with path traversal protection.",
-      type: "(filePath: string, init?: { root?: string; contentType?: string }) => ReplyOf<200, string>",
+    sse: {
+      description: "Server-Sent Events response with text/event-stream headers.",
+      type: "(callback: (stream: SSEController) => void | Promise<void>, init?: SSEInit) => Response",
+    },
+    formatSSE: {
+      description: "Encode an SSE message or string into Event Stream text.",
+      type: "(msg: SSEMessage | string) => string",
     },
   }}
 />
 
 ---
 
-## `ctx.cookies` (`TaserCookieJar`) Reference
+## `cookie()` Middleware & `TaserCookieJar`
+
+Import `cookie` from `@taserjs/router/middleware/cookie` and mount it on a layout (`t.layout("/*").use(cookie({ secret }))`). Handlers under that layout receive `{ cookies: TaserCookieJar }`.
 
 <TypeTable
   type={{
     "cookies.get": {
-      description: "Reads a cookie by name, with optional 'secure' or 'host' prefix resolution.",
-      type: "(name: string, prefix?: 'secure' | 'host') => string | undefined",
-    },
-    "cookies.getAll": {
-      description: "Returns all parsed request cookies as a key-value record.",
-      type: "() => Record<string, string>",
+      description: "Read one cookie by name, or all cookies when called with no arguments.",
+      type: "(name?: string, prefix?: 'secure' | 'host') => string | Cookie | undefined",
     },
     "cookies.getSigned": {
-      description:
-        "Verifies HMAC signature and returns the signed cookie string value (or false if signature mismatch).",
+      description: "Verify HMAC and return the signed value (false if invalid).",
       type: "(name: string, secret?: string | BufferSource, prefix?: 'secure' | 'host') => Promise<string | false | undefined>",
     },
     "cookies.set": {
-      description: "Sets an HTTP cookie and queues a Set-Cookie header on the response.",
-      type: "(name: string, value: string, options?: CookieOptions) => void",
+      description: "Queue a Set-Cookie header (flushed when middleware unwinds).",
+      type: "(name: string, value: string, options?: CookieOptions) => TaserCookieJar",
     },
     "cookies.setSigned": {
-      description: "Cryptographically signs a cookie with HMAC and queues a Set-Cookie header.",
-      type: "(name: string, value: string, secret?: string | BufferSource, options?: CookieOptions) => Promise<void>",
+      description: "Sign a value and queue a Set-Cookie header.",
+      type: "(name: string, value: string, secretOrOpt?: string | BufferSource | CookieOptions, opt?: CookieOptions) => Promise<TaserCookieJar>",
     },
     "cookies.delete": {
-      description:
-        "Deletes a cookie by issuing an immediate expiration header and returns previous value.",
+      description: "Expire a cookie (Max-Age=0) and return the prior value when present.",
       type: "(name: string, options?: CookieOptions) => string | undefined",
     },
   }}

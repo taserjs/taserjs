@@ -169,8 +169,8 @@ const FLOW_STEPS: FlowStep[] = [
     description:
       "Tree-shakeable reply helpers serialize JSON, set cookies, or stream SSE chunks, while frontend clients consume the endpoint with 1:1 type inference.",
     details: [
-      { label: "Reply Helpers", value: "json(), ok(), notFound(), redirect(), stream.pipe()" },
-      { label: "Cookie Management", value: "ctx.cookies with HMAC signing and encryption" },
+      { label: "Reply Helpers", value: "json(), ok(), notFound(), redirect(), pipe()/sse()" },
+      { label: "Cookie Management", value: "cookie() middleware providing a Cookie Jar Instance" },
       { label: "Typed Client SDK", value: "client.users({ id }).get() narrowing by status" },
     ],
     codeSnippet: {

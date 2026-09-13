@@ -55,7 +55,7 @@ Catch `ValidationError` in a layout middleware `try/catch` before it reaches the
 
 ```ts title="src/routes/$.ts"
 import { ValidationError, middleware, t } from "@taserjs/router";
-import { unprocessableEntity } from "@taserjs/router/reply";
+import { unprocessable } from "@taserjs/router/reply";
 
 const formatValidationErrors = middleware(async (_ctx, next) => {
   try {
@@ -72,7 +72,7 @@ const formatValidationErrors = middleware(async (_ctx, next) => {
         formattedErrors[fieldName].push(issue.message);
       }
 
-      return unprocessableEntity({
+      return unprocessable({
         status: 422,
         message: "The given data was invalid.",
         errors: formattedErrors,

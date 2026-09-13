@@ -171,10 +171,6 @@ export default GET.handler(async (ctx) => {
       description: "Web Standard Headers instance for the incoming request.",
       type: "Headers",
     },
-    cookies: {
-      description: "Built-in cookie jar for reading, setting, signing, and deleting HTTP cookies.",
-      type: "TaserCookieJar",
-    },
     request: {
       description: "Web Standard Request instance for the incoming dispatch.",
       type: "Request",
@@ -185,6 +181,28 @@ export default GET.handler(async (ctx) => {
     },
   }}
 />
+
+### Cookie jar (`cookie()` middleware)
+
+Cookies are not available until you mount `cookie()` on a layout. Handlers under that layout then receive a Cookie Jar Instance as `{ cookies }`:
+
+```ts title="src/routes/$.ts"
+import { cookie } from "@taserjs/router/middleware/cookie";
+import { t } from "@taserjs/router";
+
+export default t.layout("/*").use(
+  cookie({ secret: process.env.COOKIE_SECRET! }),
+);
+```
+
+```ts title="src/routes/me.get.ts"
+import { json } from "@taserjs/router/reply";
+import { t } from "@taserjs/router";
+
+export default t.get("/me").handler(({ cookies }) => {
+  return json({ theme: cookies.get("theme") ?? "light" });
+});
+```
 
 ---
 
