@@ -48,6 +48,16 @@
         "default": "./dist/rollup.js"
       }
     },
+    "./rolldown": {
+      "import": {
+        "types": "./dist/rolldown.d.ts",
+        "default": "./dist/rolldown.js"
+      },
+      "default": {
+        "types": "./dist/rolldown.d.ts",
+        "default": "./dist/rolldown.js"
+      }
+    },
     "./webpack": {
       "import": {
         "types": "./dist/webpack.d.ts",

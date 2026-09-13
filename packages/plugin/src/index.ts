@@ -20,7 +20,6 @@ export const DEFAULT_OUTPUT_IGNORE_PATTERN = "**/.taserjs/**";
 export interface TaserPluginOptions {
   server?: boolean | undefined;
   serverEntry?: string | undefined;
-  serverEntryPath?: string | undefined;
   cwd?: string | undefined;
   config?: string | undefined;
   standalone?: boolean | undefined;
@@ -177,7 +176,7 @@ export function getHostServer(
   options?: TaserPluginOptions,
 ): HostServerInfo | null {
   const serverDir = resolveServerDir(config, cwd);
-  return detectHostServer(serverDir, cwd, options?.serverEntry ?? options?.serverEntryPath);
+  return detectHostServer(serverDir, cwd, options?.serverEntry);
 }
 
 export function resolveHostFetchHandler(

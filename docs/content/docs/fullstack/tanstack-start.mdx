@@ -91,15 +91,16 @@ yarn add -D @taserjs/plugin
     export default defineConfig({
       plugins: [
         taser({
-          serverDir: "src/server", // Directory hosting Taser.js context and routes
-          basePath: "/api",        // URL prefix dispatched to Taser.js
-          server: false,           // Host pass-through mode
+          server: false, // Host pass-through mode
+          config: "./taserjs.config.ts",
         }),
         tanstackStart(),
         viteReact(),
       ],
     });
     ```
+
+    Put `serverDir` in `taserjs.config.ts`. Mount the API with `defineTaser().basePath("/api")`.
 
   </Step>
 
@@ -255,9 +256,8 @@ import { taser } from "@taserjs/plugin/vite";
 export default defineConfig({
   plugins: [
     taser({
-      serverDir: "src/server",
-      basePath: "/api",
       server: false,
+      config: "./taserjs.config.ts",
     }),
     tanstackStart(),
     viteReact(),

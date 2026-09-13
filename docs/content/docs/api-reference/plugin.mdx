@@ -9,7 +9,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 The `@taserjs/plugin` package provides framework adapters and drives generation of `src/.taserjs/routes.gen.ts` during development and builds.
 
-Path layout (`serverDir`, `routesDir`, `outputDir`, `app`) is configured in [`taserjs.config.ts`](/docs/cli) via `@taserjs/cli`. Plugin options below control server integration and which config file to load.
+Path layout (`serverDir`, `routesDir`, `outputDir`, `app`) is configured in [`taserjs.config.ts`](/docs/cli) via `@taserjs/cli`. Runtime URL prefixes use `defineTaser().basePath(...)` — never plugin options.
 
 ---
 
@@ -23,6 +23,7 @@ Path layout (`serverDir`, `routesDir`, `outputDir`, `app`) is configured in [`ta
 | `@taserjs/plugin/webpack`   | Webpack plugin                                    | Webpack                |
 | `@taserjs/plugin/rspack`    | Rspack plugin                                     | Rspack                 |
 | `@taserjs/plugin/rollup`    | Rollup plugin                                     | Rollup                 |
+| `@taserjs/plugin/rolldown`  | Rolldown plugin                                   | Rolldown               |
 | `@taserjs/plugin/esbuild`   | Esbuild plugin                                    | Esbuild                |
 
 <Callout type="info">
@@ -33,7 +34,7 @@ Path layout (`serverDir`, `routesDir`, `outputDir`, `app`) is configured in [`ta
 
 ## Shared Options (`TaserPluginOptions`)
 
-Used by Vite, Nitro, Webpack, Rspack, Rollup, and Esbuild:
+Used by Vite, Nitro, Webpack, Rspack, Rollup, Rolldown, and Esbuild:
 
 ```ts
 import { taser } from "@taserjs/plugin/vite";
@@ -53,12 +54,7 @@ taser({
       default: "true",
     },
     serverEntry: {
-      description: "Optional host server entry (alias: serverEntryPath).",
-      type: "string",
-      default: "undefined",
-    },
-    serverEntryPath: {
-      description: "Alias for serverEntry.",
+      description: "Optional host server entry path. Auto-detects server.ts / server.node.ts under serverDir when omitted.",
       type: "string",
       default: "undefined",
     },
@@ -92,7 +88,7 @@ import { createTaser } from "@taserjs/plugin/next";
 const nextConfig: NextConfig = {};
 
 const withTaser = createTaser({
-  serverDir: "src/server",
+  config: "./taserjs.config.ts",
 });
 
 export default withTaser(nextConfig);
@@ -100,25 +96,19 @@ export default withTaser(nextConfig);
 
 ### `NextTaserOptions`
 
-Extends `TaserPluginOptions`:
+Only project resolution knobs — path layout stays in `taserjs.config.ts`:
 
 <TypeTable
   type={{
-    serverDir: {
-      description: "Server root override (otherwise from taserjs.config.ts).",
+    cwd: {
+      description: "Project root for resolving config and paths.",
       type: "string",
-      default: "from config",
+      default: "process.cwd()",
     },
-    basePath: {
-      description:
-        "Optional URL prefix metadata. Prefer defineTaser().basePath() for runtime mounts and client baseUrl for requests.",
+    config: {
+      description: "Path to taserjs.config.ts (or .js/.mjs/.cjs).",
       type: "string",
       default: "undefined",
-    },
-    extension: {
-      description: "Import extension style for generated routes.gen.ts.",
-      type: "boolean | string",
-      default: "from config",
     },
   }}
 />

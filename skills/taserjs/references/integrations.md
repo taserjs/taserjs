@@ -19,24 +19,23 @@ pnpm add -D @taserjs/router-plugin
 
 ### 2. Configure `next.config.ts`
 
-Wrap your Next.js config using `createTaser` from `@taserjs/router-plugin/next`:
+Wrap your Next.js config using `createTaser` from `@taserjs/plugin/next`:
 
 ```ts
 // next.config.ts
 import type { NextConfig } from "next";
-import { createTaser } from "@taserjs/router-plugin/next";
+import { createTaser } from "@taserjs/plugin/next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 };
 
-const withTaser = createTaser({
-  serverDir: "src/server", // Directory containing Taser.js routes & config
-  basePath: "/api", // URL prefix dispatched to Taser.js
-});
+const withTaser = createTaser();
 
 export default withTaser(nextConfig);
 ```
+
+Paths live in `taserjs.config.ts` (`serverDir`, etc.). Mount the API with `defineTaser().basePath("/api")`.
 
 ### 3. Update `tsconfig.json`
 
@@ -117,20 +116,21 @@ Add `taser()` before `tanstackStart()` with `server: false`:
 import { defineConfig } from "vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
-import { taser } from "@taserjs/router-plugin/vite";
+import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
   plugins: [
     taser({
-      serverDir: "src/server", // Houses Taser.js context & routes
-      basePath: "/api", // URL prefix dispatched to Taser.js
-      server: false, // Let TanStack Start manage the outer HTTP host; Taser.js handles /api routes only
+      server: false, // Let TanStack Start manage the outer HTTP host
+      config: "./taserjs.config.ts",
     }),
     tanstackStart(),
     viteReact(),
   ],
 });
 ```
+
+Paths live in `taserjs.config.ts`. Mount the API with `defineTaser().basePath("/api")`.
 
 ### 3. Update `tsconfig.json`
 

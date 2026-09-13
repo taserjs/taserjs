@@ -20,7 +20,18 @@ describe("@taserjs/plugin next adapter", () => {
     routesDir = join(serverDir, "routes");
     mkdirSync(routesDir, { recursive: true });
 
-    // Write a dummy route
+    writeFileSync(
+      join(tempDir, "taserjs.config.ts"),
+      `export default {
+  serverDir: "src/server",
+  routesDir: "routes",
+  outputDir: ".taserjs",
+  app: "taser.ts",
+};
+`,
+      "utf-8",
+    );
+
     writeFileSync(
       join(routesDir, "ping.get.ts"),
       'import { t } from "@taserjs/router";\nexport default t.get("/ping").handler(() => Response.json({ ping: "pong" }));\n',
@@ -41,10 +52,10 @@ describe("@taserjs/plugin next adapter", () => {
   });
 
   it("executes route generation and injects webpack plugin", async () => {
-    await runNextTaserGeneration(tempDir, { serverDir: "src/server" });
+    await runNextTaserGeneration(tempDir);
     expect(existsSync(join(serverDir, ".taserjs", "routes.gen.ts"))).toBe(true);
 
-    const withTaserWrapper = createTaser({ cwd: tempDir, serverDir: "src/server" });
+    const withTaserWrapper = createTaser({ cwd: tempDir });
     const originalConfig = {
       reactStrictMode: true,
       webpack(config: any) {

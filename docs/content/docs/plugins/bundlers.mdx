@@ -1,6 +1,6 @@
 ---
 title: Bundler Adapters
-description: "Use Taser.js with Webpack, Rspack, Rollup, or Esbuild via @taserjs/plugin subpath exports."
+description: "Use Taser.js with Webpack, Rspack, Rollup, Rolldown, or Esbuild via @taserjs/plugin subpath exports."
 icon: Package
 ---
 
@@ -22,13 +22,13 @@ Taser.js ships the same unplugin implementation for several bundlers. Each adapt
 pnpm add @taserjs/router @taserjs/plugin @taserjs/cli
 ```
 
-Install the bundler you use as a development dependency (`webpack`, `@rspack/core`, `rollup`, or `esbuild`).
+Install the bundler you use as a development dependency (`webpack`, `@rspack/core`, `rollup`, `rolldown`, or `esbuild`).
 
 ---
 
 ## Usage
 
-<Tabs items={["Webpack", "Rspack", "Rollup", "Esbuild"]}>
+<Tabs items={["Webpack", "Rspack", "Rollup", "Rolldown", "Esbuild"]}>
   <Tab value="Webpack">
     ```ts title="webpack.config.ts"
     import { taser } from "@taserjs/plugin/webpack";
@@ -56,6 +56,15 @@ Install the bundler you use as a development dependency (`webpack`, `@rspack/cor
     };
     ```
   </Tab>
+  <Tab value="Rolldown">
+    ```ts title="rolldown.config.ts"
+    import { taser } from "@taserjs/plugin/rolldown";
+
+    export default {
+      plugins: [taser()],
+    };
+    ```
+  </Tab>
   <Tab value="Esbuild">
     ```ts title="esbuild.config.ts"
     import { taser } from "@taserjs/plugin/esbuild";
@@ -73,15 +82,16 @@ Install the bundler you use as a development dependency (`webpack`, `@rspack/cor
 
 ## Options
 
-Plugin options: `server`, `serverEntry` / `serverEntryPath`, `config`, `cwd`, and `standalone`. Path layout (`serverDir`, `routesDir`, `outputDir`, `app`) comes from [`taserjs.config.ts`](/docs/cli). See the [@taserjs/plugin API reference](/docs/api-reference/plugin).
+Plugin options: `server`, `serverEntry`, `config`, `cwd`, and `standalone`. Path layout (`serverDir`, `routesDir`, `outputDir`, `app`) comes from [`taserjs.config.ts`](/docs/cli). See the [@taserjs/plugin API reference](/docs/api-reference/plugin).
 
 ---
 
 ## Subpath reference
 
-| Import                   | Bundler |
-| :----------------------- | :------ |
-| `@taserjs/plugin/webpack` | Webpack |
-| `@taserjs/plugin/rspack`  | Rspack  |
-| `@taserjs/plugin/rollup`  | Rollup  |
-| `@taserjs/plugin/esbuild` | Esbuild |
+| Import                    | Bundler  |
+| :------------------------ | :------- |
+| `@taserjs/plugin/webpack`  | Webpack  |
+| `@taserjs/plugin/rspack`   | Rspack   |
+| `@taserjs/plugin/rollup`   | Rollup   |
+| `@taserjs/plugin/rolldown` | Rolldown |
+| `@taserjs/plugin/esbuild`  | Esbuild  |

@@ -1,6 +1,6 @@
 ---
 title: Next.js Plugin
-description: "Configure @taserjs/plugin/next for Next.js 15+ App Router: createTaser, serverDir, and routes.gen.ts generation."
+description: "Configure @taserjs/plugin/next for Next.js 15+ App Router: createTaser with cwd/config, and routes.gen.ts generation."
 icon: LayoutGrid
 ---
 
@@ -9,7 +9,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/plugin/next` package hooks Taser.js into Next.js 15+ App Router builds. It generates `src/server/.taserjs/routes.gen.ts` (path follows your `serverDir`) and wires Webpack/Turbopack so routes stay in sync during `next dev` and `next build`.
+The `@taserjs/plugin/next` package hooks Taser.js into Next.js 15+ App Router builds. It generates `${serverDir}/.taserjs/routes.gen.ts` from `taserjs.config.ts` and wires Webpack/Turbopack so routes stay in sync during `next dev` and `next build`.
 
 <Callout type="info" title="Looking for the Fullstack Next.js Guide?">
   For RSC patterns and Server Actions recipes, see the [Next.js App Router Fullstack
@@ -45,7 +45,7 @@ Install `@taserjs/plugin` and `@taserjs/cli` as development dependencies:
   </Tab>
 </Tabs>
 
-Prefer a `taserjs.config.ts` for shared path settings:
+Put path layout in `taserjs.config.ts`:
 
 ```ts title="taserjs.config.ts"
 import { defineConfig } from "@taserjs/cli";
@@ -62,7 +62,7 @@ export default defineConfig({
 
 ## Basic Configuration
 
-Wrap `next.config.ts` with `createTaser` (or `withTaser`):
+Wrap `next.config.ts` with `createTaser` (or `withTaser`). Plugin options are only `cwd` and `config`:
 
 ```ts title="next.config.ts"
 import type { NextConfig } from "next";
@@ -72,26 +72,23 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
 };
 
-const withTaser = createTaser({
-  serverDir: "src/server",
-});
+const withTaser = createTaser();
 
 export default withTaser(nextConfig);
 ```
 
-Function-style Next config also works:
+Optional overrides:
 
 ```ts title="next.config.ts"
-import { withTaser } from "@taserjs/plugin/next";
+import { createTaser } from "@taserjs/plugin/next";
 
-export default withTaser(
-  {
-    reactStrictMode: true,
-  },
-  {
-    serverDir: "src/server",
-  },
-);
+const withTaser = createTaser({
+  config: "./taserjs.config.ts",
+});
+
+export default withTaser({
+  reactStrictMode: true,
+});
 ```
 
 Set the HTTP mount with `defineTaser().basePath("/api")` in `src/server/taser.ts`, and point the client `baseUrl` at the same prefix (for example `"/api"`).
@@ -100,59 +97,24 @@ Set the HTTP mount with `defineTaser().basePath("/api")` in `src/server/taser.ts
 
 ## Plugin Options
 
-`createTaser` accepts `NextTaserOptions` (extends shared plugin options):
-
-```ts title="next.config.ts"
-const withTaser = createTaser({
-  serverDir: "src/server",
-  config: "./taserjs.config.ts",
-  extension: false,
-});
-```
+`createTaser` accepts `NextTaserOptions`:
 
 <TypeTable
   type={{
-    serverDir: {
-      description:
-        "Server root containing the app file and routes folder. Overrides taserjs.config.ts when set.",
+    cwd: {
+      description: "Project root used when resolving taserjs.config.ts and paths.",
       type: "string",
-      default: "from taserjs.config.ts ('src')",
-    },
-    basePath: {
-      description:
-        "Optional URL prefix metadata for tooling. Prefer defineTaser().basePath() for runtime mounting and client baseUrl for requests.",
-      type: "string",
-      default: "undefined",
-    },
-    extension: {
-      description: "Import extension style written into generated routes.gen.ts.",
-      type: "boolean | string",
-      default: "from taserjs.config.ts",
+      default: "process.cwd()",
     },
     config: {
       description: "Path to taserjs.config.ts (or .js/.mjs/.cjs).",
       type: "string",
       default: "undefined",
     },
-    cwd: {
-      description: "Project root used when resolving config and paths.",
-      type: "string",
-      default: "process.cwd()",
-    },
-    serverEntry: {
-      description: "Optional host server entry path (alias: serverEntryPath).",
-      type: "string",
-      default: "undefined",
-    },
-    server: {
-      description: "Shared plugin flag; Next uses generation + Webpack/Turbopack hooks instead of Vite middleware.",
-      type: "boolean",
-      default: "true",
-    },
   }}
 />
 
-`routesDir` and `outputDir` come from [`taserjs.config.ts`](/docs/cli) (defaults `routes` and `.taserjs` under `serverDir`).
+`serverDir`, `routesDir`, `outputDir`, `app`, and `extension` come from [`taserjs.config.ts`](/docs/cli). Runtime URL prefixes use `defineTaser().basePath(...)`, not plugin options.
 
 ---
 

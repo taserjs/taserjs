@@ -5,8 +5,6 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 };
 
-const withTaser = createTaser({
-  serverDir: "src/server",
-});
+const withTaser = createTaser();
 
 export default withTaser(nextConfig);

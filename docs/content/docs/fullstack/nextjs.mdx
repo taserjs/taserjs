@@ -93,14 +93,12 @@ Install the necessary dependencies in your Next.js project:
       reactStrictMode: true,
     };
 
-    const withTaser = createTaser({
-      serverDir: "src/server", // Directory hosting Taser.js server code & routes
-      entry: "@/server/taser",  // Path alias to your router instance
-      basePath: "/api",        // URL prefix where Taser.js REST endpoints dispatch
-    });
+    const withTaser = createTaser();
 
     export default withTaser(nextConfig);
     ```
+
+    Put `serverDir` and related paths in `taserjs.config.ts`. Mount the API prefix with `defineTaser().basePath("/api")` in `src/server/taser.ts`.
 
   </Step>
 
@@ -150,6 +148,7 @@ Install the necessary dependencies in your Next.js project:
     export default defineTaser({
       response: { validate: true },
     })
+      .basePath("/api")
       .context(context)
       .notFound(() => notFound({ message: "Not Found" }));
     ```
@@ -246,7 +245,8 @@ Here is the recommended file layout for a fullstack Next.js App Router project w
 
 ```
 my-next-app/
-├── next.config.ts                  # withTaser(nextConfig) with serverDir, entry, basePath
+├── next.config.ts                  # createTaser() / withTaser(nextConfig)
+├── taserjs.config.ts               # serverDir, routesDir, outputDir, app
 ├── tsconfig.json                   # paths: @/* covering src/** including src/server/.taserjs
 ├── package.json
 └── src/
@@ -257,7 +257,7 @@ my-next-app/
     │       └── [[...slug]]/
     │           └── route.ts        # Catch-all: import { app } from "@/server/.taserjs/routes.gen"
     ├── server/                     # Taser.js REST API Subsystem
-    │   ├── taser.ts                # defineTaser() definition (TaserDefinition)
+    │   ├── taser.ts                # defineTaser().basePath("/api") definition
     │   ├── context.ts              # Boot and request context
     │   ├── routes/                 # File-based REST endpoints
     │   │   ├── $.ts                # Root layout middleware (optional)

@@ -106,12 +106,7 @@ Shared with other `@taserjs/plugin` adapters (`TaserPluginOptions`):
       default: "true",
     },
     serverEntry: {
-      description: "Optional host server entry (alias: serverEntryPath).",
-      type: "string",
-      default: "undefined",
-    },
-    serverEntryPath: {
-      description: "Alias for serverEntry.",
+      description: "Optional host server entry. Auto-detects server.ts / server.node.ts when omitted.",
       type: "string",
       default: "undefined",
     },

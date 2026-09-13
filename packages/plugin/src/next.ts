@@ -5,15 +5,13 @@ import {
   loadConfig,
   resolveRoutesDir,
   scanRoutes,
-  type ResolvedTaserConfig,
 } from "@taserjs/cli";
 import { watch, type FSWatcher } from "chokidar";
-import { taserPlugin, type TaserPluginOptions } from "./index.js";
+import { taserPlugin } from "./index.js";
 
-export interface NextTaserOptions extends TaserPluginOptions {
-  serverDir?: string;
-  basePath?: string;
-  extension?: boolean | string;
+export interface NextTaserOptions {
+  cwd?: string | undefined;
+  config?: string | undefined;
 }
 
 let turbopackWatcher: FSWatcher | null = null;
@@ -22,15 +20,7 @@ export async function runNextTaserGeneration(
   cwd: string,
   options?: NextTaserOptions,
 ): Promise<void> {
-  let config: ResolvedTaserConfig = await loadConfig(cwd, options?.config);
-  if (options?.serverDir || options?.extension !== undefined) {
-    config = {
-      ...config,
-      ...(options.serverDir ? { serverDir: options.serverDir } : {}),
-      ...(options.extension !== undefined ? { extension: options.extension } : {}),
-    };
-  }
-
+  const config = await loadConfig(cwd, options?.config);
   const routesDir = resolveRoutesDir(config, cwd);
   if (existsSync(routesDir)) {
     const scanResult = scanRoutes({
@@ -49,13 +39,8 @@ export async function startTurbopackWatcher(
     return turbopackWatcher;
   }
 
-  const baseConfig = await loadConfig(cwd, options?.config);
-  const resolvedConfig: ResolvedTaserConfig = {
-    ...baseConfig,
-    ...(options?.serverDir ? { serverDir: options.serverDir } : {}),
-    ...(options?.extension !== undefined ? { extension: options.extension } : {}),
-  };
-  const routesDir = resolveRoutesDir(resolvedConfig, cwd);
+  const config = await loadConfig(cwd, options?.config);
+  const routesDir = resolveRoutesDir(config, cwd);
 
   if (existsSync(routesDir)) {
     turbopackWatcher = watch([routesDir], {
@@ -73,9 +58,9 @@ export async function startTurbopackWatcher(
           routesDir,
           cwd,
           scaffold: true,
-          formatting: resolvedConfig.formatting,
+          formatting: config.formatting,
         });
-        generateManifest(scanResult, resolvedConfig, cwd);
+        generateManifest(scanResult, config, cwd);
       }, 50);
     });
   }
@@ -100,15 +85,19 @@ export function createTaser(pluginOptions: NextTaserOptions = {}) {
     nextConfig: TNextConfig = {} as TNextConfig,
   ): TNextConfig {
     const cwd = pluginOptions.cwd ? resolve(pluginOptions.cwd) : process.cwd();
+    const nextPluginOptions = {
+      cwd,
+      ...(pluginOptions.config ? { config: pluginOptions.config } : {}),
+    };
 
     // 1. Trigger initial generation
-    runNextTaserGeneration(cwd, pluginOptions).catch((err) => {
+    runNextTaserGeneration(cwd, nextPluginOptions).catch((err) => {
       console.error(`[taserjs/next] Route generation error: ${err.message}`);
     });
 
     // 2. Start watcher for Turbopack dev mode if active or NODE_ENV != production
     if (process.env.NODE_ENV !== "production") {
-      startTurbopackWatcher(cwd, pluginOptions).catch(() => {});
+      startTurbopackWatcher(cwd, nextPluginOptions).catch(() => {});
     }
 
     const enhancedConfig: any = {
@@ -116,10 +105,7 @@ export function createTaser(pluginOptions: NextTaserOptions = {}) {
       turbopack: nextConfig.turbopack ?? {},
       webpack(config: any, webpackOptions: any) {
         // Run generation during Webpack compile
-        const webpackPlugin = taserPlugin.webpack({
-          ...pluginOptions,
-          cwd,
-        });
+        const webpackPlugin = taserPlugin.webpack(nextPluginOptions);
         config.plugins = config.plugins || [];
         config.plugins.push(webpackPlugin);
 

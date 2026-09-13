@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import vitePlugin, { taser as viteTaser } from "../src/vite.js";
 import rollupPlugin, { taser as rollupTaser } from "../src/rollup.js";
+import rolldownPlugin, { taser as rolldownTaser } from "../src/rolldown.js";
 import webpackPlugin, { taser as webpackTaser } from "../src/webpack.js";
 import rspackPlugin, { taser as rspackTaser } from "../src/rspack.js";
 import esbuildPlugin, { taser as esbuildTaser } from "../src/esbuild.js";
@@ -19,6 +20,14 @@ describe("bundler plugin subpath adapters", () => {
     expect(typeof rollupPlugin).toBe("function");
     expect(typeof rollupTaser).toBe("function");
     const plugin = rollupTaser();
+    const name = Array.isArray(plugin) ? plugin[0]?.name : plugin.name;
+    expect(name).toBe("taserjs:plugin");
+  });
+
+  it("rolldown adapter exports default and named taser functions", () => {
+    expect(typeof rolldownPlugin).toBe("function");
+    expect(typeof rolldownTaser).toBe("function");
+    const plugin = rolldownTaser();
     const name = Array.isArray(plugin) ? plugin[0]?.name : plugin.name;
     expect(name).toBe("taserjs:plugin");
   });
