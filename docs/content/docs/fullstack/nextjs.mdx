@@ -107,23 +107,16 @@ Install the necessary dependencies in your Next.js project:
   <Step>
     ### 2. Configure TypeScript Paths (`tsconfig.json`)
 
-    Configure path aliases for `@/*` and `@/.taser/*` so Next.js and your IDE resolve route files, client singletons, and generated disk artifacts:
+    Configure `@/*` path aliases so Next.js and your IDE resolve `src/` (including `src/server/.taserjs/`):
 
     ```json title="tsconfig.json"
     {
       "compilerOptions": {
         "paths": {
-          "@/*": ["./src/*"],
-          "@/.taser/*": ["./.taser/*"]
+          "@/*": ["./src/*"]
         }
       },
-      "include": [
-        "next-env.d.ts",
-        "**/*.ts",
-        "**/*.tsx",
-        ".taser/**/*.ts",
-        ".taser/**/*.d.ts"
-      ]
+      "include": ["next-env.d.ts", "src/**/*", "**/*.ts", "**/*.tsx"]
     }
     ```
 
@@ -147,14 +140,14 @@ Install the necessary dependencies in your Next.js project:
     });
     ```
 
-    Create `src/server/taser.ts` to initialize your `createTaserApp` builder:
+    Create `src/server/taser.ts` with `defineTaser()` (uninstantiated definition; the compiled `app` lives in `src/server/.taserjs/routes.gen.ts`):
 
     ```ts title="src/server/taser.ts"
-    import { createTaserApp } from "@taserjs/router";
+    import { defineTaser } from "@taserjs/router";
     import { notFound } from "@taserjs/router/reply";
     import { context } from "./context";
 
-    export default createTaserApp({
+    export default defineTaser({
       response: { validate: true },
     })
       .context(context)
@@ -169,7 +162,7 @@ Install the necessary dependencies in your Next.js project:
     Create `src/app/api/[[...slug]]/route.ts` (or `app/api/[[...slug]]/route.ts`). This forwards incoming Next.js API requests directly to Taser.js's compiled entry module:
 
     ```ts title="src/app/api/[[...slug]]/route.ts"
-    import { app } from "@/.taser/entry";
+    import { app } from "@/server/.taserjs/routes.gen";
 
     const handle = (request: Request) => app.fetch(request);
 
@@ -235,9 +228,9 @@ Install the necessary dependencies in your Next.js project:
 
     ```ts title="src/client.ts"
     import { createClient } from "@taserjs/client";
-    import type { app } from "@/.taser/entry";
+    import type { AppManifest } from "@/server/.taserjs/routes.gen";
 
-    export const api = createClient<typeof app>({
+    export const api = createClient<AppManifest>({
       baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api",
     });
     ```
@@ -254,27 +247,24 @@ Here is the recommended file layout for a fullstack Next.js App Router project w
 ```
 my-next-app/
 ├── next.config.ts                  # withTaser(nextConfig) with serverDir, entry, basePath
-├── tsconfig.json                   # paths: @/*, @/.taser/* and .taser include
+├── tsconfig.json                   # paths: @/* covering src/** including src/server/.taserjs
 ├── package.json
-├── .taser/                         # Auto-generated disk artifacts & ambient types
-│   ├── entry.ts                    # Exports compiled `app` with routes
-│   ├── manifest.ts                 # Static route manifest tree
-│   ├── app.ts                      # Composed router module
-│   └── types/                      # Generated TypeScript ambient route declarations
 └── src/
     ├── app/                        # Next.js App Router (React UI & Pages)
     │   ├── layout.tsx              # Root HTML shell
     │   ├── page.tsx                # RSC page fetching from Taser.js API
     │   └── api/
     │       └── [[...slug]]/
-    │           └── route.ts        # Catch-all route handler forwarding to app.fetch()
+    │           └── route.ts        # Catch-all: import { app } from "@/server/.taserjs/routes.gen"
     ├── server/                     # Taser.js REST API Subsystem
-    │   ├── taser.ts                # createTaserApp instance definition
+    │   ├── taser.ts                # defineTaser() definition (TaserDefinition)
     │   ├── context.ts              # Boot and request context
-    │   └── routes/                 # File-based REST endpoints
-    │       ├── $.ts                # Root layout middleware (optional)
-    │       └── users.get.ts        # GET /api/users endpoint
-    └── client.ts                   # createClient({ baseUrl: ... }) singleton
+    │   ├── routes/                 # File-based REST endpoints
+    │   │   ├── $.ts                # Root layout middleware (optional)
+    │   │   └── users.get.ts        # GET /api/users endpoint
+    │   └── .taserjs/
+    │       └── routes.gen.ts       # Generated app + AppManifest + ambient types
+    └── client.ts                   # createClient<AppManifest>({ baseUrl: ... })
 ```
 
 ---

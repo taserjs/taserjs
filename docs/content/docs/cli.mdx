@@ -46,7 +46,7 @@ yarn add -D @taserjs/cli
 
 ## `taser generate`
 
-The `generate` command scans your routes directory, detects configuration from `vite.config.ts`, `nitro.config.ts`, or `next.config.ts`, scaffolds starter boilerplate with file-synced route path strings for blank route files, and writes ambient TypeScript types to `.taser/types/routes.d.ts`.
+The `generate` command scans your routes directory, detects configuration from `vite.config.ts`, `nitro.config.ts`, or `next.config.ts`, scaffolds starter boilerplate with file-synced route path strings for blank route files, and writes `src/.taserjs/routes.gen.ts`.
 
 ### Invocation Syntax
 
@@ -95,7 +95,7 @@ npx @taserjs/cli generate [options]
    });
    ```
 
-3. **Ambient Type Generation**: Emits `.taser/types/routes.d.ts` containing the global router type and route definitions, enabling full IDE autocomplete and static typechecking even when the dev server is not active.
+3. **Unified Manifest Generation**: Writes `src/.taserjs/routes.gen.ts` with the compiled `app`, ambient `RouterRegister` augmentations, and `AppManifest`, enabling IDE autocomplete and static typechecking even when the dev server is not active.
 
 ---
 
@@ -109,7 +109,7 @@ When building with Vite (`vite build`) or Next.js (`next build`), the Taser bund
 
 ### Standalone Typecheck & CI Scripts
 
-If your CI pipeline or local quality checks run standalone TypeScript typechecking (`tsc --noEmit`) outside of a full bundler build, TypeScript needs `.taser/types/routes.d.ts` to exist ahead of time. In this setup, install `@taserjs/cli` as a dev dependency and prefix `tsc` with `taser generate`:
+If your CI pipeline or local quality checks run standalone TypeScript typechecking (`tsc --noEmit`) outside of a full bundler build, TypeScript needs `src/.taserjs/routes.gen.ts` to exist ahead of time. In this setup, install `@taserjs/cli` as a dev dependency and prefix `tsc` with `taser generate`:
 
 ```json title="package.json"
 {
@@ -124,7 +124,7 @@ If your CI pipeline or local quality checks run standalone TypeScript typechecki
 <Callout type="info" title="Non-Bundler Setups">
   In non-bundler setups (such as standalone Node.js, Fastify, or Express runtimes that don't invoke
   Vite during build or dev), install `@taserjs/cli` as a dev dependency and use `taser
-  generate` in your build or watcher scripts to ensure `.taser/types/routes.d.ts` stays in sync.
+  generate` in your build or watcher scripts to ensure `src/.taserjs/routes.gen.ts` stays in sync.
 </Callout>
 
 ---

@@ -51,12 +51,13 @@ export const context = createContext({
 Attach your context in `src/taser.ts`:
 
 ```ts title="src/taser.ts"
-import { createTaserApp, type InferAppContext } from "@taserjs/router";
+import { defineTaser } from "@taserjs/router";
 import { context } from "./context.js";
 
-export default createTaserApp().context(context);
+const taser = defineTaser().context(context);
 
-export type AppContext = InferAppContext<typeof context>;
+export default taser;
+export type AppContext = typeof taser.$Infer.Context;
 ```
 
 ---

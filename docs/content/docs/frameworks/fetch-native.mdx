@@ -121,7 +121,20 @@ When an incoming HTTP request reaches your server:
   </Step>
 
   <Step>
-    ### 3. Start Development Server
+    ### 3. Import the Compiled Taser.js App
+
+    Host pass-through is assembled into the generated entry. For direct access:
+
+    ```ts
+    import { app } from "./.taserjs/routes.gen.js";
+
+    export default app;
+    ```
+
+  </Step>
+
+  <Step>
+    ### 4. Start Development Server
 
     ```bash
     pnpm dev

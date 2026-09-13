@@ -9,7 +9,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/client` package provides a lightweight, zero-codegen proxy client that infers end-to-end type safety directly from your server's router type definition (`RouteManifest` or `typeof app`).
+The `@taserjs/client` package provides a lightweight, zero-codegen proxy client that infers end-to-end type safety from your generated `AppManifest` in `src/.taserjs/routes.gen.ts`.
 
 ---
 
@@ -45,13 +45,11 @@ Initialize the client with your backend `baseUrl` and your server app or manifes
 
 ```ts title="src/lib/api.ts"
 import { createClient } from "@taserjs/client";
-import type { RouteManifest } from "path/to/.taser/types/routes.js";
-// Or when using vite based projects:
-// import type { RouteManifest } from "#taserjs/virtual/manifest";
-// Or on Next.js with the Taser.js adapter:
-// import type { RouteManifest } from "@/.taser/types/routes";
+import type { AppManifest } from "./.taserjs/routes.gen.js";
+// Next.js / serverDir layouts:
+// import type { AppManifest } from "@/server/.taserjs/routes.gen";
 
-export const api = createClient<RouteManifest>({
+export const api = createClient<AppManifest>({
   baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api",
   headers: async () => {
     const token = localStorage.getItem("auth_token");
@@ -61,8 +59,8 @@ export const api = createClient<RouteManifest>({
 ```
 
 <Callout type="info" title="Explicit End-to-End Type Safety">
-  By passing your server's `RouteManifest` or `typeof app` type as a generic to `createClient<TApp>()`,
-  the client automatically infers all available routes, methods, input schemas, and return contracts without generating static client source files.
+  Pass `AppManifest` from `routes.gen.ts` as the generic to `createClient<AppManifest>()`. The client
+  infers routes, methods, input schemas, and return contracts without generating static client source files.
 </Callout>
 
 ---

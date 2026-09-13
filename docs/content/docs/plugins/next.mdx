@@ -9,7 +9,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/plugin/next` package integrates Taser.js into Next.js 15+ App Router compilation. It handles disk artifact generation in `.taser/`, TypeScript ambient type generation, and Turbopack/Webpack extension aliases.
+The `@taserjs/plugin/next` package integrates Taser.js into Next.js 15+ App Router compilation. It generates `src/server/.taserjs/routes.gen.ts`, ambient types, and Turbopack/Webpack extension aliases.
 
 <Callout type="info" title="Looking for the Fullstack Next.js Guide?">
   For the complete architectural guide, React Server Components (RSC) patterns, and Server Actions
@@ -104,7 +104,7 @@ const withTaser = createTaser({
   serverDir: "src/server",
   entry: "@/server/taser",
   basePath: "/api",
-  outDir: ".taser",
+  outputDir: ".taserjs",
 });
 ```
 
@@ -130,10 +130,10 @@ const withTaser = createTaser({
       type: "string",
       default: "'src/server/routes'",
     },
-    outDir: {
-      description: "Output directory where generated disk artifacts and types are written.",
+    outputDir: {
+      description: "Output directory (under serverDir) where routes.gen.ts is written.",
       type: "string",
-      default: "'.taser'",
+      default: "'.taserjs'",
     },
     watcher: {
       description: "File watcher configuration options for development mode.",
@@ -150,11 +150,10 @@ const withTaser = createTaser({
 Next.js does not support serving virtual modules dynamically in runtime handlers. To provide zero-overhead integration, `@taserjs/plugin/next`:
 
 1. **Monitors `src/server/routes/`**: In development (`next dev`), the plugin runs a lightweight background file watcher that synchronizes route changes instantly.
-2. **Generates Disk Artifacts in `.taser/`**:
-   - `.taser/manifest.ts`: Static route radix manifest tree.
-   - `.taser/entry.ts`: Compiled router entry module exporting `app`, imported by your catch-all handler (`src/app/api/[[...slug]]/route.ts`).
-   - `.taser/app.ts`: Composed router app module.
-   - `.taser/types/`: Ambient TypeScript definitions (`routes.d.ts`, `virtual.d.ts`) for end-to-end type safety.
+2. **Generates `src/server/.taserjs/routes.gen.ts`** (path follows `serverDir` + `outputDir`):
+   - Compiles and exports the runnable Hono `app`
+   - Emits ambient `RouterRegister` augmentations for route path checking
+   - Exports `AppManifest` for `@taserjs/client`
 3. **Configures Turbopack and Webpack**:
    - Injects extension aliases so TypeScript module resolution and path aliases resolve across `.ts`, `.tsx`, and `.js` seamlessly.
 

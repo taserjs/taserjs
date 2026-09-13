@@ -135,7 +135,7 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
   "responses/streaming-and-files":
     "Stream binary chunks, SSE events, Web ReadableStreams, and disk files safely using stream.pipe() and stream.file().",
   "responses/error-handling":
-    "Centralize unhandled exception boundaries and custom 404 handlers using app.onError() and app.notFound().",
+    "Centralize unhandled runtime crashes with defineTaser().onError() and customize 404s with .notFound(). Validation and response contracts bypass onError.",
   "middleware/cors":
     "Configure Cross-Origin Resource Sharing with the built-in cors() middleware. Support static domains and dynamic origin resolvers.",
   "middleware/jwt-and-jwk":
@@ -148,7 +148,7 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
     "Auto-completing, end-to-end typed proxy client generated from your server router type with zero runtime drift.",
   cli: "Generate ambient TypeScript definitions and scaffold empty route files with @taserjs/cli.",
   "api-reference/router":
-    "Complete API reference for @taserjs/router: createTaserApp, createContext, TaserRouter, RouteBuilder, and reply helpers.",
+    "Complete API reference for @taserjs/router: defineTaser, createContext, TaserRouter, RouteBuilder, and reply helpers.",
   "api-reference/plugin":
     "Complete API reference for @taserjs/plugin: Vite, Next.js, and Nitro compiler plugin options.",
   "api-reference/client":

@@ -11,6 +11,8 @@ import { Files, Folder, File } from "@/components/files";
 
 Layout files in Taser.js allow you to organize cross-cutting concerns (authentication, CORS, rate limiting, logging) and inject typed state into child routes without repeating code in every handler.
 
+Ambient layout IDs and hierarchy types are emitted into `src/.taserjs/routes.gen.ts` alongside the compiled `app`, so TypeScript can verify `t.layout(...)` path strings against your filesystem tree.
+
 ---
 
 ## What is a Layout File?

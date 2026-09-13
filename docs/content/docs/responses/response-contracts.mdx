@@ -86,9 +86,9 @@ In addition to compile-time verification, Taser.js can validate outgoing respons
 You can configure response validation behavior in `src/taser.ts`:
 
 ```ts title="src/taser.ts"
-import { createTaserApp } from "@taserjs/router";
+import { defineTaser } from "@taserjs/router";
 
-export default createTaserApp({
+export default defineTaser({
   response: {
     // Enable/disable runtime response validation (default: true)
     validate: process.env.NODE_ENV !== "production",

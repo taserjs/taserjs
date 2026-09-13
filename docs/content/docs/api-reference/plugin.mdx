@@ -137,10 +137,10 @@ export default withTaser(nextConfig);
       type: "string",
       default: "'src/server/routes'",
     },
-    outDir: {
-      description: "Output directory where generated disk artifacts and types are written.",
+    outputDir: {
+      description: "Output directory (under serverDir) where routes.gen.ts is written.",
       type: "string",
-      default: "'.taser'",
+      default: "'.taserjs'",
     },
     watcher: {
       description: "File watcher configuration options for development mode.",

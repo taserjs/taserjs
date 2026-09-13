@@ -16,7 +16,7 @@ The `@taserjs/cli` package provides command-line tooling to generate ambient Typ
 
 ### `taser generate`
 
-Scans the routes directory, resolves project configuration, fills blank route files with starter boilerplate and file-synced path strings, and writes `.taser/types/routes.d.ts`.
+Scans the routes directory, resolves project configuration, fills blank route files with starter boilerplate and file-synced path strings, and writes `src/.taserjs/routes.gen.ts`.
 
 ```bash
 # In package.json scripts (when installed as a dev dependency)
@@ -68,7 +68,7 @@ If no valid Taser configuration is found, an error is reported. Configuration is
 
 Standard production builds with bundler integrations (`vite build`, `next build`) invoke the Taser plugin during compilation, automatically generating routes and emitting ambient types.
 
-To run standalone TypeScript typechecking (`tsc --noEmit`) in CI pipelines or pre-commit hooks outside of a bundler build, prepend `taser generate` to your typecheck script so `.taser/types/routes.d.ts` is generated first:
+To run standalone TypeScript typechecking (`tsc --noEmit`) in CI pipelines or pre-commit hooks outside of a bundler build, prepend `taser generate` to your typecheck script so `src/.taserjs/routes.gen.ts` is generated first:
 
 ```json title="package.json"
 {

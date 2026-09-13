@@ -67,7 +67,7 @@ Any state returned by middleware (such as `next({ user: currentUser })`) merges 
 
 ### 4. Input Validation
 
-Before the route handler executes, Taser.js validates `params`, `query`, `headers`, and `body` against their schemas. If validation fails, a `ValidationError` is raised and caught by `.onError()`.
+Before the route handler executes, Taser.js validates `params`, `query`, `headers`, and `body` against their schemas. If validation fails, a `ValidationError` is raised and converted to a built-in **422** response. It does **not** reach `defineTaser().onError()` — customize validation envelopes in middleware `try/catch` instead.
 
 ### 5. Handler Execution
 
@@ -75,7 +75,32 @@ The route handler receives a fully typed context object containing all validated
 
 ### 6. Response Contract Verification
 
-At compile time, TypeScript checks that the value returned from `json()` satisfies the schema declared in `.returns()`. If runtime response validation is enabled, Taser.js also verifies outgoing payloads in development.
+At compile time, TypeScript checks that the value returned from `json()` satisfies the schema declared in `.returns()`. If runtime response validation is enabled, Taser.js also verifies outgoing payloads in development. Contract failures raise `ResponseValidationError` (built-in **500**) and also bypass `.onError()`.
+
+---
+
+## Application Definition vs Compiled Runtime
+
+`src/taser.ts` exports an uninstantiated `TaserDefinition` from `defineTaser()` — configuration only (`context`, `basePath`, `notFound`, `onError`, `response`). It does **not** create the Hono app.
+
+```ts title="src/taser.ts"
+import { defineTaser } from "@taserjs/router";
+import { context } from "./context.js";
+
+export default defineTaser({
+  response: { validate: true },
+}).context(context);
+```
+
+The plugin/CLI generates `src/.taserjs/routes.gen.ts`, which imports your definition, compiles routes, and exports:
+
+- **`app`** — the runnable Hono instance (also `default`)
+- **Ambient `RouterRegister` augmentations** — `RoutePath`, layout hierarchy, and `AppContext`
+- **Manifest types** — including the composite `AppManifest` used by `@taserjs/client`
+
+Host adapters and catch-all handlers import `app` from that generated file (for example `import { app } from "./.taserjs/routes.gen.js"`).
+
+With a standard `"include": ["src/**/*"]` in `tsconfig.json`, generated types under `src/.taserjs/` are picked up automatically — no separate `.taser` include paths.
 
 ---
 
@@ -173,7 +198,7 @@ Understanding when to place properties in **Application Context (`createContext`
 | **Lifecycle**           | Boot (singletons) & Per-Request hooks                               | Per-request during middleware pipeline traversal                         |
 | **Scope**               | **Global**: Accessible across every route and middleware in the app | **Scoped**: Accessible only to child routes located under that directory |
 | **Access Syntax**       | Direct root properties: `ctx.db`, `ctx.logger`, `ctx.requestId`     | Namespaced state property: `ctx.state.user`, `ctx.state.org`             |
-| **Declaration Type**    | Universal type parameter in `createTaserApp().context(...)`         | Inferred automatically from `return next({ ... })` in layouts            |
+| **Declaration Type**    | Universal type parameter in `defineTaser().context(...)`         | Inferred automatically from `return next({ ... })` in layouts            |
 | **Primary Use Cases**   | Database pools, Redis clients, queue producers, correlation IDs     | Authenticated user sessions, RBAC permissions, tenant metadata           |
 
 ### Code Comparison

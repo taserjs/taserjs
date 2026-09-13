@@ -259,7 +259,7 @@ Before creating a project, make sure your development environment meets these re
       </Tab>
     </Tabs>
 
-    The development server starts with Vite. Route changes inside `src/routes/` are updated virtually with instant HMR and ambient TypeScript definitions written to `.taser/types/`.
+    The development server starts with Vite. Route changes inside `src/routes/` are updated virtually with instant HMR, and the unified manifest is written to `src/.taserjs/routes.gen.ts`.
 
   </Step>
 </Steps>
@@ -283,9 +283,9 @@ A freshly scaffolded Taser.js project contains a clean, modern layout:
         <File name="index.get.ts" route="/" />
         <File name="health.get.ts" route="/health" />
       </Folder>
-    </Folder>
-    <Folder name=".taser">
-      <File name="types/routes.d.ts" />
+      <Folder name=".taserjs" defaultOpen>
+        <File name="routes.gen.ts" />
+      </Folder>
     </Folder>
   </Folder>
 </Files>
@@ -295,10 +295,20 @@ A freshly scaffolded Taser.js project contains a clean, modern layout:
 - **`vite.config.ts`**: Connects the `taser()` plugin from `@taserjs/plugin/vite` and `nitro()` for zero-config builds (or pure Vite in standalone `none` preset).
 - **`nitro.config.ts`** _(conditional)_: Generated when targeting non-default deployment presets (e.g. `cloudflare-module`, `vercel`, `aws-lambda`, `netlify`). Omitted for default `node-server` and standalone `none`.
 - **`src/server.ts` / `src/server.node.ts`** _(conditional)_: Generated when a host framework is configured (`src/server.ts` for Hono, `src/server.node.ts` for Express or Fastify).
-- **`src/taser.ts`**: Configures the `createTaserApp()` instance, error boundaries (`.onError()`), response validation, and context binding.
+- **`src/taser.ts`**: Exports `defineTaser()` configuration (`TaserDefinition`) — context, `.onError()`, `.notFound()`, and response options. Does not instantiate the Hono app.
+
+  ```ts title="src/taser.ts"
+  import { defineTaser } from "@taserjs/router";
+  import { context } from "./context.js";
+
+  export default defineTaser({
+    response: { validate: true },
+  }).context(context);
+  ```
+
 - **`src/context.ts`**: Defines application singletons (database, logger, external services) and request-scoped context.
 - **`src/routes/`**: Contains your API endpoints (`index.get.ts`, `health.get.ts`) and root layout middleware (`$.ts`).
-- **`.taser/`**: Contains auto-generated ambient TypeScript types (`.taser/types/`) so your editor provides full route autocomplete.
+- **`src/.taserjs/routes.gen.ts`**: Generated unified entry exporting the runnable `app`, ambient route types, and `AppManifest` for `@taserjs/client`.
 
 ---
 

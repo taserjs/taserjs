@@ -49,7 +49,7 @@ t.all(path);
 ### Compile-Time vs. Build-Time Validation
 
 - **Build-Time AST Scanning**: The router generator verifies that the factory method matches the file verb (e.g. `users.get.ts` must call `t.get(...)`). It does not reject mismatches between the path argument and the file's derived URL.
-- **Compile-Time Type Checking**: Ambient types emitted by `@taserjs/cli` or Vite augment `RouterRegister.RoutePath`. Passing an unknown or misspelled route path causes TypeScript (`tsc`) to report a compile error:
+- **Compile-Time Type Checking**: Ambient types emitted into `src/.taserjs/routes.gen.ts` (by `@taserjs/cli` or the Vite/Next plugin) augment `RouterRegister.RoutePath`. Passing an unknown or misspelled route path causes TypeScript (`tsc`) to report a compile error:
 
 ```text
 Type '"/artikles"' is not assignable to type 'RoutePath'.

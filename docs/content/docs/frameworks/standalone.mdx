@@ -53,17 +53,26 @@ Taser.js handles request dispatching, middleware pipelines, input validation, an
   <Step>
     ### 2. Project Files
 
-    A standalone project contains no host server files:
+    A standalone project contains no host server files. Import the compiled app from the generated manifest when you need a programmatic entry:
 
     ```
     my-api/
     ├── vite.config.ts         # Plugins: [taser(), nitro()]
     ├── nitro.config.ts        # Deployment preset
     ├── src/
-    │   ├── taser.ts           # Router builder
+    │   ├── taser.ts           # defineTaser() definition (TaserDefinition)
     │   ├── context.ts         # Boot and request context
-    │   └── routes/            # File-based endpoints
+    │   ├── routes/            # File-based endpoints
+    │   └── .taserjs/
+    │       └── routes.gen.ts  # export { app } — runnable Hono instance
     └── package.json
+    ```
+
+    ```ts title="Programmatic access"
+    import { app } from "./.taserjs/routes.gen.js";
+
+    // app is the compiled Hono instance produced from defineTaser() + your routes
+    export default app;
     ```
 
   </Step>

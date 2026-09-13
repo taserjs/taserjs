@@ -152,21 +152,11 @@ export default defineConfig({
 
 ---
 
-## Virtual Modules
+## Generated Manifest
 
-The Vite plugin exposes virtual modules that resolve routing logic without writing intermediate code to disk:
+During development and builds, the plugin writes a single unified file to `src/.taserjs/routes.gen.ts` containing the compiled Hono `app`, ambient `RouterRegister` augmentations, and `AppManifest` for `@taserjs/client`.
 
-- `#taserjs/virtual/manifest`: Dynamically builds the static radix routing manifest tree.
-- `#taserjs/virtual/entry`: Assembles the root request handler wrapping context and routes.
-- `#taserjs/virtual/app`: Composes Taser.js with optional host framework pass-through and 404 handlers.
-
----
-
-## Ambient Route Types
-
-During development, the plugin watches `src/routes/` and generates TypeScript declaration files in `.taser/types/`.
-
-To ensure your editor recognizes all route types, verify your `tsconfig.json` includes this directory:
+Include your sources in `tsconfig.json` so TypeScript picks up the generated file automatically:
 
 ```json title="tsconfig.json"
 {
@@ -176,7 +166,7 @@ To ensure your editor recognizes all route types, verify your `tsconfig.json` in
     "moduleResolution": "NodeNext",
     "strict": true
   },
-  "include": ["src", ".taser/types/**/*.d.ts"]
+  "include": ["src/**/*", "vite.config.ts"]
 }
 ```
 
