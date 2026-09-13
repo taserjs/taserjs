@@ -1,14 +1,13 @@
 ---
 title: "@taserjs/cli"
-description: "CLI command options, configuration detection, ambient type generation, and project scaffolding reference for @taserjs/cli."
+description: "CLI reference for taser generate, taserjs.config.ts, and src/.taserjs/routes.gen.ts output."
 icon: Terminal
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 import { TypeTable } from "@/components/type-table";
-import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
-The `@taserjs/cli` package provides command-line tooling to generate ambient TypeScript definitions and scaffold empty route files outside the development server.
+The `@taserjs/cli` package ships the `taser` binary for route scanning, scaffolding, and manifest generation.
 
 ---
 
@@ -16,64 +15,55 @@ The `@taserjs/cli` package provides command-line tooling to generate ambient Typ
 
 ### `taser generate`
 
-Scans the routes directory, resolves project configuration, fills blank route files with starter boilerplate and file-synced path strings, and writes `src/.taserjs/routes.gen.ts`.
+Writes `${serverDir}/.taserjs/routes.gen.ts` (defaults to `src/.taserjs/routes.gen.ts`).
 
 ```bash
-# In package.json scripts (when installed as a dev dependency)
-taser generate [--config <path>]
-
-# On-demand execution via npx
-npx @taserjs/cli generate [--config <path>]
+taser generate [--config <path>] [--watch]
+npx @taserjs/cli generate [--config <path>] [--watch]
 ```
-
-<Callout type="info" title="Binary Name vs. Package Name">
-  The npm package is `@taserjs/cli`, which provides the executable binary named `taser`. When
-  added to `devDependencies`, npm/pnpm/yarn/bun link the `taser` binary into `node_modules/.bin`,
-  allowing direct invocation in `package.json` scripts as `taser generate`. For ad-hoc runs without
-  installing, use `npx @taserjs/cli generate`.
-</Callout>
-
----
-
-## CLI Flags Reference
 
 <TypeTable
   type={{
-    "--config": {
-      description:
-        "Path to specific config file (alias: -c; vite.config, nitro.config, or next.config). When omitted, searches the current working directory.",
+    "--config / -c": {
+      description: "Path to taserjs.config.ts (or .js/.mjs/.cjs).",
       type: "string",
-      default: "Searches current directory",
+    },
+    "--watch / -w": {
+      description: "Watch routes and regenerate on change.",
+      type: "boolean",
+      default: "false",
     },
   }}
 />
 
 ---
 
-## Configuration Resolution
+## Configuration
 
-`taser generate` inspects your project build configuration:
+Config resolution order:
 
-1. **`--config <path>`**: Targets the specified configuration file directly (e.g. `vite.config.ts`, `nitro.config.ts`, `next.config.ts`).
-2. **Current Directory**: When `--config` is omitted, searches the current working directory in priority order:
-   - `vite.config.*`
-   - `nitro.config.*`
-   - `next.config.*`
+1. `--config <path>` when provided
+2. `taserjs.config.ts` / `.js` / `.mjs` / `.cjs` in the working directory
+3. Built-in defaults (`serverDir: "src"`, `routesDir: "routes"`, `outputDir: ".taserjs"`, `app: "taser.ts"`)
 
-If no valid Taser configuration is found, an error is reported. Configuration is required.
+```ts title="taserjs.config.ts"
+import { defineConfig } from "@taserjs/cli";
+
+export default defineConfig({
+  serverDir: "src",
+  routesDir: "routes",
+  outputDir: ".taserjs",
+  app: "taser.ts",
+});
+```
 
 ---
 
-## Build vs. TypeScript Integration
-
-Standard production builds with bundler integrations (`vite build`, `next build`) invoke the Taser plugin during compilation, automatically generating routes and emitting ambient types.
-
-To run standalone TypeScript typechecking (`tsc --noEmit`) in CI pipelines or pre-commit hooks outside of a bundler build, prepend `taser generate` to your typecheck script so `src/.taserjs/routes.gen.ts` is generated first:
+## CI Typecheck Pattern
 
 ```json title="package.json"
 {
   "scripts": {
-    "build": "vite build",
     "typecheck": "taser generate && tsc --noEmit -p tsconfig.json"
   }
 }

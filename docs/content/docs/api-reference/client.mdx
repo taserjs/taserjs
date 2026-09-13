@@ -16,10 +16,19 @@ The `@taserjs/client` package provides a lightweight, zero-codegen typed proxy c
 
 ### `createClient<TApp>(options)`
 
-Creates an auto-completing typed proxy client. Pass your server's `RouteManifest` or `typeof app` as `TApp` to infer all available endpoints, parameters, query schemas, and return contracts:
+Creates an auto-completing typed proxy client. Pass `AppManifest` from `src/.taserjs/routes.gen.ts` as `TApp` to infer endpoints, parameters, query schemas, and return contracts:
 
 ```ts
-function createClient<TApp = never>(options: CreateClientOptions): Client<TApp>;
+function createClient<TApp = never>(options?: CreateClientOptions): Client<TApp>;
+```
+
+```ts
+import { createClient } from "@taserjs/client";
+import type { AppManifest } from "./.taserjs/routes.gen.js";
+
+const api = createClient<AppManifest>({
+  baseUrl: "https://api.example.com/api",
+});
 ```
 
 #### Options (`CreateClientOptions`)
@@ -27,9 +36,10 @@ function createClient<TApp = never>(options: CreateClientOptions): Client<TApp>;
 <TypeTable
   type={{
     baseUrl: {
-      description: "Base URL prefix for all requests (for example, 'https://api.example.com/api').",
+      description:
+        "Base URL prefix for all requests (for example, 'https://api.example.com/api'). Defaults to '' for same-origin relative paths.",
       type: "string",
-      required: true,
+      default: "''",
     },
     headers: {
       description:

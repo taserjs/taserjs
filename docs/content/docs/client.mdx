@@ -41,7 +41,7 @@ yarn add @taserjs/client
   </Tab>
 </Tabs>
 
-Initialize the client with your backend `baseUrl` and your server app or manifest type:
+Initialize the client with your composite `AppManifest` from `src/.taserjs/routes.gen.ts` (or `${serverDir}/.taserjs/routes.gen.ts`):
 
 ```ts title="src/lib/api.ts"
 import { createClient } from "@taserjs/client";
@@ -59,8 +59,9 @@ export const api = createClient<AppManifest>({
 ```
 
 <Callout type="info" title="Explicit End-to-End Type Safety">
-  Pass `AppManifest` from `routes.gen.ts` as the generic to `createClient<AppManifest>()`. The client
-  infers routes, methods, input schemas, and return contracts without generating static client source files.
+  Pass `AppManifest` from `routes.gen.ts` as the generic argument to `createClient`. The client
+  infers routes, methods (`$get`, `$post`, `$put`, `$patch`, `$delete`, `$options`, `$head`, `$query`),
+  input schemas, and return contracts without generating static client source files.
 </Callout>
 
 ---
@@ -235,9 +236,9 @@ type UserData = InferResponseType<typeof api.users._id.$get>;
   type={{
     baseUrl: {
       description:
-        "Base URL prefix for all API requests (for example, 'https://api.example.com/api').",
+        "Base URL prefix for all API requests (for example, 'https://api.example.com/api'). Defaults to an empty string for same-origin relative paths.",
       type: "string",
-      required: true,
+      default: "''",
     },
     headers: {
       description: "Static header dictionary or async function resolving authentication tokens.",

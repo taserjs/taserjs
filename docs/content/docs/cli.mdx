@@ -1,6 +1,6 @@
 ---
 title: CLI & Type Generation
-description: "Generate ambient route types, scaffold empty endpoint files, and enforce pre-build CI checks with the @taserjs/cli developer tool."
+description: "Generate src/.taserjs/routes.gen.ts, scaffold empty route files, and run standalone typechecks with @taserjs/cli."
 icon: Terminal
 ---
 
@@ -9,21 +9,19 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/cli` package provides command-line utilities to generate ambient TypeScript definitions and scaffold empty route files without running a development server.
+The `@taserjs/cli` package provides the `taser` binary. Use it to scan routes, scaffold blank files, and write the unified manifest at `src/.taserjs/routes.gen.ts` without running a development server.
 
 ---
 
 ## Installation
 
-`@taserjs/cli` is typically installed as a development dependency:
+Install as a development dependency:
 
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
 ```bash
 pnpm add -D @taserjs/cli
-
-````
-
+```
   </Tab>
   <Tab value="npm">
 ```bash
@@ -44,72 +42,112 @@ yarn add -D @taserjs/cli
 
 ---
 
-## `taser generate`
+## Project Config (`taserjs.config.ts`)
 
-The `generate` command scans your routes directory, detects configuration from `vite.config.ts`, `nitro.config.ts`, or `next.config.ts`, scaffolds starter boilerplate with file-synced route path strings for blank route files, and writes `src/.taserjs/routes.gen.ts`.
+Most projects define paths once with `defineConfig` from `@taserjs/cli`:
 
-### Invocation Syntax
+```ts title="taserjs.config.ts"
+import { defineConfig } from "@taserjs/cli";
 
-The CLI binary name is `taser`. Depending on your setup:
+export default defineConfig({
+  serverDir: "src",
+  routesDir: "routes",
+  outputDir: ".taserjs",
+  app: "taser.ts",
+});
+```
 
-- **Installed as a Dev Dependency**: Run directly in your terminal via `pnpm taser generate`, `bun taser generate`, or reference it inside `package.json` scripts simply as `taser generate`.
-- **On-Demand / One-Off**: Use `npx @taserjs/cli generate` to invoke the CLI without a global or local installation.
-
-```bash
-# In package.json scripts (when installed as a dev dependency)
-taser generate [options]
-
-# On-demand via npx
-npx @taserjs/cli generate [options]
-````
-
-### CLI Options
+With those defaults, routes live in `src/routes/`, the app definition is `src/taser.ts`, and generation writes `src/.taserjs/routes.gen.ts`.
 
 <TypeTable
   type={{
-    "--config": {
-      description:
-        "Path to specific config file (alias: -c; vite.config, nitro.config, or next.config). When omitted, searches the current directory for supported config files.",
+    serverDir: {
+      description: "Server root relative to the project (routes, app file, and output are under this).",
       type: "string",
-      default: "Searches current directory",
+      default: "'src'",
+    },
+    routesDir: {
+      description: "Routes folder under serverDir (or an absolute/path-prefixed override).",
+      type: "string",
+      default: "'routes'",
+    },
+    outputDir: {
+      description: "Generated output folder under serverDir (contains routes.gen.ts).",
+      type: "string",
+      default: "'.taserjs'",
+    },
+    app: {
+      description: "App definition filename under serverDir (defineTaser export).",
+      type: "string",
+      default: "'taser.ts'",
+    },
+    extension: {
+      description: "Import extension style in generated code (true → .js, false → bare, or a custom string).",
+      type: "boolean | string",
+      default: "true",
+    },
+    formatting: {
+      description: "Scaffold quote/semicolon style for empty route files.",
+      type: "{ quotes?: 'single' | 'double'; semi?: boolean }",
     },
   }}
 />
 
 ---
 
-## How It Works
+## `taser generate`
 
-1. **Config Resolution**: Automatically inspects your configuration via `--config` or by searching the current directory for `vite.config.ts`, `nitro.config.ts`, or `next.config.ts` using `jiti`. Configuration is required.
-2. **Automatic Route Scaffolding & Path Sync**: If any new route or layout file is empty (such as after `touch src/routes/admin/users.get.ts`), the CLI automatically populates it with starter boilerplate containing the exact filesystem-derived path string (`t.get("/admin/users")`). Populated files are preserved and never overwritten.
+Scans the routes directory, scaffolds blank route files with filesystem-synced path strings, and writes `${serverDir}/${outputDir}/routes.gen.ts` (default `src/.taserjs/routes.gen.ts`): compiled `app`, ambient route types, and the composite `AppManifest` for `@taserjs/client`.
 
-   ```ts title="src/routes/admin/users.get.ts"
-   import { json } from "@taserjs/router/reply";
-   import { t } from "@taserjs/router";
+```bash
+# In package.json scripts (when installed as a dev dependency)
+taser generate [--config <path>] [--watch]
 
-   const GET = t.get("/admin/users");
+# On-demand via npx
+npx @taserjs/cli generate [--config <path>] [--watch]
+```
 
-   export type RouteContext = typeof GET.$Infer.Context;
-   export default GET.handler((_ctx) => {
-     return json({ ok: true });
-   });
-   ```
+<TypeTable
+  type={{
+    "--config / -c": {
+      description: "Path to taserjs.config.ts (or .js/.mjs/.cjs). When omitted, loads taserjs.config.* from the current directory, or uses built-in defaults.",
+      type: "string",
+    },
+    "--watch / -w": {
+      description: "Watch the routes directory and regenerate (with scaffolding) on changes.",
+      type: "boolean",
+      default: "false",
+    },
+  }}
+/>
 
-3. **Unified Manifest Generation**: Writes `src/.taserjs/routes.gen.ts` with the compiled `app`, ambient `RouterRegister` augmentations, and `AppManifest`, enabling IDE autocomplete and static typechecking even when the dev server is not active.
+<Callout type="info" title="Binary name">
+  The npm package is `@taserjs/cli`; the executable is `taser`.
+</Callout>
+
+### Scaffolding blank files
+
+Empty route files (for example after `touch src/routes/admin/users.get.ts`) are filled with starter boilerplate and the matching path string. Existing non-empty files are never overwritten.
+
+```ts title="src/routes/admin/users.get.ts"
+import { json } from "@taserjs/router/reply";
+import { t } from "@taserjs/router";
+
+const GET = t.get("/admin/users");
+
+export type RouteContext = typeof GET.$Infer.Context;
+export default GET.handler((_ctx) => {
+  return json({ ok: true });
+});
+```
 
 ---
 
-## Build vs. Standalone Typecheck Workflows
+## Build vs. Standalone Typecheck
 
-Understanding when route generation happens automatically versus when to run `taser generate`:
+Bundler plugins (`vite build`, `next build`) generate the manifest during compilation — you do not need a separate CLI step in those pipelines.
 
-### Standard Production Builds
-
-When building with Vite (`vite build`) or Next.js (`next build`), the Taser bundler plugin automatically runs route scanning, generates the internal route manifest, and emits ambient types during the build compilation process. You **do not** need to run `taser generate` prior to running `vite build` or `next build`.
-
-### Standalone Typecheck & CI Scripts
-
-If your CI pipeline or local quality checks run standalone TypeScript typechecking (`tsc --noEmit`) outside of a full bundler build, TypeScript needs `src/.taserjs/routes.gen.ts` to exist ahead of time. In this setup, install `@taserjs/cli` as a dev dependency and prefix `tsc` with `taser generate`:
+For standalone `tsc --noEmit` in CI or pre-commit hooks, generate first:
 
 ```json title="package.json"
 {
@@ -121,12 +159,6 @@ If your CI pipeline or local quality checks run standalone TypeScript typechecki
 }
 ```
 
-<Callout type="info" title="Non-Bundler Setups">
-  In non-bundler setups (such as standalone Node.js, Fastify, or Express runtimes that don't invoke
-  Vite during build or dev), install `@taserjs/cli` as a dev dependency and use `taser
-  generate` in your build or watcher scripts to ensure `src/.taserjs/routes.gen.ts` stays in sync.
-</Callout>
-
 ---
 
 ## Next Steps
@@ -135,11 +167,11 @@ If your CI pipeline or local quality checks run standalone TypeScript typechecki
   <Card
     title="Vite Plugin"
     href="/docs/plugins/vite"
-    description="Learn how the Vite plugin handles virtual modules and dev server routing."
+    description="Dev server integration and production serve shim."
   />
   <Card
-    title="Defining Routes"
-    href="/docs/routing/defining-routes"
-    description="Learn about path parameters, query schemas, and return contracts."
+    title="Typed Client"
+    href="/docs/client"
+    description="Import AppManifest from routes.gen.ts into createClient."
   />
 </Cards>

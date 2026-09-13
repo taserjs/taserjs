@@ -1,207 +1,138 @@
 ---
 title: "@taserjs/plugin"
-description: "Complete API reference and configuration options for @taserjs/plugin across Vite, Next.js App Router, and Nitro server environments."
+description: "API reference for @taserjs/plugin across Vite, Next.js, Nitro, and other bundlers."
 icon: Layers
 ---
 
 import { TypeTable } from "@/components/type-table";
-import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
 
-The `@taserjs/plugin` package provides framework adapters, virtual module compilation, and ambient TypeScript generation for Vite, Next.js, and Nitro.
+The `@taserjs/plugin` package provides framework adapters and drives generation of `src/.taserjs/routes.gen.ts` during development and builds.
+
+Path layout (`serverDir`, `routesDir`, `outputDir`, `app`) is configured in [`taserjs.config.ts`](/docs/cli) via `@taserjs/cli`. Plugin options below control server integration and which config file to load.
 
 ---
 
 ## Exports Overview
 
-| Subpath Export                    | Description                                       | Target Framework       |
-| :-------------------------------- | :------------------------------------------------ | :--------------------- |
-| `@taserjs/plugin/vite`     | Vite compiler plugin with virtual routing and HMR | Vite, TanStack Start   |
-| `@taserjs/plugin/next`     | Next.js curried configuration wrapper             | Next.js App Router     |
-| `@taserjs/plugin/nitro`    | Nitro server engine module                        | Standalone Nitro, Nuxt |
-| `@taserjs/plugin/webpack`  | Webpack plugin                                    | Webpack                |
-| `@taserjs/plugin/rspack`   | Rspack plugin                                     | Rspack                 |
-| `@taserjs/plugin/rollup`   | Rollup plugin                                     | Rollup                 |
-| `@taserjs/plugin/rolldown` | Rolldown plugin                                   | Rolldown               |
-| `@taserjs/plugin/esbuild`  | Esbuild plugin                                    | Esbuild                |
+| Subpath Export              | Description                                       | Target Framework       |
+| :-------------------------- | :------------------------------------------------ | :--------------------- |
+| `@taserjs/plugin/vite`      | Vite plugin with HMR and optional HTTP server     | Vite, TanStack Start   |
+| `@taserjs/plugin/next`      | Next.js configuration wrapper                     | Next.js App Router     |
+| `@taserjs/plugin/nitro`     | Nitro server module                               | Standalone Nitro, Nuxt |
+| `@taserjs/plugin/webpack`   | Webpack plugin                                    | Webpack                |
+| `@taserjs/plugin/rspack`    | Rspack plugin                                     | Rspack                 |
+| `@taserjs/plugin/rollup`    | Rollup plugin                                     | Rollup                 |
+| `@taserjs/plugin/esbuild`   | Esbuild plugin                                    | Esbuild                |
 
 <Callout type="info">
-  The package root (`@taserjs/plugin`) is not part of the public API.
-  `@taserjs/plugin/runtime` is reserved for generated app code.
+  The package root (`@taserjs/plugin`) is not part of the public API. Import a framework subpath.
 </Callout>
 
 ---
 
-## Vite Plugin (`@taserjs/plugin/vite`)
+## Shared Options (`TaserPluginOptions`)
+
+Used by Vite, Nitro, Webpack, Rspack, Rollup, and Esbuild:
 
 ```ts
 import { taser } from "@taserjs/plugin/vite";
 
-export default defineConfig({
-  plugins: [taser(options?)],
+taser({
+  server: true,
+  serverEntry: "src/server.ts",
+  config: "./taserjs.config.ts",
 });
 ```
 
-### `TaserPluginOptions`
-
 <TypeTable
   type={{
-    basePath: {
-      description: "Root URL prefix Taser.js routes dispatch under.",
-      type: "string",
-      default: "'/'",
-    },
-    routesDir: {
-      description: "Path to your file-based routes directory.",
-      type: "string",
-      default: "'src/routes'",
-    },
-    entryPath: {
-      description: "Path to the taser router instance definition file. Alias for `entry`.",
-      type: "string",
-      default: "'src/taser.ts'",
-    },
-    entry: {
-      description: "Alias for `entryPath`.",
-      type: "string",
-      default: "'src/taser.ts'",
-    },
-    serverEntryPath: {
-      description:
-        "Path to optional host server entry (e.g. 'src/server.ts' or 'src/server.node.ts'). Alias for `serverEntry`.",
-      type: "string",
-      default: "undefined",
-    },
-    serverEntry: {
-      description: "Alias for `serverEntryPath`.",
-      type: "string",
-      default: "undefined",
-    },
     server: {
-      description:
-        "Whether to enable the dev server middleware and generate production serve shim.",
+      description: "Enable dev server middleware and production serve shim where the adapter supports it.",
       type: "boolean",
       default: "true",
+    },
+    serverEntry: {
+      description: "Optional host server entry (alias: serverEntryPath).",
+      type: "string",
+      default: "undefined",
+    },
+    serverEntryPath: {
+      description: "Alias for serverEntry.",
+      type: "string",
+      default: "undefined",
+    },
+    config: {
+      description: "Path to taserjs.config.ts (loads serverDir, routesDir, outputDir, app).",
+      type: "string",
+      default: "undefined",
+    },
+    cwd: {
+      description: "Project root for resolving config and paths.",
+      type: "string",
+      default: "process.cwd()",
     },
     standalone: {
       description:
-        "When using Nitro, whether Taser.js replaces Nitro's app pipeline (zero h3/rou3) or registers as a standard Nitro handler.",
+        "When Nitro is involved, whether Taser.js owns the app pipeline (true) or registers as a handler (false).",
       type: "boolean",
       default: "true",
-    },
-    ignore: {
-      description: "Glob patterns of files inside routesDir to exclude from routing.",
-      type: "string[]",
-      default: "['**/*.test.ts', '**/*.spec.ts', '**/*.d.ts']",
-    },
-    rootDir: {
-      description: "Root directory of the project.",
-      type: "string",
-      default: "process.cwd()",
     },
   }}
 />
 
 ---
 
-## Next.js Plugin (`@taserjs/plugin/next`)
+## Next.js (`@taserjs/plugin/next`)
 
 ```ts
-import createTaser from "@taserjs/plugin/next";
+import type { NextConfig } from "next";
+import { createTaser } from "@taserjs/plugin/next";
 
-const withTaser = createTaser(options?);
+const nextConfig: NextConfig = {};
+
+const withTaser = createTaser({
+  serverDir: "src/server",
+});
+
 export default withTaser(nextConfig);
 ```
 
-### `TaserNextOptions`
+### `NextTaserOptions`
+
+Extends `TaserPluginOptions`:
 
 <TypeTable
   type={{
     serverDir: {
-      description: "Root server directory containing your taser instance and routes folder.",
+      description: "Server root override (otherwise from taserjs.config.ts).",
       type: "string",
-      default: "'src/server'",
-    },
-    entry: {
-      description: "Path or path alias to the taser router instance definition file.",
-      type: "string",
-      default: "'src/taser.ts'",
+      default: "from config",
     },
     basePath: {
-      description: "URL prefix Taser.js dispatches under.",
+      description:
+        "Optional URL prefix metadata. Prefer defineTaser().basePath() for runtime mounts and client baseUrl for requests.",
       type: "string",
-      default: "'/'",
-    },
-    routesDir: {
-      description: "Path to your file-based routes directory (defaults to `${serverDir}/routes`).",
-      type: "string",
-      default: "'src/server/routes'",
-    },
-    outputDir: {
-      description: "Output directory (under serverDir) where routes.gen.ts is written.",
-      type: "string",
-      default: "'.taserjs'",
-    },
-    watcher: {
-      description: "File watcher configuration options for development mode.",
-      type: "WatcherOptions",
       default: "undefined",
+    },
+    extension: {
+      description: "Import extension style for generated routes.gen.ts.",
+      type: "boolean | string",
+      default: "from config",
     },
   }}
 />
 
 ---
 
-## Nitro Module (`@taserjs/plugin/nitro`)
+## Nitro (`@taserjs/plugin/nitro`)
 
 ```ts
 import { taser } from "@taserjs/plugin/nitro";
 
 export default defineConfig({
-  modules: [taser(options?)],
+  modules: [taser({ standalone: true })],
 });
 ```
 
-### `TaserNitroOptions`
-
-<TypeTable
-  type={{
-    standalone: {
-      description:
-        "When true, Taser.js acts as the standalone app runner with zero overhead. When false, mounts as a sub-handler in Nitro.",
-      type: "boolean",
-      default: "true",
-    },
-    basePath: {
-      description: "Root URL prefix Taser.js routes dispatch under.",
-      type: "string",
-      default: "'/'",
-    },
-    routesDir: {
-      description: "Path to your file-based routes directory.",
-      type: "string",
-      default: "'src/routes'",
-    },
-    entryPath: {
-      description: "Path to the taser router instance definition file. Alias for `entry`.",
-      type: "string",
-      default: "'src/taser.ts'",
-    },
-    entry: {
-      description: "Alias for `entryPath`.",
-      type: "string",
-      default: "'src/taser.ts'",
-    },
-    serverEntryPath: {
-      description:
-        "Path to optional host server entry (e.g. 'src/server.ts'). Alias for `serverEntry`.",
-      type: "string",
-      default: "undefined",
-    },
-    serverEntry: {
-      description: "Alias for `serverEntryPath`.",
-      type: "string",
-      default: "undefined",
-    },
-  }}
-/>
+Uses the same `TaserPluginOptions` as Vite. See the [Nitro guide](/docs/plugins/nitro).

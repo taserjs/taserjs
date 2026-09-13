@@ -257,6 +257,7 @@ ${routeEntries.join("\n")}
 } as const;
 
 export type RouteManifest = typeof routeManifest;
+export type AppManifest = RouteManifest;
 
 ${appCompilation}
 
