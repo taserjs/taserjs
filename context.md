@@ -17,7 +17,7 @@ The configured Hono application instance compiled and returned by `createTaserAp
 _Avoid_: Server instance, express app
 
 **Standalone Serve Shim**:
-The internal runner entry emitted at `.taserjs/serve.mjs` (or virtual ID) during Vite SSR build that imports `routes.gen.ts`, configures `FastResponse`, and binds `app` to `srvx/node` `serve(app)` for zero-boilerplate standalone production hosting.
+The internal runner entry emitted at `.taserjs/serve.ts` (or virtual ID) during Vite SSR build that imports `routes.gen.ts`, configures `FastResponse`, and binds `app` to `srvx/node` `serve(app)` for zero-boilerplate standalone production hosting.
 _Avoid_: server.ts, host wrapper, server entry, express server
 
 **TaserDefinition**:
@@ -127,4 +127,3 @@ _Avoid_: prerequisite schema, middleware validator, guard contract
 **Multi-Method Route**:
 An endpoint definition handling multiple HTTP methods via explicit verb lists (`.any.ts` / `t.any(path, methods)`) or catch-all verb dispatch (`.all.ts` / `t.all(path)`).
 _Avoid_: wildcard route, any route, method router
-

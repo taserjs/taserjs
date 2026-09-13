@@ -7,3 +7,10 @@ dist
 .DS_Store
 coverage
 plans
+.scratch
+.agents
+.claude
+.out-of-scope
+works
+skills-lock.json
+AGENTS.md
