@@ -1,29 +1,25 @@
 # Taser.js Validation & Contracts
 
-This guide covers the phased route builder lifecycle, Standard Schema validation (Zod, Valibot, ArkType), and the structure of the request context object (`ctx`).
+This guide covers the phased route builder lifecycle, Standard Schema validation (Zod, Valibot, ArkType), and handler argument facets (`req`, `ctx`, `state`).
 
 ---
 
 ## 1. Phased Route Builder Lifecycle
 
-Taser.js enforces a strict compile-time state machine for route files:
-
 ```text
 1. Middleware Phase        2. Contract / Schema Phase        3. Terminal Handler Phase
-   .use(mw1).use(mw2)    ->   .params().query().body()      ->   .handler(async (ctx) => ...)
+   .use(mw1).use(mw2)    ->   .params().query().body()      ->   .handler(async ({ req, ctx, state }) => ...)
                              .returns(...)
 ```
 
 ### Critical Rules
 
-- **Phase Order**: You cannot call `.use(...)` after `.params()`, `.query()`, `.body()`, or `.returns()`. The type system strips `.use()` once you enter the contract phase.
-- **Terminal Step**: Every route builder must terminate with `.handler(async (ctx) => ...)` to produce the default route export.
+- **Phase Order**: You cannot call `.use(...)` after `.params()`, `.query()`, `.body()`, or `.returns()`.
+- **Terminal Step**: Every route builder must terminate with `.handler(...)`.
 
 ---
 
 ## 2. Standard Schema Validation
-
-Taser.js supports any validator conforming to the [Standard Schema](https://standardschema.dev/) specification (including Zod, Valibot, ArkType).
 
 ```ts
 // src/routes/users/$id.put.ts
@@ -41,10 +37,10 @@ const PUT = t
     404: z.object({ message: z.string() }),
   });
 
-export default PUT.handler(async (ctx) => {
-  const { id } = ctx.params;
-  const { notify } = ctx.query;
-  const { name, email } = ctx.body;
+export default PUT.handler(async ({ req, ctx }) => {
+  const { id } = req.params;
+  const { notify } = req.query;
+  const { name, email } = req.body;
 
   const updated = await ctx.db.updateUser(id, { name, email }, { notify });
   if (!updated) return notFound({ message: "User not found" });
@@ -55,35 +51,27 @@ export default PUT.handler(async (ctx) => {
 
 ### Contract Methods
 
-- **`.params(schema)`**: Validates path parameters. Inferred as `string` by default if omitted.
-- **`.query(schema)`**: Validates URL query search parameters.
-- **`.body(schema)`**: Parses and validates incoming JSON request bodies.
-- **`.body("form", schema)`**: Parses and validates incoming `multipart/form-data` payloads.
-- **Body Optimization**: When `.body()` is omitted, request body reading and stream parsing is completely skipped.
-- **`.returns({ [status]: schema })`** (optional): Documents and validates server response payloads per status code. `@taserjs/router-client` infers success types from handler reply helpers (`json()`, `ok()`, etc.) by default; defining `.returns({ 200: schema })` overrides that inference for the `200` response.
+- **`.params(schema)`**: Path parameters on `req.params` (string by default if omitted).
+- **`.query(schema)`**: Query on `req.query`.
+- **`.body(schema)`**: JSON body on `req.body`.
+- **`.body("form", schema)`**: `multipart/form-data` on `req.body`.
+- **Body Optimization**: When `.body()` is omitted, body reading is skipped.
+- **`.returns({ [status]: schema })`** (optional): Documents/validates response payloads. `@taserjs/client` infers success types from reply helpers by default; `.returns({ 200: schema })` overrides the `200` client type.
 
 ---
 
-## 3. Context Object (`ctx`) Anatomy
+## 3. Handler Argument Anatomy
 
-Every route and middleware receives a typed `ctx` object with the following properties:
-
-| Property      | Type / Source                      | Description                                                                               |
-| :------------ | :--------------------------------- | :---------------------------------------------------------------------------------------- |
-| `ctx.[key]`   | Custom from `createContext`        | Singletons and metadata declared in `boot` and `request` context.                         |
-| `ctx.params`  | `Record<string, string>` or Schema | Inferred or validated path parameters (e.g. `ctx.params.id`, `ctx.params._splat`).        |
-| `ctx.query`   | Schema Inferred                    | Validated query parameters.                                                               |
-| `ctx.body`    | Schema Inferred                    | Validated request body (JSON or parsed form data).                                        |
-| `ctx.state`   | `Record<string, any>`              | Downstream state injected by ancestor layouts and middlewares via `return next({ ... })`. |
-| `ctx.headers` | `Headers` helper                   | Typed headers interface with convenience getters.                                         |
-| `ctx.cookies` | `Cookies` helper                   | Cookie reader and setter interface.                                                       |
-| `ctx.request` | `Request`                          | Raw standard Web API `Request` instance (avoid unless necessary).                         |
+| Facet / Service | Source                         | Description                                                                 |
+| :-------------- | :----------------------------- | :-------------------------------------------------------------------------- |
+| `req`           | Request Facet                  | `params`, `query`, `body`, `headers`, `method`, `url`, `path`, `raw`        |
+| `ctx`           | Application Context            | Boot/request singletons from `createContext()` (e.g. `ctx.db`)              |
+| `state`         | Middleware State               | Cascaded values from ancestor `return next({ ... })`                        |
+| `cookies`       | Provided Service               | Cookie Jar Instance — only after mounting `cookie()` on a layout            |
 
 ---
 
 ## 4. Standalone Validation Middleware
-
-You can define validation-only middlewares to share reusable query or header requirements across multiple routes:
 
 ```ts
 import { t } from "@taserjs/router";

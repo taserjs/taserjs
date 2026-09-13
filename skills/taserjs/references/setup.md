@@ -1,12 +1,10 @@
 # Taser.js Setup & Configuration
 
-This guide covers bootstrapping a new Taser.js project and configuring entry, context, and router instances in an existing project.
+This guide covers bootstrapping a new Taser.js project and configuring entry, context, and router definitions.
 
 ---
 
 ## 1. Creating a New Project
-
-New projects fall into two primary categories:
 
 ### A. Standalone Backend API Project
 
@@ -40,8 +38,7 @@ Available flags for `create-taserjs`:
 ### B. Fullstack Frameworks (Next.js or TanStack Start)
 
 1. Scaffold with the [Better T Stack CLI](https://www.better-t-stack.dev/docs/cli/agent-workflows) to generate a Next.js or TanStack Start app first.
-
-2. Follow the manual setup guide for next steps [references/integrations.md](integrations.md).
+2. Follow [references/integrations.md](integrations.md).
 
 ---
 
@@ -52,33 +49,56 @@ Available flags for `create-taserjs`:
 1. Install dependencies:
 
    ```bash
-   pnpm add @taserjs/router @taserjs/router-client zod
-   pnpm add -D @taserjs/router-plugin vite @taserjs/router-cli
+   pnpm add @taserjs/router @taserjs/client zod
+   pnpm add -D @taserjs/plugin @taserjs/cli vite srvx
    ```
 
-2. Configure `vite.config.ts`:
+2. Add `taserjs.config.ts`:
 
    ```ts
-   // vite.config.ts
+   import { defineConfig } from "@taserjs/cli";
+
+   export default defineConfig({
+     serverDir: "src",
+     routesDir: "routes",
+     outputDir: ".taserjs",
+     app: "taser.ts",
+   });
+   ```
+
+3. Configure `vite.config.ts`:
+
+   ```ts
    import { defineConfig } from "vite";
-   import { taser } from "@taserjs/router-plugin/vite";
+   import { taser } from "@taserjs/plugin/vite";
 
    export default defineConfig({
      plugins: [taser()],
    });
    ```
 
-3. Ensure `tsconfig.json` includes bundler/node16 module resolution and types:
+4. Ensure `tsconfig.json` includes sources (covers `src/.taserjs/**/*`):
+
    ```json
    {
      "compilerOptions": {
        "target": "ES2022",
-       "module": "ESNext",
-       "moduleResolution": "bundler",
+       "module": "NodeNext",
+       "moduleResolution": "NodeNext",
        "strict": true,
        "skipLibCheck": true
      },
-     "include": ["src", ".taser/types/**/*.d.ts", "vite.config.ts"]
+     "include": ["src/**/*", "vite.config.ts", "taserjs.config.ts"]
+   }
+   ```
+
+5. For standalone CI typecheck without Vite:
+
+   ```json
+   {
+     "scripts": {
+       "typecheck": "taser generate && tsc --noEmit"
+     }
    }
    ```
 
@@ -86,45 +106,45 @@ Available flags for `create-taserjs`:
 
 ## 3. Key Concepts: Entry & Context Files
 
-### Entry File (`src/taser.ts` or `src/server/taser.ts`)
+### App Definition (`src/taser.ts` or `src/server/taser.ts`)
 
-The entry file exports the main application instance configured via `createTaserApp`:
+Export an uninstantiated definition with `defineTaser`. The compiled Hono `app` is emitted to `src/.taserjs/routes.gen.ts`:
 
 ```ts
 // src/taser.ts
-import { createTaserApp } from "@taserjs/router";
+import { defineTaser } from "@taserjs/router";
 import { notFound, internalServerError } from "@taserjs/router/reply";
+import { context } from "./context";
 
-export default createTaserApp({
+export default defineTaser({
   response: {
     validate: true, // Validate return schemas during development
   },
 })
+  .context(context)
   .notFound(() => notFound({ message: "Resource not found" }))
   .onError((error) => {
+    // Unhandled runtime crashes only (500). Validation / contract errors bypass onError.
     console.error("Unhandled error:", error);
     return internalServerError({ message: "Internal server error" });
   });
 ```
 
-### Context File (`src/context.ts` or `src/server/context.ts`)
+Use `.basePath("/api")` when the HTTP mount is not `/`. Do not put `basePath` on plugin options.
 
-Taser.js uses `createContext` to manage application lifecycle singletons and request-scoped metadata:
+### Context File (`src/context.ts` or `src/server/context.ts`)
 
 ```ts
 // src/context.ts
 import { createContext } from "@taserjs/router";
 
 export const context = createContext({
-  // Boot context: Initialized ONCE on app startup (singletons, DB pools, SDK clients)
   boot: async () => {
     const db = await createDatabasePool();
     return { db };
   },
-
-  // Request context: Initialized for EVERY incoming request (requestId, auth tokens, timers)
-  request: async ({ request }) => {
-    const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  request: async (req) => {
+    const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID();
     const startTime = performance.now();
     return { requestId, startTime };
   },
@@ -133,7 +153,8 @@ export const context = createContext({
 
 ### Context Rules & Anti-Patterns
 
-- **Single Merged `ctx` Object**: In routes and middleware, `ctx` merges `boot` and `request` properties alongside framework utilities (`ctx.params`, `ctx.query`, `ctx.body`, `ctx.state`, `ctx.headers`, `ctx.cookies`).
+- **Facet split**: Handlers receive `{ req, ctx, state, ...services }`. HTTP inputs live on `req`; singletons on `ctx`; cascaded middleware values on `state`.
+- **Cookies**: Only after mounting `cookie()` middleware on an ancestor layout — then `{ cookies }` is a Cookie Jar Instance.
 - **Reserved Keys**: Do not use reserved property names (`headers`, `cookies`, `params`, `query`, `body`, `state`, `request`) as top-level keys in `boot` or `request`.
 - **No Overwriting**: Do not overwrite keys declared in `boot` inside `request`.
-- **Avoid Context Bloat**: Do not attach static utilities or helper functions to context if they can be imported directly inside route or middleware files.
+- **Avoid Context Bloat**: Do not attach static utilities to context if they can be imported directly.
