@@ -321,10 +321,10 @@ export default t
 
 ## Client-Side Uploads with `formBody()`
 
-When consuming your multipart endpoints using `@taserjs/router-client`, wrap your payload with `formBody()`:
+When consuming your multipart endpoints using `@taserjs/client`, wrap your payload with `formBody()`:
 
 ```ts
-import { formBody } from "@taserjs/router-client";
+import { formBody } from "@taserjs/client";
 import { api } from "./lib/api";
 
 const selectedFile = fileInput.files[0];

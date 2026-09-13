@@ -1,6 +1,6 @@
 ---
 title: Nitro Module
-description: "Deploy Taser.js across edge, serverless, and multi-cloud runtimes using the @taserjs/router-plugin/nitro module with automatic route registration."
+description: "Deploy Taser.js across edge, serverless, and multi-cloud runtimes using the @taserjs/plugin/nitro module with automatic route registration."
 icon: Workflow
 ---
 
@@ -9,7 +9,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-plugin/nitro` package connects Taser.js directly to the Nitro server engine. It allows you to package and deploy Taser.js APIs to any platform (Cloudflare Workers, Vercel, AWS Lambda, Bun, Deno, or standalone Node.js) with zero runtime overhead.
+The `@taserjs/plugin/nitro` package connects Taser.js directly to the Nitro server engine. It allows you to package and deploy Taser.js APIs to any platform (Cloudflare Workers, Vercel, AWS Lambda, Bun, Deno, or standalone Node.js) with zero runtime overhead.
 
 ---
 
@@ -24,7 +24,7 @@ When building with Vite, simply chain `taser()` and `nitro()` together:
 ```ts title="vite.config.ts"
 import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
-import { taser } from "@taserjs/router-plugin/vite";
+import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
   plugins: [taser(), nitro()],
@@ -39,7 +39,7 @@ If you are running a pure Nitro project without Vite, register `taser()` in the 
 
 ```ts title="nitro.config.ts"
 import { defineConfig } from "nitro/config";
-import { taser } from "@taserjs/router-plugin/nitro";
+import { taser } from "@taserjs/plugin/nitro";
 
 export default defineConfig({
   modules: [taser()],
@@ -59,7 +59,7 @@ In Standalone Mode, Taser.js replaces Nitro's internal router entirely. Requests
 
 ```ts title="nitro.config.ts"
 import { defineConfig } from "nitro/config";
-import { taser } from "@taserjs/router-plugin/nitro";
+import { taser } from "@taserjs/plugin/nitro";
 
 export default defineConfig({
   modules: [
@@ -76,7 +76,7 @@ If you have an existing Nitro or Nuxt project with existing server handlers, set
 
 ```ts title="nitro.config.ts"
 import { defineConfig } from "nitro/config";
-import { taser } from "@taserjs/router-plugin/nitro";
+import { taser } from "@taserjs/plugin/nitro";
 
 export default defineConfig({
   modules: [

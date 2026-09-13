@@ -122,7 +122,7 @@ The following example demonstrates converting an existing Express controller fil
       });
     ```
 
-    *The path string above is automatically populated by the dev watcher, production builds (`vite build`, `next build`), or `@taserjs/router-cli generate` when the file is first created—you don't need to author it by hand even during manual migration.*
+    *The path string above is automatically populated by the dev watcher, production builds (`vite build`, `next build`), or `@taserjs/cli generate` when the file is first created—you don't need to author it by hand even during manual migration.*
 
   </Tab>
 </Tabs>
@@ -197,7 +197,7 @@ The following example demonstrates converting an existing Fastify endpoint with 
       });
     ```
 
-    *The path string above is automatically populated by the dev watcher, production builds (`vite build`, `next build`), or `@taserjs/router-cli generate` when the file is first created—you don't need to author it by hand even during manual migration.*
+    *The path string above is automatically populated by the dev watcher, production builds (`vite build`, `next build`), or `@taserjs/cli generate` when the file is first created—you don't need to author it by hand even during manual migration.*
 
   </Tab>
 </Tabs>
@@ -333,7 +333,7 @@ Certain patterns common in legacy Node.js frameworks cannot be migrated automati
 | Legacy Pattern                                               | Why It Cannot Be Automated                                                                                                                           | Recommended Migration Strategy                                                                                          |
 | :----------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
 | **Callback-Style Middleware `(req, res, next)`**             | Taser.js uses Web Standard Promise-based `(ctx, next) => Promise<Response>` architecture; Express callbacks calling `res.end()` bypass the pipeline. | Convert to async functions returning `next({ ... })`, or adapt Hono/Web middleware using `honoMw()`.                    |
-| **Imperative Route Loops (`routes.forEach(...)`)**           | Taser.js discovers routes statically at build time from the filesystem.                                                                              | Create explicit `.ts` files per route (or use `@taserjs/router-cli generate` to scaffold empty route files).            |
+| **Imperative Route Loops (`routes.forEach(...)`)**           | Taser.js discovers routes statically at build time from the filesystem.                                                                              | Create explicit `.ts` files per route (or use `@taserjs/cli generate` to scaffold empty route files).            |
 | **Raw Node Stream Piping (`stream.pipe(res)`)**              | Node.js `WritableStream` (`res`) is absent in Web Standard environments.                                                                             | Return a Web Standard `Response` using `stream()`, `file()`, or `buffer()` helpers from `@taserjs/router/reply/stream`. |
 | **Arbitrary Mutating Property Assignment (`req.foo = bar`)** | Mutating global request objects breaks compile-time type safety.                                                                                     | Return state updates via `return next({ foo: bar })` in layout middleware, exposing them on `ctx.state`.                |
 | **WebSocket & HTTP Upgrade Handlers**                        | Taser.js file routes handle standard HTTP request/response lifecycles.                                                                               | Keep WebSocket upgrade hooks (`server.on("upgrade", ...)`) inside `src/server.node.ts` or deployment presets.           |

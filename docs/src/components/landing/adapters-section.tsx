@@ -42,7 +42,7 @@ const integrations: {
   },
   {
     name: "Next.js",
-    description: "Embed inside App Router with @taserjs/router-plugin/next.",
+    description: "Embed inside App Router with @taserjs/plugin/next.",
     icon: <Layers />,
     iconTone: "violet",
     href: "/docs/fullstack/nextjs",

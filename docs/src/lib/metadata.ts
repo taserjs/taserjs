@@ -93,11 +93,11 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
   "plugins/vite":
     "Integrate Taser.js into Vite with virtual route modules, ambient type generation, instant HMR, and standalone deployment.",
   "plugins/next":
-    "Configure the @taserjs/router-plugin/next bundler plugin for Next.js App Router compilation, options, and disk artifacts.",
+    "Configure the @taserjs/plugin/next bundler plugin for Next.js App Router compilation, options, and disk artifacts.",
   "plugins/nitro":
-    "Deploy Taser.js across edge, serverless, and multi-cloud runtimes using the @taserjs/router-plugin/nitro module.",
+    "Deploy Taser.js across edge, serverless, and multi-cloud runtimes using the @taserjs/plugin/nitro module.",
   "plugins/bundlers":
-    "Use Taser.js with Webpack, Rspack, Rollup, Rolldown, or Esbuild via @taserjs/router-plugin subpath exports.",
+    "Use Taser.js with Webpack, Rspack, Rollup, Rolldown, or Esbuild via @taserjs/plugin subpath exports.",
   "fullstack/tanstack-start":
     "Build fullstack React applications with TanStack Start and Taser.js. Type-safe data fetching in TanStack Router loaders and React Query.",
   "fullstack/nextjs":
@@ -146,15 +146,15 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
     "Deploy Taser.js APIs to Cloudflare Workers, Vercel, AWS Lambda, Node.js, Bun, Deno, and Netlify using Nitro presets.",
   client:
     "Auto-completing, end-to-end typed proxy client generated from your server router type with zero runtime drift.",
-  cli: "Generate ambient TypeScript definitions and scaffold empty route files with @taserjs/router-cli.",
+  cli: "Generate ambient TypeScript definitions and scaffold empty route files with @taserjs/cli.",
   "api-reference/router":
     "Complete API reference for @taserjs/router: createTaserApp, createContext, TaserRouter, RouteBuilder, and reply helpers.",
-  "api-reference/router-plugin":
-    "Complete API reference for @taserjs/router-plugin: Vite, Next.js, and Nitro compiler plugin options.",
-  "api-reference/router-client":
-    "Complete API reference for @taserjs/router-client: createClient, formBody, ClientRequestOptions, and utility types.",
-  "api-reference/router-cli":
-    "Complete command options and flag reference for @taserjs/router-cli.",
+  "api-reference/plugin":
+    "Complete API reference for @taserjs/plugin: Vite, Next.js, and Nitro compiler plugin options.",
+  "api-reference/client":
+    "Complete API reference for @taserjs/client: createClient, formBody, ClientRequestOptions, and utility types.",
+  "api-reference/cli":
+    "Complete command options and flag reference for @taserjs/cli.",
 };
 
 export const docsImageAlts: Record<string, string> = {
@@ -193,9 +193,9 @@ export const docsImageAlts: Record<string, string> = {
   client: "Taser.js Docs: Typed Client SDK",
   cli: "Taser.js Docs: CLI Tooling and Codegen",
   "api-reference/router": "Taser.js Docs: @taserjs/router API Reference",
-  "api-reference/router-plugin": "Taser.js Docs: @taserjs/router-plugin API Reference",
-  "api-reference/router-client": "Taser.js Docs: @taserjs/router-client API Reference",
-  "api-reference/router-cli": "Taser.js Docs: @taserjs/router-cli API Reference",
+  "api-reference/plugin": "Taser.js Docs: @taserjs/plugin API Reference",
+  "api-reference/client": "Taser.js Docs: @taserjs/client API Reference",
+  "api-reference/cli": "Taser.js Docs: @taserjs/cli API Reference",
 };
 
 export function createDocsPageMetadata(opts: {

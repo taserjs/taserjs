@@ -1,6 +1,6 @@
 ---
 title: Vite Plugin
-description: "Integrate Taser.js with Vite using @taserjs/router-plugin/vite. Virtual route resolution, ambient type generation, instant HMR, and standalone builds."
+description: "Integrate Taser.js with Vite using @taserjs/plugin/vite. Virtual route resolution, ambient type generation, instant HMR, and standalone builds."
 icon: Zap
 ---
 
@@ -9,7 +9,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-plugin/vite` package connects Taser.js's file routing engine to Vite. It turns your `src/routes/` directory into virtual modules, generates TypeScript definitions on save, and runs a high-performance HTTP server during development and production.
+The `@taserjs/plugin/vite` package connects Taser.js's file routing engine to Vite. It turns your `src/routes/` directory into virtual modules, generates TypeScript definitions on save, and runs a high-performance HTTP server during development and production.
 
 ---
 
@@ -19,16 +19,16 @@ Install the router plugin, Vite, and the `srvx` server runtime:
 
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
-    ```bash pnpm add @taserjs/router pnpm add -D @taserjs/router-plugin vite srvx ```
+    ```bash pnpm add @taserjs/router pnpm add -D @taserjs/plugin vite srvx ```
   </Tab>
   <Tab value="npm">
-    ```bash npm install @taserjs/router npm install -D @taserjs/router-plugin vite srvx ```
+    ```bash npm install @taserjs/router npm install -D @taserjs/plugin vite srvx ```
   </Tab>
   <Tab value="bun">
-    ```bash bun add @taserjs/router bun add -d @taserjs/router-plugin vite srvx ```
+    ```bash bun add @taserjs/router bun add -d @taserjs/plugin vite srvx ```
   </Tab>
   <Tab value="yarn">
-    ```bash yarn add @taserjs/router yarn add -D @taserjs/router-plugin vite srvx ```
+    ```bash yarn add @taserjs/router yarn add -D @taserjs/plugin vite srvx ```
   </Tab>
 </Tabs>
 
@@ -40,7 +40,7 @@ Add the `taser()` plugin to `vite.config.ts`:
 
 ```ts title="vite.config.ts"
 import { defineConfig } from "vite";
-import { taser } from "@taserjs/router-plugin/vite";
+import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
   plugins: [taser()],
@@ -74,7 +74,7 @@ When paired with `nitro/vite`, Taser.js automatically attaches its Nitro module 
 ```ts title="vite.config.ts"
 import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
-import { taser } from "@taserjs/router-plugin/vite";
+import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
   plugins: [taser(), nitro()],
@@ -91,7 +91,7 @@ The `taser()` plugin accepts optional configuration:
 
 ```ts title="vite.config.ts"
 import { defineConfig } from "vite";
-import { taser } from "@taserjs/router-plugin/vite";
+import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
   plugins: [

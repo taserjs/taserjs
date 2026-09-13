@@ -41,11 +41,11 @@ export default GET.handler(async (ctx) => {
 ```
 
 <Callout type="info" title="Route Path Strings Are Generated, Not Authored">
-  The path string passed to `t.get()`, `t.post()`, `t.layout()`, etc. is generated automatically by the dev watcher (`vite dev`, `next dev`), standard production builds (`vite build`, `next build`), or `@taserjs/router-cli` when route files are first created (e.g. via `touch src/routes/...`). You do not need to author this string by hand.
+  The path string passed to `t.get()`, `t.post()`, `t.layout()`, etc. is generated automatically by the dev watcher (`vite dev`, `next dev`), standard production builds (`vite build`, `next build`), or `@taserjs/cli` when route files are first created (e.g. via `touch src/routes/...`). You do not need to author this string by hand.
 
 **Scaffolding & Mismatch Behavior**: Blank files are automatically populated with starter boilerplate and the matching path string, but existing, populated files are never overwritten. If you rename a route file or edit its path string to an invalid path, your code is preserved; instead, TypeScript flags the mismatch at compile time (`Type '"..."' is not assignable to type 'RoutePath'`).
 
-**Production Builds vs. Standalone Typechecking**: Standard builds (`vite build`, `next build`) automatically scan routes, generate the manifest, and emit ambient types during compilation—no separate CLI command is required in build pipelines. If your setup runs standalone typechecks (`tsc --noEmit`) in CI or pre-commit hooks outside of a bundler build, install `@taserjs/router-cli` as a dev dependency and add `"typecheck": "taser generate && tsc --noEmit"` to your `package.json` (or invoke on-demand via `npx @taserjs/router-cli generate`).
+**Production Builds vs. Standalone Typechecking**: Standard builds (`vite build`, `next build`) automatically scan routes, generate the manifest, and emit ambient types during compilation—no separate CLI command is required in build pipelines. If your setup runs standalone typechecks (`tsc --noEmit`) in CI or pre-commit hooks outside of a bundler build, install `@taserjs/cli` as a dev dependency and add `"typecheck": "taser generate && tsc --noEmit"` to your `package.json` (or invoke on-demand via `npx @taserjs/cli generate`).
 
 </Callout>
 
@@ -89,7 +89,7 @@ Taser.js operates around a deterministic, fully type-safe request lifecycle:
 <RequestFlowDiagram />
 
 <Callout type="info" title="Vite-Powered Virtual Modules">
-  Taser.js integrates with Vite via `@taserjs/router-plugin/vite`. Routes are loaded virtually
+  Taser.js integrates with Vite via `@taserjs/plugin/vite`. Routes are loaded virtually
   during development with instant HMR and bundled into optimized production artifacts via Nitro
   deployment presets.
 </Callout>
@@ -148,7 +148,7 @@ Install the official skill using the open agent skills CLI:
 - **Filesystem Conventions**: Eliminates hallucinated routes by strictly adhering to verb suffixes (`.get.ts`, `.post.ts`), dynamic parameters (`$id`), splats (`$`), and layout middleware.
 - **Layout and Middleware Inheritance**: Guides assistants to declare cascading layouts and middleware that flow into child routes via `ctx.state` without unsafe type assertions.
 - **Validation & Return Contracts**: Guides assistants to declare schemas with Zod, ArkType, or Valibot while pairing status codes with standalone reply helpers (`json`, `created`, `notFound`).
-- **Host Migrations & Client RPC**: Guides incremental migrations from Express, Fastify, and Hono using host pass-through adapters and generates typed `@taserjs/router-client` calls.
+- **Host Migrations & Client RPC**: Guides incremental migrations from Express, Fastify, and Hono using host pass-through adapters and generates typed `@taserjs/client` calls.
 
 ### Example Prompts
 

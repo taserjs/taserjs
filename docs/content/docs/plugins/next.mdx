@@ -1,6 +1,6 @@
 ---
 title: Next.js Plugin
-description: "Configure the @taserjs/router-plugin/next bundler plugin for Next.js 15+ App Router. Options, disk artifact generation, and Turbopack/Webpack compilation."
+description: "Configure the @taserjs/plugin/next bundler plugin for Next.js 15+ App Router. Options, disk artifact generation, and Turbopack/Webpack compilation."
 icon: LayoutGrid
 ---
 
@@ -9,7 +9,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-plugin/next` package integrates Taser.js into Next.js 15+ App Router compilation. It handles disk artifact generation in `.taser/`, TypeScript ambient type generation, and Turbopack/Webpack extension aliases.
+The `@taserjs/plugin/next` package integrates Taser.js into Next.js 15+ App Router compilation. It handles disk artifact generation in `.taser/`, TypeScript ambient type generation, and Turbopack/Webpack extension aliases.
 
 <Callout type="info" title="Looking for the Fullstack Next.js Guide?">
   For the complete architectural guide, React Server Components (RSC) patterns, and Server Actions
@@ -20,33 +20,33 @@ The `@taserjs/router-plugin/next` package integrates Taser.js into Next.js 15+ A
 
 ## Installation
 
-Install `@taserjs/router-plugin` as a dev dependency:
+Install `@taserjs/plugin` as a dev dependency:
 
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
     ```bash
-    pnpm add -D @taserjs/router-plugin
+    pnpm add -D @taserjs/plugin
 
     ```
 
   </Tab>
   <Tab value="npm">
     ```bash
-    npm install -D @taserjs/router-plugin
+    npm install -D @taserjs/plugin
 
     ```
 
   </Tab>
   <Tab value="bun">
     ```bash
-    bun add -d @taserjs/router-plugin
+    bun add -d @taserjs/plugin
 
     ```
 
   </Tab>
   <Tab value="yarn">
     ```bash
-    yarn add -D @taserjs/router-plugin
+    yarn add -D @taserjs/plugin
 
     ```
 
@@ -61,7 +61,7 @@ Wrap your `next.config.ts` using the `createTaser` (or `withTaser`) wrapper:
 
 ```ts title="next.config.ts"
 import type { NextConfig } from "next";
-import { createTaser } from "@taserjs/router-plugin/next";
+import { createTaser } from "@taserjs/plugin/next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -79,7 +79,7 @@ export default withTaser(nextConfig);
 You can also pass a function-based Next.js configuration:
 
 ```ts title="next.config.ts"
-import { withTaser } from "@taserjs/router-plugin/next";
+import { withTaser } from "@taserjs/plugin/next";
 
 export default withTaser({
   serverDir: "src/server",
@@ -147,7 +147,7 @@ const withTaser = createTaser({
 
 ## How It Works Under the Hood
 
-Next.js does not support serving virtual modules dynamically in runtime handlers. To provide zero-overhead integration, `@taserjs/router-plugin/next`:
+Next.js does not support serving virtual modules dynamically in runtime handlers. To provide zero-overhead integration, `@taserjs/plugin/next`:
 
 1. **Monitors `src/server/routes/`**: In development (`next dev`), the plugin runs a lightweight background file watcher that synchronizes route changes instantly.
 2. **Generates Disk Artifacts in `.taser/`**:

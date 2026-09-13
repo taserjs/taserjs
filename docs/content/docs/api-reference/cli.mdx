@@ -1,6 +1,6 @@
 ---
-title: "@taserjs/router-cli"
-description: "CLI command options, configuration detection, ambient type generation, and project scaffolding reference for @taserjs/router-cli."
+title: "@taserjs/cli"
+description: "CLI command options, configuration detection, ambient type generation, and project scaffolding reference for @taserjs/cli."
 icon: Terminal
 ---
 
@@ -8,7 +8,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { TypeTable } from "@/components/type-table";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
-The `@taserjs/router-cli` package provides command-line tooling to generate ambient TypeScript definitions and scaffold empty route files outside the development server.
+The `@taserjs/cli` package provides command-line tooling to generate ambient TypeScript definitions and scaffold empty route files outside the development server.
 
 ---
 
@@ -23,14 +23,14 @@ Scans the routes directory, resolves project configuration, fills blank route fi
 taser generate [--config <path>]
 
 # On-demand execution via npx
-npx @taserjs/router-cli generate [--config <path>]
+npx @taserjs/cli generate [--config <path>]
 ```
 
 <Callout type="info" title="Binary Name vs. Package Name">
-  The npm package is `@taserjs/router-cli`, which provides the executable binary named `taser`. When
+  The npm package is `@taserjs/cli`, which provides the executable binary named `taser`. When
   added to `devDependencies`, npm/pnpm/yarn/bun link the `taser` binary into `node_modules/.bin`,
   allowing direct invocation in `package.json` scripts as `taser generate`. For ad-hoc runs without
-  installing, use `npx @taserjs/router-cli generate`.
+  installing, use `npx @taserjs/cli generate`.
 </Callout>
 
 ---

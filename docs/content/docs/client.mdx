@@ -1,6 +1,6 @@
 ---
 title: Typed Client SDK
-description: "Connect to Taser.js backends with end-to-end type safety using @taserjs/router-client. Enjoy autocomplete for routes, query schemas, and return types."
+description: "Connect to Taser.js backends with end-to-end type safety using @taserjs/client. Enjoy autocomplete for routes, query schemas, and return types."
 icon: WandSparkles
 ---
 
@@ -9,7 +9,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-client` package provides a lightweight, zero-codegen proxy client that infers end-to-end type safety directly from your server's router type definition (`RouteManifest` or `typeof app`).
+The `@taserjs/client` package provides a lightweight, zero-codegen proxy client that infers end-to-end type safety directly from your server's router type definition (`RouteManifest` or `typeof app`).
 
 ---
 
@@ -20,23 +20,23 @@ Install the client package in your project:
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
 ```bash 
-pnpm add @taserjs/router-client
+pnpm add @taserjs/client
 ```
 
   </Tab>
   <Tab value="npm">
 ```bash 
-npm install @taserjs/router-client 
+npm install @taserjs/client 
 ```
   </Tab>
   <Tab value="bun">
 ```bash 
-bun add @taserjs/router-client 
+bun add @taserjs/client 
 ```
   </Tab>
   <Tab value="yarn">
 ```bash 
-yarn add @taserjs/router-client 
+yarn add @taserjs/client 
 ```
   </Tab>
 </Tabs>
@@ -44,7 +44,7 @@ yarn add @taserjs/router-client
 Initialize the client with your backend `baseUrl` and your server app or manifest type:
 
 ```ts title="src/lib/api.ts"
-import { createClient } from "@taserjs/router-client";
+import { createClient } from "@taserjs/client";
 import type { RouteManifest } from "path/to/.taser/types/routes.js";
 // Or when using vite based projects:
 // import type { RouteManifest } from "#taserjs/virtual/manifest";
@@ -189,7 +189,7 @@ if (response.ok) {
 Use `formBody()` to upload binary files and structured form fields with `multipart/form-data`:
 
 ```ts
-import { formBody } from "@taserjs/router-client";
+import { formBody } from "@taserjs/client";
 
 const avatarFile = new File([blob], "avatar.png", { type: "image/png" });
 
@@ -216,7 +216,7 @@ const response = await api.users._id.avatar.$post({
 Extract TypeScript types from client endpoint methods using helper generics:
 
 ```ts
-import type { InferRequestType, InferResponseType } from "@taserjs/router-client";
+import type { InferRequestType, InferResponseType } from "@taserjs/client";
 import type { api } from "@/lib/api";
 
 // Infer input arguments for an endpoint:

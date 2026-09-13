@@ -108,7 +108,7 @@ export default createTaserApp({
 
 ## Client SDK Success Response Typing
 
-`@taserjs/router-client` types `await res.json()` automatically from your route handlers — **you do not need `.returns()` for client type safety**. By default, the client unions successful `ReplyOf` payload types (`200`–`226`) from reply helpers like `json()`, `ok()`, and `created()`.
+`@taserjs/client` types `await res.json()` automatically from your route handlers — **you do not need `.returns()` for client type safety**. By default, the client unions successful `ReplyOf` payload types (`200`–`226`) from reply helpers like `json()`, `ok()`, and `created()`.
 
 Use `.returns()` when you want compile-time server-side contract enforcement, runtime response validation in dev/staging, or to override client inference with an explicit `200` schema type.
 

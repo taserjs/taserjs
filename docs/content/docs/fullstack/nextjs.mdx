@@ -9,7 +9,7 @@ import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-**Next.js App Router** provides a React framework for UI rendering, server components, and streaming HTML. By integrating `@taserjs/router-plugin/next`, you can embed a structured, file-based REST API subsystem with cascading directory middleware, Standard Schema validation, and compile-time return contracts under `/api`.
+**Next.js App Router** provides a React framework for UI rendering, server components, and streaming HTML. By integrating `@taserjs/plugin/next`, you can embed a structured, file-based REST API subsystem with cascading directory middleware, Standard Schema validation, and compile-time return contracts under `/api`.
 
 ---
 
@@ -43,32 +43,32 @@ Install the necessary dependencies in your Next.js project:
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
     ```bash
-    pnpm add @taserjs/router @taserjs/router-client zod
-    pnpm add -D @taserjs/router-plugin
+    pnpm add @taserjs/router @taserjs/client zod
+    pnpm add -D @taserjs/plugin
 
     ```
 
   </Tab>
   <Tab value="npm">
     ```bash
-    npm install @taserjs/router @taserjs/router-client zod
-    npm install -D @taserjs/router-plugin
+    npm install @taserjs/router @taserjs/client zod
+    npm install -D @taserjs/plugin
 
     ```
 
   </Tab>
   <Tab value="bun">
     ```bash
-    bun add @taserjs/router @taserjs/router-client zod
-    bun add -d @taserjs/router-plugin
+    bun add @taserjs/router @taserjs/client zod
+    bun add -d @taserjs/plugin
 
     ```
 
   </Tab>
   <Tab value="yarn">
     ```bash
-    yarn add @taserjs/router @taserjs/router-client zod
-    yarn add -D @taserjs/router-plugin
+    yarn add @taserjs/router @taserjs/client zod
+    yarn add -D @taserjs/plugin
 
     ```
 
@@ -83,11 +83,11 @@ Install the necessary dependencies in your Next.js project:
   <Step>
     ### 1. Wrap `next.config.ts`
 
-    Use `createTaser` (or `withTaser`) from `@taserjs/router-plugin/next` to wrap your Next.js configuration:
+    Use `createTaser` (or `withTaser`) from `@taserjs/plugin/next` to wrap your Next.js configuration:
 
     ```ts title="next.config.ts"
     import type { NextConfig } from "next";
-    import { createTaser } from "@taserjs/router-plugin/next";
+    import { createTaser } from "@taserjs/plugin/next";
 
     const nextConfig: NextConfig = {
       reactStrictMode: true,
@@ -231,10 +231,10 @@ Install the necessary dependencies in your Next.js project:
   <Step>
     ### 6. Create Typed Client Singleton
 
-    Create `src/client.ts` to export a pre-configured `@taserjs/router-client` instance:
+    Create `src/client.ts` to export a pre-configured `@taserjs/client` instance:
 
     ```ts title="src/client.ts"
-    import { createClient } from "@taserjs/router-client";
+    import { createClient } from "@taserjs/client";
     import type { app } from "@/.taser/entry";
 
     export const api = createClient<typeof app>({

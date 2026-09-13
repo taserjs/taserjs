@@ -155,7 +155,7 @@ const data = await res.json();
     solutionTitle: "End-to-End Typed Client",
     solutionBadge: "Type-Inferred SDK",
     solutionFilename: "frontend/client.ts",
-    solutionCode: `import { createClient } from "@taserjs/router-client";
+    solutionCode: `import { createClient } from "@taserjs/client";
 import type { RouteManifest } from "../.taser/types/routes.js";
 
 // End-to-end typed client derived directly from your server RouteManifest

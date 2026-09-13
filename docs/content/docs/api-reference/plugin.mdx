@@ -1,6 +1,6 @@
 ---
-title: "@taserjs/router-plugin"
-description: "Complete API reference and configuration options for @taserjs/router-plugin across Vite, Next.js App Router, and Nitro server environments."
+title: "@taserjs/plugin"
+description: "Complete API reference and configuration options for @taserjs/plugin across Vite, Next.js App Router, and Nitro server environments."
 icon: Layers
 ---
 
@@ -8,7 +8,7 @@ import { TypeTable } from "@/components/type-table";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
 
-The `@taserjs/router-plugin` package provides framework adapters, virtual module compilation, and ambient TypeScript generation for Vite, Next.js, and Nitro.
+The `@taserjs/plugin` package provides framework adapters, virtual module compilation, and ambient TypeScript generation for Vite, Next.js, and Nitro.
 
 ---
 
@@ -16,26 +16,26 @@ The `@taserjs/router-plugin` package provides framework adapters, virtual module
 
 | Subpath Export                    | Description                                       | Target Framework       |
 | :-------------------------------- | :------------------------------------------------ | :--------------------- |
-| `@taserjs/router-plugin/vite`     | Vite compiler plugin with virtual routing and HMR | Vite, TanStack Start   |
-| `@taserjs/router-plugin/next`     | Next.js curried configuration wrapper             | Next.js App Router     |
-| `@taserjs/router-plugin/nitro`    | Nitro server engine module                        | Standalone Nitro, Nuxt |
-| `@taserjs/router-plugin/webpack`  | Webpack plugin                                    | Webpack                |
-| `@taserjs/router-plugin/rspack`   | Rspack plugin                                     | Rspack                 |
-| `@taserjs/router-plugin/rollup`   | Rollup plugin                                     | Rollup                 |
-| `@taserjs/router-plugin/rolldown` | Rolldown plugin                                   | Rolldown               |
-| `@taserjs/router-plugin/esbuild`  | Esbuild plugin                                    | Esbuild                |
+| `@taserjs/plugin/vite`     | Vite compiler plugin with virtual routing and HMR | Vite, TanStack Start   |
+| `@taserjs/plugin/next`     | Next.js curried configuration wrapper             | Next.js App Router     |
+| `@taserjs/plugin/nitro`    | Nitro server engine module                        | Standalone Nitro, Nuxt |
+| `@taserjs/plugin/webpack`  | Webpack plugin                                    | Webpack                |
+| `@taserjs/plugin/rspack`   | Rspack plugin                                     | Rspack                 |
+| `@taserjs/plugin/rollup`   | Rollup plugin                                     | Rollup                 |
+| `@taserjs/plugin/rolldown` | Rolldown plugin                                   | Rolldown               |
+| `@taserjs/plugin/esbuild`  | Esbuild plugin                                    | Esbuild                |
 
 <Callout type="info">
-  The package root (`@taserjs/router-plugin`) is not part of the public API.
-  `@taserjs/router-plugin/runtime` is reserved for generated app code.
+  The package root (`@taserjs/plugin`) is not part of the public API.
+  `@taserjs/plugin/runtime` is reserved for generated app code.
 </Callout>
 
 ---
 
-## Vite Plugin (`@taserjs/router-plugin/vite`)
+## Vite Plugin (`@taserjs/plugin/vite`)
 
 ```ts
-import { taser } from "@taserjs/router-plugin/vite";
+import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
   plugins: [taser(options?)],
@@ -104,10 +104,10 @@ export default defineConfig({
 
 ---
 
-## Next.js Plugin (`@taserjs/router-plugin/next`)
+## Next.js Plugin (`@taserjs/plugin/next`)
 
 ```ts
-import createTaser from "@taserjs/router-plugin/next";
+import createTaser from "@taserjs/plugin/next";
 
 const withTaser = createTaser(options?);
 export default withTaser(nextConfig);
@@ -152,10 +152,10 @@ export default withTaser(nextConfig);
 
 ---
 
-## Nitro Module (`@taserjs/router-plugin/nitro`)
+## Nitro Module (`@taserjs/plugin/nitro`)
 
 ```ts
-import { taser } from "@taserjs/router-plugin/nitro";
+import { taser } from "@taserjs/plugin/nitro";
 
 export default defineConfig({
   modules: [taser(options?)],

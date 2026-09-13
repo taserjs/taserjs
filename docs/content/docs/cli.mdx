@@ -1,6 +1,6 @@
 ---
 title: CLI & Type Generation
-description: "Generate ambient route types, scaffold empty endpoint files, and enforce pre-build CI checks with the @taserjs/router-cli developer tool."
+description: "Generate ambient route types, scaffold empty endpoint files, and enforce pre-build CI checks with the @taserjs/cli developer tool."
 icon: Terminal
 ---
 
@@ -9,35 +9,35 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-cli` package provides command-line utilities to generate ambient TypeScript definitions and scaffold empty route files without running a development server.
+The `@taserjs/cli` package provides command-line utilities to generate ambient TypeScript definitions and scaffold empty route files without running a development server.
 
 ---
 
 ## Installation
 
-`@taserjs/router-cli` is typically installed as a development dependency:
+`@taserjs/cli` is typically installed as a development dependency:
 
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
 ```bash
-pnpm add -D @taserjs/router-cli
+pnpm add -D @taserjs/cli
 
 ````
 
   </Tab>
   <Tab value="npm">
 ```bash
-npm install -D @taserjs/router-cli
+npm install -D @taserjs/cli
 ```
   </Tab>
   <Tab value="bun">
 ```bash
-bun add -D @taserjs/router-cli
+bun add -D @taserjs/cli
 ```
   </Tab>
   <Tab value="yarn">
 ```bash
-yarn add -D @taserjs/router-cli
+yarn add -D @taserjs/cli
 ```
   </Tab>
 </Tabs>
@@ -53,14 +53,14 @@ The `generate` command scans your routes directory, detects configuration from `
 The CLI binary name is `taser`. Depending on your setup:
 
 - **Installed as a Dev Dependency**: Run directly in your terminal via `pnpm taser generate`, `bun taser generate`, or reference it inside `package.json` scripts simply as `taser generate`.
-- **On-Demand / One-Off**: Use `npx @taserjs/router-cli generate` to invoke the CLI without a global or local installation.
+- **On-Demand / One-Off**: Use `npx @taserjs/cli generate` to invoke the CLI without a global or local installation.
 
 ```bash
 # In package.json scripts (when installed as a dev dependency)
 taser generate [options]
 
 # On-demand via npx
-npx @taserjs/router-cli generate [options]
+npx @taserjs/cli generate [options]
 ````
 
 ### CLI Options
@@ -109,7 +109,7 @@ When building with Vite (`vite build`) or Next.js (`next build`), the Taser bund
 
 ### Standalone Typecheck & CI Scripts
 
-If your CI pipeline or local quality checks run standalone TypeScript typechecking (`tsc --noEmit`) outside of a full bundler build, TypeScript needs `.taser/types/routes.d.ts` to exist ahead of time. In this setup, install `@taserjs/router-cli` as a dev dependency and prefix `tsc` with `taser generate`:
+If your CI pipeline or local quality checks run standalone TypeScript typechecking (`tsc --noEmit`) outside of a full bundler build, TypeScript needs `.taser/types/routes.d.ts` to exist ahead of time. In this setup, install `@taserjs/cli` as a dev dependency and prefix `tsc` with `taser generate`:
 
 ```json title="package.json"
 {
@@ -123,7 +123,7 @@ If your CI pipeline or local quality checks run standalone TypeScript typechecki
 
 <Callout type="info" title="Non-Bundler Setups">
   In non-bundler setups (such as standalone Node.js, Fastify, or Express runtimes that don't invoke
-  Vite during build or dev), install `@taserjs/router-cli` as a dev dependency and use `taser
+  Vite during build or dev), install `@taserjs/cli` as a dev dependency and use `taser
   generate` in your build or watcher scripts to ensure `.taser/types/routes.d.ts` stays in sync.
 </Callout>
 
