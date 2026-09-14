@@ -16,9 +16,9 @@ const features: { icon: ReactNode; title: string; description: string; iconTone:
   },
   {
     icon: <Braces />,
-    title: "Cascading Context",
+    title: "Cascading State",
     description:
-      "Middleware state flows through directory layouts directly into ctx.state with zero type assertions.",
+      "Middleware state flows through directory layouts into the state facet with zero type assertions.",
     iconTone: "sky",
   },
   {
@@ -39,14 +39,14 @@ const features: { icon: ReactNode; title: string; description: string; iconTone:
     icon: <Sparkles />,
     title: "Vite HMR & Virtual Modules",
     description:
-      "Vite plugin compiles file routes virtually with instant HMR and automatic ambient TypeScript types.",
+      "Vite plugin (@taserjs/plugin) regenerates routes.gen.ts with instant HMR and ambient TypeScript types.",
     iconTone: "rose",
   },
   {
     icon: <Waypoints />,
     title: "Zero-Drift Typed Client",
     description:
-      "Export router types and call endpoints with an auto-generated client that knows exact response shapes.",
+      "Import AppManifest from src/.taserjs/routes.gen.ts and call endpoints with createClient from @taserjs/client.",
     iconTone: "emerald",
   },
 ];

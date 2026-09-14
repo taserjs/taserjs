@@ -19,14 +19,14 @@ export const winstonAddon: AddonDefinition = {
   async apply(_ctx, write) {
     await write(
       "src/logger.ts",
-      `import winston from 'winston'
+      `import winston from "winston";
 
 export function createLogger() {
   return winston.createLogger({
-    level: process.env.LOG_LEVEL ?? 'info',
+    level: process.env.LOG_LEVEL ?? "info",
     format: winston.format.json(),
     transports: [new winston.transports.Console()],
-  })
+  });
 }
 `,
     );

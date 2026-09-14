@@ -1,0 +1,70 @@
+---
+title: "@taserjs/cli"
+description: "CLI reference for taser generate, taserjs.config.ts, and src/.taserjs/routes.gen.ts output."
+icon: Terminal
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { TypeTable } from "@/components/type-table";
+
+The `@taserjs/cli` package ships the `taser` binary for route scanning, scaffolding, and manifest generation.
+
+---
+
+## Commands
+
+### `taser generate`
+
+Writes `${serverDir}/.taserjs/routes.gen.ts` (defaults to `src/.taserjs/routes.gen.ts`).
+
+```bash
+taser generate [--config <path>] [--watch]
+npx @taserjs/cli generate [--config <path>] [--watch]
+```
+
+<TypeTable
+  type={{
+    "--config / -c": {
+      description: "Path to taserjs.config.ts (or .js/.mjs/.cjs).",
+      type: "string",
+    },
+    "--watch / -w": {
+      description: "Watch routes and regenerate on change.",
+      type: "boolean",
+      default: "false",
+    },
+  }}
+/>
+
+---
+
+## Configuration
+
+Config resolution order:
+
+1. `--config <path>` when provided
+2. `taserjs.config.ts` / `.js` / `.mjs` / `.cjs` in the working directory
+3. Built-in defaults (`serverDir: "src"`, `routesDir: "routes"`, `outputDir: ".taserjs"`, `app: "taser.ts"`)
+
+```ts title="taserjs.config.ts"
+import { defineConfig } from "@taserjs/cli";
+
+export default defineConfig({
+  serverDir: "src",
+  routesDir: "routes",
+  outputDir: ".taserjs",
+  app: "taser.ts",
+});
+```
+
+---
+
+## CI Typecheck Pattern
+
+```json title="package.json"
+{
+  "scripts": {
+    "typecheck": "taser generate && tsc --noEmit -p tsconfig.json"
+  }
+}
+```

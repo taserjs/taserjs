@@ -1,61 +1,25 @@
 # create-taserjs
 
-Official scaffolding CLI for [Taser.js](https://taserjs.dev) REST API projects.
+Scaffold a new Taser.js application with your choice of framework, deployment preset, database, validator, and logger.
 
-## Quick Start
-
-### Interactive Mode
+## Usage
 
 ```bash
-# npm
 npm create taserjs@latest my-api
-
-# pnpm
+# or
 pnpm create taserjs@latest my-api
-
-# bun
-bun create taserjs@latest my-api
-
-# yarn
-yarn create taserjs my-api
 ```
 
-### Non-Interactive / CI Mode
-
-Pass flags to scaffold immediately without prompts:
+Non-interactive example:
 
 ```bash
-pnpm create taserjs@latest my-api \
-  --framework express \
-  --preset node-server \
-  --db drizzle:postgres \
-  --validator zod \
-  --logger pino \
-  -y
+pnpm create taserjs@latest my-api --framework express --preset node-server -y
 ```
 
-## CLI Flags
+## Documentation
 
-| Flag             | Description                                             | Supported Values                                                                                                                   | Default                            |
-| :--------------- | :------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------- |
-| `--framework`    | Host framework                                          | `none`, `hono`, `express`, `fastify`                                                                                               | `none`                             |
-| `--preset`, `-p` | Deployment preset (Nitro preset or `none`)              | `none`, `node-server`, `node-cluster`, `bun`, `deno-server`, `deno-deploy`, `cloudflare-module`, `vercel`, `aws-lambda`, `netlify` | `node-server`                      |
-| `--runtime`      | Explicit runtime override (for self-hosted targets)     | `node`, `bun`, `deno`                                                                                                              | Preset default                     |
-| `--db`           | Database ODM and driver syntax (`odm:driver`)           | `drizzle`, `prisma`, `kysely` with `:sqlite`, `:postgres`, `:mysql`                                                                | None (driver defaults to `sqlite`) |
-| `--validator`    | Schema validation library                               | `zod`, `arktype`, `valibot`                                                                                                        | None                               |
-| `--logger`       | Structured logger integration                           | `pino`, `winston`                                                                                                                  | None                               |
-| `-y`, `--yes`    | Skip prompts and accept defaults for omitted flags      | `boolean`                                                                                                                          | `false`                            |
-| `--noInstall`    | Skip automatic package manager install step             | `boolean`                                                                                                                          | `false`                            |
-| `--json`         | Machine-readable JSON output (dumps catalog if no name) | `boolean`                                                                                                                          | `false`                            |
-
-## Programmatic / Machine Inspection
-
-Inspect all supported catalog dimensions and options in JSON:
-
-```bash
-npx create-taserjs --json
-```
+Guides and API reference: [taserjs.dev](https://taserjs.dev)
 
 ## License
 
-ISC — Copyright (c) 2026, Kazi Ahmed & Taser.js contributors.
+[ISC](https://github.com/taserjs/taserjs/blob/main/LICENSE)

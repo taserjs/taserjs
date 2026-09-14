@@ -1,6 +1,6 @@
 ---
 title: Nitro Module
-description: "Deploy Taser.js across edge, serverless, and multi-cloud runtimes using the @taserjs/router-plugin/nitro module with automatic route registration."
+description: "Deploy Taser.js with @taserjs/plugin/nitro — standalone or fullstack Nitro handlers across edge and serverless presets."
 icon: Workflow
 ---
 
@@ -9,37 +9,35 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-plugin/nitro` package connects Taser.js directly to the Nitro server engine. It allows you to package and deploy Taser.js APIs to any platform (Cloudflare Workers, Vercel, AWS Lambda, Bun, Deno, or standalone Node.js) with zero runtime overhead.
+The `@taserjs/plugin/nitro` package connects Taser.js to the Nitro server engine so you can deploy to Cloudflare Workers, Vercel, AWS Lambda, Bun, Deno, or Node with the same route tree.
 
 ---
 
 ## Setup & Usage
 
-You can use Taser.js with Nitro in two ways:
-
 ### 1. Via Vite (`vite.config.ts`)
 
-When building with Vite, simply chain `taser()` and `nitro()` together:
+Chain `taser()` and `nitro()`:
 
 ```ts title="vite.config.ts"
 import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
-import { taser } from "@taserjs/router-plugin/vite";
+import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
   plugins: [taser(), nitro()],
 });
 ```
 
-Nitro automatically detects the `taser()` plugin and activates its lifecycle hooks.
+Nitro detects the Vite plugin and applies Taser.js lifecycle hooks. Keep paths in `taserjs.config.ts`.
 
 ### 2. Standalone `nitro.config.ts`
 
-If you are running a pure Nitro project without Vite, register `taser()` in the `modules` array:
+For a pure Nitro project, register the Nitro module:
 
 ```ts title="nitro.config.ts"
 import { defineConfig } from "nitro/config";
-import { taser } from "@taserjs/router-plugin/nitro";
+import { taser } from "@taserjs/plugin/nitro";
 
 export default defineConfig({
   modules: [taser()],
@@ -51,20 +49,20 @@ export default defineConfig({
 
 ## Operational Modes
 
-The Nitro module supports two operational modes controlled by the `standalone` option:
+Controlled by `standalone` on the plugin options:
 
 ### 1. Standalone Mode (`standalone: true`, Default)
 
-In Standalone Mode, Taser.js replaces Nitro's internal router entirely. Requests are dispatched directly through Taser.js's radix tree with zero intermediate framework layers or overhead.
+Taser.js owns request dispatch:
 
 ```ts title="nitro.config.ts"
 import { defineConfig } from "nitro/config";
-import { taser } from "@taserjs/router-plugin/nitro";
+import { taser } from "@taserjs/plugin/nitro";
 
 export default defineConfig({
   modules: [
     taser({
-      standalone: true, // Default
+      standalone: true,
     }),
   ],
 });
@@ -72,63 +70,64 @@ export default defineConfig({
 
 ### 2. Fullstack / Module Mode (`standalone: false`)
 
-If you have an existing Nitro or Nuxt project with existing server handlers, setting `standalone: false` unshifts Taser.js onto Nitro's handler pipeline:
+Taser.js registers as a Nitro handler alongside existing server routes. Mount the URL prefix with `defineTaser().basePath("/api")` so only matching paths hit Taser.js:
 
 ```ts title="nitro.config.ts"
 import { defineConfig } from "nitro/config";
-import { taser } from "@taserjs/router-plugin/nitro";
+import { taser } from "@taserjs/plugin/nitro";
 
 export default defineConfig({
   modules: [
     taser({
       standalone: false,
-      basePath: "/api",
+      config: "./taserjs.config.ts",
     }),
   ],
 });
 ```
 
-In this mode, requests matching `/api/**` are handled by Taser.js, while other routes continue to execute through Nitro.
-
 ---
 
 ## Module Options
+
+Shared with other `@taserjs/plugin` adapters (`TaserPluginOptions`):
 
 <TypeTable
   type={{
     standalone: {
       description:
-        "When true, Taser.js acts as the standalone app runner with zero overhead. When false, mounts as a sub-handler in Nitro.",
+        "When true, Taser.js owns the app pipeline. When false, registers as a Nitro handler.",
       type: "boolean",
       default: "true",
     },
-    basePath: {
-      description: "Root URL prefix Taser.js routes dispatch under.",
-      type: "string",
-      default: "'/'",
+    server: {
+      description: "Enable server integration hooks where applicable.",
+      type: "boolean",
+      default: "true",
     },
-    routesDir: {
-      description: "Path to your file-based routes directory.",
-      type: "string",
-      default: "'src/routes'",
-    },
-    entryPath: {
-      description: "Path to the taser router instance definition file.",
-      type: "string",
-      default: "'src/taser.ts'",
-    },
-    serverEntryPath: {
-      description: "Path to optional host server entry (e.g. 'src/server.ts').",
+    serverEntry: {
+      description:
+        "Optional host server entry. Auto-detects server.ts / server.node.ts when omitted.",
       type: "string",
       default: "undefined",
     },
-    ignore: {
-      description: "Glob patterns of files inside routesDir to exclude from routing.",
-      type: "string[]",
-      default: "['**/*.test.ts', '**/*.spec.ts', '**/*.d.ts']",
+    config: {
+      description: "Path to taserjs.config.ts for serverDir / routesDir / outputDir / app.",
+      type: "string",
+      default: "undefined",
+    },
+    cwd: {
+      description: "Project root used when resolving config and paths.",
+      type: "string",
+      default: "process.cwd()",
     },
   }}
 />
+
+<Callout type="info" title="Path and mount options">
+  `serverDir` and `routesDir` live in [`taserjs.config.ts`](/docs/cli). Runtime URL prefixes use
+  `defineTaser().basePath(...)`; clients use `baseUrl`.
+</Callout>
 
 ---
 
@@ -138,11 +137,11 @@ In this mode, requests matching `/api/**` are handled by Taser.js, while other r
   <Card
     title="Deployment Presets"
     href="/docs/deployments"
-    description="Learn how to configure presets for Cloudflare, Vercel, Node, and AWS Lambda."
+    description="Configure presets for Cloudflare, Vercel, Node, and AWS Lambda."
   />
   <Card
     title="Vite Plugin"
     href="/docs/plugins/vite"
-    description="Explore Vite dev server middleware and virtual module architecture."
+    description="Vite middleware, HMR, and serve shim."
   />
 </Cards>

@@ -57,7 +57,18 @@ Taser.js integrates with Fastify applications using the **Host Pass-Through Arch
   </Step>
 
   <Step>
-    ### 3. Add Taser.js Routes
+    ### 3. Import the Compiled Taser.js App (optional host wiring)
+
+    ```ts
+    import { app } from "./.taserjs/routes.gen.js";
+
+    export default app; // Hono instance compiled from defineTaser() + src/routes/
+    ```
+
+  </Step>
+
+  <Step>
+    ### 4. Add Taser.js Routes
 
     Create `src/routes/health.get.ts`:
 
@@ -75,7 +86,7 @@ Taser.js integrates with Fastify applications using the **Host Pass-Through Arch
   </Step>
 
   <Step>
-    ### 4. Start Development
+    ### 5. Start Development
 
     ```bash
     pnpm dev

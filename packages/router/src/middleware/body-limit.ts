@@ -1,10 +1,22 @@
 import { bodyLimit as honoBodyLimit } from "hono/body-limit";
+import type { Context } from "hono";
+import { payloadTooLarge } from "@taserjs/utils";
+import { hono } from "../hono.js";
+import type { MiddlewareDefinition } from "../types.js";
 
-import { middleware } from "../define/middleware.js";
-import { honoMw } from "./hono-mw.js";
+export type OnError = (c: Context) => Response | Promise<Response>;
 
-export function bodyLimit(...args: Parameters<typeof honoBodyLimit>) {
-  return middleware(honoMw(honoBodyLimit(...args)));
+export interface BodyLimitOptions {
+  maxSize: number;
+  onError?: OnError;
 }
 
-export type BodyLimitOptions = Parameters<typeof honoBodyLimit>[0];
+export function bodyLimit(options: BodyLimitOptions): MiddlewareDefinition {
+  const onError = options.onError ?? (() => payloadTooLarge({ message: "Payload Too Large" }));
+  const honoMw = honoBodyLimit({
+    maxSize: options.maxSize,
+    onError,
+  });
+
+  return hono(honoMw);
+}

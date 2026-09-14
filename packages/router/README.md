@@ -1,19 +1,19 @@
 # @taserjs/router
 
-Type-safe Node.js router with runtime validation and middleware
+Type-safe route builder and middleware composition for Taser.js.
 
 ## Installation
 
-**npm:**
-
 ```bash
 npm install @taserjs/router
+# or
+pnpm add @taserjs/router
 ```
 
 ## Documentation
 
-See the [main documentation](https://github.com/taserjs/taserjs) for usage examples and API reference.
+Guides and API reference: [taserjs.dev](https://taserjs.dev)
 
 ## License
 
-ISC
+[ISC](https://github.com/taserjs/taserjs/blob/main/LICENSE)

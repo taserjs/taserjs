@@ -1,96 +1,103 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { Readable } from "node:stream";
-
+// oxlint-disable no-await-in-loop
 import { describe, expect, it } from "vitest";
+import { Hono } from "hono";
+import { blob, buffer, formatSSE, pipe, sse } from "../src/stream.js";
 
-import { createTaserApp, t, type RouteManifestShape } from "../src/index.js";
-import { blob, buffer, file, pipe, stream } from "../src/stream.js";
+async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let result = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    result += decoder.decode(value, { stream: true });
+  }
+  result += decoder.decode();
+  return result;
+}
 
-describe("router stream export", () => {
-  it("serves file stream from route handler", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "taser-router-stream-"));
-    const path = join(dir, "data.json");
-    await writeFile(path, JSON.stringify({ message: "streamed from file" }));
-
-    const route = t.get("/file").handler(() => file(path));
-    const manifest = {
-      layouts: {},
-      routes: {
-        "/file": { GET: { layouts: [], route } },
-      },
-    } satisfies RouteManifestShape;
-
-    const app = createTaserApp().create(manifest);
-    const response = await app.fetch(new Request("http://localhost/file"));
-    expect(response!.status).toBe(200);
-    expect(response!.headers.get("content-type")).toBe("application/json");
-    expect(await response!.json()).toEqual({ message: "streamed from file" });
-  });
-
-  it("serves pipe stream from route handler", async () => {
-    const route = t.get("/pipe").handler(() =>
-      pipe(Readable.toWeb(Readable.from([Buffer.from("piped-stream-data")])) as ReadableStream, {
-        headers: { "content-type": "text/plain" },
-      }),
-    );
-    const manifest = {
-      layouts: {},
-      routes: {
-        "/pipe": { GET: { layouts: [], route } },
-      },
-    } satisfies RouteManifestShape;
-
-    const app = createTaserApp().create(manifest);
-    const response = await app.fetch(new Request("http://localhost/pipe"));
-    expect(response!.status).toBe(200);
-    expect(response!.headers.get("content-type")).toBe("text/plain");
-    expect(await response!.text()).toBe("piped-stream-data");
-  });
-
-  it("serves buffer from route handler", async () => {
-    const route = t.get("/buffer").handler(() => buffer(Buffer.from("binary-stream")));
-    const manifest = {
-      layouts: {},
-      routes: {
-        "/buffer": { GET: { layouts: [], route } },
-      },
-    } satisfies RouteManifestShape;
-
-    const app = createTaserApp().create(manifest);
-    const response = await app.fetch(new Request("http://localhost/buffer"));
-    expect(response!.status).toBe(200);
-    expect(response!.headers.get("content-type")).toBe("application/octet-stream");
-    expect(await response!.text()).toBe("binary-stream");
-  });
-
-  it("serves blob from route handler", async () => {
-    const route = t
-      .get("/blob")
-      .handler(() => blob(new Blob(["blob data"], { type: "text/html" })));
-    const manifest = {
-      layouts: {},
-      routes: {
-        "/blob": { GET: { layouts: [], route } },
-      },
-    } satisfies RouteManifestShape;
-
-    const app = createTaserApp().create(manifest);
-    const response = await app.fetch(new Request("http://localhost/blob"));
-    expect(response!.status).toBe(200);
-    expect(response!.headers.get("content-type")).toBe("text/html");
-    expect(await response!.text()).toBe("blob data");
-  });
-
-  it("supports direct functions from stream subpath", () => {
-    expect(typeof file).toBe("function");
+describe("@taserjs/router/stream", () => {
+  it("re-exports all stream helpers from @taserjs/utils/stream", () => {
     expect(typeof pipe).toBe("function");
     expect(typeof buffer).toBe("function");
     expect(typeof blob).toBe("function");
-    expect(typeof stream.file).toBe("function");
-    expect(typeof stream.pipe).toBe("function");
-    expect(typeof stream.buffer).toBe("function");
-    expect(typeof stream.blob).toBe("function");
+    expect(typeof sse).toBe("function");
+    expect(typeof formatSSE).toBe("function");
+  });
+
+  it("serves SSE streaming endpoint over HTTP request", async () => {
+    const app = new Hono();
+
+    app.get("/events", () => {
+      return sse(async (stream) => {
+        await stream.write({ event: "connected", data: { client: "web" } });
+        await stream.write({ event: "message", data: "live update" });
+      });
+    });
+
+    const res = await app.request("/events");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/event-stream");
+    expect(res.headers.get("cache-control")).toContain("no-cache");
+
+    const text = await readStream(res.body!);
+    expect(text).toContain('event: connected\ndata: {"client":"web"}\n\n');
+    expect(text).toContain("event: message\ndata: live update\n\n");
+  });
+
+  it("serves binary buffer endpoint over HTTP request", async () => {
+    const app = new Hono();
+
+    app.get("/binary", () => {
+      const data = new Uint8Array([10, 20, 30, 40]);
+      return buffer(data);
+    });
+
+    const res = await app.request("/binary");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("application/octet-stream");
+
+    const received = new Uint8Array(await res.arrayBuffer());
+    expect(Array.from(received)).toEqual([10, 20, 30, 40]);
+  });
+
+  it("serves piped stream endpoint over HTTP request", async () => {
+    const app = new Hono();
+    const encoder = new TextEncoder();
+
+    app.get("/stream", () => {
+      const readable = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(encoder.encode("hello "));
+          controller.enqueue(encoder.encode("streaming world"));
+          controller.close();
+        },
+      });
+
+      return pipe(readable, {
+        headers: { "x-custom-stream": "active" },
+      });
+    });
+
+    const res = await app.request("/stream");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-custom-stream")).toBe("active");
+    expect(await res.text()).toBe("hello streaming world");
+  });
+
+  it("serves blob endpoint over HTTP request", async () => {
+    const app = new Hono();
+
+    app.get("/blob", () => {
+      const b = new Blob([JSON.stringify({ from: "blob" })], {
+        type: "application/json",
+      });
+      return blob(b);
+    });
+
+    const res = await app.request("/blob");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("application/json");
+    expect(await res.json()).toEqual({ from: "blob" });
   });
 });

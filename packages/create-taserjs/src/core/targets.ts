@@ -1,32 +1,20 @@
-/**
- * Registry for the three scaffold dimensions — runtime, framework, deploy —
- * plus the compatibility rules between them.
- *
- * Dependency direction: deploy implies the runtime family; the effective
- * runtime constrains which frameworks can run. `--runtime` is an override
- * available only where it is meaningful (self-hosted node-family targets).
- */
-import { DEPLOY_TARGETS, type DeployTarget, type Framework, type Runtime } from "./types.js";
+import { DEPLOY_TARGETS, type DeployTarget, type Runtime } from "./types.js";
 
-export type PlatformFile = {
+export interface PlatformFile {
   name: string;
   content: string | ((ctx: { projectName: string }) => string);
-};
+}
 
-export type DeployEntry = {
+export interface DeployEntry {
   id: DeployTarget;
-  /** Runtime this target builds for ("workerd" = Cloudflare's V8 runtime). */
   impliedRuntime: Runtime | "workerd";
-  /** Whether the built output is a long-running server you start locally. */
   selfHosted: boolean;
-  /** `start` script value; null for platform-deployed targets. */
   startScript: string | null;
-  /** Runtime/platform tooling devDependencies beyond the base set. */
   devDeps: string[];
   files: PlatformFile[];
-};
+}
 
-const NODE_START = "node .output/server/index.mjs";
+const NITRO_NODE_START = "node .output/server/index.mjs";
 
 export const DEPLOY_ENTRIES: Record<DeployTarget, DeployEntry> = {
   none: {
@@ -34,23 +22,23 @@ export const DEPLOY_ENTRIES: Record<DeployTarget, DeployEntry> = {
     impliedRuntime: "node",
     selfHosted: true,
     startScript: "node dist/serve.mjs",
-    devDeps: [],
+    devDeps: ["srvx"],
     files: [],
   },
   "node-server": {
     id: "node-server",
     impliedRuntime: "node",
     selfHosted: true,
-    startScript: NODE_START,
-    devDeps: [],
+    startScript: NITRO_NODE_START,
+    devDeps: ["nitro"],
     files: [],
   },
   "node-cluster": {
     id: "node-cluster",
     impliedRuntime: "node",
     selfHosted: true,
-    startScript: NODE_START,
-    devDeps: [],
+    startScript: NITRO_NODE_START,
+    devDeps: ["nitro"],
     files: [],
   },
   bun: {
@@ -58,7 +46,7 @@ export const DEPLOY_ENTRIES: Record<DeployTarget, DeployEntry> = {
     impliedRuntime: "bun",
     selfHosted: true,
     startScript: "bun .output/server/index.mjs",
-    devDeps: ["@types/bun"],
+    devDeps: ["nitro", "@types/bun"],
     files: [],
   },
   "deno-server": {
@@ -66,7 +54,7 @@ export const DEPLOY_ENTRIES: Record<DeployTarget, DeployEntry> = {
     impliedRuntime: "deno",
     selfHosted: true,
     startScript: "deno run -A .output/server/index.mjs",
-    devDeps: [],
+    devDeps: ["nitro"],
     files: [],
   },
   "deno-deploy": {
@@ -74,7 +62,7 @@ export const DEPLOY_ENTRIES: Record<DeployTarget, DeployEntry> = {
     impliedRuntime: "deno",
     selfHosted: false,
     startScript: null,
-    devDeps: [],
+    devDeps: ["nitro"],
     files: [],
   },
   "cloudflare-module": {
@@ -82,7 +70,7 @@ export const DEPLOY_ENTRIES: Record<DeployTarget, DeployEntry> = {
     impliedRuntime: "workerd",
     selfHosted: false,
     startScript: null,
-    devDeps: ["wrangler", "@cloudflare/workers-types"],
+    devDeps: ["nitro", "wrangler", "@cloudflare/workers-types"],
     files: [
       {
         name: "wrangler.jsonc",
@@ -105,7 +93,7 @@ export const DEPLOY_ENTRIES: Record<DeployTarget, DeployEntry> = {
     impliedRuntime: "node",
     selfHosted: false,
     startScript: null,
-    devDeps: ["@vercel/node"],
+    devDeps: ["nitro", "@vercel/node"],
     files: [],
   },
   "aws-lambda": {
@@ -113,7 +101,7 @@ export const DEPLOY_ENTRIES: Record<DeployTarget, DeployEntry> = {
     impliedRuntime: "node",
     selfHosted: false,
     startScript: null,
-    devDeps: ["@types/aws-lambda"],
+    devDeps: ["nitro", "@types/aws-lambda"],
     files: [],
   },
   netlify: {
@@ -121,49 +109,40 @@ export const DEPLOY_ENTRIES: Record<DeployTarget, DeployEntry> = {
     impliedRuntime: "node",
     selfHosted: false,
     startScript: null,
-    devDeps: [],
+    devDeps: ["nitro"],
     files: [],
   },
 };
 
-/** Runtimes a `--runtime` override may select per self-hosted deploy target. */
 const RUNTIME_OVERRIDES: Partial<Record<DeployTarget, readonly Runtime[]>> = {
   none: ["node", "bun"],
   "node-server": ["node", "bun"],
   "node-cluster": ["node", "bun"],
 };
 
-export const DEFAULT_DEPLOY: DeployTarget = "node-server";
-export const DEFAULT_FRAMEWORK: Framework = "none";
+export const DEFAULT_DEPLOY: DeployTarget = "none";
 
 export function isCuratedDeploy(value: string): value is DeployTarget {
   return (DEPLOY_TARGETS as readonly string[]).includes(value);
 }
 
-/**
- * Resolves any preset id to its emission entry. Curated ids come from the
- * registry; unknown strings pass through to Nitro verbatim as non-self-hosted
- * node-family targets.
- */
 export function resolveDeployEntry(id: string): { entry: DeployEntry; curated: boolean } {
   if (isCuratedDeploy(id)) {
     return { entry: DEPLOY_ENTRIES[id], curated: true };
   }
   return {
     entry: {
-      // Cast: passthrough ids are valid Nitro PresetNameInputs by contract.
       id: id as DeployTarget,
       impliedRuntime: "node",
       selfHosted: false,
       startScript: null,
-      devDeps: [],
+      devDeps: ["nitro"],
       files: [],
     },
     curated: false,
   };
 }
 
-/** Runtime overrides permitted for a deploy target; empty = no override. */
 export function allowedRuntimeOverrides(id: DeployTarget): readonly Runtime[] {
   return RUNTIME_OVERRIDES[id] ?? [];
 }
@@ -171,15 +150,8 @@ export function allowedRuntimeOverrides(id: DeployTarget): readonly Runtime[] {
 export type CombinationError = { ok: false; reason: string };
 export type CombinationOk = { ok: true; runtime: Runtime | "workerd" };
 
-/**
- * Validates a runtime × framework × deploy combination.
- *
- * @param runtimeOverride explicit `--runtime` selection, if any
- * @param deploy preset id (curated or passthrough)
- */
 export function validateCombination(
   runtimeOverride: Runtime | undefined,
-  framework: Framework,
   deploy: string,
 ): CombinationOk | CombinationError {
   const { entry } = resolveDeployEntry(deploy);
@@ -199,13 +171,5 @@ export function validateCombination(
   }
 
   const effective = runtimeOverride ?? entry.impliedRuntime;
-
-  if ((framework === "express" || framework === "fastify") && effective !== "node") {
-    return {
-      ok: false,
-      reason: `Framework "${framework}" requires the Node runtime, but deploy target "${entry.id}" implies "${String(effective)}".`,
-    };
-  }
-
   return { ok: true, runtime: effective };
 }

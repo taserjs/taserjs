@@ -1,10 +1,11 @@
-import { secureHeaders as honoSecureHeaders } from "hono/secure-headers";
+import { secureHeaders as honoSecureHeaders, NONCE } from "hono/secure-headers";
+import { hono } from "../hono.js";
+import type { MiddlewareDefinition } from "../types.js";
 
-import { middleware } from "../define/middleware.js";
-import { honoMw } from "./hono-mw.js";
+export type SecureHeadersOptions = Parameters<typeof honoSecureHeaders>[0];
 
-export function secureHeaders(...args: Parameters<typeof honoSecureHeaders>) {
-  return middleware(honoMw(honoSecureHeaders(...args)));
+export function secureHeaders(options?: SecureHeadersOptions): MiddlewareDefinition {
+  return hono(honoSecureHeaders(options));
 }
 
-export type SecureHeadersOptions = NonNullable<Parameters<typeof honoSecureHeaders>[0]>;
+export { NONCE };

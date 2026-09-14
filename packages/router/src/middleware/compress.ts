@@ -1,10 +1,11 @@
-import { compress as honoCompress } from "hono/compress";
+import { compress as honoCompress, COMPRESSIBLE_CONTENT_TYPE_REGEX } from "hono/compress";
+import { hono } from "../hono.js";
+import type { MiddlewareDefinition } from "../types.js";
 
-import { middleware } from "../define/middleware.js";
-import { honoMw } from "./hono-mw.js";
+export type CompressionOptions = Parameters<typeof honoCompress>[0];
 
-export function compress(...args: Parameters<typeof honoCompress>) {
-  return middleware(honoMw(honoCompress(...args)));
+export function compress(options?: CompressionOptions): MiddlewareDefinition {
+  return hono(honoCompress(options));
 }
 
-export type CompressOptions = NonNullable<Parameters<typeof honoCompress>[0]>;
+export { COMPRESSIBLE_CONTENT_TYPE_REGEX };

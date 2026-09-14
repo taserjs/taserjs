@@ -1,0 +1,156 @@
+{
+  "name": "@taserjs/plugin",
+  "version": "0.1.13",
+  "description": "Universal bundler plugin for Taser.js",
+  "keywords": [
+    "bundler",
+    "file-based-routing",
+    "nextjs",
+    "nitro",
+    "rest-api",
+    "tanstack-start",
+    "taserjs",
+    "type-safe-api",
+    "typescript",
+    "vite-plugin"
+  ],
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taserjs/taserjs.git",
+    "directory": "packages/plugin"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "default": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./vite": {
+      "import": {
+        "types": "./dist/vite.d.ts",
+        "default": "./dist/vite.js"
+      },
+      "default": {
+        "types": "./dist/vite.d.ts",
+        "default": "./dist/vite.js"
+      }
+    },
+    "./rollup": {
+      "import": {
+        "types": "./dist/rollup.d.ts",
+        "default": "./dist/rollup.js"
+      },
+      "default": {
+        "types": "./dist/rollup.d.ts",
+        "default": "./dist/rollup.js"
+      }
+    },
+    "./rolldown": {
+      "import": {
+        "types": "./dist/rolldown.d.ts",
+        "default": "./dist/rolldown.js"
+      },
+      "default": {
+        "types": "./dist/rolldown.d.ts",
+        "default": "./dist/rolldown.js"
+      }
+    },
+    "./webpack": {
+      "import": {
+        "types": "./dist/webpack.d.ts",
+        "default": "./dist/webpack.js"
+      },
+      "default": {
+        "types": "./dist/webpack.d.ts",
+        "default": "./dist/webpack.js"
+      }
+    },
+    "./rspack": {
+      "import": {
+        "types": "./dist/rspack.d.ts",
+        "default": "./dist/rspack.js"
+      },
+      "default": {
+        "types": "./dist/rspack.d.ts",
+        "default": "./dist/rspack.js"
+      }
+    },
+    "./esbuild": {
+      "import": {
+        "types": "./dist/esbuild.d.ts",
+        "default": "./dist/esbuild.js"
+      },
+      "default": {
+        "types": "./dist/esbuild.d.ts",
+        "default": "./dist/esbuild.js"
+      }
+    },
+    "./nitro": {
+      "import": {
+        "types": "./dist/nitro.d.ts",
+        "default": "./dist/nitro.js"
+      },
+      "default": {
+        "types": "./dist/nitro.d.ts",
+        "default": "./dist/nitro.js"
+      }
+    },
+    "./next": {
+      "import": {
+        "types": "./dist/next.d.ts",
+        "default": "./dist/next.js"
+      },
+      "default": {
+        "types": "./dist/next.d.ts",
+        "default": "./dist/next.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "oxlint .",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@taserjs/cli": "workspace:^",
+    "chokidar": "^5.0.0",
+    "pathe": "^2.0.3",
+    "srvx": "^1.0.4",
+    "unplugin": "^2.3.11"
+  },
+  "devDependencies": {
+    "create-taserjs": "workspace:*",
+    "publint": "^0.3.22",
+    "rimraf": "^6.0.1",
+    "tsdown": "^0.23.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.10"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

@@ -17,37 +17,37 @@ Taser.js is **Vite-native** by design. You can run Taser.js as a standalone serv
 
 ## 1. Core Installation (Vite-Native Backend)
 
-At its foundation, Taser.js operates as a Vite compiler plugin (`@taserjs/router-plugin/vite`). It turns your `src/routes/` directory into virtual modules with instant Hot Module Replacement (HMR) and ambient TypeScript generation.
+At its foundation, Taser.js operates as a Vite compiler plugin (`@taserjs/plugin/vite`). It turns your `src/routes/` directory into virtual modules with instant Hot Module Replacement (HMR) and ambient TypeScript generation.
 
 <Steps>
   <Step>
     ### Install Core Dependencies
 
-    Install `@taserjs/router`, `srvx`, `@taserjs/router-plugin`, `vite`, and your preferred schema validator (such as `zod`):
+    Install `@taserjs/router`, `srvx`, `@taserjs/plugin`, `vite`, and your preferred schema validator (such as `zod`):
 
     <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
       <Tab value="pnpm">
         ```bash
-        pnpm add @taserjs/router srvx zod
-        pnpm add -D @taserjs/router-plugin vite
+        pnpm add @taserjs/router @taserjs/runtime srvx zod
+        pnpm add -D @taserjs/plugin vite
         ```
       </Tab>
       <Tab value="npm">
         ```bash
-        npm install @taserjs/router srvx zod
-        npm install -D @taserjs/router-plugin vite
+        npm install @taserjs/router @taserjs/runtime srvx zod
+        npm install -D @taserjs/plugin vite
         ```
       </Tab>
       <Tab value="bun">
         ```bash
-        bun add @taserjs/router srvx zod
-        bun add -d @taserjs/router-plugin vite
+        bun add @taserjs/router @taserjs/runtime srvx zod
+        bun add -d @taserjs/plugin vite
         ```
       </Tab>
       <Tab value="yarn">
         ```bash
-        yarn add @taserjs/router srvx zod
-        yarn add -D @taserjs/router-plugin vite
+        yarn add @taserjs/router @taserjs/runtime srvx zod
+        yarn add -D @taserjs/plugin vite
         ```
       </Tab>
     </Tabs>
@@ -77,7 +77,7 @@ At its foundation, Taser.js operates as a Vite compiler plugin (`@taserjs/router
   <Step>
     ### Configure TypeScript (`tsconfig.json`)
 
-    Include the `.taser/types/**/*.d.ts` directory so your editor receives ambient route autocomplete:
+    Include `src/**/*` so TypeScript picks up both your sources and the generated manifest under `src/.taserjs/`:
 
     ```json title="tsconfig.json"
     {
@@ -90,7 +90,7 @@ At its foundation, Taser.js operates as a Vite compiler plugin (`@taserjs/router
         "isolatedModules": true,
         "noEmit": true
       },
-      "include": ["src", ".taser/types/**/*.d.ts"]
+      "include": ["src/**/*", "taserjs.config.ts", "vite.config.ts"]
     }
     ```
 
@@ -103,7 +103,7 @@ At its foundation, Taser.js operates as a Vite compiler plugin (`@taserjs/router
 
     ```ts title="vite.config.ts"
     import { defineConfig } from "vite";
-    import { taser } from "@taserjs/router-plugin/vite";
+    import { taser } from "@taserjs/plugin/vite";
 
     export default defineConfig({
       plugins: [taser()],
@@ -130,13 +130,13 @@ At its foundation, Taser.js operates as a Vite compiler plugin (`@taserjs/router
     });
     ```
 
-    Create `src/taser.ts` for your app router:
+    Create `src/taser.ts` with an uninstantiated `defineTaser()` definition. The plugin compiles this into the runnable Hono `app` inside `src/.taserjs/routes.gen.ts`:
 
     ```ts title="src/taser.ts"
-    import { createTaserApp } from "@taserjs/router";
+    import { defineTaser } from "@taserjs/router";
     import { context } from "./context.js";
 
-    export default createTaserApp({
+    export default defineTaser({
       response: { validate: true },
     }).context(context);
     ```
@@ -152,7 +152,7 @@ At its foundation, Taser.js operates as a Vite compiler plugin (`@taserjs/router
     import { json } from "@taserjs/router/reply";
     import { t } from "@taserjs/router";
 
-    export default t.get("/").handler((ctx) => {
+    export default t.get("/").handler(({ ctx }) => {
       return json({ message: "Welcome to Taser.js!", requestId: ctx.requestId });
     });
     ```
@@ -209,7 +209,7 @@ At its foundation, Taser.js operates as a Vite compiler plugin (`@taserjs/router
     ```ts title="vite.config.ts"
     import { defineConfig } from "vite";
     import { nitro } from "nitro/vite";
-    import { taser } from "@taserjs/router-plugin/vite";
+    import { taser } from "@taserjs/plugin/vite";
 
     export default defineConfig({
       plugins: [taser(), nitro()],

@@ -21,7 +21,7 @@
   <a href="https://x.com/taserjs">
     <img alt="X (Twitter)" src="https://img.shields.io/badge/X-Follow%20%40taserjs-000000?style=for-the-badge&logo=x&logoColor=white" />
   </a>
-  <a href="https://github.com/tzsk/taser/blob/main/LICENSE">
+  <a href="https://github.com/taserjs/taserjs/blob/main/LICENSE">
     <img alt="license" src="https://img.shields.io/npm/l/@taserjs/router?style=for-the-badge&logo=open-source-initiative&logoColor=white&label=license" />
   </a>
 </p>
@@ -34,28 +34,43 @@ All guides, routing patterns, middleware architecture, adapter tutorials, and AP
 
 ### 👉 [**Explore the Full Documentation & Guides →**](https://taserjs.dev)
 
+LLM-oriented references: [`/llms.txt`](https://taserjs.dev/llms.txt) · [`/llms-full.txt`](https://taserjs.dev/llms-full.txt)
+
 <hr />
 
 ## What is Taser.js?
 
 Taser.js brings the intuition and ergonomics of **TanStack Router** to backend HTTP APIs.
 
-Traditional Node.js routers force painful trade-offs between clean folder structures and real type safety. Taser.js eliminates the type assertion trap (`req.user as User`) with deterministic file-based routing, cascading middleware context, compile-time return contracts, and an auto-generated client SDK.
+Traditional Node.js routers force painful trade-offs between clean folder structures and real type safety. Taser.js eliminates the type assertion trap with deterministic file-based routing, cascading middleware state, compile-time return contracts, and a zero-codegen typed client.
+
+### Packages
+
+| Package            | Role                                                               |
+| :----------------- | :----------------------------------------------------------------- |
+| `@taserjs/router`  | Route builders, layouts, middleware, reply/stream helpers          |
+| `@taserjs/cli`     | `taser` CLI — route scanning and manifest generation               |
+| `@taserjs/plugin`  | Vite, Next, Nitro, Webpack, Rspack, Rollup, Rolldown, Esbuild      |
+| `@taserjs/client`  | Typed proxy client from generated `AppManifest`                    |
+| `create-taserjs`   | Interactive scaffold for new Taser.js apps                         |
+| `@taserjs/runtime` | `createTaserApp()`, request pipeline, and Hono-backed HTTP serving |
+| `@taserjs/utils`   | Shared primitives and Standard Schema validation helpers           |
 
 ### Core Highlights
 
-- **Deterministic File-Based Routing** — Endpoints live in HTTP verb files (`.get.ts`, `.post.ts`, `.put.ts`, `.delete.ts`); non-verb files act as directory-scoped middleware. Zero manual route registration tables.
-- **Cascading Typed Context** — State injected by middleware (`next({ user })`) flows into `ctx.state` with 100% compile-time inference and zero type assertions.
-- **Compiler-Enforced Return Contracts** — `.returns({ 200: schema })` catches payload drift and prevents breaking changes before deployment.
-- **Framework Agnostic** — Mount on Express, Hono, Fastify, Bun, or plain Node.js without changing your handler logic.
-- **Standard Schema First** — Validate query, params, headers, and body with Zod, ArkType, Valibot, or any Standard Schema library.
-- **Zero-Drift Typed Client** — Export router types and consume your API on the frontend with complete autocomplete and return type inference.
+- **`defineTaser()`** — Export an uninstantiated app definition; the runnable Hono `app` is compiled into `src/.taserjs/routes.gen.ts`.
+- **Deterministic File-Based Routing** — Verb files (`.get.ts`, `.post.ts`, …); non-verb files are layouts. Zero manual route tables.
+- **Facet-Split Handlers** — `{ req, ctx, state, ...services }`: HTTP inputs on `req`, boot/request services on `ctx`, cascaded middleware values on `state`.
+- **Compiler-Enforced Return Contracts** — `.returns({ 200: schema })` catches payload drift before deploy.
+- **Framework Agnostic** — Standalone Vite/Nitro, Next.js App Router, TanStack Start, or host pass-through (Express, Hono, Fastify).
+- **Standard Schema First** — Zod, ArkType, Valibot, or any Standard Schema library.
+- **Zero-Drift Typed Client** — `createClient<AppManifest>()` from `@taserjs/client` and `routes.gen.ts`.
 
 <hr />
 
 ## Quick Start
 
-Scaffold a complete project with your choice of host framework, deployment preset, database, validator, and logger in seconds:
+Scaffold a complete project with your choice of host framework, deployment preset, database, validator, and logger:
 
 ```bash
 # npm
@@ -78,6 +93,13 @@ pnpm create taserjs@latest my-api \
   --validator zod \
   --logger pino \
   -y
+```
+
+Add to an existing app:
+
+```bash
+pnpm add @taserjs/runtime @taserjs/router @taserjs/client zod
+pnpm add -D @taserjs/plugin @taserjs/cli vite
 ```
 
 <hr />

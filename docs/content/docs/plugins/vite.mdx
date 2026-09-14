@@ -1,6 +1,6 @@
 ---
 title: Vite Plugin
-description: "Integrate Taser.js with Vite using @taserjs/router-plugin/vite. Virtual route resolution, ambient type generation, instant HMR, and standalone builds."
+description: "Integrate Taser.js with Vite using @taserjs/plugin/vite. Manifest generation, HMR, and standalone or Nitro-backed builds."
 icon: Zap
 ---
 
@@ -9,26 +9,26 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-plugin/vite` package connects Taser.js's file routing engine to Vite. It turns your `src/routes/` directory into virtual modules, generates TypeScript definitions on save, and runs a high-performance HTTP server during development and production.
+The `@taserjs/plugin/vite` package connects Taser.js file routing to Vite. It regenerates `src/.taserjs/routes.gen.ts` on change, enables HMR for routes, and can run a dedicated HTTP server in development and production.
 
 ---
 
 ## Installation
 
-Install the router plugin, Vite, and the `srvx` server runtime:
+Install the router, plugin, Vite, and the `srvx` server runtime:
 
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
-    ```bash pnpm add @taserjs/router pnpm add -D @taserjs/router-plugin vite srvx ```
+    ```bash pnpm add @taserjs/router pnpm add -D @taserjs/plugin @taserjs/cli vite srvx ```
   </Tab>
   <Tab value="npm">
-    ```bash npm install @taserjs/router npm install -D @taserjs/router-plugin vite srvx ```
+    ```bash npm install @taserjs/router npm install -D @taserjs/plugin @taserjs/cli vite srvx ```
   </Tab>
   <Tab value="bun">
-    ```bash bun add @taserjs/router bun add -d @taserjs/router-plugin vite srvx ```
+    ```bash bun add @taserjs/router bun add -d @taserjs/plugin @taserjs/cli vite srvx ```
   </Tab>
   <Tab value="yarn">
-    ```bash yarn add @taserjs/router yarn add -D @taserjs/router-plugin vite srvx ```
+    ```bash yarn add @taserjs/router yarn add -D @taserjs/plugin @taserjs/cli vite srvx ```
   </Tab>
 </Tabs>
 
@@ -36,31 +36,40 @@ Install the router plugin, Vite, and the `srvx` server runtime:
 
 ## Basic Configuration
 
-Add the `taser()` plugin to `vite.config.ts`:
+Paths (`serverDir`, `routesDir`, `outputDir`, `app`) belong in `taserjs.config.ts`. The Vite plugin turns generation and the optional HTTP server on:
+
+```ts title="taserjs.config.ts"
+import { defineConfig } from "@taserjs/cli";
+
+export default defineConfig({
+  serverDir: "src",
+  routesDir: "routes",
+  outputDir: ".taserjs",
+  app: "taser.ts",
+});
+```
 
 ```ts title="vite.config.ts"
 import { defineConfig } from "vite";
-import { taser } from "@taserjs/router-plugin/vite";
+import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
   plugins: [taser()],
 });
 ```
 
+Mount URL prefixes with `defineTaser().basePath(...)` in your app definition, not in the Vite plugin options. Point `@taserjs/client` at the same prefix with `baseUrl`.
+
 ---
 
 ## Execution Modes
 
-The Vite plugin supports two operational modes:
-
 ### 1. Standalone Mode (Default)
 
-When used without Nitro, Taser.js operates as a self-contained server application powered directly by Vite:
+Without Nitro, Taser.js runs as a self-contained server powered by Vite:
 
-- **Development**: Instant HMR and route discovery with zero rebuild steps.
-- **Production**: Compiles an optimized server bundle to `dist/`.
-
-To build and run in production:
+- **Development**: Route discovery and HMR with no separate generate step.
+- **Production**: Optimized server bundle under `dist/`.
 
 ```bash
 vite build
@@ -69,104 +78,81 @@ node dist/serve.mjs
 
 ### 2. Nitro Mode (Vite + Nitro)
 
-When paired with `nitro/vite`, Taser.js automatically attaches its Nitro module hook:
+Pair `taser()` with `nitro()` when Nitro should package the deployment:
 
 ```ts title="vite.config.ts"
 import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
-import { taser } from "@taserjs/router-plugin/vite";
+import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
   plugins: [taser(), nitro()],
 });
 ```
 
-In this mode, Nitro handles production artifact packaging according to your chosen `nitro.config.ts` deployment preset (e.g. Node Server, Cloudflare Workers, Vercel, AWS Lambda).
+Nitro uses your `nitro.config.ts` preset (Node, Cloudflare Workers, Vercel, AWS Lambda, and so on).
 
 ---
 
 ## Plugin Options
 
-The `taser()` plugin accepts optional configuration:
-
 ```ts title="vite.config.ts"
 import { defineConfig } from "vite";
-import { taser } from "@taserjs/router-plugin/vite";
+import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
   plugins: [
     taser({
-      basePath: "/api/v1",
-      routesDir: "src/routes",
-      entryPath: "src/taser.ts",
       server: true,
+      serverEntry: "src/server.ts",
+      config: "./taserjs.config.ts",
     }),
   ],
 });
 ```
 
-### Configuration Reference
-
 <TypeTable
   type={{
-    basePath: {
-      description:
-        "Root URL prefix Taser.js routes dispatch under (for example, '/api'). Defaults to '/'.",
-      type: "string",
-      default: "'/'",
-    },
-    routesDir: {
-      description: "Path to your file-based routes directory relative to project root.",
-      type: "string",
-      default: "'src/routes'",
-    },
-    entryPath: {
-      description: "Path to the taser router instance definition file.",
-      type: "string",
-      default: "'src/taser.ts'",
-    },
-    serverEntryPath: {
-      description:
-        "Path to optional host server entry (e.g. 'src/server.ts' for Web Standard / Fetch-native apps or 'src/server.node.ts' for Express/Fastify).",
-      type: "string",
-      default: "undefined",
-    },
     server: {
-      description:
-        "Whether to enable the dev server middleware and generate production serve shim.",
+      description: "Enable Vite dev middleware and the production serve shim.",
       type: "boolean",
       default: "true",
     },
-    ignore: {
-      description: "Glob patterns of files inside routesDir to exclude from routing.",
-      type: "string[]",
-      default: "['**/*.test.ts', '**/*.spec.ts', '**/*.d.ts']",
+    serverEntry: {
+      description:
+        "Optional host server entry under serverDir. Auto-detects server.ts / server.node.ts when omitted.",
+      type: "string",
+      default: "undefined",
     },
-    rootDir: {
-      description: "Root directory of the project. Defaults to process.cwd().",
+    config: {
+      description: "Path to taserjs.config.ts (or .js/.mjs/.cjs).",
+      type: "string",
+      default: "undefined",
+    },
+    cwd: {
+      description: "Project root used when resolving config and paths.",
       type: "string",
       default: "process.cwd()",
+    },
+    standalone: {
+      description:
+        "When Nitro is present, whether Taser.js owns the app pipeline (true) or registers as a Nitro handler (false).",
+      type: "boolean",
+      default: "true",
     },
   }}
 />
 
----
-
-## Virtual Modules
-
-The Vite plugin exposes virtual modules that resolve routing logic without writing intermediate code to disk:
-
-- `#taserjs/virtual/manifest`: Dynamically builds the static radix routing manifest tree.
-- `#taserjs/virtual/entry`: Assembles the root request handler wrapping context and routes.
-- `#taserjs/virtual/app`: Composes Taser.js with optional host framework pass-through and 404 handlers.
+<Callout type="info" title="Where do routesDir and serverDir go?">
+  Set `serverDir`, `routesDir`, `outputDir`, and `app` in [`taserjs.config.ts`](/docs/cli). The
+  plugin loads that file (or built-in defaults) during generate and watch.
+</Callout>
 
 ---
 
-## Ambient Route Types
+## Generated Manifest
 
-During development, the plugin watches `src/routes/` and generates TypeScript declaration files in `.taser/types/`.
-
-To ensure your editor recognizes all route types, verify your `tsconfig.json` includes this directory:
+During development and builds, the plugin writes `src/.taserjs/routes.gen.ts` (path follows `serverDir` + `outputDir`): compiled `app`, ambient route types, and the composite manifest for `@taserjs/client`.
 
 ```json title="tsconfig.json"
 {
@@ -176,7 +162,7 @@ To ensure your editor recognizes all route types, verify your `tsconfig.json` in
     "moduleResolution": "NodeNext",
     "strict": true
   },
-  "include": ["src", ".taser/types/**/*.d.ts"]
+  "include": ["src/**/*", "vite.config.ts"]
 }
 ```
 
@@ -193,12 +179,12 @@ To ensure your editor recognizes all route types, verify your `tsconfig.json` in
   <Card
     title="Next.js Plugin"
     href="/docs/plugins/next"
-    description="Embed Taser.js directly inside Next.js App Router applications."
+    description="Embed Taser.js inside Next.js App Router applications."
   />
   <Card
     title="Nitro Module"
     href="/docs/plugins/nitro"
-    description="Learn how Taser.js pairs with Nitro for edge and multi-cloud deployments."
+    description="Pair Taser.js with Nitro for edge and multi-cloud deployments."
   />
   <Card
     title="Deployment Presets"

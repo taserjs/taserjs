@@ -70,7 +70,20 @@ Taser.js integrates with Express applications using the **Host Pass-Through Arch
   </Step>
 
   <Step>
-    ### 3. Add Taser.js Routes
+    ### 3. Import the Compiled Taser.js App (optional host wiring)
+
+    When you need the runnable instance (custom adapters, tests), import it from the generated manifest:
+
+    ```ts
+    import { app } from "./.taserjs/routes.gen.js";
+
+    export default app; // Hono instance compiled from defineTaser() + src/routes/
+    ```
+
+  </Step>
+
+  <Step>
+    ### 4. Add Taser.js Routes
 
     Create `src/routes/users.get.ts`:
 
@@ -88,7 +101,7 @@ Taser.js integrates with Express applications using the **Host Pass-Through Arch
   </Step>
 
   <Step>
-    ### 4. Start Development
+    ### 5. Start Development
 
     ```bash
     pnpm dev

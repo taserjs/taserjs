@@ -12,7 +12,7 @@ In production applications, route handlers can easily grow into monolithic block
 
 In traditional frameworks, breaking these monolithic handlers into smaller helper functions often forces developers to write verbose, manually duplicated TypeScript interfaces for the request context, params, and state.
 
-Taser.js makes decomposing handler logic **instant and 100% type-safe** via the route builder's `$Infer.Context` namespace.
+Taser.js makes decomposing handler logic **instant and 100% type-safe** by inferring handler argument types from the route builder.
 
 ---
 
@@ -21,8 +21,8 @@ Taser.js makes decomposing handler logic **instant and 100% type-safe** via the 
 To extract helper functions without repeating type definitions:
 
 1. **Declare the Route Builder Variable First** (`GET`, `POST`, `PUT`, etc.).
-2. **Extract `RouteContext`** using `typeof VERB.$Infer.Context`.
-3. **Write Small Helper Functions** that receive `ctx: RouteContext` (or a slice of it).
+2. **Extract `RouteContext`** using `Parameters<typeof VERB.handler>[0]`.
+3. **Write Small Helper Functions** that destructure `{ req, ctx, state }` from `RouteContext`.
 4. **Call `.handler()`** on your route builder and orchestrate the helpers.
 
 ```ts title="src/routes/users/$id.get.ts"
@@ -36,32 +36,31 @@ const GET = t
   .params(z.object({ id: z.string().uuid() }))
   .query(z.object({ includeOrders: z.coerce.boolean().default(false) }));
 
-// 2. Extract the exact compile-time context type
-export type RouteContext = typeof GET.$Infer.Context; // [!code highlight]
+// 2. Extract the exact handler argument type
+export type RouteContext = Parameters<typeof GET.handler>[0]; // [!code highlight]
 
 // 3. Extract focused helper functions
-async function fetchUser(ctx: RouteContext) {
+async function fetchUser({ ctx, req }: RouteContext) {
   return ctx.db.user.findUnique({
-    where: { id: ctx.params.id }, // Typed as string (uuid)
+    where: { id: req.params.id }, // Typed as string (uuid)
   });
 }
 
-async function fetchUserOrders(ctx: RouteContext) {
-  if (!ctx.query.includeOrders) return []; // Typed as boolean
+async function fetchUserOrders({ ctx, req }: RouteContext) {
+  if (!req.query.includeOrders) return []; // Typed as boolean
   return ctx.db.order.findMany({
-    where: { userId: ctx.params.id },
+    where: { userId: req.params.id },
   });
 }
 
 // 4. Orchestrate inside the handler
-export default GET.handler(async (ctx) => {
-  // [!code highlight]
-  const user = await fetchUser(ctx);
+export default GET.handler(async (args) => {
+  const user = await fetchUser(args);
   if (!user) {
     return notFound({ message: "User not found" });
   }
 
-  const orders = await fetchUserOrders(ctx);
+  const orders = await fetchUserOrders(args);
   return ok({ user, orders });
 });
 ```
@@ -85,33 +84,33 @@ export default t
       paymentMethodId: z.string(),
     }),
   )
-  .handler(async (ctx) => {
+  .handler(async ({ ctx, req, state }) => {
     // 1. Check inventory inline...
-    const item = await ctx.db.item.findUnique({ where: { id: ctx.body.itemId } });
-    if (!item || item.stock < ctx.body.quantity) {
+    const item = await ctx.db.item.findUnique({ where: { id: req.body.itemId } });
+    if (!item || item.stock < req.body.quantity) {
       return badRequest({ message: "Out of stock" });
     }
 
     // 2. Charge Stripe inline...
     const charge = await ctx.stripe.charges.create({
-      amount: item.price * ctx.body.quantity,
+      amount: item.price * req.body.quantity,
       currency: "usd",
-      source: ctx.body.paymentMethodId,
+      source: req.body.paymentMethodId,
     });
 
     // 3. Save order to database inline...
     const order = await ctx.db.order.create({
       data: {
         itemId: item.id,
-        quantity: ctx.body.quantity,
-        total: item.price * ctx.body.quantity,
+        quantity: req.body.quantity,
+        total: item.price * req.body.quantity,
         chargeId: charge.id,
-        userId: ctx.state.user.id,
+        userId: state.user.id,
       },
     });
 
     // 4. Send email notification inline...
-    await ctx.email.sendReceipt({ to: ctx.state.user.email, orderId: order.id });
+    await ctx.email.sendReceipt({ to: state.user.email, orderId: order.id });
 
     return ok(order);
   });
@@ -149,17 +148,18 @@ By extracting `CheckoutContext`, each step becomes a pure or focused async helpe
       });
 
     // 2. Export Inferred Route Context for Helpers
-    export type CheckoutContext = typeof POST.$Infer.Context;
+    export type CheckoutContext = Parameters<typeof POST.handler>[0];
 
     // 3. Clean Handler Orchestration
-    export default POST.handler(async (ctx) => {
+    export default POST.handler(async (args) => {
+      const { ctx, state } = args;
       try {
-        const item = await verifyStock(ctx);
-        const charge = await processPayment(ctx, item);
-        const order = await persistOrder(ctx, item, charge.id);
+        const item = await verifyStock(args);
+        const charge = await processPayment(args, item);
+        const order = await persistOrder(args, item, charge.id);
 
         // Background notification
-        ctx.email.sendReceipt({ to: ctx.state.user.email, orderId: order.id }).catch(console.error);
+        ctx.email.sendReceipt({ to: state.user.email, orderId: order.id }).catch(console.error);
 
         return ok({ orderId: order.id, status: "confirmed" });
       } catch (err) {
@@ -174,12 +174,12 @@ By extracting `CheckoutContext`, each step becomes a pure or focused async helpe
     ```ts title="src/services/inventory.ts"
     import type { CheckoutContext } from "../routes/checkout.post.js";
 
-    export async function verifyStock(ctx: CheckoutContext) {
+    export async function verifyStock({ ctx, req }: CheckoutContext) {
       const item = await ctx.db.item.findUnique({
-        where: { id: ctx.body.itemId },
+        where: { id: req.body.itemId },
       });
 
-      if (!item || item.stock < ctx.body.quantity) {
+      if (!item || item.stock < req.body.quantity) {
         throw new Error("Item is out of stock");
       }
 
@@ -194,13 +194,13 @@ By extracting `CheckoutContext`, each step becomes a pure or focused async helpe
     import type { CheckoutContext } from "../routes/checkout.post.js";
 
     export async function processPayment(
-      ctx: CheckoutContext,
+      { ctx, req }: CheckoutContext,
       item: { id: string; price: number },
     ) {
       return ctx.stripe.charges.create({
-        amount: item.price * ctx.body.quantity,
+        amount: item.price * req.body.quantity,
         currency: "usd",
-        source: ctx.body.paymentMethodId,
+        source: req.body.paymentMethodId,
       });
     }
     ```
@@ -212,17 +212,17 @@ By extracting `CheckoutContext`, each step becomes a pure or focused async helpe
     import type { CheckoutContext } from "../routes/checkout.post.js";
 
     export async function persistOrder(
-      ctx: CheckoutContext,
+      { ctx, req, state }: CheckoutContext,
       item: { id: string; price: number },
       chargeId: string,
     ) {
       return ctx.db.order.create({
         data: {
           itemId: item.id,
-          quantity: ctx.body.quantity,
-          total: item.price * ctx.body.quantity,
+          quantity: req.body.quantity,
+          total: item.price * req.body.quantity,
           chargeId,
-          userId: ctx.state.user.id,
+          userId: state.user.id,
         },
       });
     }
@@ -240,20 +240,20 @@ When writing generic service functions or utilities that should not depend on th
 ```ts title="src/services/billing.ts"
 import type { CheckoutContext } from "../routes/checkout.post.js";
 
-// Helper only requires db, stripe, and user state
-type BillingContext = Pick<CheckoutContext, "db" | "stripe" | "state">;
+// Helper only requires ctx services and layout state
+type BillingContext = Pick<CheckoutContext, "ctx" | "state">;
 
 export async function processCustomerCharge(
-  ctx: BillingContext,
+  { ctx, state }: BillingContext,
   amountInCents: number,
   paymentMethodId: string,
 ) {
-  ctx.logger.info(`Charging customer ${ctx.state.user.id}`);
+  ctx.logger.info(`Charging customer ${state.user.id}`);
   return ctx.stripe.charges.create({
     amount: amountInCents,
     currency: "usd",
     source: paymentMethodId,
-    customer: ctx.state.user.stripeCustomerId,
+    customer: state.user.stripeCustomerId,
   });
 }
 ```
@@ -278,10 +278,10 @@ For larger projects, you can organize helpers into dedicated service files:
       .get("/users/:id")
       .params(z.object({ id: z.string().uuid() }));
 
-    export type UserRouteContext = typeof GET.$Infer.Context;
+    export type UserRouteContext = Parameters<typeof GET.handler>[0];
 
-    export default GET.handler(async (ctx) => {
-      const profile = await fetchUserProfile(ctx);
+    export default GET.handler(async (args) => {
+      const profile = await fetchUserProfile(args);
       if (!profile) {
         return notFound({ message: "User not found" });
       }
@@ -294,9 +294,9 @@ For larger projects, you can organize helpers into dedicated service files:
     ```ts title="src/services/user-service.ts"
     import type { UserRouteContext } from "../routes/users/$id.get.js";
 
-    export async function fetchUserProfile(ctx: UserRouteContext) {
+    export async function fetchUserProfile({ ctx, req }: UserRouteContext) {
       return ctx.db.user.findUnique({
-        where: { id: ctx.params.id },
+        where: { id: req.params.id },
         include: { profile: true },
       });
     }
@@ -318,27 +318,27 @@ Taser.js's `export default` architecture intentionally separates route contract 
    const GET = t.get("/users/:id").params(UserParamsSchema);
 
    // Phase 2: Inferred cleanly from the contract BEFORE execution logic runs
-   export type RouteContext = typeof GET.$Infer.Context;
+   export type RouteContext = Parameters<typeof GET.handler>[0];
 
-   async function fetchUser(ctx: RouteContext) {
-     return ctx.db.findUser(ctx.params.id);
+   async function fetchUser({ ctx, req }: RouteContext) {
+     return ctx.db.findUser(req.params.id);
    }
 
    // Phase 3: Export the handler implementation
-   export default GET.handler(async (ctx) => {
-     const user = await fetchUser(ctx);
+   export default GET.handler(async (args) => {
+     const user = await fetchUser(args);
      return json(user);
    });
    ```
 
 2. **No Post-Handler Type Hazard**:
-   Because the handler is exported as `export default GET.handler(...)`, there is no monolithic post-execution variable holding both the contract and the handler implementation at the same time. `typeof default` is invalid TypeScript syntax, ensuring types are always derived from the upstream builder contract (`typeof GET.$Infer.Context`).
+   Because the handler is exported as `export default GET.handler(...)`, there is no monolithic post-execution variable holding both the contract and the handler implementation at the same time. `typeof default` is invalid TypeScript syntax, ensuring types are always derived from the upstream builder (`Parameters<typeof GET.handler>[0]`).
 
 ```
-[Route Builder: const GET = t.get(...)] ──► typeof GET.$Infer.Context ──► [Helper Functions]
+[Route Builder: const GET = t.get(...)] ──► Parameters<typeof GET.handler>[0] ──► [Helper Functions]
                   │                                                               │
                   ▼                                                               ▼
-        [GET.handler(async (ctx) => ...)] ◄────────────────────────────── [Orchestrate Helpers]
+        [GET.handler(async ({ ctx, req, state }) => ...)] ◄────────────────────────────── [Orchestrate Helpers]
                   │
                   ▼
           [export default]
@@ -348,7 +348,7 @@ Taser.js's `export default` architecture intentionally separates route contract 
 
 ## Summary of Benefits
 
-| Feature         | Monolithic Handlers                   | Taser.js `$Infer.Context` Helpers              |
+| Feature         | Monolithic Handlers                   | Taser.js facet-split handler helpers           |
 | :-------------- | :------------------------------------ | :--------------------------------------------- |
 | **Readability** | 100+ line functions mixing concerns   | 5 to 15 line orchestration handlers            |
 | **Type Safety** | Implicit types inside single scope    | Explicitly typed `ctx` across all functions    |

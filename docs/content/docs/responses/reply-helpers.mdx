@@ -20,7 +20,7 @@ The `json()` function serializes data into a JSON string and automatically sets 
 import { json } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-export default t.get("/users").handler((ctx) => {
+export default t.get("/users").handler(({ ctx }) => {
   return json([
     { id: "1", name: "Alice" },
     { id: "2", name: "Bob" },
@@ -82,8 +82,8 @@ For successful operations that do not return a payload (such as `DELETE` endpoin
 import { noContent } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-export default t.delete("/items/:id").handler(async (ctx) => {
-  await ctx.db.deleteItem(ctx.params.id);
+export default t.delete("/items/:id").handler(async ({ ctx, req }) => {
+  await ctx.db.deleteItem(req.params.id);
   return noContent();
 });
 ```
@@ -117,27 +117,23 @@ export default t.get("/old-docs").handler(() => {
 
 All reply helpers are exported from `@taserjs/router/reply`:
 
-| Helper Function                      | HTTP Status                  | Typical Usage                            |
-| :----------------------------------- | :--------------------------- | :--------------------------------------- |
-| `ok(data?, init?)`                   | `200 OK`                     | Generic success response                 |
-| `created(data?, init?)`              | `201 Created`                | Resource created successfully            |
-| `accepted(data?, init?)`             | `202 Accepted`               | Async job accepted for processing        |
-| `noContent(init?)`                   | `204 No Content`             | Success with empty payload               |
-| `redirect(location, init?)`          | `302 Found`                  | Temporary redirection                    |
-| `badRequest(data?, init?)`           | `400 Bad Request`            | Client query or payload error            |
-| `unauthorized(data?, init?)`         | `401 Unauthorized`           | Missing or invalid authentication token  |
-| `forbidden(data?, init?)`            | `403 Forbidden`              | Authenticated user lacks permission      |
-| `notFound(data?, init?)`             | `404 Not Found`              | Resource or route does not exist         |
-| `conflict(data?, init?)`             | `409 Conflict`               | Duplicate key or concurrency conflict    |
-| `payloadTooLarge(data?, init?)`      | `413 Payload Too Large`      | Request body exceeds maximum size limit  |
-| `unsupportedMediaType(data?, init?)` | `415 Unsupported Media Type` | Payload MIME/Content-Type is unsupported |
-| `unprocessableEntity(data?, init?)`  | `422 Unprocessable Entity`   | Schema validation error                  |
-| `tooManyRequests(data?, init?)`      | `429 Too Many Requests`      | Rate limit or quota exceeded             |
-| `internalServerError(data?, init?)`  | `500 Internal Server Error`  | Unhandled exception                      |
-| `notImplemented(data?, init?)`       | `501 Not Implemented`        | Endpoint/feature not supported           |
-| `badGateway(data?, init?)`           | `502 Bad Gateway`            | Upstream service failure                 |
-| `serviceUnavailable(data?, init?)`   | `503 Service Unavailable`    | Server maintenance or overloaded         |
-| `gatewayTimeout(data?, init?)`       | `504 Gateway Timeout`        | Upstream gateway/proxy timed out         |
+| Helper Function                     | HTTP Status                 | Typical Usage                            |
+| :---------------------------------- | :-------------------------- | :--------------------------------------- |
+| `ok(data?, init?)`                  | `200 OK`                    | Generic success response                 |
+| `created(data?, init?)`             | `201 Created`               | Resource created successfully            |
+| `accepted(data?, init?)`            | `202 Accepted`              | Async job accepted for processing        |
+| `noContent(init?)`                  | `204 No Content`            | Success with empty payload               |
+| `redirect(location, init?)`         | `302 Found`                 | Temporary redirection                    |
+| `badRequest(data?, init?)`          | `400 Bad Request`           | Client query or payload error            |
+| `unauthorized(data?, init?)`        | `401 Unauthorized`          | Missing or invalid authentication token  |
+| `forbidden(data?, init?)`           | `403 Forbidden`             | Authenticated user lacks permission      |
+| `notFound(data?, init?)`            | `404 Not Found`             | Resource or route does not exist         |
+| `methodNotAllowed(data?, init?)`    | `405 Method Not Allowed`    | HTTP method not supported for this route |
+| `conflict(data?, init?)`            | `409 Conflict`              | Duplicate key or concurrency conflict    |
+| `payloadTooLarge(data?, init?)`     | `413 Payload Too Large`     | Request body exceeds maximum size limit  |
+| `unprocessable(data?, init?)`       | `422 Unprocessable Entity`  | Schema validation error                  |
+| `tooManyRequests(data?, init?)`     | `429 Too Many Requests`     | Rate limit or quota exceeded             |
+| `internalServerError(data?, init?)` | `500 Internal Server Error` | Unhandled exception                      |
 
 ### Example Usage of Error Helpers
 
@@ -145,13 +141,13 @@ All reply helpers are exported from `@taserjs/router/reply`:
 import { forbidden, json, notFound, unauthorized } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-export default t.get("/documents/:id").handler(async (ctx) => {
-  const user = ctx.state.user;
+export default t.get("/documents/:id").handler(async ({ ctx, req, state }) => {
+  const user = state.user;
   if (!user) {
     return unauthorized({ message: "Login required" });
   }
 
-  const doc = await ctx.db.findDocument(ctx.params.id);
+  const doc = await ctx.db.findDocument(req.params.id);
   if (!doc) {
     return notFound({ message: "Document not found" });
   }
@@ -168,13 +164,13 @@ export default t.get("/documents/:id").handler(async (ctx) => {
 
 ## Setting Cookies
 
-You can set, read, or delete cookies directly through `ctx.cookies` or by passing the `Set-Cookie` header in `ReplyInit`:
+Prefer the first-party `cookie()` middleware and `{ cookies }` jar (see [Cookie Management](/docs/responses/cookies)). You can also set `Set-Cookie` manually via response init:
 
 ```ts title="src/routes/auth/login.post.ts"
 import { json } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-export default t.post("/auth/login").handler(async (ctx) => {
+export default t.post("/auth/login").handler(async () => {
   const sessionToken = await createSession();
 
   return json(
@@ -199,8 +195,8 @@ export default t.post("/auth/login").handler(async (ctx) => {
     description="Enforce compile-time return shape guarantees with .returns()."
   />
   <Card
-    title="Streaming and Files"
+    title="Streaming and Web Payloads"
     href="/docs/responses/streaming-and-files"
-    description="Stream large files and binary blobs safely."
+    description="Stream Web ReadableStreams, binary payloads, and SSE."
   />
 </Cards>

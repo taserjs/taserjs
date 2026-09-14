@@ -4,14 +4,15 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".output/**", ".next/**", ".taser/**", ".nitro/**"]
+      "outputs": ["dist/**", ".output/**", ".next/**", ".taserjs/**", ".nitro/**"]
     },
     "typecheck": {
       "dependsOn": ["^build"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["build", "^build"]
     },
+    "lint": {},
     "dev": {
       "cache": false,
       "persistent": true

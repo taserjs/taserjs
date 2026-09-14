@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
-import { nitro } from "nitro/vite";
-import { taser } from "@taserjs/router-plugin/vite";
+import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
-  plugins: [taser(), nitro()],
+  plugins: [taser()],
 });

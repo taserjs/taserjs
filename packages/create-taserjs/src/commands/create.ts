@@ -1,67 +1,61 @@
 import path from "node:path";
-
 import * as p from "@clack/prompts";
-import color from "picocolors";
-
-import { getCapabilitiesCatalog } from "../addons/registry.js";
-import {
-  printCapabilitiesCatalog,
-  printJsonError,
-  printScaffoldResult,
-} from "../core/json-output.js";
-import {
-  parseDbFlag,
-  parseFrameworkFlag,
-  parseLoggerFlag,
-  parsePresetFlag,
-  parseRuntimeFlag,
-  parseValidatorFlag,
-  type ParsedCreateArgs,
-  resolveScaffoldDefaults,
-} from "../core/parse-options.js";
+import pc from "picocolors";
+import { resolveUserAgent, runScript } from "../core/package-manager.js";
 import { scaffoldProject } from "../core/scaffold-engine.js";
-import { allowedRuntimeOverrides } from "../core/targets.js";
+import { allowedRuntimeOverrides, DEFAULT_DEPLOY } from "../core/targets.js";
 import type {
   DbDriver,
   DbOdm,
   DeployTarget,
   LoggerId,
+  Runtime,
+  ScaffoldOptions,
   ScaffoldResult,
   ValidatorId,
 } from "../core/types.js";
-import { DB_DRIVERS, DB_ODMS, DEPLOY_TARGETS, LOGGERS, VALIDATORS } from "../core/types.js";
-import { validateProjectName } from "../core/validate-project-name.js";
-import { resolveUserAgent, runScript } from "../core/package-manager.js";
+import { DEPLOY_TARGETS } from "../core/types.js";
 
-function isDeployTarget(value: unknown): value is DeployTarget {
-  return typeof value === "string" && (DEPLOY_TARGETS as readonly string[]).includes(value);
+const DEPLOY_LABELS: Record<DeployTarget, string> = {
+  none: "None (Standalone Vite SSR)",
+  "node-server": "Node.js server (Nitro)",
+  "node-cluster": "Node.js cluster (Nitro)",
+  bun: "Bun (Nitro)",
+  "deno-server": "Deno (Nitro)",
+  "deno-deploy": "Deno Deploy (Nitro)",
+  "cloudflare-module": "Cloudflare Workers (Nitro)",
+  vercel: "Vercel (Nitro)",
+  "aws-lambda": "AWS Lambda (Nitro)",
+  netlify: "Netlify (Nitro)",
+};
+
+export interface RunCreateCommandOptions {
+  projectName?: string | undefined;
+  preset?: DeployTarget | undefined;
+  runtime?: Runtime | undefined;
+  db?: DbOdm | undefined;
+  driver?: DbDriver | undefined;
+  logger?: LoggerId | undefined;
+  validator?: ValidatorId | undefined;
+  skipInstall?: boolean | undefined;
+  interactive?: boolean | undefined;
+  targetDir?: string | undefined;
+  packageVersions?: Record<string, string> | undefined;
 }
 
-function isDbOdm(value: unknown): value is DbOdm {
-  return typeof value === "string" && (DB_ODMS as readonly string[]).includes(value);
-}
-
-function isDbDriver(value: unknown): value is DbDriver {
-  return typeof value === "string" && (DB_DRIVERS as readonly string[]).includes(value);
-}
-
-function isLoggerId(value: unknown): value is LoggerId {
-  return typeof value === "string" && (LOGGERS as readonly string[]).includes(value);
-}
-
-function isValidatorId(value: unknown): value is ValidatorId {
-  return typeof value === "string" && (VALIDATORS as readonly string[]).includes(value);
-}
-
-async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedCreateArgs> {
+export async function promptInteractiveOptions(
+  defaults: RunCreateCommandOptions,
+): Promise<RunCreateCommandOptions> {
   const projectName =
-    args.projectName ??
+    defaults.projectName ??
     (await p.text({
       message: "Project name",
       placeholder: "my-taser-app",
       defaultValue: "my-taser-app",
       validate(value) {
-        return validateProjectName(value);
+        if (!value || value.trim().length === 0) return "Project name cannot be empty";
+        if (/[^a-zA-Z0-9_-]/.test(value)) return "Project name contains invalid characters";
+        return undefined;
       },
     }));
 
@@ -70,69 +64,32 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
     process.exit(0);
   }
 
-  const framework =
-    args.framework ??
-    (await p.select({
-      message: "Host framework",
-      options: [
-        { value: "none", label: "None", hint: "Taser.js Fetch (default)" },
-        { value: "hono", label: "Hono" },
-        { value: "express", label: "Express" },
-        { value: "fastify", label: "Fastify" },
-      ],
-      initialValue: "none",
-    }));
-
-  if (p.isCancel(framework)) {
-    p.cancel("Scaffold cancelled.");
-    process.exit(0);
-  }
-
-  const DEPLOY_LABELS: Record<DeployTarget, string> = {
-    none: "None (Standalone Vite)",
-    "node-server": "Node.js server",
-    "node-cluster": "Node.js cluster",
-    bun: "Bun",
-    "deno-server": "Deno",
-    "deno-deploy": "Deno Deploy",
-    "cloudflare-module": "Cloudflare Workers",
-    vercel: "Vercel",
-    "aws-lambda": "AWS Lambda",
-    netlify: "Netlify",
-  };
-
-  const DEPLOY_HINTS: Partial<Record<DeployTarget, string>> = {
-    none: "standalone Vite, no Nitro",
-  };
-
   const preset =
-    args.preset ??
+    defaults.preset ??
     (await p.select({
       message: "Deployment target",
-      // oxlint-disable-next-line oxc/no-map-spread
       options: DEPLOY_TARGETS.map((id) => ({
         value: id,
         label: DEPLOY_LABELS[id],
-        ...(DEPLOY_HINTS[id] ? { hint: DEPLOY_HINTS[id] } : {}),
       })),
-      initialValue: "node-server",
+      initialValue: "none",
     }));
 
-  if (p.isCancel(preset) || !isDeployTarget(preset)) {
+  if (p.isCancel(preset)) {
     p.cancel("Scaffold cancelled.");
     process.exit(0);
   }
 
-  let runtime: import("../core/types.js").Runtime | undefined;
-  const runtimeOverrides = allowedRuntimeOverrides(preset);
+  let runtime: Runtime | undefined;
+  const runtimeOverrides = allowedRuntimeOverrides(preset as DeployTarget);
   if (runtimeOverrides.length > 0) {
     const runtimeChoice =
-      args.runtime ??
+      defaults.runtime ??
       (await p.select({
-        message: "Runtime",
+        message: "Runtime override",
         options: [
           ...runtimeOverrides.map((rt) => ({ value: rt, label: rt })),
-          { value: "default", label: `Preset default`, hint: "no override" },
+          { value: "default", label: "Preset default", hint: "no override" },
         ],
         initialValue: "default",
       }));
@@ -141,14 +98,33 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
       p.cancel("Scaffold cancelled.");
       process.exit(0);
     }
-
-    runtime = runtimeChoice === "default" ? undefined : runtimeChoice;
+    runtime = runtimeChoice === "default" ? undefined : (runtimeChoice as Runtime);
   }
 
-  const dbChoice =
-    args.db ??
+  const validatorChoice =
+    defaults.validator ??
     (await p.select({
-      message: "Database",
+      message: "Standard Schema Validator",
+      options: [
+        { value: "none", label: "None", hint: "default" },
+        { value: "zod", label: "Zod" },
+        { value: "valibot", label: "Valibot" },
+        { value: "arktype", label: "Arktype" },
+      ],
+      initialValue: "none",
+    }));
+
+  if (p.isCancel(validatorChoice)) {
+    p.cancel("Scaffold cancelled.");
+    process.exit(0);
+  }
+
+  const validator = validatorChoice === "none" ? undefined : (validatorChoice as ValidatorId);
+
+  const dbChoice =
+    defaults.db ??
+    (await p.select({
+      message: "Database ORM / Query Builder",
       options: [
         { value: "none", label: "None", hint: "default" },
         { value: "drizzle", label: "Drizzle" },
@@ -166,10 +142,10 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
   let db: DbOdm | undefined;
   let driver: DbDriver | undefined;
 
-  if (dbChoice !== "none" && isDbOdm(dbChoice)) {
-    db = dbChoice;
+  if (dbChoice !== "none") {
+    db = dbChoice as DbOdm;
     const driverChoice =
-      args.driver ??
+      defaults.driver ??
       (await p.select({
         message: "Database driver",
         options: [
@@ -180,15 +156,15 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
         initialValue: "sqlite",
       }));
 
-    if (p.isCancel(driverChoice) || !isDbDriver(driverChoice)) {
+    if (p.isCancel(driverChoice)) {
       p.cancel("Scaffold cancelled.");
       process.exit(0);
     }
-    driver = driverChoice;
+    driver = driverChoice as DbDriver;
   }
 
   const loggerChoice =
-    args.logger ??
+    defaults.logger ??
     (await p.select({
       message: "Logger",
       options: [
@@ -204,175 +180,68 @@ async function promptInteractiveOptions(args: ParsedCreateArgs): Promise<ParsedC
     process.exit(0);
   }
 
-  const logger =
-    loggerChoice === "none" ? undefined : isLoggerId(loggerChoice) ? loggerChoice : undefined;
-
-  const validatorChoice =
-    args.validator ??
-    (await p.select({
-      message: "Validator",
-      options: [
-        { value: "none", label: "None", hint: "default" },
-        { value: "zod", label: "Zod" },
-        { value: "arktype", label: "Arktype" },
-        { value: "valibot", label: "Valibot" },
-      ],
-      initialValue: "none",
-    }));
-
-  if (p.isCancel(validatorChoice)) {
-    p.cancel("Scaffold cancelled.");
-    process.exit(0);
-  }
-
-  const validator =
-    validatorChoice === "none"
-      ? undefined
-      : isValidatorId(validatorChoice)
-        ? validatorChoice
-        : undefined;
+  const logger = loggerChoice === "none" ? undefined : (loggerChoice as LoggerId);
 
   return {
     projectName: String(projectName).trim(),
-    framework,
-    preset,
-    ...(runtime !== undefined ? { runtime } : {}),
-    yes: args.yes,
-    noInstall: args.noInstall,
-    json: args.json,
-    ...(db ? { db, driver: driver! } : {}),
-    ...(logger ? { logger } : {}),
+    preset: preset as DeployTarget,
+    ...(runtime ? { runtime } : {}),
     ...(validator ? { validator } : {}),
+    ...(db ? { db, driver } : {}),
+    ...(logger ? { logger } : {}),
+    skipInstall: defaults.skipInstall,
   };
 }
 
 export async function runCreateCommand(
-  args: ParsedCreateArgs,
-): Promise<ScaffoldResult | undefined> {
-  if (args.json && !args.projectName) {
-    printCapabilitiesCatalog(getCapabilitiesCatalog());
-    return undefined;
-  }
+  args: RunCreateCommandOptions = {},
+): Promise<ScaffoldResult> {
+  const isInteractive =
+    args.interactive ?? (Boolean(process.stdout.isTTY) && process.env.NODE_ENV !== "test");
 
-  const cwd = process.cwd();
-  const interactive = !args.yes;
-  const resolved = interactive
+  const resolved = isInteractive
     ? await promptInteractiveOptions(args)
     : {
         ...args,
-        projectName: args.projectName?.trim(),
-        preset: args.preset ?? "node-server",
+        projectName: args.projectName ?? "my-taser-app",
+        preset: args.preset ?? DEFAULT_DEPLOY,
       };
 
-  if (!resolved.projectName) {
-    const message = "Project name is required";
-    if (args.json) {
-      printJsonError(message);
-      process.exit(1);
-    }
-    throw new Error(message);
-  }
+  const cwd = process.cwd();
+  const projectName = resolved.projectName || "my-taser-app";
+  const targetDir = args.targetDir
+    ? path.resolve(cwd, args.targetDir)
+    : path.resolve(cwd, projectName);
 
-  const nameError = validateProjectName(resolved.projectName, cwd);
-  if (nameError) {
-    if (args.json) {
-      printJsonError(nameError);
-      process.exit(1);
-    }
-    throw new Error(nameError);
-  }
-
-  const targetDir = path.resolve(cwd, resolved.projectName);
-  const scaffoldCtx = resolveScaffoldDefaults({
-    ...resolved,
-    projectName: resolved.projectName,
-  });
-  scaffoldCtx.targetDir = targetDir;
-
-  if (!args.json) {
-    const spinner = p.spinner();
-    spinner.start("Scaffolding project");
-    try {
-      const result = await scaffoldProject({
-        ...scaffoldCtx,
-        targetDir,
-        skipInstall: args.noInstall,
-        agent: resolveUserAgent(),
-      });
-      spinner.stop("Project created");
-      const cdPath = path.relative(cwd, targetDir) || ".";
-      p.note([`cd ${cdPath}`, runScript(resolveUserAgent(), "dev")].join("\n"), "Next steps");
-      p.outro(color.green("Done."));
-      return result;
-    } catch (error) {
-      spinner.stop("Scaffold failed");
-      throw error;
-    }
-  }
-
-  const result = await scaffoldProject({
-    ...scaffoldCtx,
+  const scaffoldOpts: ScaffoldOptions = {
+    projectName,
     targetDir,
-    skipInstall: args.noInstall,
-    agent: resolveUserAgent(),
-  });
-  printScaffoldResult(result);
-  return result;
-}
-
-export function buildParsedArgsFromCli(
-  values: {
-    preset?: string;
-    framework?: string;
-    runtime?: string;
-    db?: string;
-    logger?: string;
-    validator?: string;
-    y?: boolean;
-    noInstall?: boolean;
-    json?: boolean;
-  },
-  positionals: string[],
-): ParsedCreateArgs {
-  const args: ParsedCreateArgs = {
-    yes: values.y ?? false,
-    noInstall: values.noInstall ?? false,
-    json: values.json ?? false,
+    ...(resolved.preset !== undefined ? { preset: resolved.preset } : {}),
+    ...(resolved.runtime !== undefined ? { runtime: resolved.runtime } : {}),
+    ...(resolved.validator !== undefined ? { validator: resolved.validator } : {}),
+    ...(resolved.db !== undefined ? { db: resolved.db } : {}),
+    ...(resolved.driver !== undefined ? { driver: resolved.driver } : {}),
+    ...(resolved.logger !== undefined ? { logger: resolved.logger } : {}),
+    ...(args.packageVersions !== undefined ? { packageVersions: args.packageVersions } : {}),
+    skipInstall: resolved.skipInstall ?? process.env.NODE_ENV === "test",
   };
 
-  if (positionals[0]) {
-    args.projectName = positionals[0];
-  }
+  if (isInteractive) {
+    const s = p.spinner();
+    s.start("Scaffolding project");
+    const result = await scaffoldProject(scaffoldOpts);
+    s.stop("Project created");
 
-  if (values.preset) {
-    const parsed = parsePresetFlag(values.preset);
-    args.preset = parsed.preset;
-    if (parsed.warning && !args.json) {
-      console.warn(`warning: ${parsed.warning}`);
+    const agent = resolveUserAgent();
+    p.outro(pc.green("Done!"));
+    console.log(`\nNext steps:`);
+    console.log(`  cd ${path.relative(cwd, targetDir) || "."}`);
+    if (scaffoldOpts.skipInstall) {
+      console.log(`  ${runScript(agent, "install")}`);
     }
+    console.log(`  ${runScript(agent, "dev")}\n`);
+    return result;
   }
 
-  if (values.framework) {
-    args.framework = parseFrameworkFlag(values.framework);
-  }
-
-  if (values.runtime) {
-    args.runtime = parseRuntimeFlag(values.runtime);
-  }
-
-  if (values.db) {
-    const parsed = parseDbFlag(values.db);
-    args.db = parsed.db;
-    args.driver = parsed.driver;
-  }
-
-  if (values.logger) {
-    args.logger = parseLoggerFlag(values.logger);
-  }
-
-  if (values.validator) {
-    args.validator = parseValidatorFlag(values.validator);
-  }
-
-  return args;
+  return await scaffoldProject(scaffoldOpts);
 }

@@ -1,6 +1,6 @@
 ---
 title: Next.js Plugin
-description: "Configure the @taserjs/router-plugin/next bundler plugin for Next.js 15+ App Router. Options, disk artifact generation, and Turbopack/Webpack compilation."
+description: "Configure @taserjs/plugin/next for Next.js 15+ App Router: createTaser with cwd/config, and routes.gen.ts generation."
 icon: LayoutGrid
 ---
 
@@ -9,154 +9,104 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-plugin/next` package integrates Taser.js into Next.js 15+ App Router compilation. It handles disk artifact generation in `.taser/`, TypeScript ambient type generation, and Turbopack/Webpack extension aliases.
+The `@taserjs/plugin/next` package hooks Taser.js into Next.js 15+ App Router builds. It generates `${serverDir}/.taserjs/routes.gen.ts` from `taserjs.config.ts` and wires Webpack/Turbopack so routes stay in sync during `next dev` and `next build`.
 
 <Callout type="info" title="Looking for the Fullstack Next.js Guide?">
-  For the complete architectural guide, React Server Components (RSC) patterns, and Server Actions
-  data fetching recipes, see the [Next.js App Router Fullstack Guide](/docs/fullstack/nextjs).
+  For RSC patterns and Server Actions recipes, see the [Next.js App Router Fullstack
+  Guide](/docs/fullstack/nextjs).
 </Callout>
 
 ---
 
 ## Installation
 
-Install `@taserjs/router-plugin` as a dev dependency:
+Install `@taserjs/plugin` and `@taserjs/cli` as development dependencies:
 
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
-  <Tab value="pnpm">
-    ```bash
-    pnpm add -D @taserjs/router-plugin
-
-    ```
-
-  </Tab>
-  <Tab value="npm">
-    ```bash
-    npm install -D @taserjs/router-plugin
-
-    ```
-
-  </Tab>
-  <Tab value="bun">
-    ```bash
-    bun add -d @taserjs/router-plugin
-
-    ```
-
-  </Tab>
-  <Tab value="yarn">
-    ```bash
-    yarn add -D @taserjs/router-plugin
-
-    ```
-
-  </Tab>
+  <Tab value="pnpm">```bash pnpm add -D @taserjs/plugin @taserjs/cli ```</Tab>
+  <Tab value="npm">```bash npm install -D @taserjs/plugin @taserjs/cli ```</Tab>
+  <Tab value="bun">```bash bun add -d @taserjs/plugin @taserjs/cli ```</Tab>
+  <Tab value="yarn">```bash yarn add -D @taserjs/plugin @taserjs/cli ```</Tab>
 </Tabs>
+
+Put path layout in `taserjs.config.ts`:
+
+```ts title="taserjs.config.ts"
+import { defineConfig } from "@taserjs/cli";
+
+export default defineConfig({
+  serverDir: "src/server",
+  routesDir: "routes",
+  outputDir: ".taserjs",
+  app: "taser.ts",
+});
+```
 
 ---
 
 ## Basic Configuration
 
-Wrap your `next.config.ts` using the `createTaser` (or `withTaser`) wrapper:
+Wrap `next.config.ts` with `createTaser` (or `withTaser`). Plugin options are only `cwd` and `config`:
 
 ```ts title="next.config.ts"
 import type { NextConfig } from "next";
-import { createTaser } from "@taserjs/router-plugin/next";
+import { createTaser } from "@taserjs/plugin/next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 };
 
-const withTaser = createTaser({
-  serverDir: "src/server", // Directory hosting Taser.js server code & routes
-  entry: "@/server/taser", // Path alias or path to your router instance
-  basePath: "/api", // URL prefix where Taser.js routes dispatch
-});
+const withTaser = createTaser();
 
 export default withTaser(nextConfig);
 ```
 
-You can also pass a function-based Next.js configuration:
+Optional overrides:
 
 ```ts title="next.config.ts"
-import { withTaser } from "@taserjs/router-plugin/next";
+import { createTaser } from "@taserjs/plugin/next";
+
+const withTaser = createTaser({
+  config: "./taserjs.config.ts",
+});
 
 export default withTaser({
-  serverDir: "src/server",
-  entry: "@/server/taser",
-  basePath: "/api",
-})((phase, { defaultConfig }) => {
-  return {
-    ...defaultConfig,
-    reactStrictMode: true,
-  };
+  reactStrictMode: true,
 });
 ```
+
+Set the HTTP mount with `defineTaser().basePath("/api")` in `src/server/taser.ts`, and point the client `baseUrl` at the same prefix (for example `"/api"`).
 
 ---
 
 ## Plugin Options
 
-`createTaser` accepts configuration options conforming to `TaserNextOptions`:
-
-```ts title="next.config.ts"
-const withTaser = createTaser({
-  serverDir: "src/server",
-  entry: "@/server/taser",
-  basePath: "/api",
-  outDir: ".taser",
-});
-```
+`createTaser` accepts `NextTaserOptions`:
 
 <TypeTable
   type={{
-    serverDir: {
-      description: "Root server directory containing your taser instance and routes folder.",
+    cwd: {
+      description: "Project root used when resolving taserjs.config.ts and paths.",
       type: "string",
-      default: "'src/server'",
+      default: "process.cwd()",
     },
-    entry: {
-      description: "Path or path alias to the taser router instance definition file.",
+    config: {
+      description: "Path to taserjs.config.ts (or .js/.mjs/.cjs).",
       type: "string",
-      default: "'src/taser.ts'",
-    },
-    basePath: {
-      description: "URL prefix Taser.js dispatches under. Defaults to '/'.",
-      type: "string",
-      default: "'/'",
-    },
-    routesDir: {
-      description: "Path to your file-based routes directory (defaults to `${serverDir}/routes`).",
-      type: "string",
-      default: "'src/server/routes'",
-    },
-    outDir: {
-      description: "Output directory where generated disk artifacts and types are written.",
-      type: "string",
-      default: "'.taser'",
-    },
-    watcher: {
-      description: "File watcher configuration options for development mode.",
-      type: "WatcherOptions",
       default: "undefined",
     },
   }}
 />
 
+`serverDir`, `routesDir`, `outputDir`, `app`, and `extension` come from [`taserjs.config.ts`](/docs/cli). Runtime URL prefixes use `defineTaser().basePath(...)`, not plugin options.
+
 ---
 
-## How It Works Under the Hood
+## How It Works
 
-Next.js does not support serving virtual modules dynamically in runtime handlers. To provide zero-overhead integration, `@taserjs/router-plugin/next`:
-
-1. **Monitors `src/server/routes/`**: In development (`next dev`), the plugin runs a lightweight background file watcher that synchronizes route changes instantly.
-2. **Generates Disk Artifacts in `.taser/`**:
-   - `.taser/manifest.ts`: Static route radix manifest tree.
-   - `.taser/entry.ts`: Compiled router entry module exporting `app`, imported by your catch-all handler (`src/app/api/[[...slug]]/route.ts`).
-   - `.taser/app.ts`: Composed router app module.
-   - `.taser/types/`: Ambient TypeScript definitions (`routes.d.ts`, `virtual.d.ts`) for end-to-end type safety.
-3. **Configures Turbopack and Webpack**:
-   - Injects extension aliases so TypeScript module resolution and path aliases resolve across `.ts`, `.tsx`, and `.js` seamlessly.
+1. **Watches `${serverDir}/routes/`** during `next dev` and regenerates on change (with scaffolding for empty files).
+2. **Writes `${serverDir}/.taserjs/routes.gen.ts`**: compiled `app`, ambient route types, and the composite manifest for `@taserjs/client`.
+3. **Hooks Webpack** (and keeps Turbopack in sync via the watcher) so builds always see a fresh manifest.
 
 ---
 
@@ -166,16 +116,16 @@ Next.js does not support serving virtual modules dynamically in runtime handlers
   <Card
     title="Next.js App Router Guide"
     href="/docs/fullstack/nextjs"
-    description="Learn how to build fullstack applications with Next.js, RSC, and Taser.js."
+    description="Build fullstack apps with Next.js, RSC, and Taser.js."
   />
   <Card
     title="Vite Plugin"
     href="/docs/plugins/vite"
-    description="Explore Taser.js's Vite plugin for standalone and fullstack applications."
+    description="Standalone and fullstack Vite setups."
   />
   <Card
     title="Nitro Module"
     href="/docs/plugins/nitro"
-    description="Deploy Taser.js across edge, serverless, and multi-cloud runtimes."
+    description="Deploy across edge, serverless, and multi-cloud runtimes."
   />
 </Cards>

@@ -1,0 +1,74 @@
+{
+  "name": "@taserjs/runtime",
+  "version": "0.1.13",
+  "description": "High-performance type-safe runtime engine for Taser.js backed by Hono",
+  "keywords": [
+    "api-server",
+    "fetch-api",
+    "hono",
+    "http-server",
+    "nitro",
+    "rest-api",
+    "serverless",
+    "taserjs",
+    "type-safe-api",
+    "typescript"
+  ],
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taserjs/taserjs.git",
+    "directory": "packages/runtime"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "default": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "bench": "vitest bench --run",
+    "lint": "oxlint .",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@taserjs/router": "workspace:*",
+    "@taserjs/utils": "workspace:*",
+    "hono": "^4.10.3"
+  },
+  "devDependencies": {
+    "@taserjs/utils": "workspace:*",
+    "publint": "^0.3.22",
+    "rimraf": "^6.0.1",
+    "tsdown": "^0.23.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

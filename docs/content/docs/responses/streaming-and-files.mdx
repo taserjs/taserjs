@@ -1,55 +1,25 @@
 ---
-title: Streaming and Files
-description: "Stream binary data, pipe readable streams, return Blob/Buffer payloads, and serve local files with path traversal security."
+title: Streaming and Web Payloads
+description: "Stream Web ReadableStreams, binary buffers, Blobs, and Server-Sent Events with edge-compatible helpers from @taserjs/router/stream."
 icon: Binary
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-Taser.js includes first-class helpers for streaming responses, binary payloads, and secure file downloads without manual buffer management.
-
----
-
-## Serving Local Files (`file`)
-
-Use `file()` imported from `@taserjs/router/stream` to serve files from disk. It automatically looks up the correct MIME type based on file extension and streams the file using Node.js read streams:
-
-```ts title="src/routes/downloads/$file.get.ts"
-import { file } from "@taserjs/router/stream";
-import { z } from "zod";
-import { t } from "@taserjs/router";
-import path from "node:path";
-
-export default t
-  .get("/downloads/:file")
-  .params(z.object({ file: z.string() }))
-  .handler((ctx) => {
-    const publicStorageDir = path.resolve(process.cwd(), "storage/public");
-
-    // Serves the requested file safely constrained to publicStorageDir:
-    return file(ctx.params.file, {
-      root: publicStorageDir,
-    });
-  });
-```
-
-<Callout type="warn" title="Path Traversal Protection">
-  When `root` is specified, Taser.js validates that the resolved file path does not escape the
-  boundary directory, protecting your application against `../` directory traversal attacks.
-</Callout>
+`@taserjs/router/stream` exposes Web Standard helpers — `pipe`, `buffer`, `blob`, and `sse` — that work the same on Node, Bun, Deno, Workers, and other fetch runtimes. There is no filesystem `file()` helper; serve disk content through your host platform or by wrapping a `ReadableStream` / `Blob` yourself.
 
 ---
 
 ## Piping Readable Streams (`pipe`)
 
-To stream dynamically generated data, AI completions, or proxy upstream streams, use `pipe()`:
+Stream dynamically generated data, AI completions, or proxied upstream bodies:
 
 ```ts title="src/routes/ai/generate.post.ts"
 import { pipe } from "@taserjs/router/stream";
 import { t } from "@taserjs/router";
 
-export default t.post("/ai/generate").handler(async (ctx) => {
+export default t.post("/ai/generate").handler(async () => {
   const encoder = new TextEncoder();
 
   const customStream = new ReadableStream({
@@ -65,7 +35,6 @@ export default t.post("/ai/generate").handler(async (ctx) => {
   return pipe(customStream, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "Transfer-Encoding": "chunked",
     },
   });
 });
@@ -73,16 +42,16 @@ export default t.post("/ai/generate").handler(async (ctx) => {
 
 ---
 
-## Binary Payloads (`buffer` and `blob`)
+## Binary Payloads (`buffer`)
 
-When returning generated images, PDFs, or ZIP archives:
+Return generated images, PDFs, or other byte arrays:
 
 ```ts title="src/routes/export/pdf.get.ts"
 import { buffer } from "@taserjs/router/stream";
 import { t } from "@taserjs/router";
 
-export default t.get("/export/pdf").handler(async (ctx) => {
-  const pdfBytes: Uint8Array = await generateInvoicePdf(ctx.query);
+export default t.get("/export/pdf").handler(async ({ req }) => {
+  const pdfBytes: Uint8Array = await generateInvoicePdf(req.query);
 
   return buffer(pdfBytes, {
     headers: {
@@ -93,42 +62,63 @@ export default t.get("/export/pdf").handler(async (ctx) => {
 });
 ```
 
+`buffer()` defaults `Content-Type` to `application/octet-stream` when you omit it.
+
 ---
 
-## Server-Sent Events (SSE)
+## Blob Payloads (`blob`)
 
-You can build Server-Sent Events (SSE) streams by piping formatted SSE message events:
+Pass a `Blob` (for example from `fetch` or in-memory construction) and preserve its type when present:
 
-```ts title="src/routes/events/notifications.get.ts"
-import { stream } from "@taserjs/router/stream";
+```ts title="src/routes/assets/logo.get.ts"
+import { blob } from "@taserjs/router/stream";
 import { t } from "@taserjs/router";
 
-export default t.get("/events/notifications").handler((ctx) => {
-  const encoder = new TextEncoder();
+export default t.get("/assets/logo").handler(async () => {
+  const upstream = await fetch("https://cdn.example.com/logo.png");
+  const logo = await upstream.blob();
 
-  const eventStream = new ReadableStream({
-    start(controller) {
-      const interval = setInterval(() => {
-        const payload = `data: ${JSON.stringify({ time: new Date().toISOString() })}\n\n`;
-        controller.enqueue(encoder.encode(payload));
-      }, 1000);
-
-      ctx.request.signal.addEventListener("abort", () => {
-        clearInterval(interval);
-        controller.close();
-      });
-    },
-  });
-
-  return stream.pipe(eventStream, {
+  return blob(logo, {
     headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
+      "Cache-Control": "public, max-age=86400",
     },
   });
 });
 ```
+
+---
+
+## Server-Sent Events (`sse`)
+
+Use `sse()` for the W3C Event Stream protocol. It sets `Content-Type: text/event-stream` and `Cache-Control: no-cache` for you:
+
+```ts title="src/routes/events/notifications.get.ts"
+import { sse } from "@taserjs/router/stream";
+import { t } from "@taserjs/router";
+
+export default t.get("/events/notifications").handler(({ req }) => {
+  return sse(
+    async (stream) => {
+      await stream.write({ event: "connected", data: { ok: true } });
+
+      const interval = setInterval(() => {
+        void stream.write({
+          event: "tick",
+          data: { time: new Date().toISOString() },
+        });
+      }, 1000);
+
+      stream.onAbort(() => clearInterval(interval));
+    },
+    { signal: req.raw.signal },
+  );
+});
+```
+
+<Callout type="info" title="formatSSE">
+  Prefer `sse()` for responses. Import `formatSSE` when you need to encode individual messages into
+  SSE text for a custom `ReadableStream` passed to `pipe()`.
+</Callout>
 
 ---
 

@@ -1,10 +1,11 @@
-import { etag as honoEtag } from "hono/etag";
+import { etag as honoEtag, RETAINED_304_HEADERS } from "hono/etag";
+import { hono } from "../hono.js";
+import type { MiddlewareDefinition } from "../types.js";
 
-import { middleware } from "../define/middleware.js";
-import { honoMw } from "./hono-mw.js";
+export type ETagOptions = Parameters<typeof honoEtag>[0];
 
-export function etag(...args: Parameters<typeof honoEtag>) {
-  return middleware(honoMw(honoEtag(...args)));
+export function etag(options?: ETagOptions): MiddlewareDefinition {
+  return hono(honoEtag(options));
 }
 
-export type EtagOptions = NonNullable<Parameters<typeof honoEtag>[0]>;
+export { RETAINED_304_HEADERS };

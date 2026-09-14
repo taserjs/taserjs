@@ -1,10 +1,9 @@
 import { csrf as honoCsrf } from "hono/csrf";
+import { hono } from "../hono.js";
+import type { MiddlewareDefinition } from "../types.js";
 
-import { middleware } from "../define/middleware.js";
-import { honoMw } from "./hono-mw.js";
+export type CSRFOptions = Parameters<typeof honoCsrf>[0];
 
-export function csrf(...args: Parameters<typeof honoCsrf>) {
-  return middleware(honoMw(honoCsrf(...args)));
+export function csrf(options?: CSRFOptions): MiddlewareDefinition {
+  return hono(honoCsrf(options));
 }
-
-export type CsrfOptions = NonNullable<Parameters<typeof honoCsrf>[0]>;

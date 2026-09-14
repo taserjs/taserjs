@@ -93,11 +93,11 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
   "plugins/vite":
     "Integrate Taser.js into Vite with virtual route modules, ambient type generation, instant HMR, and standalone deployment.",
   "plugins/next":
-    "Configure the @taserjs/router-plugin/next bundler plugin for Next.js App Router compilation, options, and disk artifacts.",
+    "Configure the @taserjs/plugin/next bundler plugin for Next.js App Router compilation, options, and disk artifacts.",
   "plugins/nitro":
-    "Deploy Taser.js across edge, serverless, and multi-cloud runtimes using the @taserjs/router-plugin/nitro module.",
+    "Deploy Taser.js across edge, serverless, and multi-cloud runtimes using the @taserjs/plugin/nitro module.",
   "plugins/bundlers":
-    "Use Taser.js with Webpack, Rspack, Rollup, Rolldown, or Esbuild via @taserjs/router-plugin subpath exports.",
+    "Use Taser.js with Webpack, Rspack, Rollup, Rolldown, or Esbuild via @taserjs/plugin subpath exports.",
   "fullstack/tanstack-start":
     "Build fullstack React applications with TanStack Start and Taser.js. Type-safe data fetching in TanStack Router loaders and React Query.",
   "fullstack/nextjs":
@@ -129,13 +129,13 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
   "responses/reply-helpers":
     "Send clean, status-discriminated HTTP responses with tree-shakeable json(), ok(), notFound(), and redirect().",
   "responses/cookies":
-    "Read, set, sign, and delete HTTP cookies using ctx.cookies. Configure global defaults, HMAC signing, and __Host- / __Secure- prefixes.",
+    "Mount cookie() middleware to get a Cookie Jar Instance. Read, set, sign, and delete HTTP cookies from handlers.",
   "responses/response-contracts":
     "Enforce strict compile-time return guarantees with .returns(). Guarantee 100% type safety and eliminate response drift.",
   "responses/streaming-and-files":
-    "Stream binary chunks, SSE events, Web ReadableStreams, and disk files safely using stream.pipe() and stream.file().",
+    "Stream Web ReadableStreams, binary buffers, Blobs, and Server-Sent Events with pipe, buffer, blob, and sse.",
   "responses/error-handling":
-    "Centralize unhandled exception boundaries and custom 404 handlers using app.onError() and app.notFound().",
+    "Centralize unhandled runtime crashes with defineTaser().onError() and customize 404s with .notFound(). Validation and response contracts bypass onError.",
   "middleware/cors":
     "Configure Cross-Origin Resource Sharing with the built-in cors() middleware. Support static domains and dynamic origin resolvers.",
   "middleware/jwt-and-jwk":
@@ -146,15 +146,14 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
     "Deploy Taser.js APIs to Cloudflare Workers, Vercel, AWS Lambda, Node.js, Bun, Deno, and Netlify using Nitro presets.",
   client:
     "Auto-completing, end-to-end typed proxy client generated from your server router type with zero runtime drift.",
-  cli: "Generate ambient TypeScript definitions and scaffold empty route files with @taserjs/router-cli.",
+  cli: "Generate ambient TypeScript definitions and scaffold empty route files with @taserjs/cli.",
   "api-reference/router":
-    "Complete API reference for @taserjs/router: createTaserApp, createContext, TaserRouter, RouteBuilder, and reply helpers.",
-  "api-reference/router-plugin":
-    "Complete API reference for @taserjs/router-plugin: Vite, Next.js, and Nitro compiler plugin options.",
-  "api-reference/router-client":
-    "Complete API reference for @taserjs/router-client: createClient, formBody, ClientRequestOptions, and utility types.",
-  "api-reference/router-cli":
-    "Complete command options and flag reference for @taserjs/router-cli.",
+    "Complete API reference for @taserjs/router: defineTaser, createContext, TaserRouter, RouteBuilder, and reply helpers.",
+  "api-reference/plugin":
+    "Complete API reference for @taserjs/plugin: Vite, Next.js, and Nitro compiler plugin options.",
+  "api-reference/client":
+    "Complete API reference for @taserjs/client: createClient, formBody, ClientRequestOptions, and utility types.",
+  "api-reference/cli": "Complete command options and flag reference for @taserjs/cli.",
 };
 
 export const docsImageAlts: Record<string, string> = {
@@ -184,7 +183,7 @@ export const docsImageAlts: Record<string, string> = {
   "responses/reply-helpers": "Taser.js Docs: Status Reply Helpers",
   "responses/cookies": "Taser.js Docs: Cookie and Signed Cookie Management",
   "responses/response-contracts": "Taser.js Docs: Compile-Time Response Contracts",
-  "responses/streaming-and-files": "Taser.js Docs: Streaming and File Responses",
+  "responses/streaming-and-files": "Taser.js Docs: Streaming and Web Payloads",
   "responses/error-handling": "Taser.js Docs: Global Error Handling",
   "middleware/cors": "Taser.js Docs: CORS Middleware Configuration",
   "middleware/jwt-and-jwk": "Taser.js Docs: JWT and JWKS Authentication",
@@ -193,9 +192,9 @@ export const docsImageAlts: Record<string, string> = {
   client: "Taser.js Docs: Typed Client SDK",
   cli: "Taser.js Docs: CLI Tooling and Codegen",
   "api-reference/router": "Taser.js Docs: @taserjs/router API Reference",
-  "api-reference/router-plugin": "Taser.js Docs: @taserjs/router-plugin API Reference",
-  "api-reference/router-client": "Taser.js Docs: @taserjs/router-client API Reference",
-  "api-reference/router-cli": "Taser.js Docs: @taserjs/router-cli API Reference",
+  "api-reference/plugin": "Taser.js Docs: @taserjs/plugin API Reference",
+  "api-reference/client": "Taser.js Docs: @taserjs/client API Reference",
+  "api-reference/cli": "Taser.js Docs: @taserjs/cli API Reference",
 };
 
 export function createDocsPageMetadata(opts: {

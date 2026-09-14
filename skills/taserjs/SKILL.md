@@ -14,6 +14,8 @@ compatibility: node >= 20
 
 Taser.js is a type-safe, file-based REST API framework for TypeScript. It runs standalone on Vite/Nitro or inside fullstack frameworks (Next.js, TanStack Start) and host servers (Express, Hono, Fastify).
 
+Canonical packages: `@taserjs/router`, `@taserjs/cli`, `@taserjs/plugin`, `@taserjs/client`, `create-taserjs`, `@taserjs/runtime`, `@taserjs/utils`.
+
 ---
 
 ## Agent Decision Workflow
@@ -28,16 +30,16 @@ Task Type?
 ├─ Add or modify route endpoints or file names?
 │  └─► Read [references/routing.md](references/routing.md)
 │
-├─ Add layouts, middleware, cascading state, or response transforms?
+├─ Add layouts, middleware, cascading state, cookies, or response transforms?
 │  └─► Read [references/layouts-and-middleware.md](references/layouts-and-middleware.md)
 │
-├─ Define validation schemas, contracts, headers, cookies, or body parsing?
+├─ Define validation schemas, contracts, headers, or body parsing?
 │  └─► Read [references/validation-and-contracts.md](references/validation-and-contracts.md)
 │
-├─ Return JSON, HTML, text, errors, or binary/media streams?
+├─ Return JSON, HTML, text, errors, or Web streams / SSE?
 │  └─► Read [references/reply-and-stream.md](references/reply-and-stream.md)
 │
-├─ Connect client apps with typed RPC (`@taserjs/router-client`)?
+├─ Connect client apps with typed RPC (`@taserjs/client`)?
 │  └─► Read [references/client-rpc.md](references/client-rpc.md)
 │
 ├─ Integrate with Next.js, TanStack Start, Express, or Hono host?
@@ -59,29 +61,35 @@ Taser.js enforces a strict compile-time state machine:
 
 ```text
 1. Middleware Phase       2. Contract / Schema Phase       3. Terminal Handler Phase
-   .use(mw1).use(mw2)   ->   .query().params().body()     ->   .handler(async (ctx) => ...)
+   .use(mw1).use(mw2)   ->   .query().params().body()     ->   .handler(async ({ req, ctx, state }) => ...)
                             .returns(...)
 ```
 
 - **Rule**: `.use(...)` cannot be called after `.params()`, `.query()`, `.body()`, or `.returns()`. The type system strips `.use()` once entering the contract phase.
 
-### 2. Type Generation Requirement
+### 2. Application Definition & Generated Manifest
 
-- Routes are scanned inside `src/routes/` (or `serverDir/routes`).
-- Type declarations (`.taser/types/routes.d.ts`) are generated during `dev` or `build` via `@taserjs/router-plugin`.
-- If type errors appear in IDE or tests after creating new route files, run `pnpm dev`, `pnpm build`, or `npx taser generate` to regenerate declarations.
+- Export `defineTaser({ ... })` from `src/taser.ts` (or `src/server/taser.ts`). That produces an uninstantiated `TaserDefinition`.
+- The runnable Hono `app`, ambient route types, and `AppManifest` are generated in `src/.taserjs/routes.gen.ts` (path follows `serverDir` + `outputDir` in `taserjs.config.ts`).
+- Import `app` from `./.taserjs/routes.gen.js` (or `@/server/.taserjs/routes.gen`) in host entries — never instantiate the definition yourself in app code.
+- Routes are scanned under `${serverDir}/routes` (default `src/routes/`).
+- Regenerate with `pnpm dev` / `pnpm build` (plugin) or `npx @taserjs/cli generate` / `taser generate`.
 
 ### 3. Context (`ctx`) Discipline
 
-- Initialized via `createContext({ boot: ..., request: ... })`.
+- Initialized via `createContext({ boot: ..., request: ... })` and attached with `.context(context)` on `defineTaser()`.
 - **Anti-Pattern**: Do NOT overwrite boot context keys inside request context.
 - **Anti-Pattern**: Do NOT bloat context with utilities that can be imported directly into routes or middleware files.
 - **Anti-Pattern**: Do not put heavy work in `request` context — it runs on every request. Reserve it for lightweight per-request metadata (request ID, timestamps, tracing). Use `boot` for expensive singletons (DB pools, SDK clients).
+- Cookies are **not** ambient: mount `cookie()` from `@taserjs/router/middleware/cookie` on a layout before using `{ cookies }`.
+- **Built-in middleware** imports use `@taserjs/router/middleware/<name>` (e.g. `cors`, `csrf`, `jwt`, `secure-headers`, `compress`) — not top-level `@taserjs/router/cors`.
+- Handler args are facet-split: `{ req, ctx, state, ...services }`. Use `req.params` / `req.query` / `req.body` / `req.headers`; keep `ctx` for application context; keep cascaded middleware data on `state`.
 
 ### 4. Onion Architecture for Responses
 
 - `const res = await next({ ... })` executes downstream handlers and returns a standard `Response`.
 - Mutate response headers or wrap with `try / catch` in middleware to catch errors or transform outputs.
+- `defineTaser().onError()` handles unhandled runtime crashes (500). Validation (`ValidationError` → 422) and response-contract failures bypass `onError`; catch them in middleware `try/catch` when you need custom mapping.
 
 ---
 
@@ -89,11 +97,11 @@ Taser.js enforces a strict compile-time state machine:
 
 Always perform these verification steps after adding or modifying Taser.js code:
 
-- [ ] **Generate Types**: Run `pnpm dev` or `pnpm build` (or `npx @taserjs/router-cli generate`) to emit `.taser/types/routes.d.ts`.
-- [ ] **Typecheck**: Run `pnpm typecheck` or `npx tsc --noEmit` to confirm 0 type errors across routes, layouts, and client calls.
+- [ ] **Generate Manifest**: Run `pnpm dev` or `pnpm build` (or `taser generate` / `npx @taserjs/cli generate`) so `${serverDir}/.taserjs/routes.gen.ts` exists.
+- [ ] **Typecheck**: Run `pnpm typecheck` or `npx tsc --noEmit` (after generate for standalone `tsc`).
 - [ ] **Verify Route Layouts**: Check that layout IDs match file hierarchy (e.g. `src/routes/admin.ts` -> `t.layout("/admin")`).
 - [ ] **Verify HTTP Method**: Ensure filename verb suffix matches the builder verb (e.g. `users.get.ts` uses `t.get(...)`).
-- [ ] **Smoke Test**: Start the dev server and verify endpoints via `curl -i http://localhost:3000/...`.
+- [ ] **Smoke Test**: Start the dev server and verify endpoints via `curl -i http://localhost:3000/...` (include `defineTaser().basePath(...)` prefix when set).
 
 ---
 
@@ -101,12 +109,12 @@ Always perform these verification steps after adding or modifying Taser.js code:
 
 For detailed guides, code recipes, and full API references, open the relevant topic:
 
-- **[Setup & Configuration](references/setup.md)**: Scaffolding, CLI options, `createTaserApp`, boot vs request context.
-- **[File-Based Routing](references/routing.md)**: File naming rules, parameters, splats, pathless groups, breakout routes.
-- **[Layouts & Middleware](references/layouts-and-middleware.md)**: Middleware types, layout scoping, union scoping, cascading state, response mutation.
-- **[Validation & Contracts](references/validation-and-contracts.md)**: Standard Schema (Zod/Valibot/ArkType), params/query/body validation, `ctx` properties.
-- **[Reply & Stream Helpers](references/reply-and-stream.md)**: `@taserjs/router/reply` status helpers, `@taserjs/router/stream` binary/file streaming.
-- **[Client RPC](references/client-rpc.md)**: `@taserjs/router-client` proxy client, `$get/$post/$put/$patch/$delete`, form uploads.
+- **[Setup & Configuration](references/setup.md)**: Scaffolding, `defineTaser`, `taserjs.config.ts`, `@taserjs/cli` / `@taserjs/plugin`, boot vs request context.
+- **[File-Based Routing](references/routing.md)**: File naming rules, parameters, splats, pathless groups, breakout routes, `routes.gen.ts`.
+- **[Layouts & Middleware](references/layouts-and-middleware.md)**: Middleware types, `cookie()` middleware, cascading state, response mutation.
+- **[Validation & Contracts](references/validation-and-contracts.md)**: Standard Schema (Zod/Valibot/ArkType), params/query/body on `req`, handler facets.
+- **[Reply & Stream Helpers](references/reply-and-stream.md)**: `@taserjs/router/reply` status helpers, edge-compatible `@taserjs/router/stream` (`pipe`, `buffer`, `blob`, `sse`).
+- **[Client RPC](references/client-rpc.md)**: `@taserjs/client` with `createClient<AppManifest>()`, proxy methods, form uploads.
 - **[Framework Integrations](references/integrations.md)**: Next.js App Router, TanStack Start, and Host Pass-Through (Express, Hono, Fastify).
 - **[Migration Playbook](references/migration.md)**: Zero-downtime adoption strategy, handler conversion tables, Express/Hono migration recipes.
 

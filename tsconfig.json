@@ -2,12 +2,12 @@
   "extends": "./tsconfig.base.json",
   "files": [],
   "references": [
-    { "path": "./packages/router-utils" },
-    { "path": "./packages/router-core" },
+    { "path": "./packages/runtime" },
     { "path": "./packages/router" },
-    { "path": "./packages/router-client" },
-    { "path": "./packages/router-generator" },
-    { "path": "./packages/router-cli" },
-    { "path": "./packages/router-plugin" }
+    { "path": "./packages/cli" },
+    { "path": "./packages/plugin" },
+    { "path": "./packages/utils" },
+    { "path": "./packages/client" },
+    { "path": "./packages/create-taserjs" }
   ]
 }

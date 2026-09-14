@@ -1,6 +1,6 @@
 ---
 title: Typed Client SDK
-description: "Connect to Taser.js backends with end-to-end type safety using @taserjs/router-client. Enjoy autocomplete for routes, query schemas, and return types."
+description: "Connect to Taser.js backends with end-to-end type safety using @taserjs/client. Enjoy autocomplete for routes, query schemas, and return types."
 icon: WandSparkles
 ---
 
@@ -9,7 +9,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { TypeTable } from "@/components/type-table";
 
-The `@taserjs/router-client` package provides a lightweight, zero-codegen proxy client that infers end-to-end type safety directly from your server's router type definition (`RouteManifest` or `typeof app`).
+The `@taserjs/client` package provides a lightweight, zero-codegen proxy client that infers end-to-end type safety from your generated `AppManifest` in `src/.taserjs/routes.gen.ts`.
 
 ---
 
@@ -20,38 +20,36 @@ Install the client package in your project:
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
 ```bash 
-pnpm add @taserjs/router-client
+pnpm add @taserjs/client
 ```
 
   </Tab>
   <Tab value="npm">
 ```bash 
-npm install @taserjs/router-client 
+npm install @taserjs/client 
 ```
   </Tab>
   <Tab value="bun">
 ```bash 
-bun add @taserjs/router-client 
+bun add @taserjs/client 
 ```
   </Tab>
   <Tab value="yarn">
 ```bash 
-yarn add @taserjs/router-client 
+yarn add @taserjs/client 
 ```
   </Tab>
 </Tabs>
 
-Initialize the client with your backend `baseUrl` and your server app or manifest type:
+Initialize the client with your composite `AppManifest` from `src/.taserjs/routes.gen.ts` (or `${serverDir}/.taserjs/routes.gen.ts`):
 
 ```ts title="src/lib/api.ts"
-import { createClient } from "@taserjs/router-client";
-import type { RouteManifest } from "path/to/.taser/types/routes.js";
-// Or when using vite based projects:
-// import type { RouteManifest } from "#taserjs/virtual/manifest";
-// Or on Next.js with the Taser.js adapter:
-// import type { RouteManifest } from "@/.taser/types/routes";
+import { createClient } from "@taserjs/client";
+import type { AppManifest } from "./.taserjs/routes.gen.js";
+// Next.js / serverDir layouts:
+// import type { AppManifest } from "@/server/.taserjs/routes.gen";
 
-export const api = createClient<RouteManifest>({
+export const api = createClient<AppManifest>({
   baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api",
   headers: async () => {
     const token = localStorage.getItem("auth_token");
@@ -61,8 +59,9 @@ export const api = createClient<RouteManifest>({
 ```
 
 <Callout type="info" title="Explicit End-to-End Type Safety">
-  By passing your server's `RouteManifest` or `typeof app` type as a generic to `createClient<TApp>()`,
-  the client automatically infers all available routes, methods, input schemas, and return contracts without generating static client source files.
+  Pass `AppManifest` from `routes.gen.ts` as the generic argument to `createClient`. The client
+  infers routes, methods (`$get`, `$post`, `$put`, `$patch`, `$delete`, `$options`, `$head`,
+  `$query`), input schemas, and return contracts without generating static client source files.
 </Callout>
 
 ---
@@ -189,7 +188,7 @@ if (response.ok) {
 Use `formBody()` to upload binary files and structured form fields with `multipart/form-data`:
 
 ```ts
-import { formBody } from "@taserjs/router-client";
+import { formBody } from "@taserjs/client";
 
 const avatarFile = new File([blob], "avatar.png", { type: "image/png" });
 
@@ -216,7 +215,7 @@ const response = await api.users._id.avatar.$post({
 Extract TypeScript types from client endpoint methods using helper generics:
 
 ```ts
-import type { InferRequestType, InferResponseType } from "@taserjs/router-client";
+import type { InferRequestType, InferResponseType } from "@taserjs/client";
 import type { api } from "@/lib/api";
 
 // Infer input arguments for an endpoint:
@@ -237,9 +236,9 @@ type UserData = InferResponseType<typeof api.users._id.$get>;
   type={{
     baseUrl: {
       description:
-        "Base URL prefix for all API requests (for example, 'https://api.example.com/api').",
+        "Base URL prefix for all API requests (for example, 'https://api.example.com/api'). Defaults to an empty string for same-origin relative paths.",
       type: "string",
-      required: true,
+      default: "''",
     },
     headers: {
       description: "Static header dictionary or async function resolving authentication tokens.",

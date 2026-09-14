@@ -1,0 +1,81 @@
+{
+  "name": "@taserjs/cli",
+  "version": "0.1.13",
+  "description": "Unified CLI: scanning and manifest code generation for Taser.js",
+  "keywords": [
+    "api-routes",
+    "cli",
+    "codegen",
+    "file-based-routing",
+    "manifest",
+    "rest-api",
+    "route-scanner",
+    "taserjs",
+    "type-safe-api",
+    "typescript"
+  ],
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taserjs/taserjs.git",
+    "directory": "packages/cli"
+  },
+  "bin": {
+    "taser": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "oxlint .",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "jiti": "^2.4.2",
+    "oxc-parser": "^0.149.0",
+    "pathe": "^2.0.3",
+    "picocolors": "^1.1.1",
+    "yargs": "^18.1.0"
+  },
+  "devDependencies": {
+    "@taserjs/router": "workspace:*",
+    "@taserjs/runtime": "workspace:*",
+    "@types/yargs": "^17.0.35",
+    "publint": "^0.3.22",
+    "rimraf": "^6.0.1",
+    "tsdown": "^0.23.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

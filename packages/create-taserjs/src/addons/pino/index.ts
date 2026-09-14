@@ -19,10 +19,10 @@ export const pinoAddon: AddonDefinition = {
   async apply(_ctx, write) {
     await write(
       "src/logger.ts",
-      `import pino from 'pino'
+      `import pino from "pino";
 
 export function createLogger() {
-  return pino({ level: process.env.LOG_LEVEL ?? 'info' })
+  return pino({ level: process.env.LOG_LEVEL ?? "info" });
 }
 `,
     );

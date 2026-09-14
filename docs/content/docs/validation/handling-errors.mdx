@@ -1,13 +1,19 @@
 ---
 title: Handling Validation Errors
-description: "Catch and format input validation failures using ValidationError. Return structured JSON error envelopes with issue paths and messages."
+description: "Understand built-in ValidationError (422) handling and customize envelopes with middleware try/catch — they bypass defineTaser().onError()."
 icon: TriangleAlert
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-When incoming request parameters, query strings, headers, or JSON bodies fail validation, Taser.js throws a `ValidationError`.
+When incoming request parameters, query strings, headers, or JSON bodies fail validation, Taser.js throws a `ValidationError`. The runtime converts it to a **422** JSON response automatically.
+
+<Callout type="warn" title="Validation errors bypass `.onError()`">
+  `ValidationError` (422) and `ResponseValidationError` (response contracts, 500) are handled by
+  built-in runtime handlers. They never reach `defineTaser().onError()`, which is reserved for
+  unhandled server crashes. Customize validation envelopes in middleware instead.
+</Callout>
 
 ---
 
@@ -28,19 +34,33 @@ Each issue typically contains:
 
 ---
 
-## Centralized Validation Error Handler
+## Default 422 Envelope
 
-Configure your error envelope once in `src/taser.ts` using `.onError()`:
+Without customization, failed input validation returns:
 
-```ts title="src/taser.ts"
-import { createTaserApp, ValidationError, type InferAppContext } from "@taserjs/router";
-import { internalServerError, unprocessableEntity } from "@taserjs/router/reply";
-import { context } from "./context.js";
+```json
+{
+  "errors": [
+    { "message": "Number must be greater than or equal to 1", "path": ["page"] },
+    { "message": "Invalid enum value", "path": ["category"] }
+  ]
+}
+```
 
-export default createTaserApp()
-  .context(context)
-  .onError((error) => {
-    // 1. Handle Schema Validation Errors
+---
+
+## Customizing Validation Envelopes in Middleware
+
+Catch `ValidationError` in a layout middleware `try/catch` before it reaches the built-in handler:
+
+```ts title="src/routes/$.ts"
+import { ValidationError, middleware, t } from "@taserjs/router";
+import { unprocessable } from "@taserjs/router/reply";
+
+const formatValidationErrors = middleware(async (_ctx, next) => {
+  try {
+    return await next();
+  } catch (error) {
     if (error instanceof ValidationError) {
       const formattedErrors: Record<string, string[]> = {};
 
@@ -52,25 +72,23 @@ export default createTaserApp()
         formattedErrors[fieldName].push(issue.message);
       }
 
-      return unprocessableEntity({
+      return unprocessable({
         status: 422,
         message: "The given data was invalid.",
         errors: formattedErrors,
       });
     }
 
-    // 2. Handle Unexpected Server Errors
-    console.error("[Unhandled Error]", error);
-    return internalServerError({
-      status: 500,
-      message: "Internal Server Error",
-    });
-  });
+    throw error;
+  }
+});
+
+export default t.layout("/*").use(formatValidationErrors);
 ```
 
 ---
 
-## Example Error Response
+## Example Custom Error Response
 
 Given a request with invalid query parameters:
 
@@ -78,7 +96,7 @@ Given a request with invalid query parameters:
 curl "http://localhost:3000/products?page=-5&category=unknown"
 ```
 
-The client receives a clean, structured `422 Unprocessable Entity` response:
+With the middleware above, the client receives:
 
 ```json
 {
@@ -105,7 +123,7 @@ When you attach input schemas (`query`, `params`, `body`) to a route, Taser.js a
   <Card
     title="Responses and Errors"
     href="/docs/responses/error-handling"
-    description="Learn how to handle 404 Not Found and 500 Internal Server errors."
+    description="Configure .onError() for unhandled 500s and .notFound() for 404s."
   />
   <Card
     title="Reply Helpers"

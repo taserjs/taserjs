@@ -3,12 +3,12 @@ import type { DbDriver } from "../../core/types.js";
 
 function schemaTypesSource(): string {
   return `export interface UserTable {
-  id: number
-  email: string
+  id: number;
+  email: string;
 }
 
 export interface DB {
-  users: UserTable
+  users: UserTable;
 }
 `;
 }
@@ -16,46 +16,43 @@ export interface DB {
 function dbIndexSource(driver: DbDriver): string {
   switch (driver) {
     case "postgres":
-      return `import { Kysely, PostgresDialect } from 'kysely'
-import pg from 'pg'
-
-import type { DB } from './schema.js'
+      return `import { Kysely, PostgresDialect } from "kysely";
+import pg from "pg";
+import type { DB } from "./schema.js";
 
 export function createDb() {
   const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
-  })
+  });
   return new Kysely<DB>({
     dialect: new PostgresDialect({ pool }),
-  })
+  });
 }
 `;
     case "mysql":
-      return `import { Kysely, MysqlDialect } from 'kysely'
-import { createPool } from 'mysql2'
-
-import type { DB } from './schema.js'
+      return `import { Kysely, MysqlDialect } from "kysely";
+import { createPool } from "mysql2";
+import type { DB } from "./schema.js";
 
 export function createDb() {
-  const pool = createPool(process.env.DATABASE_URL ?? '')
+  const pool = createPool(process.env.DATABASE_URL ?? "");
   return new Kysely<DB>({
     dialect: new MysqlDialect({ pool }),
-  })
+  });
 }
 `;
     case "sqlite":
     default:
-      return `import Database from 'better-sqlite3'
-import { Kysely, SqliteDialect } from 'kysely'
-
-import type { DB } from './schema.js'
+      return `import Database from "better-sqlite3";
+import { Kysely, SqliteDialect } from "kysely";
+import type { DB } from "./schema.js";
 
 export function createDb() {
-  const filePath = (process.env.DATABASE_URL ?? 'file:./local.db').replace(/^file:/, '')
-  const database = new Database(filePath)
+  const filePath = (process.env.DATABASE_URL ?? "file:./local.db").replace(/^file:/, "");
+  const database = new Database(filePath);
   return new Kysely<DB>({
     dialect: new SqliteDialect({ database }),
-  })
+  });
 }
 `;
   }

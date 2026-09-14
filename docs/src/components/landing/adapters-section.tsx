@@ -28,7 +28,7 @@ const integrations: {
 }[] = [
   {
     name: "Vite Plugin",
-    description: "Virtual route modules, ambient types, and instant HMR.",
+    description: "Virtual route modules, routes.gen.ts, and instant HMR via @taserjs/plugin/vite.",
     icon: <Zap />,
     iconTone: "amber",
     href: "/docs/plugins/vite",
@@ -42,7 +42,7 @@ const integrations: {
   },
   {
     name: "Next.js",
-    description: "Embed inside App Router with @taserjs/router-plugin/next.",
+    description: "Embed inside App Router with @taserjs/plugin/next.",
     icon: <Layers />,
     iconTone: "violet",
     href: "/docs/fullstack/nextjs",

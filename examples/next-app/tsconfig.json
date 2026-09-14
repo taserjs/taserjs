@@ -9,6 +9,7 @@
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
@@ -19,8 +20,7 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"],
-      "@/.taser/*": ["./.taser/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": [
@@ -28,10 +28,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts",
-    ".taser/**/*.ts",
-    ".taser/**/*.d.ts"
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

@@ -259,7 +259,7 @@ Before creating a project, make sure your development environment meets these re
       </Tab>
     </Tabs>
 
-    The development server starts with Vite. Route changes inside `src/routes/` are updated virtually with instant HMR and ambient TypeScript definitions written to `.taser/types/`.
+    The development server starts with Vite. Route changes inside `src/routes/` are updated virtually with instant HMR, and the unified manifest is written to `src/.taserjs/routes.gen.ts`.
 
   </Step>
 </Steps>
@@ -275,6 +275,7 @@ A freshly scaffolded Taser.js project contains a clean, modern layout:
     <File name="package.json" />
     <File name="tsconfig.json" />
     <File name="vite.config.ts" />
+    <File name="taserjs.config.ts" />
     <Folder name="src" defaultOpen>
       <File name="taser.ts" />
       <File name="context.ts" />
@@ -283,22 +284,32 @@ A freshly scaffolded Taser.js project contains a clean, modern layout:
         <File name="index.get.ts" route="/" />
         <File name="health.get.ts" route="/health" />
       </Folder>
-    </Folder>
-    <Folder name=".taser">
-      <File name="types/routes.d.ts" />
+      <Folder name=".taserjs" defaultOpen>
+        <File name="routes.gen.ts" />
+      </Folder>
     </Folder>
   </Folder>
 </Files>
 
 ### Key Files Explained
 
-- **`vite.config.ts`**: Connects the `taser()` plugin from `@taserjs/router-plugin/vite` and `nitro()` for zero-config builds (or pure Vite in standalone `none` preset).
+- **`vite.config.ts`**: Connects the `taser()` plugin from `@taserjs/plugin/vite` and `nitro()` for zero-config builds (or pure Vite in standalone `none` preset).
 - **`nitro.config.ts`** _(conditional)_: Generated when targeting non-default deployment presets (e.g. `cloudflare-module`, `vercel`, `aws-lambda`, `netlify`). Omitted for default `node-server` and standalone `none`.
 - **`src/server.ts` / `src/server.node.ts`** _(conditional)_: Generated when a host framework is configured (`src/server.ts` for Hono, `src/server.node.ts` for Express or Fastify).
-- **`src/taser.ts`**: Configures the `createTaserApp()` instance, error boundaries (`.onError()`), response validation, and context binding.
+- **`src/taser.ts`**: Exports `defineTaser()` configuration (`TaserDefinition`) — context, `.onError()`, `.notFound()`, and response options. Does not instantiate the Hono app.
+
+  ```ts title="src/taser.ts"
+  import { defineTaser } from "@taserjs/router";
+  import { context } from "./context.js";
+
+  export default defineTaser({
+    response: { validate: true },
+  }).context(context);
+  ```
+
 - **`src/context.ts`**: Defines application singletons (database, logger, external services) and request-scoped context.
 - **`src/routes/`**: Contains your API endpoints (`index.get.ts`, `health.get.ts`) and root layout middleware (`$.ts`).
-- **`.taser/`**: Contains auto-generated ambient TypeScript types (`.taser/types/`) so your editor provides full route autocomplete.
+- **`src/.taserjs/routes.gen.ts`**: Generated unified entry exporting the runnable `app`, ambient route types, and `AppManifest` for `@taserjs/client`.
 
 ---
 
@@ -337,13 +348,10 @@ Response:
 }
 ```
 
-<Callout type="info" title="Route Path Strings Are Generated, Not Authored">
-  The path string passed to `t.get()`, `t.post()`, `t.layout()`, etc. is generated automatically by the dev watcher (`vite dev`, `next dev`), standard production builds (`vite build`, `next build`), or `@taserjs/router-cli` when route files are first created (e.g. via `touch src/routes/...`). You do not need to author this string by hand.
-
-**Scaffolding & Mismatch Behavior**: Blank files are automatically populated with starter boilerplate and the matching path string, but existing, populated files are never overwritten. If you rename a route file or edit its path string to an invalid path, your code is preserved; instead, TypeScript flags the mismatch at compile time (`Type '"..."' is not assignable to type 'RoutePath'`).
-
-**Production Builds vs. Standalone Typechecking**: Standard builds (`vite build`, `next build`) automatically scan routes, generate the manifest, and emit ambient types during compilation—no separate CLI command is required in build pipelines. If your setup runs standalone typechecks (`tsc --noEmit`) in CI or pre-commit hooks outside of a bundler build, install `@taserjs/router-cli` as a dev dependency and add `"typecheck": "taser generate && tsc --noEmit"` to your `package.json` (or invoke on-demand via `npx @taserjs/router-cli generate`).
-
+<Callout type="info" title="Route Path Strings Are Generated Automatically">
+  The path string passed to `t.get()`, `t.post()`, `t.layout()`, etc. is generated automatically by
+  the dev watcher (`vite dev`, `next dev`) or `@taserjs/cli` when route files are first created
+  (e.g. via `touch src/routes/...`). You do not need to author this string by hand.
 </Callout>
 
 ---

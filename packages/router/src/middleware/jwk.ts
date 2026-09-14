@@ -1,51 +1,17 @@
 import { jwk as honoJwk } from "hono/jwk";
+import { hono } from "../hono.js";
+import type { MiddlewareDefinition } from "../types.js";
 
-import { middleware } from "../define/middleware.js";
-import { honoMw } from "./hono-mw.js";
-import type { JwtMiddlewareUnit, JwtPayloadState } from "./jwt.js";
+export type JWKOptions = Parameters<typeof honoJwk>[0];
 
-export type JwkOptions = Parameters<typeof honoJwk>[0];
+export function jwk<TClaims = Record<string, unknown>>(
+  options: JWKOptions,
+  init?: RequestInit,
+): MiddlewareDefinition<unknown, { jwtPayload: TClaims }, unknown, unknown, unknown> {
+  const honoMw = honoJwk(options, init);
 
-export type JwkRequestInit = Pick<RequestInit, "headers">;
-
-export type JwkMiddlewareOptions = JwkOptions & {
-  /** Allow `http://` JWKS URLs (local dev). Default false — requires `https://`. */
-  allowInsecure?: boolean;
-};
-
-function assertJwksScheme(jwksUri: string, allowInsecure: boolean): void {
-  const scheme = new URL(jwksUri).protocol.replace(":", "");
-  if (scheme === "https") {
-    return;
-  }
-  if (scheme === "http" && allowInsecure) {
-    return;
-  }
-  throw new Error(`JWKS URL must use https:// (or http:// with allowInsecure: true): "${jwksUri}"`);
-}
-
-/**
- * JWK auth middleware. Invalid or missing tokens return **401** (Hono).
- * Successfully decoded payload is placed in `ctx.state.jwtPayload`.
- * Static `jwks_uri` must use HTTPS unless `allowInsecure: true`.
- */
-export function jwk<TPayload = Record<string, unknown>>(
-  options: JwkMiddlewareOptions,
-  init?: JwkRequestInit,
-): JwtMiddlewareUnit<TPayload> {
-  const jwksUri = options.jwks_uri;
-  if (typeof jwksUri === "string") {
-    assertJwksScheme(jwksUri, options.allowInsecure ?? false);
-  }
-
-  const { allowInsecure: _allowInsecure, ...honoOptions } = options;
-  const safeInit = init?.headers !== undefined ? { headers: init.headers } : undefined;
-  const mw = honoMw(honoJwk(honoOptions, safeInit));
-
-  return middleware<JwtPayloadState<TPayload>>((ctx, next) =>
-    mw(ctx, async () => {
-      const payload = (ctx as unknown as { var: { jwtPayload?: unknown } }).var.jwtPayload;
-      return next({ jwtPayload: payload as TPayload });
-    }),
-  );
+  return hono(honoMw, (c, next) => {
+    const jwtPayload = c.get("jwtPayload") as TClaims;
+    return next({ jwtPayload });
+  });
 }

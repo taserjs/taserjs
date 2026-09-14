@@ -4,29 +4,29 @@ import type { DbDriver } from "../../core/types.js";
 function schemaSource(driver: DbDriver): string {
   switch (driver) {
     case "postgres":
-      return `import { pgTable, serial, text } from 'drizzle-orm/pg-core'
+      return `import { pgTable, serial, text } from "drizzle-orm/pg-core";
 
-export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
-  email: text('email').notNull(),
-})
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+});
 `;
     case "mysql":
-      return `import { mysqlTable, serial, varchar } from 'drizzle-orm/mysql-core'
+      return `import { mysqlTable, serial, varchar } from "drizzle-orm/mysql-core";
 
-export const users = mysqlTable('users', {
-  id: serial('id').primaryKey(),
-  email: varchar('email', { length: 255 }).notNull(),
-})
+export const users = mysqlTable("users", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull(),
+});
 `;
     case "sqlite":
     default:
-      return `import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core'
+      return `import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
 
-export const users = sqliteTable('users', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  email: text('email').notNull(),
-})
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull(),
+});
 `;
   }
 }
@@ -34,40 +34,37 @@ export const users = sqliteTable('users', {
 function dbIndexSource(driver: DbDriver): string {
   switch (driver) {
     case "postgres":
-      return `import { drizzle } from 'drizzle-orm/node-postgres'
-import pg from 'pg'
-
-import * as schema from './schema.js'
+      return `import { drizzle } from "drizzle-orm/node-postgres";
+import pg from "pg";
+import * as schema from "./schema.js";
 
 export function createDb() {
   const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
-  })
-  return drizzle(pool, { schema })
+  });
+  return drizzle(pool, { schema });
 }
 `;
     case "mysql":
-      return `import { drizzle } from 'drizzle-orm/mysql2'
-import mysql from 'mysql2/promise'
-
-import * as schema from './schema.js'
+      return `import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
+import * as schema from "./schema.js";
 
 export function createDb() {
-  const pool = mysql.createPool(process.env.DATABASE_URL ?? '')
-  return drizzle(pool, { schema, mode: 'default' })
+  const pool = mysql.createPool(process.env.DATABASE_URL ?? "");
+  return drizzle(pool, { schema, mode: "default" });
 }
 `;
     case "sqlite":
     default:
-      return `import Database from 'better-sqlite3'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
-
-import * as schema from './schema.js'
+      return `import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import * as schema from "./schema.js";
 
 export function createDb() {
-  const filePath = (process.env.DATABASE_URL ?? 'file:./local.db').replace(/^file:/, '')
-  const client = new Database(filePath)
-  return drizzle(client, { schema })
+  const filePath = (process.env.DATABASE_URL ?? "file:./local.db").replace(/^file:/, "");
+  const client = new Database(filePath);
+  return drizzle(client, { schema });
 }
 `;
   }
@@ -75,16 +72,16 @@ export function createDb() {
 
 function drizzleConfigSource(driver: DbDriver): string {
   const dialect = driver === "postgres" ? "postgresql" : driver === "mysql" ? "mysql" : "sqlite";
-  return `import { defineConfig } from 'drizzle-kit'
+  return `import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
-  schema: './src/db/schema.ts',
-  out: './drizzle',
-  dialect: '${dialect}',
+  schema: "./src/db/schema.ts",
+  out: "./drizzle",
+  dialect: "${dialect}",
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? '',
+    url: process.env.DATABASE_URL ?? "",
   },
-})
+});
 `;
 }
 

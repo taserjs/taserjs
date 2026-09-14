@@ -1,72 +1,53 @@
-import { spawn } from "node:child_process";
-
-import type { Agent, ResolvedCommand } from "package-manager-detector";
-import { resolveCommand } from "package-manager-detector/commands";
-import { getUserAgent } from "package-manager-detector/detect";
+import { execSync } from "node:child_process";
+import { getUserAgent, resolveCommand, type Agent } from "package-manager-detector";
 
 export function resolveUserAgent(): Agent {
-  return getUserAgent() || "npm";
+  const detected = getUserAgent();
+  return (detected as Agent) || "pnpm";
 }
 
-function runCommand(command: string, args: string[], cwd: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      cwd,
-      stdio: "inherit",
-      shell: false,
-      env: process.env,
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-        return;
-      }
-      reject(new Error(`${command} ${args.join(" ")} exited with code ${code}`));
-    });
-  });
-}
-
-export function resolveInstallCommand(
-  agent: Agent,
-  packages: string[],
-  dev: boolean,
-): ResolvedCommand {
-  const args = dev ? ["-D", ...packages] : packages;
-  const command = resolveCommand(agent, "add", args);
-  if (command) return command;
-
-  return {
-    command: "npm",
-    args: ["install", ...args],
-  };
+export function runScript(agent: Agent, script: string): string {
+  switch (agent) {
+    case "npm":
+      return `npm run ${script}`;
+    case "yarn":
+      return `yarn ${script}`;
+    case "bun":
+      return `bun run ${script}`;
+    case "pnpm":
+    default:
+      return `pnpm ${script}`;
+  }
 }
 
 export async function installPackages(
   agent: Agent,
   cwd: string,
-  {
-    dependencies,
-    devDependencies,
-  }: {
+  packages: {
     dependencies: string[];
     devDependencies: string[];
   },
 ): Promise<void> {
-  if (dependencies.length > 0) {
-    const { command, args } = resolveInstallCommand(agent, dependencies, false);
-    await runCommand(command, args, cwd);
+  if (packages.dependencies.length > 0) {
+    const cmd = resolveCommand(agent, "add", packages.dependencies);
+    if (cmd) {
+      execSync(`${cmd.command} ${cmd.args.join(" ")}`, {
+        cwd,
+        stdio: "ignore",
+      });
+    }
   }
-  if (devDependencies.length > 0) {
-    const { command, args } = resolveInstallCommand(agent, devDependencies, true);
-    await runCommand(command, args, cwd);
-  }
-}
 
-export function runScript(agent: Agent, script: string): string {
-  const resolved = resolveCommand(agent, "run", [script]);
-  if (!resolved) {
-    throw new Error(`Unable to resolve run command for ${agent}`);
+  if (packages.devDependencies.length > 0) {
+    const cmd = resolveCommand(agent, "add", [
+      ...(agent === "npm" ? ["--save-dev"] : ["-D"]),
+      ...packages.devDependencies,
+    ]);
+    if (cmd) {
+      execSync(`${cmd.command} ${cmd.args.join(" ")}`, {
+        cwd,
+        stdio: "ignore",
+      });
+    }
   }
-  return `${resolved.command} ${resolved.args.join(" ")}`;
 }

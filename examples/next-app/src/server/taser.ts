@@ -1,9 +1,8 @@
-import { createTaserApp } from "@taserjs/router";
-import { context } from "./context";
+import { defineTaser } from "@taserjs/router";
 import { notFound } from "@taserjs/router/reply";
+import { context } from "./context";
 
-export default createTaserApp({
-  response: { validate: true },
-})
+export default defineTaser()
+  .basePath("/api")
   .context(context)
   .notFound(() => notFound({ message: "Not Found" }));

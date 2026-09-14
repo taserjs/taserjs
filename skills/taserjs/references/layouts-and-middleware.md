@@ -1,12 +1,14 @@
 # Taser.js Layouts & Middleware
 
-This guide covers canonical layout identifiers, middleware types, cascading state injection, and response transformation in Taser.js.
+This guide covers canonical layout identifiers, middleware types, first-party cookies, cascading state injection, and response transformation.
+
+Handler and middleware arguments are facet-split: `{ req, ctx, state, ...services }` (see CONTEXT.md). Do not flatten params/query/body onto `ctx`.
 
 ---
 
 ## 1. Canonical Layout Identifiers
 
-Layouts are non-verb files located in the `src/routes/` directory. All layout identifiers strictly use leading slashes `/` and route-style path syntax (`/*`, `/:id`):
+Layouts are non-verb files under `${serverDir}/routes`. Layout IDs use leading `/` and route-style syntax:
 
 | File Location             | Canonical Layout ID | Declaration                             | Note                                     |
 | :------------------------ | :------------------ | :-------------------------------------- | :--------------------------------------- |
@@ -19,30 +21,73 @@ Layouts are non-verb files located in the `src/routes/` directory. All layout id
 
 ---
 
-## 2. Middleware Varieties
+## 2. First-Party Cookie Middleware
+
+Cookies are not available until you mount `cookie()` from `@taserjs/router/middleware/cookie` on a layout. Handlers under that layout receive a Cookie Jar Instance as `{ cookies }`.
+
+```ts
+// src/routes/$.ts
+import { cookie } from "@taserjs/router/middleware/cookie";
+import { t } from "@taserjs/router";
+
+export default t.layout("/*").use(
+  cookie({
+    secret: process.env.COOKIE_SECRET!,
+    httpOnly: true,
+    sameSite: "Lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  }),
+);
+```
+
+Scoped mount (only `/auth/*`):
+
+```ts
+// src/routes/auth.ts
+import { cookie } from "@taserjs/router/middleware/cookie";
+import { t } from "@taserjs/router";
+
+export default t.layout("/auth/*").use(
+  cookie({
+    secret: process.env.COOKIE_SECRET!,
+    path: "/auth",
+  }),
+);
+```
+
+```ts
+// src/routes/me.get.ts
+import { json } from "@taserjs/router/reply";
+import { t } from "@taserjs/router";
+
+export default t.get("/me").handler(({ cookies }) => {
+  const theme = cookies.get("theme") ?? "light";
+  return json({ theme });
+});
+```
+
+---
+
+## 3. Middleware Varieties
 
 ### A. Inline Middleware
 
-Defined directly inside a layout or route chain via `.use()`:
-
 ```ts
-// Inline middleware function
-.use(async (ctx, next) => {
-  console.log(`[${ctx.request.method}] ${ctx.request.url}`);
+.use(async ({ req }, next) => {
+  console.log(`[${req.method}] ${req.url}`);
   return next();
 })
 ```
 
 ### B. Reusable Standalone Middleware
 
-Constructed with `t.middleware` (or `middleware` from `@taserjs/router`):
-
 ```ts
 import { t } from "@taserjs/router";
 import { unauthorized } from "@taserjs/router/reply";
 
-export const requireAuth = t.middleware(async (ctx, next) => {
-  const token = ctx.headers.get("authorization")?.replace("Bearer ", "");
+export const requireAuth = t.middleware(async ({ req, ctx }, next) => {
+  const token = req.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) return unauthorized({ message: "Authorization token required" });
 
   const session = await ctx.db.verifySession(token);
@@ -50,15 +95,9 @@ export const requireAuth = t.middleware(async (ctx, next) => {
 
   return next({ user: session.user });
 });
-
-// Attach to any layout or route:
-// export default t.layout("/dashboard").use(requireAuth);
-// export default t.get("/dashboard").use(requireAuth);
 ```
 
 ### C. Validation Middleware
-
-Middlewares can validate contracts (query, params, body) and refine context downstream:
 
 ```ts
 import { t } from "@taserjs/router";
@@ -70,28 +109,23 @@ export const pagination = t.middleware().query(
     limit: z.coerce.number().min(1).max(100).default(20),
   }),
 );
-// Handler is optional for validation-only middleware
 ```
 
 ### D. Layout-Scoped & Union Middlewares
-
-When middleware requires typed state previously injected by a specific layout:
 
 ```ts
 import { t } from "@taserjs/router";
 import { forbidden } from "@taserjs/router/reply";
 
-// Strictly bound to "/admin" layout: inherits ctx.state from "/admin"
-export const adminOnly = t.middleware("/admin", async (ctx, next) => {
-  if (ctx.state.adminUser.role !== "superadmin") {
+export const adminOnly = t.middleware("/admin", async ({ state }, next) => {
+  if (state.adminUser.role !== "superadmin") {
     return forbidden({ message: "Superadmin role required" });
   }
   return next();
 });
 
-// Multi-branch union binding: inherits state from either "/member" or "/admin"
-export const verifyTenant = t.middleware(["/member", "/admin"], async (ctx, next) => {
-  const tenantId = ctx.headers.get("x-tenant-id");
+export const verifyTenant = t.middleware(["/member", "/admin"], async ({ req }, next) => {
+  const tenantId = req.headers.get("x-tenant-id");
   if (!tenantId) return forbidden({ message: "Missing tenant identifier" });
   return next({ tenantId });
 });
@@ -99,58 +133,55 @@ export const verifyTenant = t.middleware(["/member", "/admin"], async (ctx, next
 
 ---
 
-## 3. Cascading State via `return next({ ... })`
+## 4. Cascading State via `return next({ ... })`
 
-State returned from `next({ ... })` is merged into `ctx.state` and cascades down to all child layouts and route handlers in the hierarchy:
+State merges into the `state` facet (not `ctx`):
 
 ```ts
 // src/routes/admin.ts
 import { t } from "@taserjs/router";
 import { unauthorized } from "@taserjs/router/reply";
 
-export default t.layout("/admin").use(async (ctx, next) => {
-  const token = ctx.headers.get("authorization")?.replace("Bearer ", "");
+export default t.layout("/admin").use(async ({ req, ctx }, next) => {
+  const token = req.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) return unauthorized({ message: "Admin authorization required" });
 
   const adminUser = await ctx.db.verifyAdmin(token);
   if (!adminUser) return unauthorized({ message: "Invalid admin token" });
 
-  // Downstream /admin/* routes receive ctx.state.adminUser and ctx.state.role:
   return next({ adminUser, role: "admin" as const });
 });
 ```
 
 ---
 
-## 4. Onion Architecture & Modifying Responses
+## 5. Onion Architecture & Modifying Responses
 
-In Taser.js, middleware wraps downstream execution in an onion model:
-
-1. Logic before `await next()` executes on the way in.
-2. `const res = await next({ ... })` executes downstream handlers and returns the standard fetch `Response`.
-3. Logic after `await next()` can inspect, modify, or wrap the response.
+1. Logic before `await next()` runs on the way in.
+2. `const res = await next({ ... })` runs downstream and returns a Web `Response`.
+3. Logic after `await next()` can inspect or mutate the response.
 
 ### Mutating Response Headers
 
 ```ts
-.use(async (ctx, next) => {
+.use(async (_args, next) => {
   const start = performance.now();
   const res = await next();
   const duration = (performance.now() - start).toFixed(2);
-
   res.headers.set("Server-Timing", `total;dur=${duration}`);
-  res.headers.set("X-Response-Time", `${duration}ms`);
   return res;
 })
 ```
 
-### Centralized Error Wrapping in Middleware
+### Centralized Validation Mapping in Middleware
+
+`defineTaser().onError` does not receive `ValidationError`. Map it in middleware:
 
 ```ts
 import { ValidationError } from "@taserjs/router";
 import { unprocessableEntity, internalServerError } from "@taserjs/router/reply";
 
-.use(async (ctx, next) => {
+.use(async (_args, next) => {
   try {
     return await next();
   } catch (error) {
@@ -163,9 +194,23 @@ import { unprocessableEntity, internalServerError } from "@taserjs/router/reply"
 })
 ```
 
-## 5. Best Practices
+## 6. Built-in Middleware Imports
 
-- **Use layouts for shared logic**: Place authentication, authorization, and common state injection in layouts to avoid repetition across routes.
-- **Compose with single-concern middleware**: Chain focused middleware in layouts rather than combining unrelated logic in one unit.
-- **Keep middleware focused**: Each middleware should do one thing (logging, validation, authentication).
-- **Leverage cascading state**: Pass data via `ctx.state` and `return next({ ... })` instead of globals or bloated context.
+First-party security and utility middleware ship under `@taserjs/router/middleware/*`:
+
+| Import from | Examples |
+| :---------- | :------- |
+| `@taserjs/router/middleware/cors` | `cors` |
+| `@taserjs/router/middleware/cookie` | `cookie` |
+| `@taserjs/router/middleware/jwt` | `jwt` |
+| `@taserjs/router/middleware/secure-headers` | `secureHeaders` |
+| `@taserjs/router/middleware/csrf` | `csrf` |
+| `@taserjs/router/middleware/compress` | `compress` |
+
+---
+
+## 7. Best Practices
+
+- Put shared auth, cookies, and logging in layouts.
+- Compose single-concern middleware.
+- Pass cascaded data via `return next({ ... })` into `state`.

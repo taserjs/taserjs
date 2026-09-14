@@ -1,0 +1,130 @@
+---
+title: "@taserjs/plugin"
+description: "API reference for @taserjs/plugin across Vite, Next.js, Nitro, and other bundlers."
+icon: Layers
+---
+
+import { TypeTable } from "@/components/type-table";
+import { Callout } from "fumadocs-ui/components/callout";
+
+The `@taserjs/plugin` package provides framework adapters and drives generation of `src/.taserjs/routes.gen.ts` during development and builds.
+
+Path layout (`serverDir`, `routesDir`, `outputDir`, `app`) is configured in [`taserjs.config.ts`](/docs/cli) via `@taserjs/cli`. Runtime URL prefixes use `defineTaser().basePath(...)` — never plugin options.
+
+---
+
+## Exports Overview
+
+| Subpath Export             | Description                                   | Target Framework       |
+| :------------------------- | :-------------------------------------------- | :--------------------- |
+| `@taserjs/plugin/vite`     | Vite plugin with HMR and optional HTTP server | Vite, TanStack Start   |
+| `@taserjs/plugin/next`     | Next.js configuration wrapper                 | Next.js App Router     |
+| `@taserjs/plugin/nitro`    | Nitro server module                           | Standalone Nitro, Nuxt |
+| `@taserjs/plugin/webpack`  | Webpack plugin                                | Webpack                |
+| `@taserjs/plugin/rspack`   | Rspack plugin                                 | Rspack                 |
+| `@taserjs/plugin/rollup`   | Rollup plugin                                 | Rollup                 |
+| `@taserjs/plugin/rolldown` | Rolldown plugin                               | Rolldown               |
+| `@taserjs/plugin/esbuild`  | Esbuild plugin                                | Esbuild                |
+
+<Callout type="info">
+  The package root (`@taserjs/plugin`) is not part of the public API. Import a framework subpath.
+</Callout>
+
+---
+
+## Shared Options (`TaserPluginOptions`)
+
+Used by Vite, Nitro, Webpack, Rspack, Rollup, Rolldown, and Esbuild:
+
+```ts
+import { taser } from "@taserjs/plugin/vite";
+
+taser({
+  server: true,
+  serverEntry: "src/server.ts",
+  config: "./taserjs.config.ts",
+});
+```
+
+<TypeTable
+  type={{
+    server: {
+      description:
+        "Enable dev server middleware and production serve shim where the adapter supports it.",
+      type: "boolean",
+      default: "true",
+    },
+    serverEntry: {
+      description:
+        "Optional host server entry path. Auto-detects server.ts / server.node.ts under serverDir when omitted.",
+      type: "string",
+      default: "undefined",
+    },
+    config: {
+      description: "Path to taserjs.config.ts (loads serverDir, routesDir, outputDir, app).",
+      type: "string",
+      default: "undefined",
+    },
+    cwd: {
+      description: "Project root for resolving config and paths.",
+      type: "string",
+      default: "process.cwd()",
+    },
+    standalone: {
+      description:
+        "When Nitro is involved, whether Taser.js owns the app pipeline (true) or registers as a handler (false).",
+      type: "boolean",
+      default: "true",
+    },
+  }}
+/>
+
+---
+
+## Next.js (`@taserjs/plugin/next`)
+
+```ts
+import type { NextConfig } from "next";
+import { createTaser } from "@taserjs/plugin/next";
+
+const nextConfig: NextConfig = {};
+
+const withTaser = createTaser({
+  config: "./taserjs.config.ts",
+});
+
+export default withTaser(nextConfig);
+```
+
+### `NextTaserOptions`
+
+Only project resolution knobs — path layout stays in `taserjs.config.ts`:
+
+<TypeTable
+  type={{
+    cwd: {
+      description: "Project root for resolving config and paths.",
+      type: "string",
+      default: "process.cwd()",
+    },
+    config: {
+      description: "Path to taserjs.config.ts (or .js/.mjs/.cjs).",
+      type: "string",
+      default: "undefined",
+    },
+  }}
+/>
+
+---
+
+## Nitro (`@taserjs/plugin/nitro`)
+
+```ts
+import { taser } from "@taserjs/plugin/nitro";
+
+export default defineConfig({
+  modules: [taser({ standalone: true })],
+});
+```
+
+Uses the same `TaserPluginOptions` as Vite. See the [Nitro guide](/docs/plugins/nitro).
