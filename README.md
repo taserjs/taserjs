@@ -48,10 +48,13 @@ Traditional Node.js routers force painful trade-offs between clean folder struct
 
 | Package | Role |
 | :------ | :--- |
-| `@taserjs/router` | File-based route builders, layouts, middleware, reply/stream helpers |
-| `@taserjs/cli` | `taser generate` and `taserjs.config.ts` |
+| `@taserjs/router` | Route builders, layouts, middleware, reply/stream helpers |
+| `@taserjs/cli` | `taser` CLI — route scanning and manifest generation |
 | `@taserjs/plugin` | Vite, Next, Nitro, Webpack, Rspack, Rollup, Rolldown, Esbuild |
 | `@taserjs/client` | Typed proxy client from generated `AppManifest` |
+| `create-taserjs` | Interactive scaffold for new Taser.js apps |
+| `@taserjs/runtime` | `createTaserApp()`, request pipeline, and Hono-backed HTTP serving |
+| `@taserjs/utils` | Shared primitives and Standard Schema validation helpers |
 
 ### Core Highlights
 
@@ -95,7 +98,7 @@ pnpm create taserjs@latest my-api \
 Add to an existing app:
 
 ```bash
-pnpm add @taserjs/router @taserjs/client zod
+pnpm add @taserjs/runtime @taserjs/router @taserjs/client zod
 pnpm add -D @taserjs/plugin @taserjs/cli vite
 ```
 

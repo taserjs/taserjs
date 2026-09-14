@@ -1,7 +1,19 @@
 {
   "name": "@taserjs/client",
-  "version": "0.0.1",
+  "version": "0.1.13",
   "description": "Type-safe client-side RPC and fetch proxy for Taser.js",
+  "keywords": [
+    "taserjs",
+    "typescript",
+    "typed-client",
+    "api-client",
+    "fetch-client",
+    "end-to-end-types",
+    "rest-api",
+    "type-safe-api",
+    "standard-schema",
+    "rpc-client"
+  ],
   "license": "ISC",
   "repository": {
     "type": "git",

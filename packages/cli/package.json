@@ -1,7 +1,19 @@
 {
   "name": "@taserjs/cli",
-  "version": "0.0.1",
+  "version": "0.1.13",
   "description": "Unified CLI: scanning and manifest code generation for Taser.js",
+  "keywords": [
+    "taserjs",
+    "typescript",
+    "cli",
+    "codegen",
+    "route-scanner",
+    "file-based-routing",
+    "manifest",
+    "rest-api",
+    "type-safe-api",
+    "api-routes"
+  ],
   "license": "ISC",
   "repository": {
     "type": "git",

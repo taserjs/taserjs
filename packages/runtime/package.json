@@ -1,7 +1,19 @@
 {
   "name": "@taserjs/runtime",
-  "version": "0.0.1",
+  "version": "0.1.13",
   "description": "High-performance type-safe runtime engine for Taser.js backed by Hono",
+  "keywords": [
+    "taserjs",
+    "typescript",
+    "hono",
+    "rest-api",
+    "type-safe-api",
+    "http-server",
+    "api-server",
+    "fetch-api",
+    "serverless",
+    "nitro"
+  ],
   "license": "ISC",
   "repository": {
     "type": "git",

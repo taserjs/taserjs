@@ -1,7 +1,19 @@
 {
   "name": "create-taserjs",
-  "version": "0.0.1",
+  "version": "0.1.13",
   "description": "Scaffold a new Taser.js application",
+  "keywords": [
+    "taserjs",
+    "create-app",
+    "scaffold",
+    "starter",
+    "boilerplate",
+    "typescript",
+    "rest-api",
+    "type-safe-api",
+    "file-based-routing",
+    "api-starter"
+  ],
   "license": "ISC",
   "repository": {
     "type": "git",
