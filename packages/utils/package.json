@@ -1,6 +1,6 @@
 {
   "name": "@taserjs/utils",
-  "version": "0.1.13",
+  "version": "0.2.0",
   "description": "Shared primitives and Standard Schema validators for Taser.js",
   "keywords": [
     "api-utils",
