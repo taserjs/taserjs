@@ -3,16 +3,16 @@
   "version": "0.1.13",
   "description": "Universal bundler plugin for Taser.js",
   "keywords": [
-    "taserjs",
-    "typescript",
-    "vite-plugin",
+    "bundler",
+    "file-based-routing",
     "nextjs",
     "nitro",
-    "file-based-routing",
     "rest-api",
+    "tanstack-start",
+    "taserjs",
     "type-safe-api",
-    "bundler",
-    "tanstack-start"
+    "typescript",
+    "vite-plugin"
   ],
   "license": "ISC",
   "repository": {

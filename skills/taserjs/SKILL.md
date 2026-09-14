@@ -14,7 +14,7 @@ compatibility: node >= 20
 
 Taser.js is a type-safe, file-based REST API framework for TypeScript. It runs standalone on Vite/Nitro or inside fullstack frameworks (Next.js, TanStack Start) and host servers (Express, Hono, Fastify).
 
-Canonical packages: `@taserjs/router`, `@taserjs/cli`, `@taserjs/plugin`, `@taserjs/client`.
+Canonical packages: `@taserjs/router`, `@taserjs/cli`, `@taserjs/plugin`, `@taserjs/client`, `create-taserjs`, `@taserjs/runtime`, `@taserjs/utils`.
 
 ---
 
@@ -61,7 +61,7 @@ Taser.js enforces a strict compile-time state machine:
 
 ```text
 1. Middleware Phase       2. Contract / Schema Phase       3. Terminal Handler Phase
-   .use(mw1).use(mw2)   ->   .query().params().body()     ->   .handler(async (ctx) => ...)
+   .use(mw1).use(mw2)   ->   .query().params().body()     ->   .handler(async ({ req, ctx, state }) => ...)
                             .returns(...)
 ```
 
@@ -82,6 +82,7 @@ Taser.js enforces a strict compile-time state machine:
 - **Anti-Pattern**: Do NOT bloat context with utilities that can be imported directly into routes or middleware files.
 - **Anti-Pattern**: Do not put heavy work in `request` context — it runs on every request. Reserve it for lightweight per-request metadata (request ID, timestamps, tracing). Use `boot` for expensive singletons (DB pools, SDK clients).
 - Cookies are **not** ambient: mount `cookie()` from `@taserjs/router/middleware/cookie` on a layout before using `{ cookies }`.
+- **Built-in middleware** imports use `@taserjs/router/middleware/<name>` (e.g. `cors`, `csrf`, `jwt`, `secure-headers`, `compress`) — not top-level `@taserjs/router/cors`.
 - Handler args are facet-split: `{ req, ctx, state, ...services }`. Use `req.params` / `req.query` / `req.body` / `req.headers`; keep `ctx` for application context; keep cascaded middleware data on `state`.
 
 ### 4. Onion Architecture for Responses
@@ -111,7 +112,7 @@ For detailed guides, code recipes, and full API references, open the relevant to
 - **[Setup & Configuration](references/setup.md)**: Scaffolding, `defineTaser`, `taserjs.config.ts`, `@taserjs/cli` / `@taserjs/plugin`, boot vs request context.
 - **[File-Based Routing](references/routing.md)**: File naming rules, parameters, splats, pathless groups, breakout routes, `routes.gen.ts`.
 - **[Layouts & Middleware](references/layouts-and-middleware.md)**: Middleware types, `cookie()` middleware, cascading state, response mutation.
-- **[Validation & Contracts](references/validation-and-contracts.md)**: Standard Schema (Zod/Valibot/ArkType), params/query/body validation, `ctx` properties.
+- **[Validation & Contracts](references/validation-and-contracts.md)**: Standard Schema (Zod/Valibot/ArkType), params/query/body on `req`, handler facets.
 - **[Reply & Stream Helpers](references/reply-and-stream.md)**: `@taserjs/router/reply` status helpers, edge-compatible `@taserjs/router/stream` (`pipe`, `buffer`, `blob`, `sse`).
 - **[Client RPC](references/client-rpc.md)**: `@taserjs/client` with `createClient<AppManifest>()`, proxy methods, form uploads.
 - **[Framework Integrations](references/integrations.md)**: Next.js App Router, TanStack Start, and Host Pass-Through (Express, Hono, Fastify).

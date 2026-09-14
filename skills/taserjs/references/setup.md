@@ -49,7 +49,7 @@ Available flags for `create-taserjs`:
 1. Install dependencies:
 
    ```bash
-   pnpm add @taserjs/router @taserjs/client zod
+   pnpm add @taserjs/router @taserjs/runtime @taserjs/client zod
    pnpm add -D @taserjs/plugin @taserjs/cli vite srvx
    ```
 

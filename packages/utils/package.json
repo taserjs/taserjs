@@ -3,16 +3,16 @@
   "version": "0.1.13",
   "description": "Shared primitives and Standard Schema validators for Taser.js",
   "keywords": [
-    "taserjs",
-    "typescript",
-    "validation",
-    "standard-schema",
-    "zod",
+    "api-utils",
+    "backend",
     "request-validation",
     "response-validation",
     "rest-api",
-    "api-utils",
-    "backend"
+    "standard-schema",
+    "taserjs",
+    "typescript",
+    "validation",
+    "zod"
   ],
   "license": "ISC",
   "repository": {

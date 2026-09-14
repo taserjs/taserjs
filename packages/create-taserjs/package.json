@@ -3,16 +3,16 @@
   "version": "0.1.13",
   "description": "Scaffold a new Taser.js application",
   "keywords": [
-    "taserjs",
+    "api-starter",
+    "boilerplate",
     "create-app",
+    "file-based-routing",
+    "rest-api",
     "scaffold",
     "starter",
-    "boilerplate",
-    "typescript",
-    "rest-api",
+    "taserjs",
     "type-safe-api",
-    "file-based-routing",
-    "api-starter"
+    "typescript"
   ],
   "license": "ISC",
   "repository": {

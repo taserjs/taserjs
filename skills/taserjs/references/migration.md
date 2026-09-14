@@ -27,7 +27,7 @@ Before modifying files, inspect the project environment:
 
 1. **Install Dependencies**:
    ```bash
-   pnpm add @taserjs/router @taserjs/client zod
+   pnpm add @taserjs/router @taserjs/runtime @taserjs/client zod
    pnpm add -D @taserjs/plugin @taserjs/cli vite srvx
    ```
 2. **Config**: Add `taserjs.config.ts` and `taser()` from `@taserjs/plugin/vite` in `vite.config.ts`.
@@ -54,17 +54,17 @@ Before modifying files, inspect the project environment:
 
 ## 3. Converting Route Handlers: Step-by-Step
 
-| Concept              | Express / Hono                               | Taser.js                                                                            |
-| :------------------- | :------------------------------------------- | :---------------------------------------------------------------------------------- |
-| **Path Params**      | `req.params.id` / `c.req.param("id")`        | `req.params.id` (or `.params(schema)`) — Request Facet                              |
-| **Query Params**     | `req.query.page` / `c.req.query("page")`     | `req.query.page` (via `.query(schema)`)                                             |
-| **Request Body**     | `req.body` / `await c.req.json()`            | `req.body` (via `.body(schema)`)                                                    |
-| **JSON Response**    | `res.json(data)` / `c.json(data)`            | `return json(data)`                                                                 |
-| **Status Codes**     | `res.status(404).json({ error })`            | `return notFound({ error })`                                                        |
-| **App Singletons**   | `app.locals` / modules                       | `ctx.db` via `createContext` Application Context                                    |
-| **Middleware State** | `req.user = user` / `c.set("user", user)`    | `return next({ user })` → `state.user`                                              |
-| **Error Handling**   | `next(err)` / `throw new HTTPException(...)` | `return badRequest(...)` or middleware `try/catch`                                  |
-| **Cookies**          | `req.cookies` / cookie parsers               | Mount `cookie()` on a layout, then `{ cookies }`                                    |
+| Concept              | Express / Hono                               | Taser.js                                               |
+| :------------------- | :------------------------------------------- | :----------------------------------------------------- |
+| **Path Params**      | `req.params.id` / `c.req.param("id")`        | `req.params.id` (or `.params(schema)`) — Request Facet |
+| **Query Params**     | `req.query.page` / `c.req.query("page")`     | `req.query.page` (via `.query(schema)`)                |
+| **Request Body**     | `req.body` / `await c.req.json()`            | `req.body` (via `.body(schema)`)                       |
+| **JSON Response**    | `res.json(data)` / `c.json(data)`            | `return json(data)`                                    |
+| **Status Codes**     | `res.status(404).json({ error })`            | `return notFound({ error })`                           |
+| **App Singletons**   | `app.locals` / modules                       | `ctx.db` via `createContext` Application Context       |
+| **Middleware State** | `req.user = user` / `c.set("user", user)`    | `return next({ user })` → `state.user`                 |
+| **Error Handling**   | `next(err)` / `throw new HTTPException(...)` | `return badRequest(...)` or middleware `try/catch`     |
+| **Cookies**          | `req.cookies` / cookie parsers               | Mount `cookie()` on a layout, then `{ cookies }`       |
 
 ### Example Conversion
 

@@ -194,7 +194,22 @@ import { unprocessableEntity, internalServerError } from "@taserjs/router/reply"
 })
 ```
 
-## 6. Best Practices
+## 6. Built-in Middleware Imports
+
+First-party security and utility middleware ship under `@taserjs/router/middleware/*`:
+
+| Import from | Examples |
+| :---------- | :------- |
+| `@taserjs/router/middleware/cors` | `cors` |
+| `@taserjs/router/middleware/cookie` | `cookie` |
+| `@taserjs/router/middleware/jwt` | `jwt` |
+| `@taserjs/router/middleware/secure-headers` | `secureHeaders` |
+| `@taserjs/router/middleware/csrf` | `csrf` |
+| `@taserjs/router/middleware/compress` | `compress` |
+
+---
+
+## 7. Best Practices
 
 - Put shared auth, cookies, and logging in layouts.
 - Compose single-concern middleware.

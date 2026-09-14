@@ -62,12 +62,12 @@ export default PUT.handler(async ({ req, ctx }) => {
 
 ## 3. Handler Argument Anatomy
 
-| Facet / Service | Source                         | Description                                                                 |
-| :-------------- | :----------------------------- | :-------------------------------------------------------------------------- |
-| `req`           | Request Facet                  | `params`, `query`, `body`, `headers`, `method`, `url`, `path`, `raw`        |
-| `ctx`           | Application Context            | Boot/request singletons from `createContext()` (e.g. `ctx.db`)              |
-| `state`         | Middleware State               | Cascaded values from ancestor `return next({ ... })`                        |
-| `cookies`       | Provided Service               | Cookie Jar Instance — only after mounting `cookie()` on a layout            |
+| Facet / Service | Source              | Description                                                          |
+| :-------------- | :------------------ | :------------------------------------------------------------------- |
+| `req`           | Request Facet       | `params`, `query`, `body`, `headers`, `method`, `url`, `path`, `raw` |
+| `ctx`           | Application Context | Boot/request singletons from `createContext()` (e.g. `ctx.db`)       |
+| `state`         | Middleware State    | Cascaded values from ancestor `return next({ ... })`                 |
+| `cookies`       | Provided Service    | Cookie Jar Instance — only after mounting `cookie()` on a layout     |
 
 ---
 

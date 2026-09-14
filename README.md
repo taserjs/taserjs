@@ -46,15 +46,15 @@ Traditional Node.js routers force painful trade-offs between clean folder struct
 
 ### Packages
 
-| Package | Role |
-| :------ | :--- |
-| `@taserjs/router` | Route builders, layouts, middleware, reply/stream helpers |
-| `@taserjs/cli` | `taser` CLI — route scanning and manifest generation |
-| `@taserjs/plugin` | Vite, Next, Nitro, Webpack, Rspack, Rollup, Rolldown, Esbuild |
-| `@taserjs/client` | Typed proxy client from generated `AppManifest` |
-| `create-taserjs` | Interactive scaffold for new Taser.js apps |
+| Package            | Role                                                               |
+| :----------------- | :----------------------------------------------------------------- |
+| `@taserjs/router`  | Route builders, layouts, middleware, reply/stream helpers          |
+| `@taserjs/cli`     | `taser` CLI — route scanning and manifest generation               |
+| `@taserjs/plugin`  | Vite, Next, Nitro, Webpack, Rspack, Rollup, Rolldown, Esbuild      |
+| `@taserjs/client`  | Typed proxy client from generated `AppManifest`                    |
+| `create-taserjs`   | Interactive scaffold for new Taser.js apps                         |
 | `@taserjs/runtime` | `createTaserApp()`, request pipeline, and Hono-backed HTTP serving |
-| `@taserjs/utils` | Shared primitives and Standard Schema validation helpers |
+| `@taserjs/utils`   | Shared primitives and Standard Schema validation helpers           |
 
 ### Core Highlights
 

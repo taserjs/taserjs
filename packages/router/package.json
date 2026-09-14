@@ -3,16 +3,16 @@
   "version": "0.1.13",
   "description": "Type-safe route builder and middleware composition for Taser.js",
   "keywords": [
-    "taserjs",
-    "typescript",
-    "type-safe-api",
-    "rest-api",
-    "file-based-routing",
-    "middleware",
-    "standard-schema",
-    "hono",
     "express",
-    "fastify"
+    "fastify",
+    "file-based-routing",
+    "hono",
+    "middleware",
+    "rest-api",
+    "standard-schema",
+    "taserjs",
+    "type-safe-api",
+    "typescript"
   ],
   "license": "ISC",
   "repository": {
