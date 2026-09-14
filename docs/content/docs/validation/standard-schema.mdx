@@ -16,15 +16,15 @@ Taser.js natively adheres to the **Standard Schema** specification (`@standard-s
 
 ### Default Behavior
 
-All path parameters defined in your route filenames (e.g. `src/routes/users/$id.get.ts` or `src/routes/orgs/$orgId/repos/$repoId.get.ts`) are **automatically inferred as `string` types** on `ctx.params` by default—no configuration required:
+All path parameters defined in your route filenames (e.g. `src/routes/users/$id.get.ts` or `src/routes/orgs/$orgId/repos/$repoId.get.ts`) are **automatically inferred as `string` types** on `req.params` by default—no configuration required:
 
 ```ts title="src/routes/users/$id.get.ts"
 import { json } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-export default t.get("/users/:id").handler(async (ctx) => {
-  // ctx.params.id is inferred as string by default:
-  const user = await ctx.db.getUser(ctx.params.id);
+export default t.get("/users/:id").handler(async ({ ctx, req }) => {
+  // req.params.id is inferred as string by default:
+  const user = await ctx.db.getUser(req.params.id);
   return json(user);
 });
 ```
@@ -46,10 +46,10 @@ export default t
       memberId: z.coerce.number().int(),
     }),
   )
-  .handler(async (ctx) => {
-    // ctx.params.orgId is a validated UUID string
-    // ctx.params.memberId is a coerced number
-    const member = await ctx.db.getMember(ctx.params.orgId, ctx.params.memberId);
+  .handler(async ({ ctx, req }) => {
+    // req.params.orgId is a validated UUID string
+    // req.params.memberId is a coerced number
+    const member = await ctx.db.getMember(req.params.orgId, req.params.memberId);
     return json(member);
   });
 ```
@@ -78,10 +78,10 @@ HTTP query parameters always arrive from the URL as strings. Use your schema lib
           inStockOnly: z.coerce.boolean().default(false),
         }),
       )
-      .handler(async (ctx) => {
-        // ctx.query.page is number
-        // ctx.query.inStockOnly is boolean
-        const results = await ctx.db.searchProducts(ctx.query);
+      .handler(async ({ ctx, req }) => {
+        // req.query.page is number
+        // req.query.inStockOnly is boolean
+        const results = await ctx.db.searchProducts(req.query);
         return json(results);
       });
     ```
@@ -103,8 +103,8 @@ HTTP query parameters always arrive from the URL as strings. Use your schema lib
     export default t
       .get("/products")
       .query(QuerySchema)
-      .handler(async (ctx) => {
-        const results = await ctx.db.searchProducts(ctx.query);
+      .handler(async ({ ctx, req }) => {
+        const results = await ctx.db.searchProducts(req.query);
         return json(results);
       });
     ```
@@ -125,8 +125,8 @@ HTTP query parameters always arrive from the URL as strings. Use your schema lib
     export default t
       .get("/products")
       .query(QuerySchema)
-      .handler(async (ctx) => {
-        const results = await ctx.db.searchProducts(ctx.query);
+      .handler(async ({ ctx, req }) => {
+        const results = await ctx.db.searchProducts(req.query);
         return json(results);
       });
     ```
@@ -168,10 +168,10 @@ const CreatePostSchema = z.object({
 export default t
   .post("/posts")
   .body(CreatePostSchema)
-  .handler(async (ctx) => {
-    // ctx.body is inferred directly from CreatePostSchema:
+  .handler(async ({ ctx, req }) => {
+    // req.body is inferred directly from CreatePostSchema:
     const newPost = await ctx.db.posts.create({
-      data: ctx.body,
+      data: req.body,
     });
 
     return json({ id: newPost.id, slug: newPost.slug }, { status: 201 });
@@ -211,15 +211,15 @@ You can validate file presence, file size, and permitted MIME types using your s
       .post("/users/:id/avatar")
       .params(z.object({ id: z.string() }))
       .body("form", AvatarUploadSchema) // [!code highlight]
-      .handler(async (ctx) => {
-        const { avatar, caption } = ctx.body;
+      .handler(async ({ ctx, req }) => {
+        const { avatar, caption } = req.body;
 
         // Access Web Standard File methods directly:
         const fileBuffer = await avatar.arrayBuffer();
         const fileName = avatar.name;
         const fileSize = avatar.size;
 
-        await ctx.db.saveUserAvatar(ctx.params.id, fileBuffer, fileName);
+        await ctx.db.saveUserAvatar(req.params.id, fileBuffer, fileName);
 
         return json({
           success: true,
@@ -249,8 +249,8 @@ You can validate file presence, file size, and permitted MIME types using your s
     export default t
       .post("/users/:id/avatar")
       .body("form", AvatarUploadSchema) // [!code highlight]
-      .handler(async (ctx) => {
-        const { avatar } = ctx.body;
+      .handler(async ({ ctx, req }) => {
+        const { avatar } = req.body;
         const fileBuffer = await avatar.arrayBuffer();
         return json({ success: true, fileName: avatar.name });
       });
@@ -274,8 +274,8 @@ You can validate file presence, file size, and permitted MIME types using your s
     export default t
       .post("/users/:id/avatar")
       .body("form", AvatarUploadSchema) // [!code highlight]
-      .handler(async (ctx) => {
-        const { avatar } = ctx.body;
+      .handler(async ({ ctx, req }) => {
+        const { avatar } = req.body;
         const buffer = await avatar.arrayBuffer();
         return json({ success: true, fileName: avatar.name });
       });
@@ -306,14 +306,14 @@ const MultiDocSchema = z.object({
 export default t
   .post("/documents/upload")
   .body("form", MultiDocSchema) // [!code highlight]
-  .handler(async (ctx) => {
-    // ctx.body.files is typed as File[]:
-    for (const file of ctx.body.files) {
+  .handler(async ({ ctx, req }) => {
+    // req.body.files is typed as File[]:
+    for (const file of req.body.files) {
       const content = await file.text();
       console.log(`Uploaded file: ${file.name} (${file.size} bytes)`);
     }
 
-    return json({ uploadedCount: ctx.body.files.length });
+    return json({ uploadedCount: req.body.files.length });
   });
 ```
 
@@ -343,7 +343,7 @@ const response = await api.users._id.avatar.$post({
 
 ## Schema Transformations and Inferred Types
 
-Taser.js respects schema transformations. If your schema takes a string and transforms it into a `Date` or trimmed string, `ctx` receives the transformed output type:
+Taser.js respects schema transformations. If your schema takes a string and transforms it into a `Date` or trimmed string, `req.body` receives the transformed output type:
 
 ```ts title="src/routes/events.post.ts"
 import { ok } from "@taserjs/router/reply";
@@ -361,9 +361,9 @@ export default t
         .transform((str) => new Date(str)),
     }),
   )
-  .handler(async (ctx) => {
-    // ctx.body.scheduledAt is typed as Date, not string!
-    console.log(ctx.body.scheduledAt.getTime());
+  .handler(async ({ ctx, req }) => {
+    // req.body.scheduledAt is typed as Date, not string!
+    console.log(req.body.scheduledAt.getTime());
     return ok();
   });
 ```

@@ -18,26 +18,10 @@ The `@taserjs/cli` package provides the `taser` binary. Use it to scan routes, s
 Install as a development dependency:
 
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
-  <Tab value="pnpm">
-```bash
-pnpm add -D @taserjs/cli
-```
-  </Tab>
-  <Tab value="npm">
-```bash
-npm install -D @taserjs/cli
-```
-  </Tab>
-  <Tab value="bun">
-```bash
-bun add -D @taserjs/cli
-```
-  </Tab>
-  <Tab value="yarn">
-```bash
-yarn add -D @taserjs/cli
-```
-  </Tab>
+  <Tab value="pnpm">```bash pnpm add -D @taserjs/cli ```</Tab>
+  <Tab value="npm">```bash npm install -D @taserjs/cli ```</Tab>
+  <Tab value="bun">```bash bun add -D @taserjs/cli ```</Tab>
+  <Tab value="yarn">```bash yarn add -D @taserjs/cli ```</Tab>
 </Tabs>
 
 ---
@@ -62,7 +46,8 @@ With those defaults, routes live in `src/routes/`, the app definition is `src/ta
 <TypeTable
   type={{
     serverDir: {
-      description: "Server root relative to the project (routes, app file, and output are under this).",
+      description:
+        "Server root relative to the project (routes, app file, and output are under this).",
       type: "string",
       default: "'src'",
     },
@@ -82,7 +67,8 @@ With those defaults, routes live in `src/routes/`, the app definition is `src/ta
       default: "'taser.ts'",
     },
     extension: {
-      description: "Import extension style in generated code (true → .js, false → bare, or a custom string).",
+      description:
+        "Import extension style in generated code (true → .js, false → bare, or a custom string).",
       type: "boolean | string",
       default: "true",
     },
@@ -110,7 +96,8 @@ npx @taserjs/cli generate [--config <path>] [--watch]
 <TypeTable
   type={{
     "--config / -c": {
-      description: "Path to taserjs.config.ts (or .js/.mjs/.cjs). When omitted, loads taserjs.config.* from the current directory, or uses built-in defaults.",
+      description:
+        "Path to taserjs.config.ts (or .js/.mjs/.cjs). When omitted, loads taserjs.config.* from the current directory, or uses built-in defaults.",
       type: "string",
     },
     "--watch / -w": {
@@ -135,8 +122,8 @@ import { t } from "@taserjs/router";
 
 const GET = t.get("/admin/users");
 
-export type RouteContext = typeof GET.$Infer.Context;
-export default GET.handler((_ctx) => {
+export type RouteContext = Parameters<typeof GET.handler>[0];
+export default GET.handler(() => {
   return json({ ok: true });
 });
 ```

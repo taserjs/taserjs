@@ -22,11 +22,11 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Scripts
 
-| Script        | Description                          |
-| :------------ | :----------------------------------- |
-| `pnpm dev`    | Start the Next.js docs app           |
-| `pnpm build`  | Production build                     |
-| `pnpm typecheck` | `next typegen` + `tsc --noEmit`   |
+| Script           | Description                     |
+| :--------------- | :------------------------------ |
+| `pnpm dev`       | Start the Next.js docs app      |
+| `pnpm build`     | Production build                |
+| `pnpm typecheck` | `next typegen` + `tsc --noEmit` |
 
 ## LLM Resources
 

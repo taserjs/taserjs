@@ -81,10 +81,10 @@ Every route handler and middleware automatically receives the combined propertie
 import { json, notFound } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-export default t.get("/users/:id").handler(async (ctx) => {
+export default t.get("/users/:id").handler(async ({ ctx, req }) => {
   // Available from boot context:
   const user = await ctx.db.user.findUnique({
-    where: { id: ctx.params.id },
+    where: { id: req.params.id },
   });
 
   if (!user) {
@@ -112,18 +112,18 @@ import { t } from "@taserjs/router";
 const GET = t.get("/users/:id").params(z.object({ id: z.string() }));
 
 // 2. Extract RouteContext from the builder
-export type RouteContext = typeof GET.$Infer.Context;
+export type RouteContext = Parameters<typeof GET.handler>[0];
 
 // 3. Type your helper functions with RouteContext
-async function getUserProfile(ctx: RouteContext) {
+async function getUserProfile({ ctx, req }: RouteContext) {
   return ctx.db.user.findUnique({
-    where: { id: ctx.params.id },
+    where: { id: req.params.id },
   });
 }
 
 // 4. Call helper inside .handler()
-export default GET.handler(async (ctx) => {
-  const user = await getUserProfile(ctx);
+export default GET.handler(async (args) => {
+  const user = await getUserProfile(args);
   if (!user) {
     return notFound({ message: "User not found" });
   }

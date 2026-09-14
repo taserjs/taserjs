@@ -23,8 +23,8 @@ A layout file is any TypeScript file inside `src/routes/` that does not end with
 import { forbidden, unauthorized } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-export default t.layout("/admin").use(async (ctx, next) => {
-  const authHeader = ctx.headers.get("authorization");
+export default t.layout("/admin").use(async ({ ctx, req }, next) => {
+  const authHeader = req.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return unauthorized({ message: "Admin authorization required" });
   }
@@ -35,12 +35,12 @@ export default t.layout("/admin").use(async (ctx, next) => {
     return forbidden({ message: "Insufficient permissions" });
   }
 
-  // Injects adminUser directly into ctx.state for all downstream routes
+  // Injects adminUser directly into state for all downstream routes
   return next({ adminUser });
 });
 ```
 
-All route files in `src/routes/admin/` (or `src/routes/admin.*.ts`) automatically inherit this middleware and receive `ctx.state.adminUser` fully typed.
+All route files in `src/routes/admin/` (or `src/routes/admin.*.ts`) automatically inherit this middleware and receive `state.adminUser` fully typed.
 
 ---
 
@@ -75,7 +75,7 @@ While `src/routes/$.ts` applies globally to every route in your application, `sr
 ```ts title="src/routes/index.ts"
 import { t } from "@taserjs/router";
 
-export default t.layout("/index").use(async (_ctx, next) => {
+export default t.layout("/index").use(async ({ ctx, req }, next) => {
   // Only runs for the root '/' endpoint
   return next();
 });
@@ -147,7 +147,7 @@ Execution sequence for `GET /api/users`:
 
 ## Injecting Typed State
 
-When middleware calls `next({ session })`, the properties merge directly into `ctx.state`. Downstream handlers access these properties with complete TypeScript inference:
+When middleware calls `next({ session })`, the properties merge into the **`state`** facet. Downstream handlers access them with complete TypeScript inference:
 
 <Tabs items={["Middleware", "Route Handler"]}>
   <Tab value="Middleware">
@@ -155,8 +155,8 @@ When middleware calls `next({ session })`, the properties merge directly into `c
     import { unauthorized } from "@taserjs/router/reply";
     import { t } from "@taserjs/router";
 
-    export default t.layout("/dashboard").use(async (ctx, next) => {
-      const session = await getSession(ctx.headers.get("cookie"));
+    export default t.layout("/dashboard").use(async ({ ctx, req }, next) => {
+      const session = await getSession(req.headers.get("cookie"));
       if (!session) {
         return unauthorized({ message: "Invalid session" });
       }
@@ -171,9 +171,9 @@ When middleware calls `next({ session })`, the properties merge directly into `c
     import { json } from "@taserjs/router/reply";
     import { t } from "@taserjs/router";
 
-    export default t.get("/dashboard/metrics").handler(async (ctx) => {
-      // ctx.state.session is 100% typed from dashboard.ts:
-      const { userId, workspaceId } = ctx.state.session;
+    export default t.get("/dashboard/metrics").handler(async ({ ctx, req, state }) => {
+      // state.session is 100% typed from dashboard.ts:
+      const { userId, workspaceId } = state.session;
 
       const metrics = await ctx.db.getWorkspaceMetrics(workspaceId);
       return json({ userId, metrics });
@@ -194,8 +194,8 @@ import { middleware } from "@taserjs/router";
 import { badRequest } from "@taserjs/router/reply";
 
 export function rateLimiter(options: { maxRequests: number; windowSeconds: number }) {
-  return middleware(async (ctx, next) => {
-    const clientIp = ctx.headers.get("x-forwarded-for") ?? "127.0.0.1";
+  return middleware(async ({ ctx, req }, next) => {
+    const clientIp = req.headers.get("x-forwarded-for") ?? "127.0.0.1";
     const remaining = await checkRateLimit(clientIp, options);
 
     if (remaining <= 0) {
@@ -214,7 +214,7 @@ Middlewares created via `middleware()` or `t.middleware()` automatically inherit
 ```ts title="src/middleware/tenant-logger.ts"
 import { middleware } from "@taserjs/router";
 
-export const tenantLogger = middleware(async (ctx, next) => {
+export const tenantLogger = middleware(async ({ ctx, req }, next) => {
   // ctx.db and ctx.requestId are 100% typed from your taser.context definition!
   ctx.db.logTenantAccess(ctx.requestId);
   return next();
@@ -235,9 +235,9 @@ Passing a layout identifier binds the middleware directly to that layout branch:
 import { middleware } from "@taserjs/router";
 import { forbidden } from "@taserjs/router/reply";
 
-export const requireActiveUser = middleware("/users", async (ctx, next) => {
-  // 1. ctx.state automatically inherits all state provided by the "/users" layout chain:
-  const user = ctx.state.user;
+export const requireActiveUser = middleware("/users", async ({ ctx, req, state }, next) => {
+  // 1. state automatically inherits all state provided by the "/users" layout chain:
+  const user = state.user;
 
   if (!user.isActive) {
     return forbidden({ message: "User account suspended" });
@@ -261,8 +261,8 @@ import { requireActiveUser } from "../../middleware/user-guard";
 export default t
   .get("/users/settings")
   .use(requireActiveUser)
-  .handler((ctx) => {
-    return json({ tier: ctx.state.userTier });
+  .handler(({ state }) => {
+    return json({ tier: state.userTier });
   });
 ```
 
@@ -275,32 +275,8 @@ import { t } from "@taserjs/router";
 export default t
   .get("/posts/:id")
   .use(requireActiveUser)
-  .handler((ctx) => ok());
+  .handler(() => ok());
 ```
-
----
-
-### 2. Multi-Layout Binding (Branch Union)
-
-If a middleware applies to multiple distinct layout branches (such as both `"/dashboard"` and `"/admin"`), pass an array of layout IDs:
-
-```ts title="src/middleware/tenant-guard.ts"
-import { middleware } from "@taserjs/router";
-import { forbidden } from "@taserjs/router/reply";
-
-export const requireTenant = middleware(["/dashboard", "/admin"], async (ctx, next) => {
-  // ctx.state receives the common state guaranteed across all specified layouts:
-  const session = ctx.state.session;
-
-  if (!session.tenantId) {
-    return forbidden({ message: "Tenant required" });
-  }
-
-  return next({ tenantId: session.tenantId });
-});
-```
-
-This middleware can now be safely attached to routes inheriting either the `"/dashboard"` or `"/admin"` layout branches with total type safety.
 
 ---
 
@@ -319,7 +295,7 @@ This middleware can now be safely attached to routes inheriting either the `"/da
 > }>();
 > ```
 
-For middlewares that require certain properties to exist in `ctx.state`, `ctx.params`, `ctx.query`, or `ctx.body` before running, use `.requires<{ ... }>()`:
+For middlewares that require certain properties to exist in `state`, `req.params`, `req.query`, or `req.body` before running, use `.requires<{ ... }>()`:
 
 ```ts title="src/middleware/admin-guard.ts"
 import { middleware } from "@taserjs/router";
@@ -332,9 +308,9 @@ type User = {
 
 export const requireAdmin = middleware()
   .requires<{ state: { user: User } }>()
-  .handler(async (ctx, next) => {
-    // ctx.state.user is guaranteed by TypeScript to exist:
-    if (ctx.state.user.role !== "admin" && ctx.state.user.role !== "superadmin") {
+  .handler(async ({ ctx, req, state }, next) => {
+    // state.user is guaranteed by TypeScript to exist:
+    if (state.user.role !== "admin" && state.user.role !== "superadmin") {
       return forbidden({ message: "Administrator privileges required" });
     }
 
@@ -349,8 +325,8 @@ Middlewares can also enforce path parameters (validated against the route URL st
 ```ts title="src/middleware/load-user.ts"
 export const loadUser = middleware()
   .requires<{ params: { userId: string } }>()
-  .handler(async (ctx, next) => {
-    const user = await db.users.findById(ctx.params.userId);
+  .handler(async ({ ctx, req }, next) => {
+    const user = await db.users.findById(req.params.userId);
     return next({ user });
   });
 
@@ -375,7 +351,7 @@ t.get("/unprotected").use(requireAdmin);
 t.get("/protected")
   .use(authMiddleware)
   .use(requireAdmin)
-  .handler((ctx) => json({ ok: true }));
+  .handler(() => json({ ok: true }));
 ```
 
 ---
@@ -398,8 +374,8 @@ export default t
   .query(z.object({ details: z.boolean().default(false) }))
   .returns({ 200: UserResponseSchema })
   // 3. Handler:
-  .handler((ctx) => {
-    return json({ id: ctx.params.id, isAdmin: ctx.state.isAdmin });
+  .handler(({ ctx, req, state }) => {
+    return json({ id: req.params.id, isAdmin: state.isAdmin });
   });
 ```
 

@@ -51,15 +51,15 @@ Use this literal lookup table to translate familiar Express and Fastify paradigm
 | Architectural Concept  | Express                           | Fastify                                               | Taser.js Equivalent                                                         |
 | :--------------------- | :-------------------------------- | :---------------------------------------------------- | :-------------------------------------------------------------------------- |
 | **Route Declaration**  | `app.get("/users/:id", fn)`       | `fastify.get("/users/:id", fn)`                       | File: `src/routes/users/$id.get.ts`<br/>Builder: `t.get("/users/:id")`      |
-| **Path Parameters**    | `req.params.id`                   | `request.params.id`                                   | `ctx.params.id`<br/>(inferred as string or validated via `.params(schema)`) |
-| **Query Parameters**   | `req.query.page`                  | `request.query.page`                                  | `ctx.query.page`<br/>(validated and coerced via `.query(schema)`)           |
-| **Request Payload**    | `req.body`                        | `request.body`                                        | `ctx.body`<br/>(validated via `.body(schema)`)                              |
+| **Path Parameters**    | `req.params.id`                   | `request.params.id`                                   | `req.params.id`<br/>(inferred as string or validated via `.params(schema)`) |
+| **Query Parameters**   | `req.query.page`                  | `request.query.page`                                  | `req.query.page`<br/>(validated and coerced via `.query(schema)`)           |
+| **Request Payload**    | `req.body`                        | `request.body`                                        | `req.body`<br/>(validated via `.body(schema)`)                              |
 | **JSON Response**      | `res.json(data)`                  | `reply.send(data)`                                    | `return json(data)` from `@taserjs/router/reply`                            |
 | **HTTP Status Code**   | `res.status(201).json(data)`      | `reply.code(201).send(data)`                          | `return created(data)` or `return json(data, { status: 201 })`              |
 | **Error Handling**     | `res.status(404).json({ error })` | `reply.code(404).send({ error })`                     | `return notFound({ error })` or `return badRequest(...)`                    |
-| **Request Headers**    | `req.headers["authorization"]`    | `request.headers["authorization"]`                    | `ctx.headers.get("authorization")`                                          |
+| **Request Headers**    | `req.headers["authorization"]`    | `request.headers["authorization"]`                    | `req.headers.get("authorization")`                                          |
 | **Cookie Jar**         | `req.cookies["token"]`            | `request.cookies["token"]`                            | Mount `cookie()` and use `{ cookies }.get("token")`                         |
-| **Middleware Context** | `req.user = user`                 | `request.user = user`                                 | `return next({ user })` (merges into `ctx.state`)                           |
+| **Middleware Context** | `req.user = user`                 | `request.user = user`                                 | `return next({ user })` (available as `state.user` in handlers)             |
 | **Global Middleware**  | `app.use(cors())`                 | `fastify.register(cors)`                              | Root layout: `src/routes/$.ts`                                              |
 | **Scoped Middleware**  | `app.use("/admin", authMw)`       | `fastify.register(adminRoutes, { prefix: "/admin" })` | Folder layout: `src/routes/admin.ts`                                        |
 
@@ -111,9 +111,9 @@ The following example demonstrates converting an existing Express controller fil
     export default t
       .get("/users/:id")
       .params(z.object({ id: z.string().uuid() }))
-      .handler(async (ctx) => {
-        // ctx.params.id is strictly validated as a UUID string
-        const user = await ctx.db.users.findUnique({ where: { id: ctx.params.id } });
+      .handler(async ({ ctx, req }) => {
+        // req.params.id is strictly validated as a UUID string
+        const user = await ctx.db.users.findUnique({ where: { id: req.params.id } });
         if (!user) {
           return notFound({ message: "User not found" });
         }
@@ -185,12 +185,12 @@ The following example demonstrates converting an existing Fastify endpoint with 
       .body(
         z.object({ title: z.string(), price: z.number().positive() }),
       )
-      .handler(async (ctx) => {
-        // ctx.params.id and ctx.body are fully typed and validated
+      .handler(async ({ ctx, req }) => {
+        // req.params.id and req.body are fully typed and validated
         const createdItem = await ctx.db.saveItem({
-          id: ctx.params.id,
-          title: ctx.body.title,
-          price: ctx.body.price,
+          id: req.params.id,
+          title: req.body.title,
+          price: req.body.price,
         });
 
         return created(createdItem);
@@ -256,8 +256,8 @@ In legacy Express, middleware typically mutates the `req` object (`req.user = us
     import { t } from "@taserjs/router";
     import { verifyToken } from "../lib/auth";
 
-    export default t.layout("/admin/*").use(async (ctx, next) => {
-      const authHeader = ctx.headers.get("authorization");
+    export default t.layout("/admin/*").use(async ({ ctx, req }, next) => {
+      const authHeader = req.headers.get("authorization");
       const token = authHeader?.replace("Bearer ", "");
 
       if (!token) {
@@ -269,7 +269,7 @@ In legacy Express, middleware typically mutates the `req` object (`req.user = us
         return unauthorized({ error: "Invalid token" });
       }
 
-      // Injects strictly typed user into ctx.state for all child routes under /admin/*
+      // Injects strictly typed user into state for all child routes under /admin/*
       return next({ user });
     });
     ```
@@ -277,7 +277,7 @@ In legacy Express, middleware typically mutates the `req` object (`req.user = us
   </Tab>
 </Tabs>
 
-Any child route inside `src/routes/admin/...` automatically receives `ctx.state.user` with full TypeScript inference and zero manual type assertion.
+Any child route inside `src/routes/admin/...` automatically receives `state.user` with full TypeScript inference and zero manual type assertion.
 
 ---
 
@@ -330,14 +330,14 @@ To enable seamless coexistence between Taser.js and your legacy server, configur
 
 Certain patterns common in legacy Node.js frameworks cannot be migrated automatically and require intentional restructuring:
 
-| Legacy Pattern                                               | Why It Cannot Be Automated                                                                                                                           | Recommended Migration Strategy                                                                                          |
-| :----------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
-| **Callback-Style Middleware `(req, res, next)`**             | Taser.js uses Web Standard Promise-based `(ctx, next) => Promise<Response>` architecture; Express callbacks calling `res.end()` bypass the pipeline. | Convert to async functions returning `next({ ... })`, or adapt Hono/Web middleware using `honoMw()`.                    |
+| Legacy Pattern                                               | Why It Cannot Be Automated                                                                                                                           | Recommended Migration Strategy                                                                                   |
+| :----------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------- |
+| **Callback-Style Middleware `(req, res, next)`**             | Taser.js uses Web Standard Promise-based `(ctx, next) => Promise<Response>` architecture; Express callbacks calling `res.end()` bypass the pipeline. | Convert to async functions returning `next({ ... })`, or adapt Hono/Web middleware using `honoMw()`.             |
 | **Imperative Route Loops (`routes.forEach(...)`)**           | Taser.js discovers routes statically at build time from the filesystem.                                                                              | Create explicit `.ts` files per route (or use `@taserjs/cli generate` to scaffold empty route files).            |
 | **Raw Node Stream Piping (`stream.pipe(res)`)**              | Node.js `WritableStream` (`res`) is absent in Web Standard environments.                                                                             | Return a Web Standard `Response` using `pipe()`, `buffer()`, `blob()`, or `sse()` from `@taserjs/router/stream`. |
-| **Arbitrary Mutating Property Assignment (`req.foo = bar`)** | Mutating global request objects breaks compile-time type safety.                                                                                     | Return state updates via `return next({ foo: bar })` in layout middleware, exposing them on `ctx.state`.                |
-| **WebSocket & HTTP Upgrade Handlers**                        | Taser.js file routes handle standard HTTP request/response lifecycles.                                                                               | Keep WebSocket upgrade hooks (`server.on("upgrade", ...)`) inside `src/server.node.ts` or deployment presets.           |
-| **Direct Socket Access (`req.socket`)**                      | Web Standard `Request` abstracts away raw TCP sockets for multi-runtime edge compatibility.                                                          | Extract IP address, TLS info, or socket metadata inside `src/context.ts` or custom middleware adapters.                 |
+| **Arbitrary Mutating Property Assignment (`req.foo = bar`)** | Mutating global request objects breaks compile-time type safety.                                                                                     | Return state updates via `return next({ foo: bar })` in layout middleware, exposing them on `state` in handlers. |
+| **WebSocket & HTTP Upgrade Handlers**                        | Taser.js file routes handle standard HTTP request/response lifecycles.                                                                               | Keep WebSocket upgrade hooks (`server.on("upgrade", ...)`) inside `src/server.node.ts` or deployment presets.    |
+| **Direct Socket Access (`req.socket`)**                      | Web Standard `Request` abstracts away raw TCP sockets for multi-runtime edge compatibility.                                                          | Extract IP address, TLS info, or socket metadata inside `src/context.ts` or custom middleware adapters.          |
 
 ---
 

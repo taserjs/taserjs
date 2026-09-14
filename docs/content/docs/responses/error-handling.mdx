@@ -15,13 +15,13 @@ Taser.js configures error handling on the `defineTaser()` builder in `src/taser.
 
 `.onError()` is dedicated to **unhandled runtime server crashes**. It runs only after built-in protocol handlers have already short-circuited:
 
-| Error | Default status | Reaches `.onError()`? |
-| :---- | :------------- | :-------------------- |
-| `ValidationError` (input schemas) | 422 | No — built-in JSON envelope |
-| `ResponseValidationError` (`.returns()` contracts) | 500 | No — built-in JSON envelope |
-| `UnsupportedMediaTypeError` | 415 | No — built-in JSON envelope |
-| Thrown `Response` | as thrown | No — returned as-is |
-| Everything else (domain `Error`, unexpected throws) | your handler or 500 | Yes |
+| Error                                               | Default status      | Reaches `.onError()`?       |
+| :-------------------------------------------------- | :------------------ | :-------------------------- |
+| `ValidationError` (input schemas)                   | 422                 | No — built-in JSON envelope |
+| `ResponseValidationError` (`.returns()` contracts)  | 500                 | No — built-in JSON envelope |
+| `UnsupportedMediaTypeError`                         | 415                 | No — built-in JSON envelope |
+| Thrown `Response`                                   | as thrown           | No — returned as-is         |
+| Everything else (domain `Error`, unexpected throws) | your handler or 500 | Yes                         |
 
 To customize **422 validation** or **response-contract** envelopes, catch them in middleware with `try/catch` (see [Handling Validation Errors](/docs/validation/handling-errors)). Do not expect those errors inside `.onError()`.
 
@@ -102,8 +102,8 @@ import { json } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 import { ResourceNotFoundError } from "../../errors.js";
 
-export default t.get("/teams/:id").handler(async (ctx) => {
-  const team = await ctx.db.findTeam(ctx.params.id);
+export default t.get("/teams/:id").handler(async ({ ctx, req }) => {
+  const team = await ctx.db.findTeam(req.params.id);
 
   if (!team) {
     // Caught by .onError() and mapped to your 404 JSON response:

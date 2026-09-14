@@ -19,28 +19,16 @@ Install the router, plugin, Vite, and the `srvx` server runtime:
 
 <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
   <Tab value="pnpm">
-    ```bash
-    pnpm add @taserjs/router
-    pnpm add -D @taserjs/plugin @taserjs/cli vite srvx
-    ```
+    ```bash pnpm add @taserjs/router pnpm add -D @taserjs/plugin @taserjs/cli vite srvx ```
   </Tab>
   <Tab value="npm">
-    ```bash
-    npm install @taserjs/router
-    npm install -D @taserjs/plugin @taserjs/cli vite srvx
-    ```
+    ```bash npm install @taserjs/router npm install -D @taserjs/plugin @taserjs/cli vite srvx ```
   </Tab>
   <Tab value="bun">
-    ```bash
-    bun add @taserjs/router
-    bun add -d @taserjs/plugin @taserjs/cli vite srvx
-    ```
+    ```bash bun add @taserjs/router bun add -d @taserjs/plugin @taserjs/cli vite srvx ```
   </Tab>
   <Tab value="yarn">
-    ```bash
-    yarn add @taserjs/router
-    yarn add -D @taserjs/plugin @taserjs/cli vite srvx
-    ```
+    ```bash yarn add @taserjs/router yarn add -D @taserjs/plugin @taserjs/cli vite srvx ```
   </Tab>
 </Tabs>
 
@@ -126,8 +114,7 @@ export default defineConfig({
 <TypeTable
   type={{
     server: {
-      description:
-        "Enable Vite dev middleware and the production serve shim.",
+      description: "Enable Vite dev middleware and the production serve shim.",
       type: "boolean",
       default: "true",
     },
@@ -157,8 +144,8 @@ export default defineConfig({
 />
 
 <Callout type="info" title="Where do routesDir and serverDir go?">
-  Set `serverDir`, `routesDir`, `outputDir`, and `app` in [`taserjs.config.ts`](/docs/cli). The plugin
-  loads that file (or built-in defaults) during generate and watch.
+  Set `serverDir`, `routesDir`, `outputDir`, and `app` in [`taserjs.config.ts`](/docs/cli). The
+  plugin loads that file (or built-in defaults) during generate and watch.
 </Callout>
 
 ---

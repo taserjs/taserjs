@@ -11,12 +11,12 @@ Taser.js bundles a suite of production-grade security and performance utility mi
 
 ---
 
-## Secure Headers (`@taserjs/router/secure-headers`)
+## Secure Headers (`@taserjs/router/middleware/secure-headers`)
 
 Sets standard HTTP security headers (HSTS, X-Content-Type-Options, X-Frame-Options, Content-Security-Policy):
 
 ```ts title="src/routes/$.ts"
-import { secureHeaders } from "@taserjs/router/secure-headers";
+import { secureHeaders } from "@taserjs/router/middleware/secure-headers";
 import { t } from "@taserjs/router";
 
 export default t.layout("/*").use(
@@ -38,12 +38,12 @@ export default t.layout("/*").use(
 
 ---
 
-## Body Size Limits (`@taserjs/router/body-limit`)
+## Body Size Limits (`@taserjs/router/middleware/body-limit`)
 
 Prevents denial-of-service memory exhaustion by enforcing maximum request body limits:
 
 ```ts title="src/routes/uploads.ts"
-import { bodyLimit } from "@taserjs/router/body-limit";
+import { bodyLimit } from "@taserjs/router/middleware/body-limit";
 import { payloadTooLarge } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
@@ -59,12 +59,12 @@ export default t.layout("/uploads").use(
 
 ---
 
-## CSRF Defense (`@taserjs/router/csrf`)
+## CSRF Defense (`@taserjs/router/middleware/csrf`)
 
 Validates incoming request origin against server origins to prevent cross-site request forgery attacks on state-changing requests (POST, PUT, PATCH, DELETE):
 
 ```ts title="src/routes/$.ts"
-import { csrf } from "@taserjs/router/csrf";
+import { csrf } from "@taserjs/router/middleware/csrf";
 import { t } from "@taserjs/router";
 
 export default t.layout("/*").use(
@@ -76,12 +76,12 @@ export default t.layout("/*").use(
 
 ---
 
-## Automatic ETags (`@taserjs/router/etag`)
+## Automatic ETags (`@taserjs/router/middleware/etag`)
 
 Calculates cryptographic hash ETags for response bodies and automatically responds with `304 Not Modified` when clients send a matching `If-None-Match` header:
 
 ```ts title="src/routes/$.ts"
-import { etag } from "@taserjs/router/etag";
+import { etag } from "@taserjs/router/middleware/etag";
 import { t } from "@taserjs/router";
 
 export default t.layout("/*").use(
@@ -93,12 +93,12 @@ export default t.layout("/*").use(
 
 ---
 
-## Server-Timing (`@taserjs/router/timing`)
+## Server-Timing (`@taserjs/router/middleware/timing`)
 
 Adds standard `Server-Timing` headers to responses, enabling Chrome DevTools and observability platforms to measure internal route latency:
 
 ```ts title="src/routes/$.ts"
-import { timing } from "@taserjs/router/timing";
+import { timing } from "@taserjs/router/middleware/timing";
 import { t } from "@taserjs/router";
 
 export default t.layout("/*").use(timing());
@@ -106,12 +106,12 @@ export default t.layout("/*").use(timing());
 
 ---
 
-## Response Compression (`@taserjs/router/compress`)
+## Response Compression (`@taserjs/router/middleware/compress`)
 
 Automatically compresses outgoing HTTP response payloads using `gzip`, `deflate`, or `brotli` based on client `Accept-Encoding`:
 
 ```ts title="src/routes/$.ts"
-import { compress } from "@taserjs/router/compress";
+import { compress } from "@taserjs/router/middleware/compress";
 import { t } from "@taserjs/router";
 
 export default t.layout("/*").use(
@@ -125,14 +125,15 @@ export default t.layout("/*").use(
 
 ## Summary of Built-in Middlewares
 
-| Middleware Import | Package                          | Primary Purpose                       |
-| :---------------- | :------------------------------- | :------------------------------------ |
-| `cors`            | `@taserjs/router/cors`           | Cross-Origin Resource Sharing         |
-| `jwt`             | `@taserjs/router/jwt`            | HMAC/RSA Bearer Token Verification    |
-| `jwk`             | `@taserjs/router/jwk`            | Remote JSON Web Key Set Auth          |
-| `secureHeaders`   | `@taserjs/router/secure-headers` | CSP, HSTS, X-Frame-Options            |
-| `bodyLimit`       | `@taserjs/router/body-limit`     | Memory protection payload limiting    |
-| `csrf`            | `@taserjs/router/csrf`           | Cross-Site Request Forgery mitigation |
-| `etag`            | `@taserjs/router/etag`           | 304 Cache validation                  |
-| `timing`          | `@taserjs/router/timing`         | Server-Timing performance metrics     |
-| `compress`        | `@taserjs/router/compress`       | Gzip / Deflate payload compression    |
+| Middleware Import | Package                                     | Primary Purpose                       |
+| :---------------- | :------------------------------------------ | :------------------------------------ |
+| `cors`            | `@taserjs/router/middleware/cors`           | Cross-Origin Resource Sharing         |
+| `jwt`             | `@taserjs/router/middleware/jwt`            | HMAC/RSA Bearer Token Verification    |
+| `jwk`             | `@taserjs/router/middleware/jwk`            | Remote JSON Web Key Set Auth          |
+| `secureHeaders`   | `@taserjs/router/middleware/secure-headers` | CSP, HSTS, X-Frame-Options            |
+| `bodyLimit`       | `@taserjs/router/middleware/body-limit`     | Memory protection payload limiting    |
+| `csrf`            | `@taserjs/router/middleware/csrf`           | Cross-Site Request Forgery mitigation |
+| `etag`            | `@taserjs/router/middleware/etag`           | 304 Cache validation                  |
+| `timing`          | `@taserjs/router/middleware/timing`         | Server-Timing performance metrics     |
+| `compress`        | `@taserjs/router/middleware/compress`       | Gzip / Deflate payload compression    |
+| `cookie`          | `@taserjs/router/middleware/cookie`         | Signed cookies & Cookie Jar Instance  |

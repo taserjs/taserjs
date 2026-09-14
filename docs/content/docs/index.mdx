@@ -12,26 +12,45 @@ import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
 Traditional Node.js routing forces you to write manual route registries, perform unsafe type assertions on `req.user`, and maintain separate client types that drift over time. Taser.js solves these challenges by treating the filesystem as the source of truth, cascading middleware state through directory layouts, and generating a 100% typed client SDK.
 
+**Layout Middleware**
+
+```ts title="src/routes/users.ts"
+import { t } from "@taserjs/router";
+import { unauthorized } from "@taserjs/router/reply";
+
+// Applies to all routes under /users/*
+export default t.layout("/users/*").use(async ({ req, ctx }, next) => {
+  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const user = token ? await ctx.db.findUserByToken(token) : null;
+  if (!user) {
+    return unauthorized({ message: "Unauthorized" });
+  }
+  return next({ user });
+});
+```
+
+**Route Handler**
+
 ```ts title="src/routes/users/$id.get.ts"
-import { json, notFound } from "@taserjs/router/reply";
+import { json, notFound, forbidden } from "@taserjs/router/reply";
 import { z } from "zod";
 import { t } from "@taserjs/router";
 
 const GET = t
   .get("/users/:id")
   .params(z.object({ id: z.string().uuid() }))
-  .query(z.object({ includeProfile: z.coerce.boolean().default(false) }))
-  .returns({
-    200: z.object({ id: z.string(), name: z.string(), email: z.string() }),
-    404: z.object({ message: z.string() }),
-  });
+  .query(z.object({ includeProfile: z.coerce.boolean().default(false) }));
 
-export type RouteContext = typeof GET.$Infer.Context;
-export default GET.handler(async (ctx) => {
-  // ctx.params.id is typed as string (UUID)
-  // ctx.query.includeProfile is typed as boolean
-  // ctx.state contains data injected by layout middlewares
-  const user = await ctx.db.findUserById(ctx.params.id);
+export default GET.handler(async ({ req, ctx, state }) => {
+  // req.params.id is typed as string (UUID)
+  // req.query.includeProfile is typed as boolean
+  // state contains data injected by layout middlewares
+  const isAdmin = await ctx.db.isUserAdmin(state.user.id);
+  if (!isAdmin) {
+    return forbidden({ message: "Forbidden" });
+  }
+
+  const user = await ctx.db.findUserById(req.params.id);
   if (!user) {
     return notFound({ message: "User not found" });
   }
@@ -40,13 +59,10 @@ export default GET.handler(async (ctx) => {
 });
 ```
 
-<Callout type="info" title="Route Path Strings Are Generated, Not Authored">
-  The path string passed to `t.get()`, `t.post()`, `t.layout()`, etc. is generated automatically by the dev watcher (`vite dev`, `next dev`), standard production builds (`vite build`, `next build`), or `@taserjs/cli` when route files are first created (e.g. via `touch src/routes/...`). You do not need to author this string by hand.
-
-**Scaffolding & Mismatch Behavior**: Blank files are automatically populated with starter boilerplate and the matching path string, but existing, populated files are never overwritten. If you rename a route file or edit its path string to an invalid path, your code is preserved; instead, TypeScript flags the mismatch at compile time (`Type '"..."' is not assignable to type 'RoutePath'`).
-
-**Production Builds vs. Standalone Typechecking**: Standard builds (`vite build`, `next build`) automatically scan routes, generate the manifest, and emit ambient types during compilation—no separate CLI command is required in build pipelines. If your setup runs standalone typechecks (`tsc --noEmit`) in CI or pre-commit hooks outside of a bundler build, install `@taserjs/cli` as a dev dependency and add `"typecheck": "taser generate && tsc --noEmit"` to your `package.json` (or invoke on-demand via `npx @taserjs/cli generate`).
-
+<Callout type="info" title="Route Path Strings Are Generated Automatically">
+  The path string passed to `t.get()`, `t.post()`, `t.layout()`, etc. is generated automatically by
+  the dev watcher (`vite dev`, `next dev`) or `@taserjs/cli` when route files are first created
+  (e.g. via `touch src/routes/...`). You do not need to author this string by hand.
 </Callout>
 
 ---
@@ -60,7 +76,7 @@ export default GET.handler(async (ctx) => {
   />
   <Card
     title="Cascading Context Inference"
-    description="Middleware state declared in root or folder layouts flows directly into ctx.state for child routes with zero typecasting or global namespace pollution."
+    description="Middleware state declared in folder layouts flows into the state facet for child routes with zero typecasting or global namespace pollution."
   />
   <Card
     title="Compile-Time Return Contracts"
@@ -89,9 +105,9 @@ Taser.js operates around a deterministic, fully type-safe request lifecycle:
 <RequestFlowDiagram />
 
 <Callout type="info" title="Vite-Powered Virtual Modules">
-  Taser.js integrates with Vite via `@taserjs/plugin/vite`. Routes are loaded virtually
-  during development with instant HMR and bundled into optimized production artifacts via Nitro
-  deployment presets.
+  Taser.js integrates with Vite via `@taserjs/plugin/vite`. Routes are loaded virtually during
+  development with instant HMR and bundled into optimized production artifacts via Nitro deployment
+  presets.
 </Callout>
 
 ---
@@ -138,15 +154,28 @@ Equip your AI coding assistant (Cursor, Claude Code, Windsurf, GitHub Copilot, C
 Install the official skill using the open agent skills CLI:
 
 <Tabs items={["npx", "pnpm", "bun"]} groupId="skills-pm" persist>
-  <Tab value="npx">```bash npx skills add taserjs/taserjs ```</Tab>
-  <Tab value="pnpm">```bash pnpm dlx skills add taserjs/taserjs ```</Tab>
-  <Tab value="bun">```bash bunx skills add taserjs/taserjs ```</Tab>
+  <Tab value="npx">
+```bash 
+npx skills add taserjs/taserjs 
+```
+
+  </Tab>
+  <Tab value="pnpm">
+  ```bash 
+  pnpm dlx skills add taserjs/taserjs 
+  ```
+  </Tab>
+  <Tab value="bun">
+  ```bash 
+  bunx skills add taserjs/taserjs 
+  ```
+  </Tab>
 </Tabs>
 
 ### What the Skill Teaches Your Assistant
 
 - **Filesystem Conventions**: Eliminates hallucinated routes by strictly adhering to verb suffixes (`.get.ts`, `.post.ts`), dynamic parameters (`$id`), splats (`$`), and layout middleware.
-- **Layout and Middleware Inheritance**: Guides assistants to declare cascading layouts and middleware that flow into child routes via `ctx.state` without unsafe type assertions.
+- **Layout and Middleware Inheritance**: Guides assistants to declare cascading layouts and middleware that flow into child routes via `state` without unsafe type assertions.
 - **Validation & Return Contracts**: Guides assistants to declare schemas with Zod, ArkType, or Valibot while pairing status codes with standalone reply helpers (`json`, `created`, `notFound`).
 - **Host Migrations & Client RPC**: Guides incremental migrations from Express, Fastify, and Hono using host pass-through adapters and generates typed `@taserjs/client` calls.
 

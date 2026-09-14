@@ -153,8 +153,7 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
     "Complete API reference for @taserjs/plugin: Vite, Next.js, and Nitro compiler plugin options.",
   "api-reference/client":
     "Complete API reference for @taserjs/client: createClient, formBody, ClientRequestOptions, and utility types.",
-  "api-reference/cli":
-    "Complete command options and flag reference for @taserjs/cli.",
+  "api-reference/cli": "Complete command options and flag reference for @taserjs/cli.",
 };
 
 export const docsImageAlts: Record<string, string> = {

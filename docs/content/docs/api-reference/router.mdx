@@ -80,12 +80,12 @@ Constructs a standalone, reusable middleware unit with support for fluent schema
 
 ```ts
 // 1. Short Function Signature (Unscoped, Inferred State)
-const log = middleware((ctx, next) => {
+const log = middleware((_args, next) => {
   return next({ traceId: "123" });
 });
 
 // 2. Short Function Signature (Layout-Scoped)
-const adminAuth = middleware("admin", (ctx, next) => {
+const adminAuth = middleware("admin", (_args, next) => {
   return next({ role: "admin" });
 });
 
@@ -95,21 +95,21 @@ const uploadMw = middleware()
   .params(z.object({ id: z.coerce.number() }))
   .body("form", z.object({ file: z.instanceof(File) })) // tagged bodyMode!
   .returns({ 400: z.object({ error: z.string() }) })
-  .handler(async (ctx, next) => {
-    return next({ uploadedFile: ctx.body.file });
+  .handler(async ({ req }, next) => {
+    return next({ uploadedFile: req.body.file });
   });
 
 // 4. Fluent Builder (Layout-Scoped with Inherited State)
 const scopedMw = middleware("admin")
   .query(z.object({ filter: z.string() }))
-  .handler(async (ctx, next) => {
+  .handler(async (_args, next) => {
     return next({ permission: "write" });
   });
 ```
 
 ### `honoMw()`
 
-Adapts a Web Standard / Hono-compatible middleware function `(c, next) => ...` into a Taser.js-compatible middleware handler function `(ctx, next) => Promise<Response>`.
+Adapts a Web Standard / Hono-compatible middleware function `(c, next) => ...` into a Taser.js-compatible middleware handler function `({ ctx, req }, next) => Promise<Response>`.
 
 ```ts
 import { honoMw, middleware } from "@taserjs/router";
@@ -128,9 +128,9 @@ const corsMiddleware = middleware(honoMw(cors()));
 - **`.params(schema)`**: Attaches path parameter validation schema.
 - **`.body(schema)` / `.body(mode, schema)`**: Attaches JSON or tagged (`"form" | "urlencoded"`) body validation schema.
 - **`.requires<{ state?, params?, query?, body? }>()`**: Declares required upstream preconditions across request facets (`state`, `params`, `query`, `body`). Checked at compile time by `.use(...)`.
-- **`.handler((ctx, next) => ...)`**: Implements middleware logic and returns a strongly-typed `MiddlewareUnit`.
+- **`.handler(({ ctx, req, state }, next) => ...)`**: Implements middleware logic and returns a strongly-typed `MiddlewareUnit`.
 
-For simple unvalidated middlewares, short function signatures `middleware((ctx, next) => ...)` and `middleware<TState, TRequires>((ctx, next) => ...)` are also supported.
+For simple unvalidated middlewares, short function signatures `middleware((args, next) => ...)` and layout-scoped `middleware("/admin", (args, next) => ...)` are also supported.
 
 ---
 
@@ -245,7 +245,8 @@ Imported as `import { t } from "@taserjs/router"`. `t` provides builder factory 
       type: "(middleware: MiddlewareUnit) => RouteBuilder",
     },
     handler: {
-      description: "Attaches the route execution logic receiving fully typed ctx.",
+      description:
+        "Attaches the route execution logic receiving facet-split handler args (req, ctx, state, …).",
       type: "(fn: (ctx: Context) => Response | Promise<Response>) => RouteDefinition",
     },
   }}
@@ -345,7 +346,8 @@ Edge-compatible Web Standard helpers (no filesystem `file()` helper):
       type: "(stream: ReadableStream, init?: ResponseInit) => Response",
     },
     buffer: {
-      description: "Send ArrayBuffer or Uint8Array (default content-type application/octet-stream).",
+      description:
+        "Send ArrayBuffer or Uint8Array (default content-type application/octet-stream).",
       type: "(data: ArrayBuffer | Uint8Array, init?: ResponseInit) => Response",
     },
     blob: {
@@ -416,5 +418,5 @@ import type {
 ```
 
 <Callout type="info" title="Context Type Extraction Best Practice">
-  Extract route context from the builder variable before `.handler()` (e.g. `typeof GET.$Infer.Context` or `InferRouteContext<typeof GET>`) when typing extracted helper functions.
+  Extract handler argument types from the builder before `.handler()` (e.g. `Parameters<typeof GET.handler>[0]`) when typing extracted helper functions.
 </Callout>

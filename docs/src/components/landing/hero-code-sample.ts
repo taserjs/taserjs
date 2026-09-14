@@ -6,9 +6,8 @@ export type HeroCodeTab = {
 
 export const heroCodeTabs: HeroCodeTab[] = [
   { id: "app", label: "App", filename: "taser.ts" },
-  { id: "layout", label: "Layout", filename: "routes/$.ts" },
   { id: "auth", label: "Auth", filename: "routes/dashboard.ts" },
-  { id: "route", label: "Route", filename: "routes/dashboard/users.get.ts" },
+  { id: "route", label: "Route", filename: "routes/dashboard/index.get.ts" },
 ];
 
 /** Human-readable per-tab sources for Shiki. */
@@ -17,54 +16,37 @@ export const heroTabSources: Record<string, string> = {
 import { notFound } from '@taserjs/router/reply'
 
 export const context = createContext({
-  boot: () => ({
-    logger: console,
-    db: createDb(),
-  }),
-  request: () => ({
-    requestId: crypto.randomUUID(),
+  boot: () => ({ logger: pino, db: ... }),
+  request: (req) => ({ 
+    requestId: req.headers.get('x-request-id') || crypto.randomUUID() 
   }),
 })
 
-export default defineTaser({
-  response: { validate: true },
-})
+export default defineTaser({ response: { validate: true }})
   .context(context)
   .notFound(() => notFound({ message: 'Not Found' }))`,
-  layout: `import { cors } from '@taserjs/router/middleware/cors'
+  auth: `import { unauthorized } from '@taserjs/router/reply'
 import { t } from '@taserjs/router'
 
-export default t.layout('/*')
-  .use(cors({ origin: ['https://app.example.com'] }))`,
-  auth: `import { jwt } from '@taserjs/router/middleware/jwt'
-import { t } from '@taserjs/router'
+export default t.layout('/dashboard/*').use(async (ctx, next) => {
+  const user = await getUserSession(ctx.headers.get('Authorization'))
+  if (!user) {
+    return unauthorized({ message: 'Sign in required' })
+  }
 
-type JwtClaims = {
-  sub: string
-  role: string
-}
-
-export default t.layout('/dashboard')
-  .use(
-    jwt<JwtClaims>({
-      secret: process.env.JWT_SECRET!,
-      alg: 'HS256',
-    }),
-  )`,
+  return next({ user })
+})`,
   route: `import { json } from '@taserjs/router/reply'
-import { z } from 'zod'
 import { t } from '@taserjs/router'
 
-const GET = t.get('/dashboard/users')
-  .query(z.object({
-    page: z.coerce.number().default(1),
-    limit: z.coerce.number().default(10),
-  }))
+export default t.get('/dashboard').handler(async ({ ctx, state }) => {
+  const { user } = state // state -> { user: User }
+  const stats = await ctx.db.getDashboardStats(user.id)
 
-export default GET.handler(async ({ req, ctx, state }) => {
-  const sub = state.jwtPayload.sub
-  const { page, limit } = req.query
-  const users = await ctx.db.getUsers(page, limit)
-  return json({ sub, users })
+  return json({
+    greeting: \`Welcome back, \${user.name}\`,
+    user,
+    stats,
+  })
 })`,
 };

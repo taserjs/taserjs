@@ -13,7 +13,7 @@ Validation in Taser.js is not limited to route handlers. Layout middleware can v
 
 ## State Inference & Injection
 
-Layout middleware can validate incoming requests and inject typed state down the pipeline. Any object passed to `next({ ... })` is automatically merged into `ctx.state` and inferred across all child handlers:
+Layout middleware can validate incoming requests and inject typed state down the pipeline. Any object passed to `next({ ... })` is merged into the **`state`** facet and inferred across all child handlers:
 
 ```ts title="src/routes/orgs.ts"
 import { badRequest, notFound } from "@taserjs/router/reply";
@@ -25,8 +25,8 @@ type Organization = {
   plan: "free" | "pro" | "enterprise";
 };
 
-export default t.layout("/orgs").use(async (ctx, next) => {
-  const orgSlug = ctx.headers.get("x-org-slug");
+export default t.layout("/orgs").use(async ({ ctx, req }, next) => {
+  const orgSlug = req.headers.get("x-org-slug");
   if (!orgSlug) {
     return badRequest({ message: "Missing x-org-slug header" });
   }
@@ -36,7 +36,7 @@ export default t.layout("/orgs").use(async (ctx, next) => {
     return notFound({ message: "Organization not found" });
   }
 
-  // TypeScript infers { organization: Organization } into ctx.state for all downstream routes:
+  // TypeScript infers { organization: Organization } on state for all downstream routes:
   return next({ organization: org });
 });
 ```
@@ -58,9 +58,9 @@ const apiKeyGuard = middleware("/api_v2")
       apiKey: z.string().min(32),
     }),
   )
-  .handler(async (ctx, next) => {
-    // ctx.query.apiKey is validated
-    const keyRecord = await ctx.db.findApiKey(ctx.query.apiKey);
+  .handler(async ({ ctx, req }, next) => {
+    // req.query.apiKey is validated
+    const keyRecord = await ctx.db.findApiKey(req.query.apiKey);
     if (!keyRecord) {
       return unauthorized({ message: "Invalid API key" });
     }
@@ -90,7 +90,7 @@ export const pagination = middleware().query(
 );
 ```
 
-You can pass `pagination` directly to any layout or route with `.use(pagination)`. Taser.js automatically validates and coerces the query parameters, and downstream handlers receive strongly-typed `ctx.query.page` and `ctx.query.limit` without any boilerplate:
+You can pass `pagination` directly to any layout or route with `.use(pagination)`. Taser.js automatically validates and coerces the query parameters, and downstream handlers receive strongly-typed `req.query.page` and `req.query.limit` without any boilerplate:
 
 ```ts title="src/routes/posts.get.ts"
 import { json } from "@taserjs/router/reply";
@@ -100,9 +100,9 @@ import { pagination } from "../middleware/pagination.js";
 export default t
   .get("/posts")
   .use(pagination)
-  .handler(async (ctx) => {
-    // ctx.query.page and ctx.query.limit are automatically typed as numbers
-    const posts = await ctx.db.getPosts({ page: ctx.query.page, limit: ctx.query.limit });
+  .handler(async ({ ctx, req }) => {
+    // req.query.page and req.query.limit are automatically typed as numbers
+    const posts = await ctx.db.getPosts({ page: req.query.page, limit: req.query.limit });
     return json(posts);
   });
 ```
@@ -111,7 +111,7 @@ export default t
 
 ## Multi-Step Middleware Pipelines
 
-You can chain multiple `.use()` calls on a layout middleware. Each step enriches `ctx.state` and subsequent middleware steps immediately receive previously injected state:
+You can chain multiple `.use()` calls on a layout middleware. Each step enriches **`state`** and subsequent middleware steps immediately receive previously injected state:
 
 ```ts title="src/routes/billing.ts"
 import { unauthorized } from "@taserjs/router/reply";
@@ -120,15 +120,15 @@ import { t } from "@taserjs/router";
 export default t
   .layout("/billing")
   // Step 1: Validate session & inject userId
-  .use(async (ctx, next) => {
-    const token = ctx.headers.get("authorization")?.replace("Bearer ", "");
+  .use(async ({ req }, next) => {
+    const token = req.headers.get("authorization")?.replace("Bearer ", "");
     if (!token) return unauthorized();
     return next({ userId: "user_123" });
   })
   // Step 2: Fetch subscription using userId from Step 1
-  .use(async (ctx, next) => {
-    // ctx.state.userId is 100% typed from Step 1!
-    const sub = await ctx.db.getSubscription(ctx.state.userId);
+  .use(async ({ ctx, state }, next) => {
+    // state.userId is 100% typed from Step 1!
+    const sub = await ctx.db.getSubscription(state.userId);
     return next({
       hasActiveSubscription: Boolean(sub?.active),
     });
@@ -151,9 +151,9 @@ type SubscriptionPrecondition = {
 
 export const requireActivePlan = middleware()
   .requires<{ state: SubscriptionPrecondition }>()
-  .handler((ctx, next) => {
-    // TypeScript ensures ctx.state.hasActiveSubscription exists:
-    if (!ctx.state.hasActiveSubscription) {
+  .handler(({ state }, next) => {
+    // TypeScript ensures state.hasActiveSubscription exists:
+    if (!state.hasActiveSubscription) {
       return forbidden({ message: "Active subscription required" });
     }
 

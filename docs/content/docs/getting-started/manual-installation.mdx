@@ -28,25 +28,25 @@ At its foundation, Taser.js operates as a Vite compiler plugin (`@taserjs/plugin
     <Tabs items={["pnpm", "npm", "bun", "yarn"]} groupId="package-manager" persist>
       <Tab value="pnpm">
         ```bash
-        pnpm add @taserjs/router srvx zod
+        pnpm add @taserjs/router @taserjs/runtime srvx zod
         pnpm add -D @taserjs/plugin vite
         ```
       </Tab>
       <Tab value="npm">
         ```bash
-        npm install @taserjs/router srvx zod
+        npm install @taserjs/router @taserjs/runtime srvx zod
         npm install -D @taserjs/plugin vite
         ```
       </Tab>
       <Tab value="bun">
         ```bash
-        bun add @taserjs/router srvx zod
+        bun add @taserjs/router @taserjs/runtime srvx zod
         bun add -d @taserjs/plugin vite
         ```
       </Tab>
       <Tab value="yarn">
         ```bash
-        yarn add @taserjs/router srvx zod
+        yarn add @taserjs/router @taserjs/runtime srvx zod
         yarn add -D @taserjs/plugin vite
         ```
       </Tab>
@@ -152,7 +152,7 @@ At its foundation, Taser.js operates as a Vite compiler plugin (`@taserjs/plugin
     import { json } from "@taserjs/router/reply";
     import { t } from "@taserjs/router";
 
-    export default t.get("/").handler((ctx) => {
+    export default t.get("/").handler(({ ctx }) => {
       return json({ message: "Welcome to Taser.js!", requestId: ctx.requestId });
     });
     ```

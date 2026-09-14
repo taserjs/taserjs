@@ -1,10 +1,4 @@
 {
   "title": "Routing System",
-  "pages": [
-    "file-conventions",
-    "defining-routes",
-    "layouts-and-middleware",
-    "context-and-state",
-    "refactoring-handlers"
-  ]
+  "pages": ["file-conventions", "defining-routes", "layouts-and-middleware", "context-and-state"]
 }

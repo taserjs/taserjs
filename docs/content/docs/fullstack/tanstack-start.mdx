@@ -194,8 +194,8 @@ yarn add -D @taserjs/plugin
         }),
       });
 
-    export type RouteContext = typeof GET.$Infer.Context;
-    export default GET.handler(async (ctx) => {
+    export type RouteContext = Parameters<typeof GET.handler>[0];
+    export default GET.handler(async ({ ctx }) => {
       return json({
         users: [
           { id: "usr_1", name: "Alice", email: "alice@example.com" },
@@ -223,20 +223,20 @@ my-tanstack-app/
 ├── package.json
 ├── tsconfig.json
 └── src/
-    ├── routes/                 # TanStack Router UI
-    │   ├── __root.tsx
-    │   ├── index.tsx
-    │   ├── users.tsx
-    │   └── api/
-    │       └── $.tsx           # import { app } from "../../server/.taserjs/routes.gen"
-    └── server/                 # Taser.js REST API
-        ├── taser.ts            # defineTaser() definition
-        ├── context.ts
-        ├── routes/
-        │   ├── $.ts
-        │   └── users.get.ts
-        └── .taserjs/
-            └── routes.gen.ts   # Generated app + AppManifest
+├── routes/ # TanStack Router UI
+│ ├── \_\_root.tsx
+│ ├── index.tsx
+│ ├── users.tsx
+│ └── api/
+│ └── $.tsx # import { app } from "../../server/.taserjs/routes.gen"
+└── server/ # Taser.js REST API
+├── taser.ts # defineTaser() definition
+├── context.ts
+├── routes/
+│ ├── $.ts
+│ └── users.get.ts
+└── .taserjs/
+└── routes.gen.ts # Generated app + AppManifest
 
 ````
 

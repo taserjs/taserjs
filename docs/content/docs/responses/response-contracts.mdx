@@ -41,8 +41,8 @@ export default t
     401: ErrorSchema, // [!code highlight]
     404: ErrorSchema, // [!code highlight]
   }) // [!code highlight]
-  .handler(async (ctx) => {
-    const user = await ctx.db.getCurrentUser(ctx.state.userId);
+  .handler(async ({ ctx, state }) => {
+    const user = await ctx.db.getCurrentUser(state.userId);
 
     if (!user) {
       // Validated against 404 schema:

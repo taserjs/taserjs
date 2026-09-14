@@ -35,7 +35,7 @@ Under your `src/routes/` directory, files are classified into two distinct types
 | :----------------------- | :------------------------------------------------------ | :------------------------------------------------------------------------- |
 | **URL Determination**    | **Sole source of truth** for URL matching               | No runtime impact on request routing                                       |
 | **AST Scan Validation**  | Enforces valid file conventions and factory verb parity | Scanned for factory name (`t.get`, `t.layout`), not path identity          |
-| **TypeScript Typecheck** | Emits ambient `RoutePath` / `LayoutId` types            | Validated by `tsc` against ambient `RoutePath`; types `ctx.params`         |
+| **TypeScript Typecheck** | Emits ambient `RoutePath` / `LayoutId` types            | Validated by `tsc` against ambient `RoutePath`; types `req.params`         |
 | **Mismatch Consequence** | Determines where requests actually route                | `tsc` compile error if invalid; param type drift if matching another route |
 
 #### Route Path String Mismatch Error
@@ -251,7 +251,7 @@ Prefixing a segment with `$` denotes a named URL path parameter:
   </Folder>
 </Files>
 
-Inside your route handler, parameters are automatically typed and validated on `ctx.params`:
+Inside your route handler, parameters are automatically typed and validated on `req.params`:
 
 ```ts title="src/routes/tasks/$id.complete.patch.ts"
 import { json } from "@taserjs/router/reply";
@@ -261,9 +261,9 @@ import { t } from "@taserjs/router";
 export default t
   .patch("/tasks/:id/complete")
   .params(z.object({ id: z.string().uuid() }))
-  .handler((ctx) => {
-    // ctx.params.id is strictly typed as a UUID string
-    return json({ taskId: ctx.params.id, completed: true });
+  .handler(({ req }) => {
+    // req.params.id is strictly typed as a UUID string
+    return json({ taskId: req.params.id, completed: true });
   });
 ```
 
@@ -444,12 +444,12 @@ By adding a trailing underscore to `posts_` or `$id_`, the route keeps the URL s
     </Files>
   </Tab>
   <Tab value="URL Resolution & Middleware Inheritance">
-    | File | URL Path | Layout Middleware Chain | | :--- | :--- | :--- | | `posts/index.get.ts` |
-    `GET /posts` | `$.ts` → `posts.ts` | | `posts/$id.get.ts` | `GET /posts/:id` | `$.ts` →
-    `posts.ts` | | `posts_.$id.preview.get.ts` | `GET /posts/:id/preview` | `$.ts` *(Breaks out of
-    posts.ts)* | | `tasks/$id.status.get.ts` | `GET /tasks/:id/status` | `$.ts` → `tasks/$id.ts` | |
-    `tasks/$id_.complete.patch.ts` | `PATCH /tasks/:id/complete` | `$.ts` *(Breaks out of
-    tasks/$id.ts)* |
+| File | URL Path | Layout Middleware Chain |
+| :--- | :--- | :--- |
+| `posts/index.get.ts` | `GET /posts` | `$.ts` → `posts.ts` |
+| `posts/$id.get.ts` | `GET /posts/:id` | `$.ts` → `posts.ts` |
+| `posts_.$id.preview.get.ts` | `GET /posts/:id/preview` | `$.ts` *(Breaks out of posts.ts)* |
+
   </Tab>
 </Tabs>
 

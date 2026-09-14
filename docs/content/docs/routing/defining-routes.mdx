@@ -33,7 +33,7 @@ t.all(path);
   The **filesystem location** (`src/routes/...`) is the sole runtime source of truth for routing,
   HTTP dispatch, and cascading middleware pipelines. The path string passed to builder methods (e.g.
   `t.get("/articles")`, `t.layout("/admin/*")`) is used exclusively for **TypeScript compile-time
-  type inference** (typing `ctx.params`) and type checking against ambient project routes
+  type inference** (typing `req.params`) and type checking against ambient project routes
   (`RoutePath`).
 </Callout>
 
@@ -43,7 +43,7 @@ t.all(path);
 | :------------------- | :------------------------------------------------------- | :-------------------------------------------------- |
 | **Runtime Routing**  | **Source of truth**: determines URL matching and routing | Ignored at runtime (does not affect dispatch)       |
 | **HTTP Dispatch**    | Extracted from filename suffix (`.get.ts`)               | Must match factory method (`t.get`) during AST scan |
-| **Type Inference**   | Emits ambient `RoutePath` union                          | Infers `ctx.params` shape via `PathParams<Path>`    |
+| **Type Inference**   | Emits ambient `RoutePath` union                          | Infers `req.params` shape via `PathParams<Path>`    |
 | **Validation Layer** | Build-time duplicate route checks                        | TypeScript compiler (`tsc`) via ambient `RoutePath` |
 
 ### Compile-Time vs. Build-Time Validation
@@ -55,7 +55,7 @@ t.all(path);
 Type '"/artikles"' is not assignable to type 'RoutePath'.
 ```
 
-- **Mismatched Path String Drift**: If you provide a path string that exists elsewhere in your project (e.g. calling `t.get("/users/:id")` inside `src/routes/articles.get.ts`), runtime routing still dispatches strictly to `/articles`, but `ctx.params` will drift to reflect `{ id: string }` instead of `{}`.
+- **Mismatched Path String Drift**: If you provide a path string that exists elsewhere in your project (e.g. calling `t.get("/users/:id")` inside `src/routes/articles.get.ts`), runtime routing still dispatches strictly to `/articles`, but `req.params` will drift to reflect `{ id: string }` instead of `{}`.
 
 #### Before / After: Aligning Route Path Strings
 
@@ -67,7 +67,7 @@ import { t } from "@taserjs/router";
 // ⚠️ Even if ignored, runtime endpoint remains /articles, while type inference breaks.
 const GET = t.get("/artikles");
 
-export default GET.handler((ctx) => {
+export default GET.handler(({ req, ctx }) => {
   return json({ ok: true });
 });
 ```
@@ -79,7 +79,7 @@ import { t } from "@taserjs/router";
 // ✅ Correct: Path string matches the filesystem-derived endpoint /articles
 const GET = t.get("/articles");
 
-export default GET.handler((ctx) => {
+export default GET.handler(({ req, ctx }) => {
   return json({ ok: true });
 });
 ```
@@ -109,35 +109,19 @@ import { json } from "@taserjs/router/reply";
 import { z } from "zod";
 import { t } from "@taserjs/router";
 
-const GET = t
-  .get("/articles")
-  .query(
-    z.object({
-      category: z.string().optional(),
-      page: z.coerce.number().int().min(1).default(1),
-      limit: z.coerce.number().int().min(1).max(50).default(20),
-    }),
-  )
-  .returns({
-    200: z.object({
-      articles: z.array(
-        z.object({
-          id: z.string(),
-          title: z.string(),
-          category: z.string(),
-        }),
-      ),
-      page: z.number(),
-      total: z.number(),
-    }),
-  });
+const GET = t.get("/articles").query(
+  z.object({
+    category: z.string().optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(50).default(20),
+  }),
+);
 
-export type RouteContext = typeof GET.$Infer.Context;
-export default GET.handler(async (ctx) => {
-  const articles = await ctx.db.getArticles(ctx.query);
+export default GET.handler(async ({ ctx, req }) => {
+  const articles = await ctx.db.getArticles(req.query);
   return json({
     articles,
-    page: ctx.query.page,
+    page: req.query.page,
     total: 100,
   });
 });
@@ -145,7 +129,7 @@ export default GET.handler(async (ctx) => {
 
 ### Path Parameters & Type Precedence
 
-Path parameters in dynamic routes (such as `/tasks/:id` or `/orgs/:orgId/users/:id`) are automatically inferred as `string` on `ctx.params`.
+Path parameters in dynamic routes (such as `/tasks/:id` or `/orgs/:orgId/users/:id`) are automatically inferred as `string` on `req.params`.
 
 When you supply a `.params()` schema, the validated schema types **take precedence and override** the default `string` types with full type coercion:
 
@@ -158,16 +142,16 @@ export default t
   .get("/tasks/:id")
   .params(
     z.object({
-      id: z.coerce.number(), // ctx.params.id is coerced to number
+      id: z.coerce.number(), // req.params.id is coerced to number
     }),
   )
-  .handler(async (ctx) => {
-    const task = await ctx.db.getTaskById(ctx.params.id); // ctx.params.id is number
+  .handler(async ({ ctx, req }) => {
+    const task = await ctx.db.getTaskById(req.params.id); // req.params.id is number
     return json(task);
   });
 ```
 
-Any path parameter not explicitly mentioned in the `.params()` schema retains its inferred `string` type (for example, `/orgs/:orgId/tasks/:id` preserves `ctx.params.orgId` as `string`).
+Any path parameter not explicitly mentioned in the `.params()` schema retains its inferred `string` type (for example, `/orgs/:orgId/tasks/:id` preserves `req.params.orgId` as `string`).
 
 ---
 
@@ -180,27 +164,15 @@ import { created } from "@taserjs/router/reply";
 import { z } from "zod";
 import { t } from "@taserjs/router";
 
-const POST = t
-  .post("/articles")
-  .body(
-    z.object({
-      title: z.string().min(3).max(120),
-      content: z.string().min(10),
-      tags: z.array(z.string()).default([]),
-    }),
-  )
-  .returns({
-    201: z.object({
-      id: z.string(),
-      title: z.string(),
-      createdAt: z.string(),
-    }),
-    400: z.object({ message: z.string() }),
-  });
-
-export type RouteContext = typeof POST.$Infer.Context;
-export default POST.handler(async (ctx) => {
-  const article = await ctx.db.createArticle(ctx.body);
+const POST = t.post("/articles").body(
+  z.object({
+    title: z.string().min(3).max(120),
+    content: z.string().min(10),
+    tags: z.array(z.string()).default([]),
+  }),
+);
+export default POST.handler(async ({ ctx, req }) => {
+  const article = await ctx.db.createArticle(req.body);
   return created(article);
 });
 ```
@@ -228,7 +200,7 @@ export default t
   .delete("/admin/purge")
   .use(rateLimit({ max: 5, windowMs: 60000 }))
   .use(verifySuperAdmin())
-  .handler(async (ctx) => {
+  .handler(async ({ ctx }) => {
     await ctx.db.purgeDeletedRecords();
     return noContent();
   });
@@ -245,52 +217,14 @@ import { json, ok } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
 // Accepts GET and POST requests
-export default t.any("/webhooks/stripe", ["GET", "POST"]).handler(async (ctx) => {
-  if (ctx.method === "GET") {
+export default t.any("/webhooks/stripe", ["GET", "POST"]).handler(async ({ ctx, req }) => {
+  if (req.method === "GET") {
     return json({ status: "Stripe webhook endpoint active" });
   }
 
-  const payload = ctx.body;
+  const payload = req.body;
   await handleStripeEvent(payload);
   return ok();
-});
-```
-
----
-
-## Inferred Route Types (`$Infer`)
-
-Route builders provide an `$Infer` namespace for extracting the exact compile-time types of your route context, input arguments, and returns:
-
-```ts title="src/routes/users/$id.get.ts"
-import { json, notFound } from "@taserjs/router/reply";
-import { z } from "zod";
-import { t } from "@taserjs/router";
-
-const GET = t
-  .get("/users/:id")
-  .params(z.object({ id: z.string().uuid() }))
-  .query(z.object({ includeProfile: z.coerce.boolean().default(false) }))
-  .returns({
-    200: z.object({ id: z.string(), name: z.string() }),
-    404: z.object({ message: z.string() }),
-  });
-
-// Extract context shape (query, params, body, state, singletons):
-export type RouteContext = typeof GET.$Infer.Context;
-
-// Extract input arguments shape:
-export type RouteInput = typeof GET.$Infer.Input;
-
-// Extract returns shape:
-export type RouteOutput = typeof GET.$Infer.Output;
-
-export default GET.handler(async (ctx) => {
-  const user = await ctx.db.findUser(ctx.params.id);
-  if (!user) {
-    return notFound({ message: "User not found" });
-  }
-  return json(user);
 });
 ```
 

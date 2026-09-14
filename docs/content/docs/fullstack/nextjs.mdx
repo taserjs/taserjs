@@ -206,8 +206,8 @@ Install the necessary dependencies in your Next.js project:
         }),
       });
 
-    export type RouteContext = typeof GET.$Infer.Context;
-    export default GET.handler((ctx) => {
+    export type RouteContext = Parameters<typeof GET.handler>[0];
+    export default GET.handler(({ ctx }) => {
       return json({
         users: [
           { id: "usr_1", name: "Alice", email: "alice@example.com" },
