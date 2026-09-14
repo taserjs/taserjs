@@ -45,26 +45,26 @@ app.post("/private", validateBody(schema), (req, res) => {
   res.send({ ok: true });
 });`,
     solutionTitle: "Cascading Typed Pipeline",
-    solutionBadge: "100% Inferred Context",
+    solutionBadge: "100% Inferred State",
     solutionFilename: "routes/admin.ts + routes/admin/reports.post.ts",
-    solutionCode: `// Middleware validates and passes state to next()
-export default t.layout("/admin/*").use(async (ctx, next) => {
-  const token = ctx.headers.get("authorization");
+    solutionCode: `// Middleware validates and passes state via next()
+export default t.layout("/admin/*").use(async ({ req, ctx }, next) => {
+  const token = req.headers.get("authorization");
   const user = await verifyUser(token);
   if (!user) throw new Error("Unauthorized");
-  return next({ user }); // Merges into ctx.state
+  return next({ user }); // Merges into state
 });
 
-// Handler receives fully-inferred ctx automatically
+// Handler receives fully-inferred facets automatically
 const POST = t.post("/admin/reports").body(ReportInputSchema);
 
-export default POST.handler(async (ctx) => {
-  const user = ctx.state.user; // ✓ Inferred User from next({ user })
-  const body = ctx.body;       // ✓ Inferred ReportInput
+export default POST.handler(async ({ req, state }) => {
+  const user = state.user; // ✓ Inferred User from next({ user })
+  const body = req.body;   // ✓ Inferred ReportInput
   return json({ created: true, by: user.id });
 });`,
     takeaway:
-      "In Taser.js, middleware return state flows directly into ctx.state with zero typecasting or Express global interface hacks.",
+      "In Taser.js, middleware return state flows into the state facet with zero typecasting or Express global interface hacks.",
   },
   {
     id: "discovery",
@@ -86,7 +86,11 @@ adminRouter.get("/reports/:id", getReportHandler);
     solutionTitle: "Deterministic File-Based Routing",
     solutionBadge: "Zero Manual Tables",
     solutionFilename: "src/routes",
-    solutionCode: `// Directory paths match API endpoints automatically:
+    solutionCode: `// src/taser.ts — uninstantiated definition
+export default defineTaser({ response: { validate: true } })
+  .context(context);
+
+// Directory paths match API endpoints automatically:
 //
 // src/routes/
 // ├── $.ts                      -> Root Middleware
@@ -98,9 +102,10 @@ adminRouter.get("/reports/:id", getReportHandler);
 //         ├── index.post.ts    -> POST /admin/reports
 //         └── $id.get.ts        -> GET  /admin/reports/:id
 //
-// ✓ Discovered and type-checked on save by CLI watch`,
+// ✓ Discovered and type-checked on save via @taserjs/plugin / taser generate
+//    → src/.taserjs/routes.gen.ts (app + AppManifest)`,
     takeaway:
-      "File paths reflect your actual API endpoints. Middlewares scope cleanly to their folder without manual router registries.",
+      "File paths reflect your actual API endpoints. Middlewares scope cleanly to their folder; the plugin writes routes.gen.ts for the runnable app and typed client.",
   },
   {
     id: "returns",
@@ -128,7 +133,7 @@ adminRouter.get("/reports/:id", getReportHandler);
     }),
     404: z.object({ error: z.string() }),
   })
-  .handler(async (ctx) => {
+  .handler(async ({ ctx }) => {
     const data = await getReports();
     // ✓ Type-checked: Compiler errors if return shape doesn't match!
     return json({ reports: data.items, total: data.count });

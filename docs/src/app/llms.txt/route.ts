@@ -5,15 +5,22 @@ export const revalidate = false;
 
 const LLM_SUMMARY_HEADER = `# Taser.js API Router Quick Reference
 
-> Taser.js is a type-safe, file-based REST API router for TypeScript supporting Vite Standalone, Nitro Multi-Cloud, Next.js App Router, and Host Pass-Through (Express, Fastify, Hono, Web Standard).
+> Taser.js is a type-safe, file-based REST API router for TypeScript. Packages: \`@taserjs/router\`, \`@taserjs/cli\`, \`@taserjs/plugin\`, \`@taserjs/client\`. Runs on Vite standalone, Nitro, Next.js App Router, TanStack Start, and host pass-through (Express, Fastify, Hono).
+
+## Canonical Architecture
+- App definition: \`export default defineTaser({ ... })\` from \`@taserjs/router\` (uninstantiated \`TaserDefinition\`).
+- Generated entry: \`src/.taserjs/routes.gen.ts\` exports runnable \`app\`, ambient types, and \`AppManifest\`.
+- Paths: configure \`serverDir\` / \`routesDir\` / \`outputDir\` in \`taserjs.config.ts\` via \`@taserjs/cli\`.
+- Mount URL prefix with \`defineTaser().basePath("/api")\` — never on plugin options.
+- Next plugin options are only \`cwd?\` and \`config?\` (\`createTaser\` from \`@taserjs/plugin/next\`).
 
 ## Core File Naming Conventions
 - Root Route: \`src/routes/index.get.ts\` -> GET /
 - Dynamic Param: \`src/routes/users/$id.get.ts\` -> GET /users/:id
 - Nested Flat Route: \`src/routes/users.$id.posts.get.ts\` -> GET /users/:id/posts
-- Catch-All Splat: \`src/routes/files.$.get.ts\` -> GET /files/*
-- Pathless Layout: \`src/routes/_auth.ts\` -> Scoped middleware applied to all sibling routes
-- Directory Layout: \`src/routes/api/$.ts\` -> Scoped middleware applied to /api/*
+- Catch-All Splat: \`src/routes/files.$.get.ts\` -> GET /files/* (\`req.params._splat\`)
+- Pathless Layout: \`src/routes/_auth.ts\` -> Scoped middleware for pathless group
+- Directory Layout: \`src/routes/api/$.ts\` -> Scoped middleware for /api/*
 
 ## Route Handler Pattern
 \`\`\`ts
@@ -30,10 +37,8 @@ const GET = t
     404: z.object({ message: z.string() }),
   });
 
-export type RouteContext = typeof GET.$Infer.Context;
-
-export default GET.handler(async (ctx) => {
-  const user = await ctx.db.findUser(ctx.params.id);
+export default GET.handler(async ({ req, ctx }) => {
+  const user = await ctx.db.findUser(req.params.id);
   if (!user) {
     return notFound({ message: "User not found" });
   }
@@ -42,12 +47,13 @@ export default GET.handler(async (ctx) => {
 \`\`\`
 
 ## Middleware & Layout Pattern
+Handler/middleware args are facet-split: \`{ req, ctx, state, ...services }\`.
 \`\`\`ts
 import { unauthorized } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-export default t.layout("/dashboard").use(async (ctx, next) => {
-  const authHeader = ctx.headers.get("authorization");
+export default t.layout("/dashboard").use(async ({ req }, next) => {
+  const authHeader = req.headers.get("authorization");
   if (!authHeader) {
     return unauthorized({ message: "Missing authorization" });
   }
@@ -55,24 +61,29 @@ export default t.layout("/dashboard").use(async (ctx, next) => {
 });
 \`\`\`
 
-## Standalone Middleware Unit
-\`\`\`ts
-import { middleware } from "@taserjs/router";
-import { unauthorized } from "@taserjs/router/reply";
-import { z } from "zod";
+## Cookies
+Mount \`cookie()\` from \`@taserjs/router/middleware/cookie\` on a layout, then use \`{ cookies }\` (Cookie Jar Instance).
 
-export const adminGuard = middleware()
-  .query(z.object({ token: z.string() }))
-  .handler(async (ctx, next) => {
-    if (ctx.query.token !== "secret") return unauthorized();
-    return next({ admin: true });
-  });
+## Streams
+From \`@taserjs/router/stream\`: \`pipe\`, \`buffer\`, \`blob\`, \`sse\`. There is no \`file()\` helper.
+
+## Typed Client
+\`\`\`ts
+import { createClient } from "@taserjs/client";
+import type { AppManifest } from "./.taserjs/routes.gen.js";
+
+const api = createClient<AppManifest>({ baseUrl: "/api" });
+await api.users._id.$get({ param: { id: "..." } });
 \`\`\`
 
 ## Reply Helpers
-All HTTP responses use standalone functions from \`@taserjs/router/reply\`:
-- \`json(data, init?)\`, \`text(data, init?)\`, \`html(data, init?)\`, \`noContent(init?)\`, \`redirect(location, init?)\`
-- \`ok()\`, \`created()\`, \`badRequest()\`, \`unauthorized()\`, \`forbidden()\`, \`notFound()\`, \`unprocessableEntity()\`, \`internalServerError()\`, etc.
+From \`@taserjs/router/reply\`:
+- \`json\`, \`text\`, \`html\`, \`noContent\`, \`redirect\`
+- \`badRequest\`, \`unauthorized\`, \`forbidden\`, \`notFound\`, \`unprocessableEntity\`, \`internalServerError\`, etc.
+
+## Generate
+- Dev/build: \`@taserjs/plugin\` regenerates \`routes.gen.ts\`
+- Standalone: \`taser generate\` / \`npx @taserjs/cli generate\`
 
 ---
 

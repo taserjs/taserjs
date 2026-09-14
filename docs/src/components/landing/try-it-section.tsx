@@ -161,7 +161,7 @@ export function TryItSection() {
                     <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[11px] font-bold text-cyan-600 dark:text-cyan-300">
                       create-taserjs
                     </span>
-                    <span className="ml-2 text-fd-muted-foreground text-[11px]">v0.1.0</span>
+                    <span className="ml-2 text-fd-muted-foreground text-[11px]">v0.0.1</span>
                   </div>
 
                   {/* Step 1: Project Name */}

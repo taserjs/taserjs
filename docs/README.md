@@ -1,45 +1,45 @@
-# taser-docs
+# Taser.js Documentation Site
 
-This is a Next.js application generated with
-[Create Fumadocs](https://github.com/fuma-nama/fumadocs).
+Marketing site and docs for [Taser.js](https://taserjs.dev), built with [Fumadocs](https://fumadocs.dev) and Next.js.
 
-Run development server:
+Content lives under `content/docs/`. Landing page components live under `src/components/landing/`.
+
+## Development
+
+From the monorepo root:
 
 ```bash
-npm run dev
-# or
-pnpm dev
-# or
-yarn dev
+pnpm --filter docs dev
 ```
 
-Open http://localhost:3000 with your browser to see the result.
+Or inside this package:
 
-## Explore
+```bash
+pnpm dev
+```
 
-In the project, you can see:
+Open [http://localhost:3000](http://localhost:3000).
 
-- `lib/source.ts`: Code for content source adapter, [`loader()`](https://fumadocs.dev/docs/headless/source-api) provides the interface to access your content.
-- `lib/layout.shared.tsx`: Shared options for layouts, optional but preferred to keep.
+## Scripts
 
-| Route                     | Description                                            |
-| ------------------------- | ------------------------------------------------------ |
-| `app/(home)`              | The route group for your landing page and other pages. |
-| `app/docs`                | The documentation layout and pages.                    |
-| `app/api/search/route.ts` | The Route Handler for search.                          |
+| Script        | Description                          |
+| :------------ | :----------------------------------- |
+| `pnpm dev`    | Start the Next.js docs app           |
+| `pnpm build`  | Production build                     |
+| `pnpm typecheck` | `next typegen` + `tsc --noEmit`   |
 
-### Fumadocs MDX
+## LLM Resources
 
-Collections are defined with the [Macro API](https://fumadocs.dev/docs/mdx/macro) in `lib/source.ts`.
+Generated from docs content at:
 
-Read the [Introduction](https://fumadocs.dev/docs/mdx) for further details.
+- `/llms.txt` — concise quick reference + page index
+- `/llms-full.txt` — full consolidated documentation text
 
-## Learn More
+## Packages Documented
 
-To learn more about Next.js and Fumadocs, take a look at the following
-resources:
+- `@taserjs/router` — routes, layouts, middleware, reply/stream
+- `@taserjs/cli` — `taser generate`, `taserjs.config.ts`
+- `@taserjs/plugin` — Vite, Next, Nitro, and other bundlers
+- `@taserjs/client` — `createClient<AppManifest>()`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js
-  features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [Fumadocs](https://fumadocs.dev) - learn about Fumadocs
+See the [repository README](../README.md) for scaffolding and community links.

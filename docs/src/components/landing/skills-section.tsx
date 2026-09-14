@@ -49,7 +49,7 @@ const promptPresets = [
     id: "layout",
     label: "Auth Layout",
     prompt:
-      "Create an auth layout middleware for /api/admin/* that verifies JWT bearer tokens and injects user into ctx.state",
+      "Create an auth layout middleware for /api/admin/* that verifies JWT bearer tokens and injects user into state",
   },
 ];
 

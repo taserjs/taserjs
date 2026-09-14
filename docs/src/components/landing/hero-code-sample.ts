@@ -5,7 +5,7 @@ export type HeroCodeTab = {
 };
 
 export const heroCodeTabs: HeroCodeTab[] = [
-  { id: "context", label: "Context", filename: "context.ts" },
+  { id: "app", label: "App", filename: "taser.ts" },
   { id: "layout", label: "Layout", filename: "routes/$.ts" },
   { id: "auth", label: "Auth", filename: "routes/dashboard.ts" },
   { id: "route", label: "Route", filename: "routes/dashboard/users.get.ts" },
@@ -13,7 +13,8 @@ export const heroCodeTabs: HeroCodeTab[] = [
 
 /** Human-readable per-tab sources for Shiki. */
 export const heroTabSources: Record<string, string> = {
-  context: `import { createContext } from '@taserjs/router'
+  app: `import { defineTaser, createContext } from '@taserjs/router'
+import { notFound } from '@taserjs/router/reply'
 
 export const context = createContext({
   boot: () => ({
@@ -23,13 +24,19 @@ export const context = createContext({
   request: () => ({
     requestId: crypto.randomUUID(),
   }),
-})`,
-  layout: `import { cors } from '@taserjs/router/cors'
+})
+
+export default defineTaser({
+  response: { validate: true },
+})
+  .context(context)
+  .notFound(() => notFound({ message: 'Not Found' }))`,
+  layout: `import { cors } from '@taserjs/router/middleware/cors'
 import { t } from '@taserjs/router'
 
 export default t.layout('/*')
   .use(cors({ origin: ['https://app.example.com'] }))`,
-  auth: `import { jwt } from '@taserjs/router/jwt'
+  auth: `import { jwt } from '@taserjs/router/middleware/jwt'
 import { t } from '@taserjs/router'
 
 type JwtClaims = {
@@ -54,10 +61,9 @@ const GET = t.get('/dashboard/users')
     limit: z.coerce.number().default(10),
   }))
 
-export type RouteContext = typeof GET.$Infer.Context
-export default GET.handler(async (ctx) => {
-  const sub = ctx.state.jwtPayload.sub
-  const { page, limit } = ctx.query
+export default GET.handler(async ({ req, ctx, state }) => {
+  const sub = state.jwtPayload.sub
+  const { page, limit } = req.query
   const users = await ctx.db.getUsers(page, limit)
   return json({ sub, users })
 })`,
