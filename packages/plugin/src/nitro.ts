@@ -80,22 +80,20 @@ ${fallback ? fallback.imports : ""}
 
 ${fallback ? fallback.setup : ""}
 
-export default defineEventHandler((event) => {
+export default (event) => {
   return taserApp.fetch(event.req);
-});
+};
 `;
 }
 
-export function setupTaserNitro(nitro: any, options: TaserPluginOptions = {}): void {
+export function setupTaserNitro(nitro: any, options: TaserPluginOptions = {}): Promise<void> | void {
   const state = nitro.options as unknown as Record<string, unknown>;
   if (state._taserHookRegistered) {
     return;
   }
   state._taserHookRegistered = true;
 
-  nitro.hooks.hookOnce("build:before", async () => {
-    await applyTaserNitro(nitro, options);
-  });
+  return applyTaserNitro(nitro, options);
 }
 
 export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): Promise<void> {
@@ -123,14 +121,26 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
   nitro.options.virtual = nitro.options.virtual || {};
   const isStandalone = options.standalone !== false;
 
+  const VIRTUAL_NITRO_HANDLER_ID = "#taserjs/virtual/nitro-handler";
+
   if (isStandalone) {
     nitro.options.virtual["#nitro/virtual/app"] = () => {
       const currentHost = getHostServer(config, cwd, options);
       return buildNitroStandaloneAppSource(routesGenPath, currentHost);
     };
     nitro.options.virtual["#nitro/virtual/routing"] = () => buildNitroRoutingVirtualSource();
+    nitro.options.virtual[VIRTUAL_NITRO_HANDLER_ID] = () => {
+      const currentHost = getHostServer(config, cwd, options);
+      return buildNitroMiddlewareHandlerSource(routesGenPath, currentHost);
+    };
+
+    nitro.options.routes = nitro.options.routes || {};
+    nitro.options.routes["/**"] = VIRTUAL_NITRO_HANDLER_ID;
+
+    if (nitro.routing?.sync) {
+      nitro.routing.sync();
+    }
   } else {
-    const VIRTUAL_NITRO_HANDLER_ID = "#taserjs/virtual/nitro-handler";
     nitro.options.virtual[VIRTUAL_NITRO_HANDLER_ID] = () => {
       const currentHost = getHostServer(config, cwd, options);
       return buildNitroMiddlewareHandlerSource(routesGenPath, currentHost);
@@ -142,6 +152,9 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
       lazy: false,
       handler: VIRTUAL_NITRO_HANDLER_ID,
     });
+    if (nitro.routing?.sync) {
+      nitro.routing.sync();
+    }
   }
 
   let watcher: FSWatcher | undefined;

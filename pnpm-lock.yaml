@@ -191,6 +191,9 @@ importers:
       hono:
         specifier: ^4.13.7
         version: 4.13.7
+      nitro:
+        specifier: ^3.0.260610-beta
+        version: 3.0.260610-beta(chokidar@5.0.0)(jiti@2.7.0)(lru-cache@11.5.2)(vite@8.2.2(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
       srvx:
         specifier: ^1.0.4
         version: 1.0.4

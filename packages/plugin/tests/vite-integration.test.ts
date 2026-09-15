@@ -643,4 +643,28 @@ export default {
     const apiUnmatchedRes = await fetch(`http://localhost:${port}/api/other`);
     expect(apiUnmatchedRes.status).toBe(404);
   });
+
+  it("exposes nitro hook property on taser plugin object for Nitro Vite plugin integration", async () => {
+    const pluginInstance = taser({ standalone: true }) as any;
+    expect(pluginInstance.nitro).toBeDefined();
+    expect(typeof pluginInstance.nitro.setup).toBe("function");
+
+    const mockNitro: any = {
+      options: {
+        rootDir: tempDir,
+        virtual: {},
+        routes: {},
+        handlers: [],
+      },
+      hooks: {
+        hookOnce: (_name: string, fn: any) => fn(),
+        hook: () => {},
+      },
+    };
+
+    await pluginInstance.nitro.setup(mockNitro);
+
+    expect(typeof mockNitro.options.virtual["#nitro/virtual/app"]).toBe("function");
+    expect(mockNitro.options.routes["/**"]).toBe("#taserjs/virtual/nitro-handler");
+  });
 });

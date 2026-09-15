@@ -255,6 +255,7 @@ describe(
 
       expect(typeof standaloneNitro.options.virtual["#nitro/virtual/app"]).toBe("function");
       expect(typeof standaloneNitro.options.virtual["#nitro/virtual/routing"]).toBe("function");
+      expect(standaloneNitro.options.routes["/**"]).toBe("#taserjs/virtual/nitro-handler");
 
       const standaloneAppCode = standaloneNitro.options.virtual["#nitro/virtual/app"]();
       expect(standaloneAppCode).toContain("createNitroApp");
@@ -283,10 +284,10 @@ describe(
       expect(middlewareNitro.options.handlers[0].route).toBe("/**");
       const virtualHandlerCode =
         middlewareNitro.options.virtual["#taserjs/virtual/nitro-handler"]();
-      expect(virtualHandlerCode).toContain("defineEventHandler");
+      expect(virtualHandlerCode).toContain("taserApp.fetch(event.req)");
+      expect(virtualHandlerCode).not.toContain("defineEventHandler");
       expect(virtualHandlerCode).not.toContain("toWebRequest");
       expect(virtualHandlerCode).not.toContain('from "h3"');
-      expect(virtualHandlerCode).toContain("taserApp.fetch(event.req)");
 
       // 3. Default mode (standalone omitted) should default to standalone: true
       const defaultNitro: any = {
