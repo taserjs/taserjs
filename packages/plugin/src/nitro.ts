@@ -76,13 +76,12 @@ export function buildNitroMiddlewareHandlerSource(
 
   return `// @ts-nocheck
 import { app as taserApp } from "${normalizedPath}";
-import { toWebRequest } from "h3";
 ${fallback ? fallback.imports : ""}
 
 ${fallback ? fallback.setup : ""}
 
 export default defineEventHandler((event) => {
-  return taserApp.fetch(toWebRequest(event));
+  return taserApp.fetch(event.req);
 });
 `;
 }
@@ -122,7 +121,7 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
   executeGeneration();
 
   nitro.options.virtual = nitro.options.virtual || {};
-  const isStandalone = options.standalone === true;
+  const isStandalone = options.standalone !== false;
 
   if (isStandalone) {
     nitro.options.virtual["#nitro/virtual/app"] = () => {

@@ -284,8 +284,26 @@ describe(
       const virtualHandlerCode =
         middlewareNitro.options.virtual["#taserjs/virtual/nitro-handler"]();
       expect(virtualHandlerCode).toContain("defineEventHandler");
-      expect(virtualHandlerCode).toContain("toWebRequest");
-      expect(virtualHandlerCode).toContain("taserApp.fetch(toWebRequest(event))");
+      expect(virtualHandlerCode).not.toContain("toWebRequest");
+      expect(virtualHandlerCode).not.toContain('from "h3"');
+      expect(virtualHandlerCode).toContain("taserApp.fetch(event.req)");
+
+      // 3. Default mode (standalone omitted) should default to standalone: true
+      const defaultNitro: any = {
+        options: {
+          rootDir: projectDir,
+          virtual: {},
+          handlers: [],
+        },
+        hooks: {
+          hookOnce: (_name: string, fn: any) => fn(),
+          hook: () => {},
+        },
+      };
+
+      await applyTaserNitro(defaultNitro, { cwd: projectDir });
+      expect(typeof defaultNitro.options.virtual["#nitro/virtual/app"]).toBe("function");
+      expect(typeof defaultNitro.options.virtual["#nitro/virtual/routing"]).toBe("function");
     });
   },
 );
