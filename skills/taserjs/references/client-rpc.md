@@ -30,7 +30,7 @@ Regenerate the manifest (`pnpm dev`, `pnpm build`, or `taser generate`) before r
 
 ## 2. Calling API Endpoints
 
-Proxy methods: `$get`, `$post`, `$put`, `$patch`, `$delete`, `$options`, `$head`, `$query` (there is no `$fetch`).
+Proxy methods: `$get`, `$post`, `$put`, `$patch`, `$delete`, `$options`, `$query` (there is no `$fetch`).
 
 ### Static Endpoints & Query Parameters
 

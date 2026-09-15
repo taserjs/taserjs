@@ -5,7 +5,6 @@ export const METHOD_MAP = {
   PATCH: "$patch",
   DELETE: "$delete",
   OPTIONS: "$options",
-  HEAD: "$head",
   QUERY: "$query",
 } as const;
 
@@ -21,6 +20,5 @@ export const CLIENT_TO_HTTP: Record<ClientMethodKey, string> = {
   $patch: "PATCH",
   $delete: "DELETE",
   $options: "OPTIONS",
-  $head: "HEAD",
   $query: "QUERY",
 };

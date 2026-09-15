@@ -542,7 +542,7 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       });
   });
 
-  describe("Multi-method and catch-all route builders (t.all, t.any, t.query, t.options, t.head)", () => {
+  describe("Multi-method and catch-all route builders (t.all, t.any, t.query, t.options)", () => {
     it("builds t.all() catch-all route definition", () => {
       const handler = () => new Response("all-methods");
       const route = t.all("/proxy/*").handler(handler);
@@ -564,7 +564,7 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       expect(route.handler).toBe(handler);
     });
 
-    it("builds t.query(), t.options(), and t.head() route definitions", () => {
+    it("builds t.query() and t.options() route definitions", () => {
       const dummyHandler = () => new Response("ok");
 
       const queryRoute = t.query("/search").handler(dummyHandler);
@@ -574,10 +574,6 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       const optionsRoute = t.options("/cors").handler(dummyHandler);
       expect(optionsRoute.method).toBe("OPTIONS");
       expect(optionsRoute.path).toBe("/cors");
-
-      const headRoute = t.head("/health").handler(dummyHandler);
-      expect(headRoute.method).toBe("HEAD");
-      expect(headRoute.path).toBe("/health");
     });
   });
 
@@ -833,10 +829,6 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       t.get("/items/:id")
         .params(mockSchema({ id: "1" }))
         .body(mockSchema({ foo: "bar" }));
-
-      // Also disallows on HEAD routes
-      // @ts-expect-error HEAD routes do not accept request bodies
-      t.head("/test").body(mockSchema({ foo: "bar" }));
     });
 
     it("infers req.body as never on GET routes", () => {

@@ -105,10 +105,6 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
   });
 
   for (const [routePath, methods] of Object.entries(manifest.routes)) {
-    const hasHead = Boolean(methods["HEAD"] || methods["head"]);
-    const hasGet = Boolean(methods["GET"] || methods["get"]);
-    const headEntry = methods["HEAD"] ?? methods["head"];
-
     for (const [methodKey, entry] of Object.entries(methods)) {
       const routeDefinition = entry.route;
       const method = (routeDefinition.method || methodKey).toUpperCase();
@@ -124,30 +120,12 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
         options?.response,
       );
 
-      // If this is a GET route and there is a dedicated HEAD route, prepare headPipeline for delegation
-      let headPipeline:
-        | ((req: TaserRequest, ctx: Record<string, unknown>) => Response | Promise<Response>)
-        | undefined;
-      if (method === "GET" && hasHead && headEntry) {
-        const headMiddlewares = resolveMiddlewares(headEntry, manifest);
-        headPipeline = createPipeline(
-          headMiddlewares,
-          headEntry.route.handler,
-          headEntry.route.schemas,
-          options?.response,
-        );
-      }
-
       const routeHandler = (c: Context) => {
-        if (method === "HEAD" && c.req.method !== "HEAD") {
-          return new Response("Method Not Allowed", { status: 405 });
-        }
         try {
           const req = createTaserRequest(c, targetPath, isStatic);
-          const activePipeline = c.req.method === "HEAD" && headPipeline ? headPipeline : pipeline;
           const syncCtx = resolveContextSync(c);
           if (syncCtx) {
-            const res = activePipeline(req, syncCtx);
+            const res = pipeline(req, syncCtx);
             if (res instanceof Promise) {
               return res.catch(catchResponse);
             }
@@ -155,7 +133,7 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
           }
 
           return resolveContext(c, req)
-            .then((asyncCtx) => activePipeline(req, asyncCtx))
+            .then((asyncCtx) => pipeline(req, asyncCtx))
             .catch(catchResponse);
         } catch (err) {
           return catchResponse(err);
@@ -170,12 +148,6 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
             ? routeDefinition.methods.map((m) => m.toUpperCase())
             : ["GET", "POST", "PUT", "DELETE", "PATCH"];
         app.on(methodsToMount, targetPath, routeHandler);
-      } else if (method === "HEAD") {
-        if (!hasGet) {
-          app.on(["HEAD", "GET"], targetPath, routeHandler);
-        } else {
-          app.on("HEAD", targetPath, routeHandler);
-        }
       } else {
         app.on(method, targetPath, routeHandler);
       }

@@ -23,7 +23,6 @@ describe("url utils", () => {
     expect(clientMethodToHttp("$patch")).toBe("PATCH");
     expect(clientMethodToHttp("$delete")).toBe("DELETE");
     expect(clientMethodToHttp("$options")).toBe("OPTIONS");
-    expect(clientMethodToHttp("$head")).toBe("HEAD");
     expect(clientMethodToHttp("$query")).toBe("QUERY");
   });
 

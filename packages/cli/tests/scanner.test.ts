@@ -229,7 +229,7 @@ describe("route scanner and AST validation", () => {
     expect(result.diagnostics[0]?.message).toMatch(/Expected path pattern "\/admin\/\*"/);
   });
 
-  it("discovers .all, .any, .query, .options, and .head route files and verifies AST", () => {
+  it("discovers .all, .any, .query, and .options route files and verifies AST", () => {
     const routesDir = join(tempDir, "routes-multimethod");
     mkdirSync(routesDir, { recursive: true });
 
@@ -249,14 +249,10 @@ describe("route scanner and AST validation", () => {
       join(routesDir, "cors.options.ts"),
       'import { t } from "@taserjs/router";\nexport default t.options("/cors").handler(() => new Response("options"));',
     );
-    writeFileSync(
-      join(routesDir, "health.head.ts"),
-      'import { t } from "@taserjs/router";\nexport default t.head("/health").handler(() => new Response("head"));',
-    );
 
     const result = scanRoutes({ routesDir, cwd: tempDir });
     expect(result.diagnostics).toHaveLength(0);
-    expect(result.routes).toHaveLength(5);
+    expect(result.routes).toHaveLength(4);
 
     const allRoute = result.routes.find((r) => r.method === "ALL");
     expect(allRoute).toBeDefined();
@@ -273,10 +269,6 @@ describe("route scanner and AST validation", () => {
     const optionsRoute = result.routes.find((r) => r.method === "OPTIONS");
     expect(optionsRoute).toBeDefined();
     expect(optionsRoute?.canonicalPath).toBe("/cors");
-
-    const headRoute = result.routes.find((r) => r.method === "HEAD");
-    expect(headRoute).toBeDefined();
-    expect(headRoute?.canonicalPath).toBe("/health");
   });
 
   it("reports diagnostic error when AST method does not match .all or .query suffix", () => {

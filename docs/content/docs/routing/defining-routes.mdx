@@ -23,7 +23,6 @@ t.put(path);
 t.patch(path);
 t.delete(path);
 t.options(path);
-t.head(path);
 t.query(path);
 t.any(path, methods);
 t.all(path);
@@ -102,7 +101,7 @@ Each builder method returns a `RouteBuilder` that supports fluent method chainin
 
 ## Defining a GET Route
 
-GET, DELETE, OPTIONS, and HEAD routes accept validation schemas for `query` and `params`:
+GET, DELETE, and OPTIONS routes accept validation schemas for `query` and `params`:
 
 ```ts title="src/routes/articles.get.ts"
 import { json } from "@taserjs/router/reply";

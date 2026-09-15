@@ -198,14 +198,14 @@ import { unprocessableEntity, internalServerError } from "@taserjs/router/reply"
 
 First-party security and utility middleware ship under `@taserjs/router/middleware/*`:
 
-| Import from | Examples |
-| :---------- | :------- |
-| `@taserjs/router/middleware/cors` | `cors` |
-| `@taserjs/router/middleware/cookie` | `cookie` |
-| `@taserjs/router/middleware/jwt` | `jwt` |
+| Import from                                 | Examples        |
+| :------------------------------------------ | :-------------- |
+| `@taserjs/router/middleware/cors`           | `cors`          |
+| `@taserjs/router/middleware/cookie`         | `cookie`        |
+| `@taserjs/router/middleware/jwt`            | `jwt`           |
 | `@taserjs/router/middleware/secure-headers` | `secureHeaders` |
-| `@taserjs/router/middleware/csrf` | `csrf` |
-| `@taserjs/router/middleware/compress` | `compress` |
+| `@taserjs/router/middleware/csrf`           | `csrf`          |
+| `@taserjs/router/middleware/compress`       | `compress`      |
 
 ---
 

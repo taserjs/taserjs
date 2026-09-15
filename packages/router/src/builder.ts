@@ -733,8 +733,6 @@ export const t = {
     new RouteBuilder<"PATCH", TPath>("PATCH", path),
   options: <TPath extends RegisteredRoutePath>(path: TPath) =>
     new RouteBuilder<"OPTIONS", TPath>("OPTIONS", path),
-  head: <TPath extends RegisteredRoutePath>(path: TPath) =>
-    new RouteBuilder<"HEAD", TPath>("HEAD", path),
   query: <TPath extends RegisteredRoutePath>(path: TPath) =>
     new RouteBuilder<"QUERY", TPath>("QUERY", path),
   all: <TPath extends RegisteredRoutePath>(path: TPath) =>

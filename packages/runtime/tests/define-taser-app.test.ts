@@ -226,10 +226,7 @@ describe("createTaserApp with defineTaser and error boundaries", () => {
 
   it("handles custom notFound scoped to basePath so unmatched API routes do not leak to host", async () => {
     const notFoundSpy = vi.fn(({ req }: { req: any }) => {
-      return Response.json(
-        { error: `Taser Not Found: ${req.path}` },
-        { status: 404 },
-      );
+      return Response.json({ error: `Taser Not Found: ${req.path}` }, { status: 404 });
     });
 
     const app = createTaserApp(

@@ -189,7 +189,7 @@ describe("createTaserApp and Hono runtime dispatch", () => {
       expect(deleteRes.status).toBe(404);
     });
 
-    it("dispatches HTTP QUERY, OPTIONS, and HEAD requests", async () => {
+    it("dispatches HTTP QUERY and OPTIONS requests", async () => {
       const queryRoute = t.query("/search").handler(({ req }) => {
         return json({ queryExecuted: true, method: req.method });
       });
@@ -198,13 +198,6 @@ describe("createTaserApp and Hono runtime dispatch", () => {
         return new Response(null, {
           status: 204,
           headers: { allow: "GET, POST, OPTIONS" },
-        });
-      });
-
-      const headRoute = t.head("/health").handler(() => {
-        return new Response(null, {
-          status: 200,
-          headers: { "x-health": "ok" },
         });
       });
 
@@ -220,11 +213,6 @@ describe("createTaserApp and Hono runtime dispatch", () => {
               route: optionsRoute,
             },
           },
-          "/health": {
-            HEAD: {
-              route: headRoute,
-            },
-          },
         },
       });
 
@@ -235,10 +223,6 @@ describe("createTaserApp and Hono runtime dispatch", () => {
       const optRes = await app.request("/cors", { method: "OPTIONS" });
       expect(optRes.status).toBe(204);
       expect(optRes.headers.get("allow")).toBe("GET, POST, OPTIONS");
-
-      const headRes = await app.request("/health", { method: "HEAD" });
-      expect(headRes.status).toBe(200);
-      expect(headRes.headers.get("x-health")).toBe("ok");
     });
 
     it("executes layout-scoped middleware and injects state and services into ctx.state and ctx.services", async () => {
@@ -296,16 +280,9 @@ describe("createTaserApp and Hono runtime dispatch", () => {
         fromService: "superadmin",
       });
     });
-    it("should route to HEAD handler when both GET and HEAD routes exist on the same path", async () => {
+    it("automatically answers HEAD requests via GET routes stripping response body", async () => {
       const getRoute = t.get("/api/items").handler(() => {
         return json({ type: "get-items" }, { headers: { "x-route": "get" } });
-      });
-
-      const headRoute = t.head("/api/items").handler(() => {
-        return new Response(null, {
-          status: 200,
-          headers: { "x-route": "head" },
-        });
       });
 
       const app = createTaserApp({
@@ -313,14 +290,14 @@ describe("createTaserApp and Hono runtime dispatch", () => {
         routes: {
           "/api/items": {
             GET: { layouts: [], route: getRoute },
-            HEAD: { layouts: [], route: headRoute },
           },
         },
       });
 
       const headRes = await app.request("/api/items", { method: "HEAD" });
       expect(headRes.status).toBe(200);
-      expect(headRes.headers.get("x-route")).toBe("head");
+      expect(headRes.headers.get("x-route")).toBe("get");
+      expect(await headRes.text()).toBe("");
 
       const getRes = await app.request("/api/items", { method: "GET" });
       expect(getRes.status).toBe(200);

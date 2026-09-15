@@ -205,7 +205,6 @@ type MethodToClientKey = {
   PATCH: "$patch";
   DELETE: "$delete";
   OPTIONS: "$options";
-  HEAD: "$head";
   QUERY: "$query";
 };
 

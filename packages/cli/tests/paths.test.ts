@@ -116,15 +116,6 @@ describe("paths and URL normalization", () => {
       stem: "cors",
     });
 
-    const routeHead = parseFilePath("health.head.ts", ["ts", "tsx"]);
-    expect(routeHead).toEqual({
-      dir: "",
-      name: "health.head",
-      ext: "ts",
-      verb: "head",
-      stem: "health",
-    });
-
     const layout = parseFilePath("admin/$.ts", ["ts", "tsx"]);
     expect(layout).toEqual({
       dir: "admin",

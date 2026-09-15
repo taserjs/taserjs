@@ -149,10 +149,6 @@ The client exposes methods named with `$<method>`:
       description: "Performs an OPTIONS request.",
       type: "(input?: { query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse<TJson>>",
     },
-    $head: {
-      description: "Performs a HEAD request.",
-      type: "(input?: { query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse<TJson>>",
-    },
     $query: {
       description: "Performs a QUERY-method HTTP request.",
       type: "(input?: { body?: unknown; query?: Record<string, unknown>; param?: Record<string, string> }, options?: ClientRequestOptions) => Promise<ClientResponse<TJson>>",

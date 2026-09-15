@@ -26,18 +26,10 @@ export interface RouteSchemas {
   returns?: Record<StatusCode, StandardSchemaV1> | undefined;
 }
 
-export type StandardHttpMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "DELETE"
-  | "PATCH"
-  | "OPTIONS"
-  | "HEAD"
-  | "QUERY";
+export type StandardHttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "QUERY";
 
 export type HttpMethod = StandardHttpMethod | "ALL" | "ANY";
-export type HttpNoBodyMethod = "GET" | "HEAD";
+export type HttpNoBodyMethod = "GET";
 
 export type Simplify<T> = unknown extends T
   ? T

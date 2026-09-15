@@ -7,7 +7,6 @@ export const HTTP_METHODS = [
   "delete",
   "patch",
   "options",
-  "head",
   "query",
   "all",
   "any",
