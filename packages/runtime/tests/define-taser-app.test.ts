@@ -173,4 +173,108 @@ describe("createTaserApp with defineTaser and error boundaries", () => {
       expect(await res.json()).toEqual({ ok: true });
     }
   });
+
+  it("keeps root Hono instance base-less so host fallback can handle requests outside basePath", async () => {
+    const app = createTaserApp(
+      {
+        routes: {
+          "/": {
+            GET: {
+              route: t.get("/").handler(async () => Response.json({ api: true })),
+            },
+          },
+          "/hello": {
+            GET: {
+              route: t.get("/hello").handler(async () => Response.json({ hello: true })),
+            },
+          },
+        },
+      },
+      defineTaser().basePath("/api"),
+    );
+
+    // Host app mounted as fallback via app.all("*")
+    const hostFetch = (req: Request) => {
+      const url = new URL(req.url);
+      if (url.pathname === "/host") {
+        return Response.json({ message: "Hello, from Host!" });
+      }
+      return new Response("Not Found", { status: 404 });
+    };
+
+    app.all("*", (c) => hostFetch(c.req.raw));
+
+    // 1. Taser root route under basePath (/api)
+    const apiRes = await app.request("/api");
+    expect(apiRes.status).toBe(200);
+    expect(await apiRes.json()).toEqual({ api: true });
+
+    // 2. Taser sub-route under basePath (/api/hello)
+    const helloRes = await app.request("/api/hello");
+    expect(helloRes.status).toBe(200);
+    expect(await helloRes.json()).toEqual({ hello: true });
+
+    // 3. Host route outside basePath (/host)
+    const hostRes = await app.request("/host");
+    expect(hostRes.status).toBe(200);
+    expect(await hostRes.json()).toEqual({ message: "Hello, from Host!" });
+
+    // 4. Missing route outside basePath (/other)
+    const otherRes = await app.request("/other");
+    expect(otherRes.status).toBe(404);
+  });
+
+  it("handles custom notFound scoped to basePath so unmatched API routes do not leak to host", async () => {
+    const notFoundSpy = vi.fn(({ req }: { req: any }) => {
+      return Response.json(
+        { error: `Taser Not Found: ${req.path}` },
+        { status: 404 },
+      );
+    });
+
+    const app = createTaserApp(
+      {
+        routes: {
+          "/hello": {
+            GET: {
+              route: t.get("/hello").handler(async () => Response.json({ hello: true })),
+            },
+          },
+        },
+      },
+      defineTaser().basePath("/api").notFound(notFoundSpy),
+    );
+
+    // Host app mounted as fallback via app.all("*")
+    const hostFetch = (req: Request) => {
+      const url = new URL(req.url);
+      if (url.pathname === "/host") {
+        return Response.json({ message: "Hello, from Host!" });
+      }
+      return new Response("Host 404", { status: 404 });
+    };
+
+    app.all("*", (c) => hostFetch(c.req.raw));
+
+    // 1. Taser route under /api
+    const helloRes = await app.request("/api/hello");
+    expect(helloRes.status).toBe(200);
+    expect(await helloRes.json()).toEqual({ hello: true });
+
+    // 2. Unmatched route under /api -> handled by Taser custom notFound!
+    const apiOtherRes = await app.request("/api/other");
+    expect(apiOtherRes.status).toBe(404);
+    expect(await apiOtherRes.json()).toEqual({ error: "Taser Not Found: /api/other" });
+    expect(notFoundSpy).toHaveBeenCalledTimes(1);
+
+    // 3. Host route outside /api -> handled by host app
+    const hostRes = await app.request("/host");
+    expect(hostRes.status).toBe(200);
+    expect(await hostRes.json()).toEqual({ message: "Hello, from Host!" });
+
+    // 4. Unmatched route outside /api -> handled by host app fallback
+    const missingHostRes = await app.request("/missing-page");
+    expect(missingHostRes.status).toBe(404);
+    expect(await missingHostRes.text()).toBe("Host 404");
+  });
 });

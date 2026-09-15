@@ -1,4 +1,4 @@
-export { createTaserApp } from "./app.js";
+export { createTaserApp, normalizeBasePath, prefixRoutePath } from "./app.js";
 export { extractBody } from "./body.js";
 export { createContext, createBootManager } from "./context.js";
 export { resolveMiddlewares, resolveMiddleware, normalizeMiddleware } from "./layout.js";

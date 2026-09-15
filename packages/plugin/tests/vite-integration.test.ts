@@ -579,4 +579,68 @@ export default function legacyHost(req, res) {
     const distContent = readFileSync(distServePath, "utf-8");
     expect(distContent).toContain("app.all");
   });
+
+  it("serves both basePath-scoped Taser routes and host server pass-through in Vite dev server", async () => {
+    // 1. App file with basePath("/api")
+    const appContent = `
+import { defineTaser } from "@taserjs/router";
+export default defineTaser().basePath("/api");
+`;
+    writeFileSync(join(tempDir, "src", "taser.ts"), appContent, "utf-8");
+
+    // 2. Taser route
+    const taserRoute = `
+import { t } from "@taserjs/router";
+export default t.get("/hello").handler(() => Response.json({ from: "taser" }));
+`;
+    mkdirSync(join(tempDir, "src", "routes"), { recursive: true });
+    writeFileSync(join(tempDir, "src", "routes", "hello.get.ts"), taserRoute, "utf-8");
+
+    // 3. Host server in server.ts
+    const hostServer = `
+export default {
+  fetch(req: Request) {
+    const url = new URL(req.url);
+    if (url.pathname === "/host") {
+      return Response.json({ from: "host" });
+    }
+    return new Response("Not Found", { status: 404 });
+  }
+};
+`;
+    writeFileSync(join(tempDir, "src", "server.ts"), hostServer, "utf-8");
+
+    // Start Vite dev server
+    server = await createServer({
+      root: tempDir,
+      server: { port: 0 },
+      plugins: [taser({ cwd: tempDir })],
+      logLevel: "silent",
+      resolve: {
+        alias: {
+          "@taserjs/runtime": resolve(process.cwd(), "../runtime/src/index.ts"),
+          "@taserjs/router": resolve(process.cwd(), "../router/src/index.ts"),
+        },
+      },
+    });
+
+    await server.listen();
+    const address = server.httpServer?.address();
+    const port = typeof address === "object" && address ? address.port : 0;
+    expect(port).toBeGreaterThan(0);
+
+    // Fetch Taser route under /api
+    const taserRes = await fetch(`http://localhost:${port}/api/hello`);
+    expect(taserRes.status).toBe(200);
+    expect(await taserRes.json()).toEqual({ from: "taser" });
+
+    // Fetch Host route outside /api
+    const hostRes = await fetch(`http://localhost:${port}/host`);
+    expect(hostRes.status).toBe(200);
+    expect(await hostRes.json()).toEqual({ from: "host" });
+
+    // Fetch unmatched route under /api -> returns 404 (or custom notFound if registered)
+    const apiUnmatchedRes = await fetch(`http://localhost:${port}/api/other`);
+    expect(apiUnmatchedRes.status).toBe(404);
+  });
 });

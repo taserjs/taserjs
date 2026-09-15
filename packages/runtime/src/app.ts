@@ -18,9 +18,25 @@ function catchResponse(err: unknown): Response {
   throw err;
 }
 
+export function normalizeBasePath(basePath?: string): string {
+  if (!basePath || basePath === "/") return "";
+  let base = basePath.trim();
+  if (!base.startsWith("/")) base = `/${base}`;
+  if (base.endsWith("/")) base = base.slice(0, -1);
+  return base;
+}
+
+export function prefixRoutePath(basePath: string, routePath: string): string {
+  if (!basePath) return routePath;
+  const normalizedRoute = routePath.startsWith("/") ? routePath : `/${routePath}`;
+  if (normalizedRoute === "/") return basePath;
+  return `${basePath}${normalizedRoute}`;
+}
+
 export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<any>): TaserApp {
   const options = taser?.options;
-  const app = options?.basePath ? new Hono().basePath(options.basePath) : new Hono();
+  const basePath = normalizeBasePath(options?.basePath);
+  const app = new Hono();
   const contextDef = options?.context;
   const customNotFound = options?.notFound;
   const customOnError = options?.onError;
@@ -88,14 +104,6 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
     return c.text((err as Error)?.message || "Internal Server Error", 500);
   });
 
-  if (customNotFound) {
-    app.notFound(async (c: Context) => {
-      const req = createTaserRequest(c);
-      const ctx = resolveContextSync(c) ?? (await resolveContext(c, req));
-      return await customNotFound({ req, ctx });
-    });
-  }
-
   for (const [routePath, methods] of Object.entries(manifest.routes)) {
     const hasHead = Boolean(methods["HEAD"] || methods["head"]);
     const hasGet = Boolean(methods["GET"] || methods["get"]);
@@ -104,7 +112,8 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
     for (const [methodKey, entry] of Object.entries(methods)) {
       const routeDefinition = entry.route;
       const method = (routeDefinition.method || methodKey).toUpperCase();
-      const targetPath = routeDefinition.path || routePath;
+      const rawTargetPath = routeDefinition.path || routePath;
+      const targetPath = prefixRoutePath(basePath, rawTargetPath);
       const isStatic = isStaticRoutePath(targetPath);
 
       const middlewares = resolveMiddlewares(entry, manifest);
@@ -170,6 +179,21 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
       } else {
         app.on(method, targetPath, routeHandler);
       }
+    }
+  }
+
+  if (customNotFound) {
+    const notFoundHandler = async (c: Context) => {
+      const req = createTaserRequest(c);
+      const ctx = resolveContextSync(c) ?? (await resolveContext(c, req));
+      return await customNotFound({ req, ctx });
+    };
+
+    if (basePath) {
+      app.all(`${basePath}/*`, notFoundHandler);
+      app.all(basePath, notFoundHandler);
+    } else {
+      app.notFound(notFoundHandler);
     }
   }
 
