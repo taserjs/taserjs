@@ -1,5 +1,13 @@
 # @taserjs/plugin
 
+## 0.2.1
+
+### Patch Changes
+
+- 4516b29: Plugin & Runtime Fixes and Improvements
+- Updated dependencies [4516b29]
+  - @taserjs/cli@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes

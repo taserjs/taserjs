@@ -1,5 +1,11 @@
 # create-taserjs
 
+## 0.2.1
+
+### Patch Changes
+
+- 4516b29: Plugin & Runtime Fixes and Improvements
+
 ## 0.2.0
 
 ### Minor Changes

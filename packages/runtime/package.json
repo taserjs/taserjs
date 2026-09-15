@@ -1,6 +1,6 @@
 {
   "name": "@taserjs/runtime",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "High-performance type-safe runtime engine for Taser.js backed by Hono",
   "keywords": [
     "api-server",
