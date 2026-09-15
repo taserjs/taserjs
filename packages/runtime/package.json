@@ -40,6 +40,26 @@
         "default": "./dist/index.js"
       }
     },
+    "./serve": {
+      "import": {
+        "types": "./dist/serve.d.ts",
+        "default": "./dist/serve.js"
+      },
+      "default": {
+        "types": "./dist/serve.d.ts",
+        "default": "./dist/serve.js"
+      }
+    },
+    "./serve/node": {
+      "import": {
+        "types": "./dist/serve-node.d.ts",
+        "default": "./dist/serve-node.js"
+      },
+      "default": {
+        "types": "./dist/serve-node.d.ts",
+        "default": "./dist/serve-node.js"
+      }
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -58,7 +78,8 @@
   "dependencies": {
     "@taserjs/router": "workspace:*",
     "@taserjs/utils": "workspace:*",
-    "hono": "^4.10.3"
+    "hono": "^4.10.3",
+    "srvx": "^1.0.4"
   },
   "devDependencies": {
     "@taserjs/utils": "workspace:*",

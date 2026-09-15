@@ -441,8 +441,8 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
       emitServeShim(shimPath, "./routes.gen.js", { type: "node", path: hostPath }, ".js");
 
       const content = readFileSync(shimPath, "utf-8");
-      expect(content).toContain('import { serve } from "srvx/node";');
-      expect(content).toContain('import { toFetchHandler } from "srvx/node";');
+      expect(content).toContain('import { FastResponse, serve } from "@taserjs/runtime/serve";');
+      expect(content).toContain('import { toFetchHandler } from "@taserjs/runtime/serve/node";');
       expect(content).toContain('import hostServerEntry from "../server.node.js";');
       expect(content).toContain("toFetchHandler(nodeHandler)");
       expect(content).toContain('app.all("*", (c) => hostFetch(c.req.raw));');
@@ -457,7 +457,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
       emitServeShim(shimPath, "./routes.gen.js", { type: "fetch", path: hostPath }, ".js");
 
       const content = readFileSync(shimPath, "utf-8");
-      expect(content).toContain('import { serve } from "srvx/node";');
+      expect(content).toContain('import { FastResponse, serve } from "@taserjs/runtime/serve";');
       expect(content).toContain('import hostServerEntry from "../server.js";');
       expect(content).not.toContain("toFetchHandler");
       expect(content).toContain('app.all("*", (c) => hostFetch(c.req.raw));');
@@ -469,7 +469,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
       const hostPath = join(tempDir, "src", "server.node.ts");
 
       const code = buildNitroStandaloneAppSource(routesGenPath, { type: "node", path: hostPath });
-      expect(code).toContain('import { toFetchHandler } from "srvx/node";');
+      expect(code).toContain('import { toFetchHandler } from "@taserjs/runtime/serve/node";');
       expect(code).toContain("toFetchHandler(nodeHandler)");
       expect(code).toContain('taserApp.all("*", (c) => hostFetch(c.req.raw));');
     });

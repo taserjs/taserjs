@@ -29,17 +29,23 @@ describe("TypeScript ambient types and route context inference (tsc)", { timeout
       JSON.stringify({
         compilerOptions: {
           target: "ES2022",
+          lib: ["ES2022", "DOM"],
           module: "ESNext",
           moduleResolution: "bundler",
           allowImportingTsExtensions: true,
           strict: true,
           noEmit: true,
+          skipLibCheck: true,
+          typeRoots: [resolve(__dirname, "../../../node_modules/@types")],
+          types: ["node"],
           baseUrl: ".",
           paths: {
             "@taserjs/router": [routerDir + "/index.ts"],
             "@taserjs/router/middleware/*": [routerDir + "/middleware/*.ts"],
             "@taserjs/router/*": [routerDir + "/*.ts"],
             "@taserjs/runtime": [runtimeDir + "/index.ts"],
+            "@taserjs/runtime/serve": [runtimeDir + "/serve.ts"],
+            "@taserjs/runtime/serve/node": [runtimeDir + "/serve-node.ts"],
             "@taserjs/runtime/*": [runtimeDir + "/*.ts"],
             "@taserjs/utils": [utilsDir + "/index.ts"],
             "@taserjs/utils/*": [utilsDir + "/*.ts"],

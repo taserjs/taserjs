@@ -39,7 +39,7 @@ export function buildNitroStandaloneAppSource(
 
   return `// @ts-nocheck
 import { app as taserApp } from "${normalizedPath}";
-import { FastResponse } from "srvx";
+import { FastResponse } from "@taserjs/runtime/serve";
 ${fallback ? fallback.imports : ""}
 
 globalThis.Response = FastResponse;

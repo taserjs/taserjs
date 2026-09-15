@@ -22,7 +22,7 @@ export const DEPLOY_ENTRIES: Record<DeployTarget, DeployEntry> = {
     impliedRuntime: "node",
     selfHosted: true,
     startScript: "node dist/serve.mjs",
-    devDeps: ["srvx"],
+    devDeps: [],
     files: [],
   },
   "node-server": {

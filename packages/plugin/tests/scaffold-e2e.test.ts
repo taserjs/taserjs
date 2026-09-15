@@ -49,14 +49,6 @@ describe(
         }
       }
 
-      const srvxTarget = resolve(monorepoRoot, "packages/plugin/node_modules/srvx");
-      if (existsSync(srvxTarget)) {
-        const srvxLink = join(projectDir, "node_modules", "srvx");
-        if (!existsSync(srvxLink)) {
-          symlinkSync(srvxTarget, srvxLink, "dir");
-        }
-      }
-
       const viteTarget = resolve(monorepoRoot, "packages/plugin/node_modules/vite");
       if (existsSync(viteTarget)) {
         const viteLink = join(projectDir, "node_modules", "vite");
@@ -263,7 +255,7 @@ describe(
       const standaloneAppCode = standaloneNitro.options.virtual["#nitro/virtual/app"]();
       expect(standaloneAppCode).toContain("createNitroApp");
       expect(standaloneAppCode).toContain("FastResponse");
-      expect(standaloneAppCode).toContain("srvx");
+      expect(standaloneAppCode).toContain("@taserjs/runtime/serve");
 
       const routingCode = standaloneNitro.options.virtual["#nitro/virtual/routing"]();
       expect(routingCode).toContain("findRoute");

@@ -120,9 +120,6 @@ importers:
       '@taserjs/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
-      srvx:
-        specifier: ^1.0.4
-        version: 1.0.4
       zod:
         specifier: ^3.24.2
         version: 3.25.76
@@ -335,9 +332,6 @@ importers:
       react-dom:
         specifier: ^19.2.4
         version: 19.2.8(react@19.2.8)
-      srvx:
-        specifier: ^1.0.4
-        version: 1.0.4
       zod:
         specifier: ^3.24.2
         version: 3.25.76
@@ -563,6 +557,9 @@ importers:
       hono:
         specifier: ^4.10.3
         version: 4.13.7
+      srvx:
+        specifier: ^1.0.4
+        version: 1.0.4
     devDependencies:
       publint:
         specifier: ^0.3.22
@@ -6272,7 +6269,7 @@ snapshots:
     optionalDependencies:
       crossws: 0.4.12(srvx@1.0.4)
 
-  h3@2.0.1-rc.22(crossws@0.4.12(srvx@0.11.22)):
+  h3@2.0.1-rc.22(crossws@0.4.12(srvx@1.0.4)):
     dependencies:
       rou3: 0.8.1
       srvx: 0.11.22
@@ -7079,7 +7076,7 @@ snapshots:
       crossws: 0.4.12(srvx@0.11.22)
       db0: 0.3.4
       env-runner: 0.1.16
-      h3: 2.0.1-rc.22(crossws@0.4.12(srvx@0.11.22))
+      h3: 2.0.1-rc.22(crossws@0.4.12(srvx@1.0.4))
       hookable: 6.1.1
       nf3: 0.3.24
       ocache: 0.1.5

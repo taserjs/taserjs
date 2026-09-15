@@ -218,7 +218,7 @@ export function buildHostFallbackCode(
   appVarName: string = "app",
 ): { imports: string; setup: string } {
   const isNode = type === "node";
-  const imports = `${isNode ? 'import { toFetchHandler } from "srvx/node";\n' : ""}import hostServerEntry from "${hostImportPath}";`;
+  const imports = `${isNode ? 'import { toFetchHandler } from "@taserjs/runtime/serve/node";\n' : ""}import hostServerEntry from "${hostImportPath}";`;
 
   const setup = isNode
     ? `const rawHost = hostServerEntry?.default ?? hostServerEntry;
@@ -252,9 +252,8 @@ export function emitServeShim(
 
     const fallbackCode = buildHostFallbackCode(hostImportPath, hostServer.type, "app");
     code = `// @ts-nocheck
-import { FastResponse } from "srvx";
+import { FastResponse, serve } from "@taserjs/runtime/serve";
 globalThis.Response = FastResponse;
-import { serve } from "srvx/node";
 ${fallbackCode.imports}
 import { app } from "${normalizedRoutesPath}";
 
@@ -265,9 +264,8 @@ serve(app);
 `;
   } else {
     code = `// @ts-nocheck
-import { FastResponse } from "srvx";
+import { FastResponse, serve } from "@taserjs/runtime/serve";
 globalThis.Response = FastResponse;
-import { serve } from "srvx/node";
 import { app } from "${normalizedRoutesPath}";
 
 serve(app);
@@ -421,7 +419,7 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
             build: {
               ssr: serveShimPath,
               rollupOptions: {
-                external: ["srvx", "srvx/node", "@taserjs/runtime"],
+                external: ["@taserjs/runtime", /^@taserjs\/runtime\/.*/],
                 output: {
                   entryFileNames: "serve.mjs",
                 },
