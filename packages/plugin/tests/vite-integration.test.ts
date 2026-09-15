@@ -667,4 +667,32 @@ export default {
     expect(typeof mockNitro.options.virtual["#nitro/virtual/app"]).toBe("function");
     expect(mockNitro.options.routes["/**"]).toBe("#taserjs/virtual/nitro-handler");
   });
+
+  it("automatically infers standalone: false when framework detected in nitro environment", async () => {
+    const pluginInstance = taser() as any;
+    // Simulate Vite config hook running with TanStack Start plugin present
+    await pluginInstance.config?.({
+      plugins: [{ name: "tanstack-react-start:config" }],
+    });
+
+    const mockNitro: any = {
+      options: {
+        rootDir: tempDir,
+        virtual: {},
+        routes: {},
+        handlers: [],
+      },
+      hooks: {
+        hookOnce: (_name: string, fn: any) => fn(),
+        hook: () => {},
+      },
+    };
+
+    await pluginInstance.nitro.setup(mockNitro);
+
+    // In non-standalone mode, virtual/app is not created and a handler is registered
+    expect(mockNitro.options.virtual["#nitro/virtual/app"]).toBeUndefined();
+    expect(mockNitro.options.handlers.length).toBeGreaterThan(0);
+    expect(mockNitro.options.handlers[0].route).toBe("/**");
+  });
 });

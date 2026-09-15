@@ -86,7 +86,10 @@ export default (event) => {
 `;
 }
 
-export function setupTaserNitro(nitro: any, options: TaserPluginOptions = {}): Promise<void> | void {
+export function setupTaserNitro(
+  nitro: any,
+  options: TaserPluginOptions = {},
+): Promise<void> | void {
   const state = nitro.options as unknown as Record<string, unknown>;
   if (state._taserHookRegistered) {
     return;

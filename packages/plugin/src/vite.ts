@@ -1,4 +1,5 @@
 import {
+  detectFullStack,
   detectHostServer,
   emitServeShim,
   mountHostFallback,
@@ -18,15 +19,58 @@ export type VitePluginReturn = ReturnType<typeof taserPlugin.vite> & {
 export const taser: (options?: TaserPluginOptions) => VitePluginReturn = (
   options?: TaserPluginOptions,
 ) => {
-  const plugin = taserPlugin.vite(options) as VitePluginReturn;
-  plugin.nitro = {
-    setup: (nitro: any) => setupTaserNitro(nitro, options),
+  let isFrameworkDetected: boolean | null = null;
+  const rawPlugin = taserPlugin.vite(options);
+  const plugin = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin) as any;
+
+  const originalConfig = plugin.config;
+  plugin.config = async function (this: any, config: any, env: any) {
+    if (detectFullStack(config, true)) {
+      isFrameworkDetected = true;
+    }
+    if (typeof originalConfig === "function") {
+      return originalConfig.call(this, config, env);
+    }
   };
-  return plugin;
+
+  const originalConfigResolved = plugin.configResolved;
+  plugin.configResolved = async function (this: any, resolvedConfig: any) {
+    if (detectFullStack(resolvedConfig, true)) {
+      isFrameworkDetected = true;
+    } else if (isFrameworkDetected === null) {
+      isFrameworkDetected = false;
+    }
+    if (typeof originalConfigResolved === "function") {
+      return originalConfigResolved.call(this, resolvedConfig);
+    }
+  };
+
+  const nitroModule = {
+    setup: (nitro: any) => {
+      const isFramework =
+        isFrameworkDetected ??
+        detectFullStack(nitro.options?._viteConfig, true) ??
+        detectFullStack({ plugins: nitro.options?.modules }, true);
+      const standalone = options?.standalone !== undefined ? options.standalone : !isFramework;
+
+      return setupTaserNitro(nitro, {
+        ...options,
+        standalone,
+      });
+    },
+  };
+
+  plugin.nitro = nitroModule;
+  if (Array.isArray(rawPlugin)) {
+    (rawPlugin as any).nitro = nitroModule;
+  }
+
+  return rawPlugin as VitePluginReturn;
 };
 
 export default taser;
 export {
+  detectFullStack,
   detectHostServer,
   emitServeShim,
   mountHostFallback,

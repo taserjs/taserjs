@@ -82,9 +82,12 @@ const FULLSTACK_PLUGIN_PATTERNS = [
   "remix",
   "astro",
   "sveltekit",
+  "nuxt",
+  "solid-start",
+  "analog",
 ];
 
-function isFullStackPluginName(name: string): boolean {
+export function isFullStackPluginName(name: string): boolean {
   const lower = name.toLowerCase();
   for (const pattern of FULLSTACK_PLUGIN_PATTERNS) {
     if (lower.includes(pattern)) {
@@ -97,17 +100,21 @@ function isFullStackPluginName(name: string): boolean {
   return false;
 }
 
-function detectFullStack(viteConfig: any): boolean {
+export function detectFullStack(viteConfig: any, excludeNitro = false): boolean {
   if (!viteConfig) return false;
-  if (viteConfig.nitro) return true;
+  if (!excludeNitro && viteConfig.nitro) return true;
   const plugins = viteConfig.plugins;
   if (!plugins) return false;
   const flat = Array.isArray(plugins) ? plugins.flat(Infinity) : [plugins];
   return flat.some((p: any) => {
     const name = p?.name;
-    return typeof name === "string" && isFullStackPluginName(name);
+    if (typeof name !== "string") return false;
+    if (excludeNitro && name.toLowerCase().includes("nitro")) return false;
+    return isFullStackPluginName(name);
   });
 }
+
+export const detectFramework = (viteConfig: any) => detectFullStack(viteConfig, true);
 
 function isRunnableEnvironment(environment: any): boolean {
   if (!environment) return true;

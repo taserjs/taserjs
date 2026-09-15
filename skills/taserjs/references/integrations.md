@@ -88,7 +88,6 @@ export const PUT = handle;
 export const DELETE = handle;
 export const PATCH = handle;
 export const OPTIONS = handle;
-export const HEAD = handle;
 ```
 
 ### 6. API Routes
@@ -185,7 +184,6 @@ export const Route = createFileRoute("/api/$")({
       DELETE: handle,
       PATCH: handle,
       OPTIONS: handle,
-      HEAD: handle,
     },
   },
 });

@@ -6,7 +6,7 @@ import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
   plugins: [
-    taser({ standalone: false }),
+    taser(),
     tanstackStart({ router: { quoteStyle: "double", semicolons: true } }),
     viteReact(),
     nitro(),

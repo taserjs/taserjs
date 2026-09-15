@@ -49,9 +49,9 @@ export default defineConfig({
 
 ## Operational Modes
 
-Controlled by `standalone` on the plugin options:
+Controlled by `standalone` on the plugin options (automatically defaults to `false` when a fullstack framework like TanStack Start, Nuxt, Astro, SvelteKit, or Remix is detected, or `true` in a plain standalone Nitro project):
 
-### 1. Standalone Mode (`standalone: true`, Default)
+### 1. Standalone Mode (`standalone: true`, Default for plain Nitro)
 
 Taser.js owns request dispatch:
 
@@ -68,7 +68,7 @@ export default defineConfig({
 });
 ```
 
-### 2. Fullstack / Module Mode (`standalone: false`)
+### 2. Fullstack / Module Mode (`standalone: false`, Automatic when Framework Detected)
 
 Taser.js registers as a Nitro handler alongside existing server routes. Mount the URL prefix with `defineTaser().basePath("/api")` so only matching paths hit Taser.js:
 
@@ -96,9 +96,9 @@ Shared with other `@taserjs/plugin` adapters (`TaserPluginOptions`):
   type={{
     standalone: {
       description:
-        "When true, Taser.js owns the app pipeline. When false, registers as a Nitro handler.",
+        "When true, Taser.js owns the app pipeline. When false, registers as a Nitro handler. Automatically defaults to false when a fullstack framework is detected.",
       type: "boolean",
-      default: "true",
+      default: "auto (true without framework, false with framework)",
     },
     server: {
       description: "Enable server integration hooks where applicable.",
