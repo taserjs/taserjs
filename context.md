@@ -127,3 +127,8 @@ _Avoid_: prerequisite schema, middleware validator, guard contract
 **Multi-Method Route**:
 An endpoint definition handling multiple HTTP methods via explicit verb lists (`.any.ts` / `t.any(path, methods)`) or catch-all verb dispatch (`.all.ts` / `t.all(path)`).
 _Avoid_: wildcard route, any route, method router
+
+**HTTP HEAD Handling**:
+HTTP `HEAD` requests are handled natively by Hono via corresponding `GET` endpoints, automatically stripping the response body while preserving status codes and headers. Taser intentionally does not expose dedicated `.head.ts` routes or `t.head()` builders.
+_Avoid_: head route, head builder, head handler
+

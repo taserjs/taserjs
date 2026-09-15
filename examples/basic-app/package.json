@@ -15,6 +15,7 @@
     "@taserjs/client": "workspace:*",
     "@taserjs/router": "workspace:*",
     "@taserjs/runtime": "workspace:*",
+    "srvx": "^1.0.4",
     "zod": "^3.24.2"
   },
   "devDependencies": {

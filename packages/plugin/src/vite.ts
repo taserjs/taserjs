@@ -19,15 +19,19 @@ export type VitePluginReturn = ReturnType<typeof taserPlugin.vite> & {
 export const taser: (options?: TaserPluginOptions) => VitePluginReturn = (
   options?: TaserPluginOptions,
 ) => {
-  let isFrameworkDetected: boolean | null = null;
+  let isFrameworkEnvironment = false;
   const rawPlugin = taserPlugin.vite(options);
   const plugin = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin) as any;
 
+  const checkFramework = (cfg?: any) => {
+    if (detectFullStack(cfg, true)) {
+      isFrameworkEnvironment = true;
+    }
+  };
+
   const originalConfig = plugin.config;
   plugin.config = async function (this: any, config: any, env: any) {
-    if (detectFullStack(config, true)) {
-      isFrameworkDetected = true;
-    }
+    checkFramework(config);
     if (typeof originalConfig === "function") {
       return originalConfig.call(this, config, env);
     }
@@ -35,11 +39,7 @@ export const taser: (options?: TaserPluginOptions) => VitePluginReturn = (
 
   const originalConfigResolved = plugin.configResolved;
   plugin.configResolved = async function (this: any, resolvedConfig: any) {
-    if (detectFullStack(resolvedConfig, true)) {
-      isFrameworkDetected = true;
-    } else if (isFrameworkDetected === null) {
-      isFrameworkDetected = false;
-    }
+    checkFramework(resolvedConfig);
     if (typeof originalConfigResolved === "function") {
       return originalConfigResolved.call(this, resolvedConfig);
     }
@@ -47,11 +47,12 @@ export const taser: (options?: TaserPluginOptions) => VitePluginReturn = (
 
   const nitroModule = {
     setup: (nitro: any) => {
-      const isFramework =
-        isFrameworkDetected ??
-        detectFullStack(nitro.options?._viteConfig, true) ??
-        detectFullStack({ plugins: nitro.options?.modules }, true);
-      const standalone = options?.standalone !== undefined ? options.standalone : !isFramework;
+      if (!isFrameworkEnvironment) {
+        checkFramework(nitro.options?._viteConfig);
+        checkFramework({ plugins: nitro.options?.modules });
+      }
+      const standalone =
+        options?.standalone !== undefined ? options.standalone : !isFrameworkEnvironment;
 
       return setupTaserNitro(nitro, {
         ...options,

@@ -114,8 +114,6 @@ export function detectFullStack(viteConfig: any, excludeNitro = false): boolean 
   });
 }
 
-export const detectFramework = (viteConfig: any) => detectFullStack(viteConfig, true);
-
 function isRunnableEnvironment(environment: any): boolean {
   if (!environment) return true;
   try {
@@ -423,7 +421,7 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
             build: {
               ssr: serveShimPath,
               rollupOptions: {
-                external: ["srvx", "srvx/node", "@taserjs/runtime", "hono"],
+                external: ["srvx", "srvx/node", "@taserjs/runtime"],
                 output: {
                   entryFileNames: "serve.mjs",
                 },

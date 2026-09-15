@@ -120,6 +120,9 @@ importers:
       '@taserjs/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
+      srvx:
+        specifier: ^1.0.4
+        version: 1.0.4
       zod:
         specifier: ^3.24.2
         version: 3.25.76

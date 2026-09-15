@@ -126,38 +126,32 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
 
   const VIRTUAL_NITRO_HANDLER_ID = "#taserjs/virtual/nitro-handler";
 
+  // Register the virtual middleware/handler used in both standalone and module modes
+  nitro.options.virtual[VIRTUAL_NITRO_HANDLER_ID] = () => {
+    const currentHost = getHostServer(config, cwd, options);
+    return buildNitroMiddlewareHandlerSource(routesGenPath, currentHost);
+  };
+
   if (isStandalone) {
     nitro.options.virtual["#nitro/virtual/app"] = () => {
       const currentHost = getHostServer(config, cwd, options);
       return buildNitroStandaloneAppSource(routesGenPath, currentHost);
     };
     nitro.options.virtual["#nitro/virtual/routing"] = () => buildNitroRoutingVirtualSource();
-    nitro.options.virtual[VIRTUAL_NITRO_HANDLER_ID] = () => {
-      const currentHost = getHostServer(config, cwd, options);
-      return buildNitroMiddlewareHandlerSource(routesGenPath, currentHost);
-    };
 
     nitro.options.routes = nitro.options.routes || {};
     nitro.options.routes["/**"] = VIRTUAL_NITRO_HANDLER_ID;
-
-    if (nitro.routing?.sync) {
-      nitro.routing.sync();
-    }
   } else {
-    nitro.options.virtual[VIRTUAL_NITRO_HANDLER_ID] = () => {
-      const currentHost = getHostServer(config, cwd, options);
-      return buildNitroMiddlewareHandlerSource(routesGenPath, currentHost);
-    };
-
     nitro.options.handlers = nitro.options.handlers || [];
     nitro.options.handlers.unshift({
       route: "/**",
       lazy: false,
       handler: VIRTUAL_NITRO_HANDLER_ID,
     });
-    if (nitro.routing?.sync) {
-      nitro.routing.sync();
-    }
+  }
+
+  if (nitro.routing?.sync) {
+    nitro.routing.sync();
   }
 
   let watcher: FSWatcher | undefined;

@@ -162,6 +162,9 @@ describe(
 
       expect(existsSync(join(projectDir, "dist", "serve.mjs"))).toBe(true);
 
+      const serveContent = readFileSync(join(projectDir, "dist", "serve.mjs"), "utf-8");
+      expect(serveContent).not.toMatch(/from\s+["']hono["']/);
+
       const routesModule = await import(join(projectDir, "src", ".taserjs", "routes.gen.ts"));
       const app = routesModule.app ?? routesModule.default;
       expect(app).toBeDefined();
