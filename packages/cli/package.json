@@ -1,6 +1,6 @@
 {
   "name": "@taserjs/cli",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Unified CLI: scanning and manifest code generation for Taser.js",
   "keywords": [
     "api-routes",

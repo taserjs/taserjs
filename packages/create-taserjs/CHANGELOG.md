@@ -1,5 +1,11 @@
 # create-taserjs
 
+## 0.2.2
+
+### Patch Changes
+
+- c5fe1b6: Fix Vite Watch & HMR Create / Delete Routes
+
 ## 0.2.1
 
 ### Patch Changes
