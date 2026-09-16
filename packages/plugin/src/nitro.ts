@@ -170,6 +170,9 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
         executeGeneration();
+        if (nitro.routing?.sync) {
+          nitro.routing.sync();
+        }
       }, 50);
     });
   }

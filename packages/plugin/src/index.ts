@@ -317,20 +317,37 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
       if (viteDevServer) {
         const outputDir = resolveOutputDir(config, cwd);
         const routesGenPath = join(outputDir, "routes.gen.ts");
-        const node =
-          viteDevServer.moduleGraph?.getModuleById(routesGenPath) ||
-          viteDevServer.moduleGraph?.fileToModulesMap?.get(routesGenPath);
-        if (node) {
-          if (node instanceof Set) {
-            for (const m of node) {
-              viteDevServer.moduleGraph.invalidateModule(m);
+        const invalidateGraph = (graph: any) => {
+          if (!graph) return;
+          const node =
+            graph.getModuleById(routesGenPath) ||
+            graph.fileToModulesMap?.get(routesGenPath) ||
+            graph.idToModuleMap?.get(routesGenPath);
+          if (node) {
+            if (node instanceof Set) {
+              for (const m of node) {
+                graph.invalidateModule(m);
+              }
+            } else {
+              graph.invalidateModule(node);
             }
-          } else {
-            viteDevServer.moduleGraph.invalidateModule(node);
+          }
+          if (typeof graph.onFileChange === "function") {
+            graph.onFileChange(routesGenPath);
+          }
+        };
+
+        invalidateGraph(viteDevServer.moduleGraph);
+        if (viteDevServer.environments) {
+          for (const env of Object.values(viteDevServer.environments) as any[]) {
+            invalidateGraph(env?.moduleGraph);
+            if (env?.hot?.send) {
+              env.hot.send({ type: "full-reload" });
+            }
           }
         }
-        if (typeof viteDevServer.moduleGraph?.onFileChange === "function") {
-          viteDevServer.moduleGraph.onFileChange(routesGenPath);
+        if (viteDevServer.ws?.send) {
+          viteDevServer.ws.send({ type: "full-reload" });
         }
       }
     } catch (err: unknown) {
@@ -341,16 +358,6 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
         throw err;
       }
     }
-  }
-
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-  function triggerDebouncedGeneration(): void {
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
-    debounceTimer = setTimeout(() => {
-      executeGeneration(true).catch(() => {});
-    }, DEFAULT_WATCH_DEBOUNCE_MS);
   }
 
   let cachedDevHandler: ((req: any, res: any) => any) | null = null;
@@ -463,7 +470,7 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
           const appFile = resolveAppFile(config, cwd);
 
           if (isSameFile(file, appFile) || isSubPath(file, routesDir)) {
-            triggerDebouncedGeneration();
+            await executeGeneration(true);
           }
         };
 
@@ -506,7 +513,7 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
               }
 
               const mod = (await server.ssrLoadModule(routesGenPath)) as Record<string, any>;
-              const app = mod.app ?? mod.default;
+              const app = mod.createApp ? mod.createApp() : (mod.app ?? mod.default);
 
               if (!app || typeof app.fetch !== "function") {
                 return next();
