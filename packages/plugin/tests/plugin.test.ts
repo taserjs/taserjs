@@ -140,7 +140,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
     expect(content).toContain('"/posts"');
   });
 
-  it("vite config hook configures server.watch.ignored to ignore outputDir", () => {
+  it("vite config hook does not ignore outputDir so vite can watch and reload generated routes", () => {
     const rawPlugin = taserPlugin.raw({ cwd: tempDir }, { framework: "vite" });
     const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
 
@@ -151,7 +151,6 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
     const viteConfig: any = { server: { watch: {} } };
     (viteHooks!.config as any)(viteConfig, { command: "serve", mode: "development" });
 
-    expect(viteConfig.server.watch.ignored).toBeDefined();
     const ignored = viteConfig.server.watch.ignored;
     const isIgnored = Array.isArray(ignored)
       ? ignored.some((pattern: string | RegExp) =>
@@ -160,7 +159,7 @@ export default t.get("/users").handler(() => Response.json({ ok: true }));
             : pattern.test("src/.taserjs/routes.gen.ts"),
         )
       : false;
-    expect(isIgnored).toBe(true);
+    expect(isIgnored).toBe(false);
   });
 
   it("emitServeShim respects config.extension setting", async () => {

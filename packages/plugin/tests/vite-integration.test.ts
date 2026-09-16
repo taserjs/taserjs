@@ -234,6 +234,46 @@ export default t.get("/ping").handler(() => Response.json({ pong: true }));
     expect(body).toEqual({ pong: true });
   });
 
+  it("dynamically serves newly added routes in standalone dev server without restart", async () => {
+    const route1 = `
+import { t } from "@taserjs/router";
+export default t.get("/one").handler(() => Response.json({ one: true }));
+`;
+    writeFileSync(join(tempDir, "src", "routes", "one.get.ts"), route1, "utf-8");
+
+    server = await createServer(
+      getViteConfig({
+        plugins: [taser({ cwd: tempDir })],
+      }),
+    );
+
+    await server.listen();
+    const port = (server.httpServer!.address() as any).port;
+
+    // 1. Initial route responds
+    const res1 = await fetch(`http://localhost:${port}/one`);
+    expect(res1.status).toBe(200);
+    expect(await res1.json()).toEqual({ one: true });
+
+    // 2. Add route2 dynamically
+    const route2Path = join(tempDir, "src", "routes", "two.get.ts");
+    writeFileSync(
+      route2Path,
+      'import { t } from "@taserjs/router";\nexport default t.get("/two").handler(() => Response.json({ two: true }));',
+      "utf-8",
+    );
+    server.watcher.emit("add", route2Path);
+
+    // Wait for debounced generation and watcher event
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    // 3. New route responds with 200 OK
+    const res2 = await fetch(`http://localhost:${port}/two`);
+    expect(res2.status).toBe(200);
+    expect(await res2.json()).toEqual({ two: true });
+  });
+
+
   it("passing server: false disables dev connect middleware interception but preserves generation and watch", async () => {
     const routeContent = `
 import { t } from "@taserjs/router";

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { isAbsolute, join, normalize, relative, resolve } from "pathe";
 import {
   generateManifest,
@@ -15,7 +15,6 @@ import { toFetchHandler, toNodeHandler } from "srvx/node";
 import { createUnplugin } from "unplugin";
 
 export const DEFAULT_WATCH_DEBOUNCE_MS = 50;
-export const DEFAULT_OUTPUT_IGNORE_PATTERN = "**/.taserjs/**";
 
 export interface TaserPluginOptions {
   server?: boolean | undefined;
@@ -144,35 +143,38 @@ export function normalizeImportPath(pathStr: string): string {
   return normalized;
 }
 
+const toRealPath = (p: string): string => {
+  try {
+    return realpathSync.native(resolve(p));
+  } catch {
+    return resolve(p);
+  }
+};
+
+export function isSameFile(a: string, b: string): boolean {
+  return a === b || toRealPath(a) === toRealPath(b);
+}
+
 export function isSubPath(child: string, parent: string): boolean {
-  const rel = relative(parent, child);
-  return !rel.startsWith("../") && rel !== ".." && !isAbsolute(rel);
+  const normChild = resolve(child);
+  const normParent = resolve(parent);
+  const rel = relative(normParent, normChild);
+  if (Boolean(rel) && !rel.startsWith("..") && !isAbsolute(rel)) {
+    return true;
+  }
+  const realRel = relative(toRealPath(parent), toRealPath(child));
+  return Boolean(realRel) && !realRel.startsWith("..") && !isAbsolute(realRel);
 }
 
 export function isOutputDir(filePath: string, outputDir: string): boolean {
-  const normalizedFile = resolve(filePath);
-  const normalizedOutput = resolve(outputDir);
-  return (
-    normalizedFile === normalizedOutput ||
-    isSubPath(normalizedFile, normalizedOutput) ||
-    filePath.includes(".taserjs")
-  );
-}
-
-function mergeWatchIgnored(current: unknown, ...patterns: string[]): Array<string | RegExp> {
-  const existing: Array<string | RegExp> = Array.isArray(current)
-    ? [...current]
-    : current
-      ? [current as string | RegExp]
-      : [];
-
-  for (const pattern of patterns) {
-    if (!existing.includes(pattern)) {
-      existing.push(pattern);
-    }
+  const normFile = resolve(filePath);
+  const normOutput = resolve(outputDir);
+  const rel = relative(normOutput, normFile);
+  if (!rel.startsWith("..") && !isAbsolute(rel)) {
+    return true;
   }
-
-  return existing;
+  const realRel = relative(toRealPath(outputDir), toRealPath(filePath));
+  return !realRel.startsWith("..") && !isAbsolute(realRel);
 }
 
 export function getHostServer(
@@ -318,6 +320,7 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
       });
 
       generateManifest(scanResult, config, cwd);
+      cachedDevHandler = null;
     } catch (err: unknown) {
       if (isDev) {
         const message = err instanceof Error ? err.message : String(err);
@@ -381,10 +384,9 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
       }
 
       const routesDir = resolveRoutesDir(config, cwd);
-      const serverDir = resolveServerDir(config, cwd);
       const appFile = resolveAppFile(config, cwd);
 
-      if (id === appFile || isSubPath(id, routesDir) || isSubPath(id, serverDir)) {
+      if (isSameFile(id, appFile) || isSubPath(id, routesDir)) {
         await executeGeneration(true);
       }
     },
@@ -395,12 +397,6 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
           cwd = resolve(config.root);
           cachedConfig = null;
         }
-        config.server = config.server || {};
-        config.server.watch = config.server.watch || {};
-        config.server.watch.ignored = mergeWatchIgnored(
-          config.server.watch.ignored,
-          DEFAULT_OUTPUT_IGNORE_PATTERN,
-        );
 
         const isFullStack = detectFullStack(config);
         detectedFullStack = isFullStack;
@@ -447,10 +443,9 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
           }
 
           const routesDir = resolveRoutesDir(config, cwd);
-          const serverDir = resolveServerDir(config, cwd);
           const appFile = resolveAppFile(config, cwd);
 
-          if (file === appFile || isSubPath(file, routesDir) || isSubPath(file, serverDir)) {
+          if (isSameFile(file, appFile) || isSubPath(file, routesDir)) {
             triggerDebouncedGeneration();
           }
         };
@@ -458,6 +453,7 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
         server.watcher.on("add", handleFileChange);
         server.watcher.on("unlink", handleFileChange);
         server.watcher.on("change", handleFileChange);
+        server.watcher.on("addDir", handleFileChange);
         server.watcher.on("unlinkDir", handleFileChange);
 
         const isServerMode = await resolveIsServerMode(server.config);
@@ -514,22 +510,6 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
           }
         });
       },
-    },
-
-    webpack(compiler) {
-      compiler.options.watchOptions = compiler.options.watchOptions || {};
-      compiler.options.watchOptions.ignored = mergeWatchIgnored(
-        compiler.options.watchOptions.ignored,
-        DEFAULT_OUTPUT_IGNORE_PATTERN,
-      );
-    },
-
-    rspack(compiler) {
-      compiler.options.watchOptions = compiler.options.watchOptions || {};
-      compiler.options.watchOptions.ignored = mergeWatchIgnored(
-        compiler.options.watchOptions.ignored,
-        DEFAULT_OUTPUT_IGNORE_PATTERN,
-      );
     },
   };
 });
