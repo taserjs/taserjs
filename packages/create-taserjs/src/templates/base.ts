@@ -93,11 +93,9 @@ export default defineConfig({
 
 export function nitroConfigTemplate(preset: string): string {
   return `import { defineConfig } from "nitro/config";
-import { taser } from "@taserjs/plugin/nitro";
 
 export default defineConfig({
   preset: "${preset}",
-  modules: [taser({ standalone: true })],
 });
 `;
 }

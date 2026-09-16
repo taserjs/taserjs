@@ -109,7 +109,6 @@ describe("create-taserjs unit and integration tests", () => {
           expect(existsSync(join(targetDir, "nitro.config.ts"))).toBe(true);
           const nitroConfig = readFileSync(join(targetDir, "nitro.config.ts"), "utf-8");
           expect(nitroConfig).toContain(`preset: "${preset}"`);
-          expect(nitroConfig).toContain("standalone: true");
         }
 
         if (preset === "cloudflare-module") {
@@ -135,5 +134,41 @@ describe("create-taserjs unit and integration tests", () => {
     expect(existsSync(join(targetDir, "nitro.config.ts"))).toBe(true);
     const indexRoute = readFileSync(join(targetDir, "src", "routes", "index.get.ts"), "utf-8");
     expect(indexRoute).toContain("valibot");
+  });
+
+  it("returns dependencies and devDependencies in ScaffoldResult", async () => {
+    const targetDir = join(tempDir, "deps-result-app");
+    const result = await scaffoldProject({
+      projectName: "deps-result-app",
+      targetDir,
+      preset: "none",
+      validator: "zod",
+      db: "drizzle",
+      driver: "sqlite",
+      skipInstall: true,
+    });
+
+    expect(result.dependencies).toBeDefined();
+    expect(result.dependencies).toContain("@taserjs/router");
+    expect(result.dependencies).toContain("@taserjs/runtime");
+    expect(result.dependencies).toContain("zod");
+    expect(result.dependencies).toContain("drizzle-orm");
+
+    expect(result.devDependencies).toBeDefined();
+    expect(result.devDependencies).toContain("@taserjs/cli");
+    expect(result.devDependencies).toContain("@taserjs/plugin");
+    expect(result.devDependencies).toContain("vite");
+    expect(result.devDependencies).toContain("typescript");
+    expect(result.devDependencies).toContain("drizzle-kit");
+  });
+
+  it("handles installPackages error gracefully when child process exits with non-zero code", async () => {
+    const { installPackages } = await import("../src/index.js");
+    await expect(
+      installPackages("npm", tempDir, {
+        dependencies: ["__non_existent_package_12345_xyz__"],
+        devDependencies: [],
+      }),
+    ).rejects.toThrow();
   });
 });

@@ -58,6 +58,9 @@ export interface ScaffoldOptions extends ScaffoldContext {
   agent?: Agent | undefined;
 }
 
-export interface ScaffoldResult extends ScaffoldContext {
+export interface ScaffoldResult extends ScaffoldOptions {
   files: string[];
+  dependencies?: string[] | undefined;
+  devDependencies?: string[] | undefined;
 }
+

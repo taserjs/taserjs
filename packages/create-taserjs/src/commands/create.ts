@@ -1,7 +1,7 @@
 import path from "node:path";
 import * as p from "@clack/prompts";
 import pc from "picocolors";
-import { resolveUserAgent, runScript } from "../core/package-manager.js";
+import { installPackages, resolveUserAgent, runScript } from "../core/package-manager.js";
 import { scaffoldProject } from "../core/scaffold-engine.js";
 import { allowedRuntimeOverrides, DEFAULT_DEPLOY } from "../core/targets.js";
 import type {
@@ -182,6 +182,19 @@ export async function promptInteractiveOptions(
 
   const logger = loggerChoice === "none" ? undefined : (loggerChoice as LoggerId);
 
+  const shouldInstall =
+    defaults.skipInstall !== undefined
+      ? !defaults.skipInstall
+      : await p.confirm({
+          message: "Install dependencies?",
+          initialValue: true,
+        });
+
+  if (p.isCancel(shouldInstall)) {
+    p.cancel("Scaffold cancelled.");
+    process.exit(0);
+  }
+
   return {
     projectName: String(projectName).trim(),
     preset: preset as DeployTarget,
@@ -189,7 +202,7 @@ export async function promptInteractiveOptions(
     ...(validator ? { validator } : {}),
     ...(db ? { db, driver } : {}),
     ...(logger ? { logger } : {}),
-    skipInstall: defaults.skipInstall,
+    skipInstall: !shouldInstall,
   };
 }
 
@@ -226,13 +239,28 @@ export async function runCreateCommand(
     skipInstall: resolved.skipInstall ?? process.env.NODE_ENV === "test",
   };
 
+  const agent = resolveUserAgent();
+
   if (isInteractive) {
     const s = p.spinner();
     s.start("Scaffolding project");
     const result = await scaffoldProject(scaffoldOpts);
-    s.stop("Project created");
+    s.stop("Project scaffolded");
 
-    const agent = resolveUserAgent();
+    if (!scaffoldOpts.skipInstall) {
+      s.start(`Installing dependencies with ${agent}`);
+      try {
+        await installPackages(agent, targetDir, {
+          dependencies: result.dependencies ?? [],
+          devDependencies: result.devDependencies ?? [],
+        });
+        s.stop("Dependencies installed");
+      } catch (err) {
+        s.stop(pc.yellow("Failed to install dependencies"));
+        console.warn(pc.dim(err instanceof Error ? err.message : String(err)));
+      }
+    }
+
     p.outro(pc.green("Done!"));
     console.log(`\nNext steps:`);
     console.log(`  cd ${path.relative(cwd, targetDir) || "."}`);
@@ -243,5 +271,12 @@ export async function runCreateCommand(
     return result;
   }
 
-  return await scaffoldProject(scaffoldOpts);
+  const result = await scaffoldProject(scaffoldOpts);
+  if (!scaffoldOpts.skipInstall) {
+    await installPackages(agent, targetDir, {
+      dependencies: result.dependencies ?? [],
+      devDependencies: result.devDependencies ?? [],
+    });
+  }
+  return result;
 }

@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { getUserAgent, resolveCommand, type Agent } from "package-manager-detector";
 
 export function resolveUserAgent(): Agent {
@@ -20,6 +20,33 @@ export function runScript(agent: Agent, script: string): string {
   }
 }
 
+function runCommandAsync(command: string, args: string[], cwd: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      stdio: ["ignore", "ignore", "pipe"],
+      env: process.env,
+    });
+
+    let stderr = "";
+    child.stderr?.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    child.on("error", (err) => reject(err));
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        const errorMsg = stderr.trim()
+          ? `Command failed with exit code ${code}: ${command} ${args.join(" ")}\n${stderr.trim()}`
+          : `Command failed with exit code ${code}: ${command} ${args.join(" ")}`;
+        reject(new Error(errorMsg));
+      }
+    });
+  });
+}
+
 export async function installPackages(
   agent: Agent,
   cwd: string,
@@ -31,10 +58,7 @@ export async function installPackages(
   if (packages.dependencies.length > 0) {
     const cmd = resolveCommand(agent, "add", packages.dependencies);
     if (cmd) {
-      execSync(`${cmd.command} ${cmd.args.join(" ")}`, {
-        cwd,
-        stdio: "ignore",
-      });
+      await runCommandAsync(cmd.command, cmd.args, cwd);
     }
   }
 
@@ -44,10 +68,8 @@ export async function installPackages(
       ...packages.devDependencies,
     ]);
     if (cmd) {
-      execSync(`${cmd.command} ${cmd.args.join(" ")}`, {
-        cwd,
-        stdio: "ignore",
-      });
+      await runCommandAsync(cmd.command, cmd.args, cwd);
     }
   }
 }
+

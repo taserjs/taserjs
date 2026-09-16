@@ -1,7 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { collectBootBindings, resolveAddons } from "../addons/registry.js";
-import { installPackages, resolveUserAgent } from "./package-manager.js";
 import { resolveDeployEntry, validateCombination } from "./targets.js";
 import type { ScaffoldOptions, ScaffoldResult } from "./types.js";
 import {
@@ -126,17 +125,11 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
   // 13. Static routes.gen.ts starter manifest
   await trackedWrite("src/.taserjs/routes.gen.ts", staticRoutesGenTemplate());
 
-  // Install dependencies if not skipped
-  if (!options.skipInstall) {
-    const agent = options.agent ?? resolveUserAgent();
-    await installPackages(agent, root, {
-      dependencies: resolvedDeps,
-      devDependencies: resolvedDevDeps,
-    });
-  }
-
   return {
     ...options,
     files: writtenFiles,
+    dependencies: resolvedDeps,
+    devDependencies: resolvedDevDeps,
   };
 }
+
