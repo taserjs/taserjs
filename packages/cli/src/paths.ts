@@ -1,4 +1,4 @@
-import { basename, dirname, normalize } from "pathe";
+import { basename, dirname, isAbsolute, normalize, relative } from "pathe";
 
 export const HTTP_METHODS = [
   "get",
@@ -255,4 +255,21 @@ export function deriveLayoutInfo(
     targetSegment,
     isSibling,
   };
+}
+
+export function normalizeImportPath(pathStr: string): string {
+  let normalized = normalize(pathStr);
+  if (!isAbsolute(normalized) && !normalized.startsWith("./") && !normalized.startsWith("../")) {
+    normalized = `./${normalized}`;
+  }
+  return normalized;
+}
+
+export function formatRelativeImport(
+  fromDir: string,
+  targetPath: string,
+  ext: string = "",
+): string {
+  const relPath = normalizeImportPath(relative(fromDir, targetPath));
+  return relPath.replace(/\.(ts|tsx|mts|cts|js|mjs|cjs)$/, "") + ext;
 }

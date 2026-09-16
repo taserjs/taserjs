@@ -131,4 +131,3 @@ _Avoid_: wildcard route, any route, method router
 **HTTP HEAD Handling**:
 HTTP `HEAD` requests are handled natively by Hono via corresponding `GET` endpoints, automatically stripping the response body while preserving status codes and headers. Taser intentionally does not expose dedicated `.head.ts` routes or `t.head()` builders.
 _Avoid_: head route, head builder, head handler
-

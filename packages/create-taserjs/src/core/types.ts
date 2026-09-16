@@ -63,4 +63,3 @@ export interface ScaffoldResult extends ScaffoldOptions {
   dependencies?: string[] | undefined;
   devDependencies?: string[] | undefined;
 }
-

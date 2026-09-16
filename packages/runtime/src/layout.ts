@@ -23,8 +23,6 @@ export function resolveMiddleware(mw: MiddlewareDefinition): MiddlewareHandler {
   return mw.handler;
 }
 
-export const normalizeMiddleware = resolveMiddleware;
-
 export function resolveMiddlewares(
   entry: RouteManifestEntry,
   manifest: RouteManifest,

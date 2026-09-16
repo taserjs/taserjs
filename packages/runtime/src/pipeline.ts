@@ -205,18 +205,14 @@ export function createPipeline(
         }
         called = true;
         currentState = nextState ? { ...currentState, ...nextState } : currentState;
-        syncCtxState(ctx, currentState, currentServices);
-        const handlerArgs = currentServices
-          ? {
-              req,
-              ctx,
-              state: currentState,
-              params: req.params,
-              query: req.query,
-              ...currentServices,
-            }
-          : { req, ctx, state: currentState, params: req.params, query: req.query };
-        return await executeTerminal(handlerArgs);
+        syncCtxState(ctx, currentState);
+        return await executeTerminal({
+          req,
+          ctx,
+          state: currentState,
+          params: req.params,
+          query: req.query,
+        });
       }) as NextFunction;
 
       next.provide = async (

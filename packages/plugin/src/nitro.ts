@@ -3,9 +3,9 @@ import { resolve } from "pathe";
 import {
   generateManifest,
   loadConfig,
+  resolveAppFile,
   resolveOutputDir,
   resolveRoutesDir,
-  resolveServerDir,
   scanRoutes,
   type ResolvedTaserConfig,
 } from "@taserjs/cli";
@@ -103,7 +103,6 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
   const cwd = resolve(nitro.options.rootDir || options.cwd || process.cwd());
   const config: ResolvedTaserConfig = await loadConfig(cwd, options.config);
   const routesDir = resolveRoutesDir(config, cwd);
-  const serverDir = resolveServerDir(config, cwd);
   const outputDir = resolveOutputDir(config, cwd);
   const routesGenPath = resolve(outputDir, "routes.gen.ts");
 
@@ -156,11 +155,12 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
 
   let watcher: FSWatcher | undefined;
   if (nitro.options.dev && existsSync(routesDir)) {
-    const watchDirs = [routesDir];
-    if (existsSync(serverDir) && !watchDirs.includes(serverDir)) {
-      watchDirs.push(serverDir);
+    const watchTargets = [routesDir];
+    const appFile = resolveAppFile(config, cwd);
+    if (existsSync(appFile) && !watchTargets.includes(appFile)) {
+      watchTargets.push(appFile);
     }
-    watcher = watch(watchDirs, {
+    watcher = watch(watchTargets, {
       ignoreInitial: true,
       ignored: [/(^|[/\\])\../, /(^|[/\\])-/, /node_modules/, /\.taserjs/],
     });

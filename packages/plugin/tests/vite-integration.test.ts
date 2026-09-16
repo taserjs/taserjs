@@ -273,7 +273,6 @@ export default t.get("/one").handler(() => Response.json({ one: true }));
     expect(await res2.json()).toEqual({ two: true });
   });
 
-
   it("passing server: false disables dev connect middleware interception but preserves generation and watch", async () => {
     const routeContent = `
 import { t } from "@taserjs/router";

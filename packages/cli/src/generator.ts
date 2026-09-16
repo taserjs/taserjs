@@ -1,12 +1,13 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, relative, resolve } from "pathe";
+import { dirname, resolve } from "pathe";
 import {
   resolveAppFile,
   resolveImportExtension,
   resolveOutputDir,
   type ResolvedTaserConfig,
 } from "./config.js";
+import { formatRelativeImport } from "./paths.js";
 import type { DiscoveredLayout, DiscoveredRoute, ScanResult } from "./scanner.js";
 
 export interface GenerateResult {
@@ -109,14 +110,7 @@ export function generateManifestCode(
   const appFile = resolveAppFile(config, cwd);
   const hasApp = existsSync(appFile);
 
-  let appRelPath = "";
-  if (hasApp) {
-    let rel = relative(outputDirFull, appFile);
-    if (!rel.startsWith("./") && !rel.startsWith("../")) {
-      rel = `./${rel}`;
-    }
-    appRelPath = rel.replace(/\.(ts|tsx|mts|cts|js|mjs|cjs)$/, "") + ext;
-  }
+  const appRelPath = hasApp ? formatRelativeImport(outputDirFull, appFile, ext) : "";
 
   // Group layouts by segment
   const layoutsBySegment = new Map<string, DiscoveredLayout>();
@@ -132,13 +126,7 @@ export function generateManifestCode(
   scanResult.layouts.forEach((layout, idx) => {
     const ident = `layout_${idx}`;
     layoutIdentifierMap.set(layout.layoutId, ident);
-
-    let relPath = relative(outputDirFull, layout.absolutePath);
-    if (!relPath.startsWith("./") && !relPath.startsWith("../")) {
-      relPath = `./${relPath}`;
-    }
-    relPath = relPath.replace(/\.(ts|tsx|mts|cts|js|mjs|cjs)$/, "") + ext;
-
+    const relPath = formatRelativeImport(outputDirFull, layout.absolutePath, ext);
     importLines.push(`import ${ident} from ${quote}${relPath}${quote};`);
   });
 
@@ -146,13 +134,7 @@ export function generateManifestCode(
   scanResult.routes.forEach((route, idx) => {
     const ident = `route_${idx}`;
     routeIdentifierMap.set(route, ident);
-
-    let relPath = relative(outputDirFull, route.absolutePath);
-    if (!relPath.startsWith("./") && !relPath.startsWith("../")) {
-      relPath = `./${relPath}`;
-    }
-    relPath = relPath.replace(/\.(ts|tsx|mts|cts|js|mjs|cjs)$/, "") + ext;
-
+    const relPath = formatRelativeImport(outputDirFull, route.absolutePath, ext);
     importLines.push(`import ${ident} from ${quote}${relPath}${quote};`);
   });
 

@@ -89,7 +89,7 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
     }
 
     if (err instanceof UnsupportedMediaTypeError) {
-      return c.json({ message: err.message || "Unsupported Media Type" }, 415);
+      return err.response;
     }
 
     if (err instanceof Response) {

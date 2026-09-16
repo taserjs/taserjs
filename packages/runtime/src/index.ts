@@ -1,7 +1,7 @@
 export { createTaserApp, normalizeBasePath, prefixRoutePath } from "./app.js";
 export { extractBody } from "./body.js";
 export { createContext, createBootManager } from "./context.js";
-export { resolveMiddlewares, resolveMiddleware, normalizeMiddleware } from "./layout.js";
+export { resolveMiddlewares, resolveMiddleware } from "./layout.js";
 export { createPipeline, validateSchemas } from "./pipeline.js";
 export { createTaserHeaders, createTaserRequest } from "./request.js";
 export {

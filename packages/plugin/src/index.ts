@@ -1,8 +1,10 @@
 import { existsSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
-import { isAbsolute, join, normalize, relative, resolve } from "pathe";
+import { isAbsolute, join, relative, resolve } from "pathe";
 import {
+  formatRelativeImport,
   generateManifest,
   loadConfig,
+  normalizeImportPath,
   resolveAppFile,
   resolveImportExtension,
   resolveOutputDir,
@@ -135,13 +137,7 @@ function isRunnableEnvironment(environment: any): boolean {
   return true;
 }
 
-export function normalizeImportPath(pathStr: string): string {
-  let normalized = normalize(pathStr);
-  if (!isAbsolute(normalized) && !normalized.startsWith("./") && !normalized.startsWith("../")) {
-    normalized = `./${normalized}`;
-  }
-  return normalized;
-}
+export { normalizeImportPath, formatRelativeImport };
 
 const toRealPath = (p: string): string => {
   try {
@@ -245,13 +241,7 @@ export function emitServeShim(
 
   let code: string;
   if (hostServer) {
-    let hostImportPath = normalizeImportPath(relative(outputDir, hostServer.path));
-    if (hostImportPath.endsWith(".ts")) {
-      hostImportPath = hostImportPath.slice(0, -3) + ext;
-    } else if (hostImportPath.endsWith(".js") && ext === "") {
-      hostImportPath = hostImportPath.slice(0, -3);
-    }
-
+    const hostImportPath = formatRelativeImport(outputDir, hostServer.path, ext);
     const fallbackCode = buildHostFallbackCode(hostImportPath, hostServer.type, "app");
     code = `// @ts-nocheck
 import { FastResponse, serve } from "@taserjs/runtime/serve";
@@ -308,6 +298,8 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
     return true;
   }
 
+  let viteDevServer: any = null;
+
   async function executeGeneration(isDev = false): Promise<void> {
     try {
       const config = await getConfig();
@@ -321,6 +313,26 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
 
       generateManifest(scanResult, config, cwd);
       cachedDevHandler = null;
+
+      if (viteDevServer) {
+        const outputDir = resolveOutputDir(config, cwd);
+        const routesGenPath = join(outputDir, "routes.gen.ts");
+        const node =
+          viteDevServer.moduleGraph?.getModuleById(routesGenPath) ||
+          viteDevServer.moduleGraph?.fileToModulesMap?.get(routesGenPath);
+        if (node) {
+          if (node instanceof Set) {
+            for (const m of node) {
+              viteDevServer.moduleGraph.invalidateModule(m);
+            }
+          } else {
+            viteDevServer.moduleGraph.invalidateModule(node);
+          }
+        }
+        if (typeof viteDevServer.moduleGraph?.onFileChange === "function") {
+          viteDevServer.moduleGraph.onFileChange(routesGenPath);
+        }
+      }
     } catch (err: unknown) {
       if (isDev) {
         const message = err instanceof Error ? err.message : String(err);
@@ -376,6 +388,10 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
     },
 
     async watchChange(id, _change) {
+      if (viteDevServer) {
+        // In Vite dev server mode, configureServer already hooks server.watcher
+        return;
+      }
       cachedDevHandler = null;
       const config = await getConfig();
       const outputDir = resolveOutputDir(config, cwd);
@@ -434,6 +450,7 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
       },
 
       async configureServer(server) {
+        viteDevServer = server;
         const handleFileChange = async (file: string) => {
           cachedDevHandler = null;
           const config = await getConfig();
@@ -480,6 +497,12 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
 
               if (!existsSync(routesGenPath)) {
                 await executeGeneration(true);
+              }
+
+              // Invalidate SSR module cache so freshly generated route handlers are evaluated
+              const modNode = server.moduleGraph.getModuleById(routesGenPath);
+              if (modNode) {
+                server.moduleGraph.invalidateModule(modNode);
               }
 
               const mod = (await server.ssrLoadModule(routesGenPath)) as Record<string, any>;

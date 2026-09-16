@@ -23,6 +23,8 @@ export {
   parseFilePath,
   deriveCanonicalUrl,
   deriveLayoutInfo,
+  normalizeImportPath,
+  formatRelativeImport,
   HTTP_METHODS,
   ROUTE_EXTENSIONS,
   type HttpMethodLower,

@@ -132,4 +132,3 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
     devDependencies: resolvedDevDeps,
   };
 }
-

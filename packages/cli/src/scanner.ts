@@ -16,8 +16,6 @@ import { generateLayoutStub, generateRouteStub } from "./scaffold.js";
 export interface ScanDiagnostic {
   filePath: string;
   message: string;
-  line?: number | undefined;
-  column?: number | undefined;
 }
 
 export interface DiscoveredRoute extends ParsedRouteFileInfo {
