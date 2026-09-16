@@ -1,5 +1,13 @@
 # @taserjs/plugin
 
+## 0.2.2
+
+### Patch Changes
+
+- c5fe1b6: Fix Vite Watch & HMR Create / Delete Routes
+- Updated dependencies [c5fe1b6]
+  - @taserjs/cli@0.2.2
+
 ## 0.2.1
 
 ### Patch Changes
