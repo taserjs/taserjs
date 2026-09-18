@@ -197,6 +197,31 @@ describe("paths and URL normalization", () => {
     expect(deriveCanonicalUrl("_auth", "posts_.$id").canonicalPath).toBe("/posts/:id");
   });
 
+  it("derives layout hierarchy segments and applies segment-targeted un-nesting", () => {
+    // Standard routes
+    expect(deriveCanonicalUrl("", "index").hierarchySegments).toEqual(["", "index"]);
+    expect(deriveCanonicalUrl("admin", "users").hierarchySegments).toEqual(["", "admin", "admin/users"]);
+
+    // Root-level breakout bypasses root layout
+    expect(deriveCanonicalUrl("", "health_").hierarchySegments).toEqual([]);
+    expect(deriveCanonicalUrl("", "index_").hierarchySegments).toEqual([]);
+    expect(deriveCanonicalUrl("", "$_").hierarchySegments).toEqual([]);
+
+    // Resource root index breakout retains root but excludes resource layout
+    expect(deriveCanonicalUrl("posts", "index_").hierarchySegments).toEqual([""]);
+    expect(deriveCanonicalUrl("", "posts_.index").hierarchySegments).toEqual([""]);
+
+    // Flat dot-notation breakout excludes target segment and descendants
+    expect(deriveCanonicalUrl("", "posts_.$id.preview").hierarchySegments).toEqual([""]);
+    expect(deriveCanonicalUrl("", "posts_.$id.sub").hierarchySegments).toEqual([""]);
+
+    // Nested directory breakout retains ancestor layouts but excludes target segment
+    expect(deriveCanonicalUrl("tasks", "$id_.complete").hierarchySegments).toEqual(["", "tasks"]);
+
+    // Breakout route inside pathless group inherits pathless layout and root while excluding target
+    expect(deriveCanonicalUrl("_auth", "posts_.$id").hierarchySegments).toEqual(["", "_auth"]);
+  });
+
   it("derives layout info correctly", () => {
     const root = deriveLayoutInfo("", "$", "$.ts");
     expect(root.layoutId).toBe("/*");

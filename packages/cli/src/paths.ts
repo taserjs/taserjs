@@ -191,30 +191,38 @@ export function deriveCanonicalUrl(
   canonicalPath: string;
   hierarchySegments: string[];
 } {
-  const rawSegments: string[] = [];
-
+  const dirSegments: string[] = [];
   if (dir) {
     for (const d of dir.split("/")) {
-      if (d) rawSegments.push(d);
+      if (d) dirSegments.push(d);
     }
   }
 
   const dotParts = splitUnescapedDots(stem);
-  for (const p of dotParts) {
-    if (p) rawSegments.push(p);
+  const stemSegments = dotParts.filter(Boolean);
+
+  interface RouteSegmentToken {
+    raw: string;
+    clean: string;
+    isBreakout: boolean;
   }
 
+  const allSegments: RouteSegmentToken[] = [
+    ...dirSegments.map((s) => ({
+      raw: s,
+      clean: s,
+      isBreakout: false,
+    })),
+    ...stemSegments.map((s) => ({
+      raw: s,
+      clean: isBreakoutSegment(s) ? s.slice(0, -1) : s,
+      isBreakout: isBreakoutSegment(s),
+    })),
+  ];
+
   const urlParts: string[] = [];
-  const hierarchyKeys: string[] = [""]; // Root layout always applies
-  let currentHierarchy = "";
-
-  for (let i = 0; i < rawSegments.length; i++) {
-    const raw = rawSegments[i]!;
-    const { urlSegment } = normalizeSegmentToUrl(raw);
-
-    currentHierarchy = currentHierarchy ? `${currentHierarchy}/${raw}` : raw;
-    hierarchyKeys.push(currentHierarchy);
-
+  for (const seg of allSegments) {
+    const { urlSegment } = normalizeSegmentToUrl(seg.raw);
     if (urlSegment !== null) {
       urlParts.push(urlSegment);
     }
@@ -226,9 +234,79 @@ export function deriveCanonicalUrl(
     canonicalPath = canonicalPath.slice(0, -1);
   }
 
+  // Build candidate hierarchy keys from root down to leaf
+  const candidateKeys: string[] = [""];
+  for (let i = 0; i < allSegments.length; i++) {
+    const fullPath = allSegments.slice(0, i + 1).map((s) => s.clean).join("/");
+    const withoutPathless = allSegments
+      .slice(0, i + 1)
+      .filter((s) => !isPathlessSegment(s.clean))
+      .map((s) => s.clean)
+      .join("/");
+
+    if (fullPath && !candidateKeys.includes(fullPath)) {
+      candidateKeys.push(fullPath);
+    }
+    if (withoutPathless && !candidateKeys.includes(withoutPathless)) {
+      candidateKeys.push(withoutPathless);
+    }
+  }
+
+  // Determine excluded layout keys from breakout segments
+  const excludedPrefixes: string[] = [];
+  let excludeRoot = false;
+
+  for (let i = 0; i < allSegments.length; i++) {
+    const seg = allSegments[i]!;
+    if (!seg.isBreakout) continue;
+
+    const precedingNonPathless = allSegments
+      .slice(0, i)
+      .filter((s) => !isPathlessSegment(s.clean));
+    const followingSegments = allSegments.slice(i + 1);
+
+    if (seg.clean === "index") {
+      // index_ breakout
+      if (precedingNonPathless.length === 0) {
+        // Root index breakout (e.g. index_.get.ts)
+        excludeRoot = true;
+        excludedPrefixes.push("index");
+      } else {
+        // Resource root index breakout (e.g. posts/index_.get.ts)
+        const parentFullPath = allSegments.slice(0, i).map((s) => s.clean).join("/");
+        const parentWithoutPathless = precedingNonPathless.map((s) => s.clean).join("/");
+        if (parentFullPath) excludedPrefixes.push(parentFullPath);
+        if (parentWithoutPathless) excludedPrefixes.push(parentWithoutPathless);
+      }
+    } else {
+      // Named segment breakout (e.g. posts_, $id_, health_, $_)
+      const targetFullPath = allSegments.slice(0, i + 1).map((s) => s.clean).join("/");
+      const targetWithoutPathless = allSegments
+        .slice(0, i + 1)
+        .filter((s) => !isPathlessSegment(s.clean))
+        .map((s) => s.clean)
+        .join("/");
+
+      if (precedingNonPathless.length === 0 && followingSegments.length === 0) {
+        // Root-level route breakout (e.g. health_.get.ts, $_.all.ts)
+        excludeRoot = true;
+      }
+
+      if (targetFullPath) excludedPrefixes.push(targetFullPath);
+      if (targetWithoutPathless) excludedPrefixes.push(targetWithoutPathless);
+    }
+  }
+
+  const hierarchySegments = candidateKeys.filter((k) => {
+    if (k === "") {
+      return !excludeRoot;
+    }
+    return !excludedPrefixes.some((prefix) => k === prefix || k.startsWith(`${prefix}/`));
+  });
+
   return {
     canonicalPath,
-    hierarchySegments: hierarchyKeys,
+    hierarchySegments,
   };
 }
 
