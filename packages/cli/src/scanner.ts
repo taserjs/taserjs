@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join, resolve } from "pathe";
+import { basename, join, resolve } from "pathe";
 import { parseSync } from "oxc-parser";
 import type { TaserFormattingConfig } from "./config.js";
 import {
@@ -95,6 +95,13 @@ function getVariableInit(programBody: any[], name: string): any | null {
   return null;
 }
 
+function createInvalidLayoutUnderscoreDiagnostic(filePath: string): ScanDiagnostic {
+  return {
+    filePath,
+    message: `Invalid layout file "${filePath}": Layout files cannot have trailing underscores. Layout breakout syntax ("segment_") is strictly reserved for routes. For parallel layout chains, use pathless layout groups (e.g. "_auth.ts", "_public.ts").`,
+  };
+}
+
 export function validateAst(
   filePath: string,
   content: string,
@@ -155,7 +162,7 @@ export function validateAst(
 
   if (expectedKind === "route") {
     const exp = expectedVerb?.toLowerCase();
-    if (actualMethod !== exp) {
+    if (actualMethod !== exp && actualMethod !== "any") {
       diagnostics.push({
         filePath,
         message: `Mismatched HTTP method in "${filePath}": File name specifies verb ".${exp}", but default export defines "t.${actualMethod}(...)". Expected "export default t.${exp}("${canonicalPath}")...".`,
@@ -199,6 +206,14 @@ export function validateAst(
     }
   } else {
     // Layout file
+    const filename = basename(filePath);
+    const parsedName = parseFilePath(filename);
+    const stem = parsedName ? parsedName.stem : filename.replace(/\.(ts|tsx)$/, "");
+    if (stem.endsWith("_")) {
+      diagnostics.push(createInvalidLayoutUnderscoreDiagnostic(filePath));
+      return diagnostics;
+    }
+
     if (actualMethod !== "layout") {
       diagnostics.push({
         filePath,
@@ -271,6 +286,11 @@ export function scanRoutes(options: ScanOptions): ScanResult {
         const parsed = parseFilePath(entryRelPath, extensions);
         if (!parsed) {
           // File does not match extensions
+          continue;
+        }
+
+        if (parsed.verb === null && parsed.stem.endsWith("_")) {
+          diagnostics.push(createInvalidLayoutUnderscoreDiagnostic(entryRelPath));
           continue;
         }
 
