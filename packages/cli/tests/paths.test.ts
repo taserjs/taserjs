@@ -200,7 +200,11 @@ describe("paths and URL normalization", () => {
   it("derives layout hierarchy segments and applies segment-targeted un-nesting", () => {
     // Standard routes
     expect(deriveCanonicalUrl("", "index").hierarchySegments).toEqual(["", "index"]);
-    expect(deriveCanonicalUrl("admin", "users").hierarchySegments).toEqual(["", "admin", "admin/users"]);
+    expect(deriveCanonicalUrl("admin", "users").hierarchySegments).toEqual([
+      "",
+      "admin",
+      "admin/users",
+    ]);
 
     // Root-level breakout bypasses root layout
     expect(deriveCanonicalUrl("", "health_").hierarchySegments).toEqual([]);

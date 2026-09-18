@@ -341,11 +341,19 @@ describe("E2E CLI scanner and runtime dispatch", () => {
     // Verify generated manifest contains expected layout bindings
     expect(genResult.content).toContain('"/health": {\n      GET: {\n        layouts: [],');
     expect(genResult.content).toContain('"/": {\n      GET: {\n        layouts: [],');
-    expect(genResult.content).toContain('"/posts/:id/preview": {\n      GET: {\n        layouts: ["/*"],');
+    expect(genResult.content).toContain(
+      '"/posts/:id/preview": {\n      GET: {\n        layouts: ["/*"],',
+    );
     expect(genResult.content).toContain('"/posts": {\n      GET: {\n        layouts: ["/*"],');
-    expect(genResult.content).toContain('"/tasks/:id/complete": {\n      PATCH: {\n        layouts: ["/*", "/tasks/*"],');
-    expect(genResult.content).toContain('"/posts/:id/details": {\n      GET: {\n        layouts: ["/*", "/_auth/*"],');
-    expect(genResult.content).toContain('"/posts/:id": {\n      GET: {\n        layouts: ["/*", "/posts/*"],');
+    expect(genResult.content).toContain(
+      '"/tasks/:id/complete": {\n      PATCH: {\n        layouts: ["/*", "/tasks/*"],',
+    );
+    expect(genResult.content).toContain(
+      '"/posts/:id/details": {\n      GET: {\n        layouts: ["/*", "/_auth/*"],',
+    );
+    expect(genResult.content).toContain(
+      '"/posts/:id": {\n      GET: {\n        layouts: ["/*", "/posts/*"],',
+    );
 
     // Build mock manifest and create app to verify runtime HTTP dispatch
     const rootLayout = t
@@ -353,13 +361,19 @@ describe("E2E CLI scanner and runtime dispatch", () => {
       .use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "root"] }));
     const postsLayout = t
       .layout("/posts/*")
-      .use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "posts"] }));
+      .use(async ({ state }: any, next: any) =>
+        next({ trail: [...(state?.trail ?? []), "posts"] }),
+      );
     const tasksLayout = t
       .layout("/tasks/*")
-      .use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "tasks"] }));
+      .use(async ({ state }: any, next: any) =>
+        next({ trail: [...(state?.trail ?? []), "tasks"] }),
+      );
     const tasksChildLayout = t
       .layout("/tasks/:id/*")
-      .use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "tasks:id"] }));
+      .use(async ({ state }: any, next: any) =>
+        next({ trail: [...(state?.trail ?? []), "tasks:id"] }),
+      );
     const authLayout = t
       .layout("/_auth/*")
       .use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "auth"] }));
@@ -378,7 +392,9 @@ describe("E2E CLI scanner and runtime dispatch", () => {
             layouts: [],
             route: t
               .get("/health")
-              .handler(({ state }: any) => Response.json({ trail: [...(state?.trail ?? []), "health"] })),
+              .handler(({ state }: any) =>
+                Response.json({ trail: [...(state?.trail ?? []), "health"] }),
+              ),
           },
         },
         "/": {
@@ -386,7 +402,9 @@ describe("E2E CLI scanner and runtime dispatch", () => {
             layouts: [],
             route: t
               .get("/")
-              .handler(({ state }: any) => Response.json({ trail: [...(state?.trail ?? []), "root-index"] })),
+              .handler(({ state }: any) =>
+                Response.json({ trail: [...(state?.trail ?? []), "root-index"] }),
+              ),
           },
         },
         "/posts/:id/preview": {
@@ -395,7 +413,10 @@ describe("E2E CLI scanner and runtime dispatch", () => {
             route: t
               .get("/posts/:id/preview")
               .handler(({ req, state }: any) =>
-                Response.json({ id: req.params.id, trail: [...(state?.trail ?? []), "posts:id:preview"] }),
+                Response.json({
+                  id: req.params.id,
+                  trail: [...(state?.trail ?? []), "posts:id:preview"],
+                }),
               ),
           },
         },
@@ -404,7 +425,9 @@ describe("E2E CLI scanner and runtime dispatch", () => {
             layouts: ["/*"],
             route: t
               .get("/posts")
-              .handler(({ state }: any) => Response.json({ trail: [...(state?.trail ?? []), "posts:index"] })),
+              .handler(({ state }: any) =>
+                Response.json({ trail: [...(state?.trail ?? []), "posts:index"] }),
+              ),
           },
         },
         "/tasks/:id/complete": {
@@ -413,7 +436,10 @@ describe("E2E CLI scanner and runtime dispatch", () => {
             route: t
               .patch("/tasks/:id/complete")
               .handler(({ req, state }: any) =>
-                Response.json({ id: req.params.id, trail: [...(state?.trail ?? []), "tasks:id:complete"] }),
+                Response.json({
+                  id: req.params.id,
+                  trail: [...(state?.trail ?? []), "tasks:id:complete"],
+                }),
               ),
           },
         },
@@ -423,7 +449,10 @@ describe("E2E CLI scanner and runtime dispatch", () => {
             route: t
               .get("/posts/:id/details")
               .handler(({ req, state }: any) =>
-                Response.json({ id: req.params.id, trail: [...(state?.trail ?? []), "auth:posts:details"] }),
+                Response.json({
+                  id: req.params.id,
+                  trail: [...(state?.trail ?? []), "auth:posts:details"],
+                }),
               ),
           },
         },

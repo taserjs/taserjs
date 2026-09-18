@@ -349,34 +349,64 @@ describe("route scanner and AST validation", () => {
     // 1. Valid breakout route with clean canonical URL matches without diagnostics
     const validCode =
       'import { t } from "@taserjs/router";\nexport default t.get("/posts/:id/preview").handler(() => new Response("ok"));';
-    const validDiags = validateAst("posts_.$id.preview.get.ts", validCode, "route", "get", "/posts/:id/preview");
+    const validDiags = validateAst(
+      "posts_.$id.preview.get.ts",
+      validCode,
+      "route",
+      "get",
+      "/posts/:id/preview",
+    );
     expect(validDiags).toHaveLength(0);
 
     // 2. Reject breakout route retaining trailing underscore on literal stem
     const invalidLiteralCode =
       'import { t } from "@taserjs/router";\nexport default t.get("/posts_/:id/preview").handler(() => new Response("ok"));';
-    const invalidLiteralDiags = validateAst("posts_.$id.preview.get.ts", invalidLiteralCode, "route", "get", "/posts/:id/preview");
+    const invalidLiteralDiags = validateAst(
+      "posts_.$id.preview.get.ts",
+      invalidLiteralCode,
+      "route",
+      "get",
+      "/posts/:id/preview",
+    );
     expect(invalidLiteralDiags).toHaveLength(1);
     expect(invalidLiteralDiags[0]?.message).toMatch(/Mismatched route path/);
 
     // 3. Reject breakout route retaining trailing underscore on dynamic param
     const invalidParamCode =
       'import { t } from "@taserjs/router";\nexport default t.get("/posts/:id_/preview").handler(() => new Response("ok"));';
-    const invalidParamDiags = validateAst("posts_.$id_.preview.get.ts", invalidParamCode, "route", "get", "/posts/:id/preview");
+    const invalidParamDiags = validateAst(
+      "posts_.$id_.preview.get.ts",
+      invalidParamCode,
+      "route",
+      "get",
+      "/posts/:id/preview",
+    );
     expect(invalidParamDiags).toHaveLength(1);
     expect(invalidParamDiags[0]?.message).toMatch(/Mismatched route path/);
 
     // 4. Reject breakout route passing raw filesystem tokens like $param
     const invalidFilesystemCode =
       'import { t } from "@taserjs/router";\nexport default t.get("/posts/$id_/preview").handler(() => new Response("ok"));';
-    const invalidFilesystemDiags = validateAst("posts_.$id_.preview.get.ts", invalidFilesystemCode, "route", "get", "/posts/:id/preview");
+    const invalidFilesystemDiags = validateAst(
+      "posts_.$id_.preview.get.ts",
+      invalidFilesystemCode,
+      "route",
+      "get",
+      "/posts/:id/preview",
+    );
     expect(invalidFilesystemDiags).toHaveLength(1);
     expect(invalidFilesystemDiags[0]?.message).toMatch(/contains filesystem tokens/);
 
     // 5. Reject root breakout retaining trailing underscore
     const invalidRootCode =
       'import { t } from "@taserjs/router";\nexport default t.get("/health_").handler(() => new Response("ok"));';
-    const invalidRootDiags = validateAst("health_.get.ts", invalidRootCode, "route", "get", "/health");
+    const invalidRootDiags = validateAst(
+      "health_.get.ts",
+      invalidRootCode,
+      "route",
+      "get",
+      "/health",
+    );
     expect(invalidRootDiags).toHaveLength(1);
     expect(invalidRootDiags[0]?.message).toMatch(/Mismatched route path/);
   });

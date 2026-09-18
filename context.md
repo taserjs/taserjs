@@ -147,4 +147,3 @@ _Avoid_: Stack popping, layout popping
 **Root Splat Layout Bypass**:
 A breakout route defined at the root level (e.g. `health_.get.ts` or `index_.get.ts`) that un-nests from the root `$.ts` (`/*`) layout, yielding an empty layout chain (`[]`).
 _Avoid_: Global un-nesting, detached root
-

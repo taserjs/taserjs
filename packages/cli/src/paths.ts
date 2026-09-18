@@ -237,7 +237,10 @@ export function deriveCanonicalUrl(
   // Build candidate hierarchy keys from root down to leaf
   const candidateKeys: string[] = [""];
   for (let i = 0; i < allSegments.length; i++) {
-    const fullPath = allSegments.slice(0, i + 1).map((s) => s.clean).join("/");
+    const fullPath = allSegments
+      .slice(0, i + 1)
+      .map((s) => s.clean)
+      .join("/");
     const withoutPathless = allSegments
       .slice(0, i + 1)
       .filter((s) => !isPathlessSegment(s.clean))
@@ -260,9 +263,7 @@ export function deriveCanonicalUrl(
     const seg = allSegments[i]!;
     if (!seg.isBreakout) continue;
 
-    const precedingNonPathless = allSegments
-      .slice(0, i)
-      .filter((s) => !isPathlessSegment(s.clean));
+    const precedingNonPathless = allSegments.slice(0, i).filter((s) => !isPathlessSegment(s.clean));
     const followingSegments = allSegments.slice(i + 1);
 
     if (seg.clean === "index") {
@@ -273,14 +274,20 @@ export function deriveCanonicalUrl(
         excludedPrefixes.push("index");
       } else {
         // Resource root index breakout (e.g. posts/index_.get.ts)
-        const parentFullPath = allSegments.slice(0, i).map((s) => s.clean).join("/");
+        const parentFullPath = allSegments
+          .slice(0, i)
+          .map((s) => s.clean)
+          .join("/");
         const parentWithoutPathless = precedingNonPathless.map((s) => s.clean).join("/");
         if (parentFullPath) excludedPrefixes.push(parentFullPath);
         if (parentWithoutPathless) excludedPrefixes.push(parentWithoutPathless);
       }
     } else {
       // Named segment breakout (e.g. posts_, $id_, health_, $_)
-      const targetFullPath = allSegments.slice(0, i + 1).map((s) => s.clean).join("/");
+      const targetFullPath = allSegments
+        .slice(0, i + 1)
+        .map((s) => s.clean)
+        .join("/");
       const targetWithoutPathless = allSegments
         .slice(0, i + 1)
         .filter((s) => !isPathlessSegment(s.clean))

@@ -3,8 +3,17 @@ import { tmpdir } from "node:os";
 import { join } from "pathe";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG } from "../src/config.js";
-import { generateManifest, generateManifestCode, resolveLayoutsForRoute } from "../src/generator.js";
-import { scanRoutes, type DiscoveredLayout, type DiscoveredRoute, type ScanResult } from "../src/scanner.js";
+import {
+  generateManifest,
+  generateManifestCode,
+  resolveLayoutsForRoute,
+} from "../src/generator.js";
+import {
+  scanRoutes,
+  type DiscoveredLayout,
+  type DiscoveredRoute,
+  type ScanResult,
+} from "../src/scanner.js";
 
 describe("manifest codegen and content-hash caching", () => {
   let tempDir: string;
@@ -367,19 +376,25 @@ export default defineTaser().context(createContext({
     expect(manifestCode).toContain('"/": {\n      GET: {\n        layouts: [],');
 
     // 3. /posts/:id/preview: layouts: ["/*"]
-    expect(manifestCode).toContain('"/posts/:id/preview": {\n      GET: {\n        layouts: ["/*"],');
+    expect(manifestCode).toContain(
+      '"/posts/:id/preview": {\n      GET: {\n        layouts: ["/*"],',
+    );
 
     // 4. /posts: layouts: ["/*"]
     expect(manifestCode).toContain('"/posts": {\n      GET: {\n        layouts: ["/*"],');
 
     // 5. /tasks/:id/complete: layouts: ["/*", "/tasks/*"]
-    expect(manifestCode).toContain('"/tasks/:id/complete": {\n      PATCH: {\n        layouts: ["/*", "/tasks/*"],');
+    expect(manifestCode).toContain(
+      '"/tasks/:id/complete": {\n      PATCH: {\n        layouts: ["/*", "/tasks/*"],',
+    );
 
     // 6. /posts/:id/sub: layouts: ["/*"]
     expect(manifestCode).toContain('"/posts/:id/sub": {\n      GET: {\n        layouts: ["/*"],');
 
     // 7. /posts/:id: layouts: ["/*", "/_auth/*"]
-    expect(manifestCode).toContain('"/posts/:id": {\n      GET: {\n        layouts: ["/*", "/_auth/*"],');
+    expect(manifestCode).toContain(
+      '"/posts/:id": {\n      GET: {\n        layouts: ["/*", "/_auth/*"],',
+    );
 
     // 8. /unknown/:id: layouts: ["/*"]
     expect(manifestCode).toContain('"/unknown/:id": {\n      GET: {\n        layouts: ["/*"],');
@@ -387,10 +402,18 @@ export default defineTaser().context(createContext({
     // Check ambient RouteByPathMethod type output
     expect(manifestCode).toContain('"/health": {\n      GET: {\n        layouts: readonly [];');
     expect(manifestCode).toContain('"/": {\n      GET: {\n        layouts: readonly [];');
-    expect(manifestCode).toContain('"/posts/:id/preview": {\n      GET: {\n        layouts: readonly ["/*"];');
-    expect(manifestCode).toContain('"/tasks/:id/complete": {\n      PATCH: {\n        layouts: readonly ["/*", "/tasks/*"];');
-    expect(manifestCode).toContain('"/posts/:id": {\n      GET: {\n        layouts: readonly ["/*", "/_auth/*"];');
-    expect(manifestCode).toContain('"/unknown/:id": {\n      GET: {\n        layouts: readonly ["/*"];');
+    expect(manifestCode).toContain(
+      '"/posts/:id/preview": {\n      GET: {\n        layouts: readonly ["/*"];',
+    );
+    expect(manifestCode).toContain(
+      '"/tasks/:id/complete": {\n      PATCH: {\n        layouts: readonly ["/*", "/tasks/*"];',
+    );
+    expect(manifestCode).toContain(
+      '"/posts/:id": {\n      GET: {\n        layouts: readonly ["/*", "/_auth/*"];',
+    );
+    expect(manifestCode).toContain(
+      '"/unknown/:id": {\n      GET: {\n        layouts: readonly ["/*"];',
+    );
   });
 
   it("resolves layouts correctly for routes with breakout segment hierarchies via resolveLayoutsForRoute", () => {
@@ -456,6 +479,9 @@ export default defineTaser().context(createContext({
       canonicalPath: "/tasks/:id/complete",
       segmentHierarchy: ["", "tasks"],
     };
-    expect(resolveLayoutsForRoute(tasksBreakoutRoute, layoutsBySegment)).toEqual(["/*", "/tasks/*"]);
+    expect(resolveLayoutsForRoute(tasksBreakoutRoute, layoutsBySegment)).toEqual([
+      "/*",
+      "/tasks/*",
+    ]);
   });
 });
