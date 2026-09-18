@@ -499,4 +499,145 @@ export default t
       /Property 'use' does not exist on type 'RouteValidationBuilder/,
     );
   });
+
+  it("verifies compile-time type inference for breakout routes: req.params.id, ambient RouteByPathMethod, and layout service access", () => {
+    setupTsConfig(tempDir);
+
+    const routesDir = join(tempDir, "src", "routes");
+    mkdirSync(routesDir, { recursive: true });
+    mkdirSync(join(routesDir, "posts"), { recursive: true });
+
+    // 1. Root layout (/*) providing rootService and rootState
+    writeFileSync(
+      join(routesDir, "$.ts"),
+      `import { t } from "@taserjs/router";
+export default t.layout("/*").use(async (_args, next) => {
+  return await next.provide({ rootService: "root-svc" }, { rootState: true });
+});
+`,
+    );
+
+    // 2. Posts layout (/posts/*) providing postsService and postsState
+    writeFileSync(
+      join(routesDir, "posts.ts"),
+      `import { t } from "@taserjs/router";
+export default t.layout("/posts/*").use(async (_args, next) => {
+  return await next.provide({ postsService: "posts-svc" }, { postsState: true });
+});
+`,
+    );
+
+    // 3. Base route: src/routes/posts/$id.get.ts -> /posts/:id (inherits /* and /posts/*)
+    writeFileSync(
+      join(routesDir, "posts", "$id.get.ts"),
+      `import { t } from "@taserjs/router";
+export default t.get("/posts/:id").handler(async ({ req, state, rootService, postsService }) => {
+  const id: string = req.params.id;
+  const rootServiceValue: string = rootService;
+  const postsServiceValue: string = postsService;
+  const rootStateValue: boolean = state.rootState;
+  const postsStateValue: boolean = state.postsState;
+  return new Response(\`\${id}-\${rootServiceValue}-\${postsServiceValue}-\${rootStateValue}-\${postsStateValue}\`);
+});
+`,
+    );
+
+    // 4. Flat breakout route: src/routes/posts_.$id.preview.get.ts -> /posts/:id/preview
+    // Bypasses /posts/*, retains /* -> has rootService and rootState, but NOT postsService / postsState
+    writeFileSync(
+      join(routesDir, "posts_.$id.preview.get.ts"),
+      `import { t } from "@taserjs/router";
+export default t.get("/posts/:id/preview").handler(async (args) => {
+  const id: string = args.req.params.id;
+  const rootServiceValue: string = args.rootService;
+  const rootStateValue: boolean = args.state.rootState;
+
+  // @ts-expect-error postsService is bypassed on breakout route
+  const _bypassedPostsService = args.postsService;
+  // @ts-expect-error postsState is bypassed on breakout route
+  const _bypassedPostsState = args.state.postsState;
+
+  return new Response(\`\${id}-\${rootServiceValue}\`);
+});
+`,
+    );
+
+    // 5. Root breakout route: src/routes/health_.get.ts -> /health
+    // Bypasses /* completely -> has NO layout services or layout state
+    writeFileSync(
+      join(routesDir, "health_.get.ts"),
+      `import { t } from "@taserjs/router";
+import type { RouteByPathMethod } from "../.taserjs/routes.gen.js";
+
+type HealthLayouts = RouteByPathMethod["/health"]["GET"]["layouts"];
+type AssertEmpty = HealthLayouts extends readonly [] ? true : false;
+const _assertEmpty: AssertEmpty = true;
+
+type PreviewLayouts = RouteByPathMethod["/posts/:id/preview"]["GET"]["layouts"];
+type AssertRootOnly = PreviewLayouts extends readonly ["/*"] ? true : false;
+const _assertRootOnly: AssertRootOnly = true;
+
+type BaseLayouts = RouteByPathMethod["/posts/:id"]["GET"]["layouts"];
+type AssertBoth = BaseLayouts extends readonly ["/*", "/posts/*"] ? true : false;
+const _assertBoth: AssertBoth = true;
+
+export default t.get("/health").handler(async (args) => {
+  // @ts-expect-error rootService is bypassed on root breakout route
+  const _bypassedRootService = args.rootService;
+  // @ts-expect-error rootState is bypassed on root breakout route
+  const _bypassedRootState = args.state.rootState;
+
+  return new Response("health");
+});
+`,
+    );
+
+    const config = { ...DEFAULT_CONFIG };
+    const scan = scanRoutes({ routesDir, cwd: tempDir });
+    expect(scan.diagnostics).toHaveLength(0);
+
+    generateManifest(scan, config, tempDir);
+
+    const validResult = runTsc(tempDir);
+    if (!validResult.success) {
+      console.error("FAIL ON BREAKOUT TYPECHECK:", validResult.output);
+    }
+    expect(validResult.success).toBe(true);
+
+    // 6. Verify that accessing bypassed layout state without @ts-expect-error fails compilation
+    writeFileSync(
+      join(routesDir, "posts_.$id.preview.get.ts"),
+      `import { t } from "@taserjs/router";
+export default t.get("/posts/:id/preview").handler(async ({ state }) => {
+  const invalid = state.postsState;
+  return new Response("err");
+});
+`,
+    );
+    const postBypassError = runTsc(tempDir);
+    expect(postBypassError.success).toBe(false);
+    expect(postBypassError.output).toMatch(/Property 'postsState' does not exist/);
+
+    // 7. Verify that accessing root layout state from root breakout route fails compilation
+    writeFileSync(
+      join(routesDir, "posts_.$id.preview.get.ts"),
+      `import { t } from "@taserjs/router";
+export default t.get("/posts/:id/preview").handler(async ({ state }) => {
+  return new Response("ok");
+});
+`,
+    );
+    writeFileSync(
+      join(routesDir, "health_.get.ts"),
+      `import { t } from "@taserjs/router";
+export default t.get("/health").handler(async ({ state }) => {
+  const invalid = state.rootState;
+  return new Response("err");
+});
+`,
+    );
+    const rootBypassError = runTsc(tempDir);
+    expect(rootBypassError.success).toBe(false);
+    expect(rootBypassError.output).toMatch(/Property 'rootState' does not exist/);
+  });
 });

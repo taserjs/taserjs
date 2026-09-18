@@ -357,6 +357,7 @@ export default defineTaser().context(createContext({
     expect(scanResult.diagnostics).toHaveLength(0);
 
     const { manifestCode } = generateManifestCode(scanResult, DEFAULT_CONFIG, tempDir);
+    expect(manifestCode).toMatchSnapshot();
 
     // Check routeManifest.routes output
     // 1. health: layouts: []

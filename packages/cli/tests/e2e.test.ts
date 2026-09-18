@@ -246,4 +246,242 @@ describe("E2E CLI scanner and runtime dispatch", () => {
       state: { root: true, admin: true },
     });
   });
+
+  it("dispatches requests to breakout routes, verifying middleware execution order, layout bypassing, and root /* bypassing", async () => {
+    const routesDir = join(tempDir, "src", "routes-breakout-e2e");
+    mkdirSync(routesDir, { recursive: true });
+    mkdirSync(join(routesDir, "posts"), { recursive: true });
+    mkdirSync(join(routesDir, "tasks"), { recursive: true });
+    mkdirSync(join(routesDir, "_auth"), { recursive: true });
+
+    // 1. Root layout (/*): appends "root" to trail
+    writeFileSync(
+      join(routesDir, "$.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.layout("/*").use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "root"] }));',
+    );
+
+    // 2. Posts layout (/posts/*): appends "posts" to trail
+    writeFileSync(
+      join(routesDir, "posts.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.layout("/posts/*").use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "posts"] }));',
+    );
+
+    // 3. Tasks layout (/tasks/*): appends "tasks" to trail
+    writeFileSync(
+      join(routesDir, "tasks", "$.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.layout("/tasks/*").use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "tasks"] }));',
+    );
+
+    // 4. Tasks child layout (/tasks/:id/*): appends "tasks:id" to trail
+    writeFileSync(
+      join(routesDir, "tasks", "$id.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.layout("/tasks/:id/*").use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "tasks:id"] }));',
+    );
+
+    // 5. Auth pathless layout (/_auth/*): appends "auth" to trail
+    writeFileSync(
+      join(routesDir, "_auth.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.layout("/_auth/*").use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "auth"] }));',
+    );
+
+    // 6. Base route: posts/$id.get.ts -> /posts/:id (inherits /* and /posts/*)
+    writeFileSync(
+      join(routesDir, "posts", "$id.get.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.get("/posts/:id").handler(({ req, state }: any) => Response.json({ id: req.params.id, trail: [...(state?.trail ?? []), "posts:id"] }));',
+    );
+
+    // 7. Flat breakout route: posts_.$id.preview.get.ts -> /posts/:id/preview (bypasses posts.ts, inherits /*)
+    writeFileSync(
+      join(routesDir, "posts_.$id.preview.get.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.get("/posts/:id/preview").handler(({ req, state }: any) => Response.json({ id: req.params.id, trail: [...(state?.trail ?? []), "posts:id:preview"] }));',
+    );
+
+    // 8. Resource root index breakout: posts/index_.get.ts -> /posts (bypasses posts.ts, inherits /*)
+    writeFileSync(
+      join(routesDir, "posts", "index_.get.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.get("/posts").handler(({ state }: any) => Response.json({ trail: [...(state?.trail ?? []), "posts:index"] }));',
+    );
+
+    // 9. Nested directory breakout: tasks/$id_.complete.patch.ts -> /tasks/:id/complete (bypasses tasks/$id.ts, inherits /* and /tasks/*)
+    writeFileSync(
+      join(routesDir, "tasks", "$id_.complete.patch.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.patch("/tasks/:id/complete").handler(({ req, state }: any) => Response.json({ id: req.params.id, trail: [...(state?.trail ?? []), "tasks:id:complete"] }));',
+    );
+
+    // 10. Pathless group breakout: _auth/posts_.$id.details.get.ts -> /posts/:id/details (bypasses posts.ts, inherits /* and /_auth/*)
+    writeFileSync(
+      join(routesDir, "_auth", "posts_.$id.details.get.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.get("/posts/:id/details").handler(({ req, state }: any) => Response.json({ id: req.params.id, trail: [...(state?.trail ?? []), "auth:posts:details"] }));',
+    );
+
+    // 11. Root breakout route: health_.get.ts -> /health (bypasses /* root layout completely)
+    writeFileSync(
+      join(routesDir, "health_.get.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.get("/health").handler(({ state }: any) => Response.json({ trail: [...(state?.trail ?? []), "health"] }));',
+    );
+
+    // 12. Root index breakout route: index_.get.ts -> / (bypasses /* root layout completely)
+    writeFileSync(
+      join(routesDir, "index_.get.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.get("/").handler(({ state }: any) => Response.json({ trail: [...(state?.trail ?? []), "root-index"] }));',
+    );
+
+    const config = {
+      ...DEFAULT_CONFIG,
+      routesDir: "./src/routes-breakout-e2e",
+      outputDir: "./.taserjs",
+    };
+
+    const scanResult = scanRoutes({ routesDir, cwd: tempDir });
+    expect(scanResult.diagnostics).toHaveLength(0);
+
+    const genResult = generateManifest(scanResult, config, tempDir);
+    expect(genResult.manifestWritten).toBe(true);
+
+    // Verify generated manifest contains expected layout bindings
+    expect(genResult.content).toContain('"/health": {\n      GET: {\n        layouts: [],');
+    expect(genResult.content).toContain('"/": {\n      GET: {\n        layouts: [],');
+    expect(genResult.content).toContain('"/posts/:id/preview": {\n      GET: {\n        layouts: ["/*"],');
+    expect(genResult.content).toContain('"/posts": {\n      GET: {\n        layouts: ["/*"],');
+    expect(genResult.content).toContain('"/tasks/:id/complete": {\n      PATCH: {\n        layouts: ["/*", "/tasks/*"],');
+    expect(genResult.content).toContain('"/posts/:id/details": {\n      GET: {\n        layouts: ["/*", "/_auth/*"],');
+    expect(genResult.content).toContain('"/posts/:id": {\n      GET: {\n        layouts: ["/*", "/posts/*"],');
+
+    // Build mock manifest and create app to verify runtime HTTP dispatch
+    const rootLayout = t
+      .layout("/*")
+      .use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "root"] }));
+    const postsLayout = t
+      .layout("/posts/*")
+      .use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "posts"] }));
+    const tasksLayout = t
+      .layout("/tasks/*")
+      .use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "tasks"] }));
+    const tasksChildLayout = t
+      .layout("/tasks/:id/*")
+      .use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "tasks:id"] }));
+    const authLayout = t
+      .layout("/_auth/*")
+      .use(async ({ state }: any, next: any) => next({ trail: [...(state?.trail ?? []), "auth"] }));
+
+    const mockManifest = {
+      layouts: {
+        "/*": rootLayout,
+        "/posts/*": postsLayout,
+        "/tasks/*": tasksLayout,
+        "/tasks/:id/*": tasksChildLayout,
+        "/_auth/*": authLayout,
+      },
+      routes: {
+        "/health": {
+          GET: {
+            layouts: [],
+            route: t
+              .get("/health")
+              .handler(({ state }: any) => Response.json({ trail: [...(state?.trail ?? []), "health"] })),
+          },
+        },
+        "/": {
+          GET: {
+            layouts: [],
+            route: t
+              .get("/")
+              .handler(({ state }: any) => Response.json({ trail: [...(state?.trail ?? []), "root-index"] })),
+          },
+        },
+        "/posts/:id/preview": {
+          GET: {
+            layouts: ["/*"],
+            route: t
+              .get("/posts/:id/preview")
+              .handler(({ req, state }: any) =>
+                Response.json({ id: req.params.id, trail: [...(state?.trail ?? []), "posts:id:preview"] }),
+              ),
+          },
+        },
+        "/posts": {
+          GET: {
+            layouts: ["/*"],
+            route: t
+              .get("/posts")
+              .handler(({ state }: any) => Response.json({ trail: [...(state?.trail ?? []), "posts:index"] })),
+          },
+        },
+        "/tasks/:id/complete": {
+          PATCH: {
+            layouts: ["/*", "/tasks/*"],
+            route: t
+              .patch("/tasks/:id/complete")
+              .handler(({ req, state }: any) =>
+                Response.json({ id: req.params.id, trail: [...(state?.trail ?? []), "tasks:id:complete"] }),
+              ),
+          },
+        },
+        "/posts/:id/details": {
+          GET: {
+            layouts: ["/*", "/_auth/*"],
+            route: t
+              .get("/posts/:id/details")
+              .handler(({ req, state }: any) =>
+                Response.json({ id: req.params.id, trail: [...(state?.trail ?? []), "auth:posts:details"] }),
+              ),
+          },
+        },
+        "/posts/:id": {
+          GET: {
+            layouts: ["/*", "/posts/*"],
+            route: t
+              .get("/posts/:id")
+              .handler(({ req, state }: any) =>
+                Response.json({ id: req.params.id, trail: [...(state?.trail ?? []), "posts:id"] }),
+              ),
+          },
+        },
+      },
+    };
+
+    const app = createTaserApp(mockManifest);
+
+    // 1. Root breakout route: GET /health (bypasses root /* completely)
+    const healthRes = await app.request("/health");
+    expect(healthRes.status).toBe(200);
+    const healthData = await healthRes.json();
+    expect(healthData).toEqual({ trail: ["health"] });
+
+    // 2. Root index breakout route: GET / (bypasses root /* completely)
+    const rootRes = await app.request("/");
+    expect(rootRes.status).toBe(200);
+    const rootData = await rootRes.json();
+    expect(rootData).toEqual({ trail: ["root-index"] });
+
+    // 3. Flat breakout route: GET /posts/42/preview (bypasses posts.ts, runs /* root layout)
+    const previewRes = await app.request("/posts/42/preview");
+    expect(previewRes.status).toBe(200);
+    const previewData = await previewRes.json();
+    expect(previewData).toEqual({ id: "42", trail: ["root", "posts:id:preview"] });
+
+    // 4. Resource root index breakout: GET /posts (bypasses posts.ts, runs /* root layout)
+    const postsRes = await app.request("/posts");
+    expect(postsRes.status).toBe(200);
+    const postsData = await postsRes.json();
+    expect(postsData).toEqual({ trail: ["root", "posts:index"] });
+
+    // 5. Nested directory breakout: PATCH /tasks/99/complete (bypasses tasks/$id.ts, runs /* and /tasks/*)
+    const taskRes = await app.request("/tasks/99/complete", { method: "PATCH" });
+    expect(taskRes.status).toBe(200);
+    const taskData = await taskRes.json();
+    expect(taskData).toEqual({ id: "99", trail: ["root", "tasks", "tasks:id:complete"] });
+
+    // 6. Pathless group breakout: GET /posts/55/details (bypasses posts.ts, runs /* and /_auth/*)
+    const detailsRes = await app.request("/posts/55/details");
+    expect(detailsRes.status).toBe(200);
+    const detailsData = await detailsRes.json();
+    expect(detailsData).toEqual({ id: "55", trail: ["root", "auth", "auth:posts:details"] });
+
+    // 7. Base route: GET /posts/77 (retains both /* and /posts/*)
+    const baseRes = await app.request("/posts/77");
+    expect(baseRes.status).toBe(200);
+    const baseData = await baseRes.json();
+    expect(baseData).toEqual({ id: "77", trail: ["root", "posts", "posts:id"] });
+  });
 });
