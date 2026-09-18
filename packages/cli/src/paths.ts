@@ -86,6 +86,14 @@ export function isPathlessSegment(rawSegment: string): boolean {
 }
 
 /**
+ * Identifies if a route segment has an unbracketed trailing underscore (layout breakout).
+ * Respects bracket escaping such that `task[_]` is NOT a breakout, but `task[_]_` IS.
+ */
+export function isBreakoutSegment(rawSegment: string): boolean {
+  return Boolean(rawSegment && rawSegment.endsWith("_") && rawSegment !== "_");
+}
+
+/**
  * Normalizes a raw segment to canonical URL segment.
  */
 export function normalizeSegmentToUrl(rawSegment: string): {
@@ -96,18 +104,19 @@ export function normalizeSegmentToUrl(rawSegment: string): {
     return { urlSegment: null, isPathless: true };
   }
 
-  const unescaped = unescapeBrackets(rawSegment);
+  const segment = isBreakoutSegment(rawSegment) ? rawSegment.slice(0, -1) : rawSegment;
+  const unescaped = unescapeBrackets(segment);
 
-  if (unescaped === "index" && rawSegment === "index") {
+  if (unescaped === "index" && segment === "index") {
     return { urlSegment: null, isPathless: false };
   }
 
-  if (unescaped === "$" && rawSegment === "$") {
+  if (unescaped === "$" && segment === "$") {
     return { urlSegment: "*", isPathless: false };
   }
 
-  if (rawSegment.startsWith("$") && rawSegment.length > 1) {
-    return { urlSegment: `:${rawSegment.slice(1)}`, isPathless: false };
+  if (segment.startsWith("$") && segment.length > 1) {
+    return { urlSegment: `:${segment.slice(1)}`, isPathless: false };
   }
 
   return { urlSegment: unescaped, isPathless: false };

@@ -18,6 +18,7 @@ export {
   splitUnescapedDots,
   unescapeBrackets,
   isPathlessSegment,
+  isBreakoutSegment,
   normalizeSegmentToUrl,
   isIgnoredPath,
   parseFilePath,

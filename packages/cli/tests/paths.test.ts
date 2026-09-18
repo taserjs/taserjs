@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   deriveCanonicalUrl,
   deriveLayoutInfo,
+  isBreakoutSegment,
   isIgnoredPath,
   isPathlessSegment,
   normalizeSegmentToUrl,
@@ -37,6 +38,25 @@ describe("paths and URL normalization", () => {
     expect(isPathlessSegment("users")).toBe(false);
   });
 
+  it("identifies breakout segments while respecting bracket escaping", () => {
+    expect(isBreakoutSegment("posts_")).toBe(true);
+    expect(isBreakoutSegment("$id_")).toBe(true);
+    expect(isBreakoutSegment("$_")).toBe(true);
+    expect(isBreakoutSegment("index_")).toBe(true);
+    expect(isBreakoutSegment("task[_]_")).toBe(true);
+    expect(isBreakoutSegment("[_]_")).toBe(true);
+
+    // Negative cases: bracket escaped underscores or non-breakout segments
+    expect(isBreakoutSegment("task[_]")).toBe(false);
+    expect(isBreakoutSegment("[_]")).toBe(false);
+    expect(isBreakoutSegment("posts")).toBe(false);
+    expect(isBreakoutSegment("$id")).toBe(false);
+    expect(isBreakoutSegment("$")).toBe(false);
+    expect(isBreakoutSegment("_auth")).toBe(false);
+    expect(isBreakoutSegment("_")).toBe(false);
+    expect(isBreakoutSegment("")).toBe(false);
+  });
+
   it("normalizes segments to canonical URL tokens", () => {
     expect(normalizeSegmentToUrl("_auth")).toEqual({ urlSegment: null, isPathless: true });
     expect(normalizeSegmentToUrl("index")).toEqual({ urlSegment: null, isPathless: false });
@@ -52,6 +72,16 @@ describe("paths and URL normalization", () => {
       isPathless: false,
     });
     expect(normalizeSegmentToUrl("users")).toEqual({ urlSegment: "users", isPathless: false });
+  });
+
+  it("normalizes breakout segments and strips trailing underscores", () => {
+    expect(normalizeSegmentToUrl("posts_")).toEqual({ urlSegment: "posts", isPathless: false });
+    expect(normalizeSegmentToUrl("$id_")).toEqual({ urlSegment: ":id", isPathless: false });
+    expect(normalizeSegmentToUrl("$_")).toEqual({ urlSegment: "*", isPathless: false });
+    expect(normalizeSegmentToUrl("index_")).toEqual({ urlSegment: null, isPathless: false });
+    expect(normalizeSegmentToUrl("[index]_")).toEqual({ urlSegment: "index", isPathless: false });
+    expect(normalizeSegmentToUrl("task[_]")).toEqual({ urlSegment: "task_", isPathless: false });
+    expect(normalizeSegmentToUrl("task[_]_")).toEqual({ urlSegment: "task_", isPathless: false });
   });
 
   it("identifies ignored paths with dash prefix", () => {
@@ -151,6 +181,20 @@ describe("paths and URL normalization", () => {
     expect(deriveCanonicalUrl("", "[_]private").canonicalPath).toBe("/_private");
     expect(deriveCanonicalUrl("_auth", "login").canonicalPath).toBe("/login");
     expect(deriveCanonicalUrl("_auth/users", "$id").canonicalPath).toBe("/users/:id");
+  });
+
+  it("derives canonical URL for breakout routes and bracket escaping", () => {
+    expect(deriveCanonicalUrl("", "posts_.$id.preview").canonicalPath).toBe("/posts/:id/preview");
+    expect(deriveCanonicalUrl("tasks", "$id_.complete").canonicalPath).toBe("/tasks/:id/complete");
+    expect(deriveCanonicalUrl("", "health_").canonicalPath).toBe("/health");
+    expect(deriveCanonicalUrl("", "index_").canonicalPath).toBe("/");
+    expect(deriveCanonicalUrl("posts", "index_").canonicalPath).toBe("/posts");
+    expect(deriveCanonicalUrl("", "posts_.index").canonicalPath).toBe("/posts");
+    expect(deriveCanonicalUrl("", "$_").canonicalPath).toBe("/*");
+    expect(deriveCanonicalUrl("files", "$_").canonicalPath).toBe("/files/*");
+    expect(deriveCanonicalUrl("tasks", "task[_]").canonicalPath).toBe("/tasks/task_");
+    expect(deriveCanonicalUrl("tasks", "task[_]_").canonicalPath).toBe("/tasks/task_");
+    expect(deriveCanonicalUrl("_auth", "posts_.$id").canonicalPath).toBe("/posts/:id");
   });
 
   it("derives layout info correctly", () => {

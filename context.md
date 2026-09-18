@@ -131,3 +131,20 @@ _Avoid_: wildcard route, any route, method router
 **HTTP HEAD Handling**:
 HTTP `HEAD` requests are handled natively by Hono via corresponding `GET` endpoints, automatically stripping the response body while preserving status codes and headers. Taser intentionally does not expose dedicated `.head.ts` routes or `t.head()` builders.
 _Avoid_: head route, head builder, head handler
+
+**Breakout Route**:
+A route file whose filename stem contains a segment ending in a trailing underscore `_` to un-nest from that segment's layout hierarchy while preserving its canonical URL path.
+_Avoid_: Un-nested route, unparented route, detached route
+
+**Layout Chain**:
+The ordered sequence of layout middlewares applied to an endpoint, evaluated from the outermost ancestor down to the immediate parent layout.
+_Avoid_: Middleware pipeline, middleware stack
+
+**Segment-Targeted Un-nesting**:
+The resolution strategy where `foo_` targets and skips the layout for `foo` (and all its descendants), without disturbing ancestor layouts above `foo`.
+_Avoid_: Stack popping, layout popping
+
+**Root Splat Layout Bypass**:
+A breakout route defined at the root level (e.g. `health_.get.ts` or `index_.get.ts`) that un-nests from the root `$.ts` (`/*`) layout, yielding an empty layout chain (`[]`).
+_Avoid_: Global un-nesting, detached root
+
