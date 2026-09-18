@@ -1,5 +1,13 @@
 # @taserjs/plugin
 
+## 0.2.3
+
+### Patch Changes
+
+- 6333a73: feat: Support Breakout Segment Routing
+- Updated dependencies [6333a73]
+  - @taserjs/cli@0.2.3
+
 ## 0.2.2
 
 ### Patch Changes

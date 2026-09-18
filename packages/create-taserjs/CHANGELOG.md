@@ -1,5 +1,11 @@
 # create-taserjs
 
+## 0.2.3
+
+### Patch Changes
+
+- 6333a73: feat: Support Breakout Segment Routing
+
 ## 0.2.2
 
 ### Patch Changes
