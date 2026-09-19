@@ -81,32 +81,94 @@ function mergeValidated(original: unknown, validated: unknown): unknown {
     : validated;
 }
 
-export async function validateSchemas(
-  schemas: RouteSchemas | undefined,
+async function validateRemainingAfterParams(
+  schemas: RouteSchemas,
   req: TaserRequest<any, any, any>,
   c?: Context,
 ): Promise<void> {
-  if (!schemas) return;
-
-  // 1. params
-  if (schemas.params) {
-    const validated = await validateStandardSchema(schemas.params, req.params, "params");
-    (req as { params: unknown }).params = mergeValidated(req.params, validated);
-  }
-
-  // 2. query
   if (schemas.query) {
     const validated = await validateStandardSchema(schemas.query, req.query, "query");
     (req as { query: unknown }).query = mergeValidated(req.query, validated);
   }
 
-  // 3. body
   if (schemas.body) {
     if (req.body === undefined && c) {
       req.body = await extractBody(c, schemas.body.mode);
     }
     const validated = await validateStandardSchema(schemas.body.schema, req.body, "body");
     req.body = mergeValidated(req.body, validated);
+  }
+}
+
+async function validateRemainingAfterQuery(
+  schemas: RouteSchemas,
+  req: TaserRequest<any, any, any>,
+  c?: Context,
+): Promise<void> {
+  if (schemas.body) {
+    if (req.body === undefined && c) {
+      req.body = await extractBody(c, schemas.body.mode);
+    }
+    const validated = await validateStandardSchema(schemas.body.schema, req.body, "body");
+    req.body = mergeValidated(req.body, validated);
+  }
+}
+
+export function validateSchemas(
+  schemas: RouteSchemas | undefined,
+  req: TaserRequest<any, any, any>,
+  c?: Context,
+): void | Promise<void> {
+  if (!hasSchemas(schemas)) return;
+  const s = schemas!;
+
+  // 1. params
+  if (s.params) {
+    const res = validateStandardSchema(s.params, req.params, "params");
+    if (res instanceof Promise) {
+      return res.then((validated) => {
+        (req as { params: unknown }).params = mergeValidated(req.params, validated);
+        return validateRemainingAfterParams(s, req, c);
+      });
+    }
+    (req as { params: unknown }).params = mergeValidated(req.params, res);
+  }
+
+  // 2. query
+  if (s.query) {
+    const res = validateStandardSchema(s.query, req.query, "query");
+    if (res instanceof Promise) {
+      return res.then((validated) => {
+        (req as { query: unknown }).query = mergeValidated(req.query, validated);
+        return validateRemainingAfterQuery(s, req, c);
+      });
+    }
+    (req as { query: unknown }).query = mergeValidated(req.query, res);
+  }
+
+  // 3. body
+  if (s.body) {
+    if (req.body === undefined && c) {
+      const extracted = extractBody(c, s.body.mode);
+      return extracted.then((body) => {
+        req.body = body;
+        const res = validateStandardSchema(s.body!.schema, req.body, "body");
+        if (res instanceof Promise) {
+          return res.then((validated) => {
+            req.body = mergeValidated(req.body, validated);
+          });
+        }
+        req.body = mergeValidated(req.body, res);
+      });
+    }
+
+    const res = validateStandardSchema(s.body.schema, req.body, "body");
+    if (res instanceof Promise) {
+      return res.then((validated) => {
+        req.body = mergeValidated(req.body, validated);
+      });
+    }
+    req.body = mergeValidated(req.body, res);
   }
 }
 
@@ -179,12 +241,22 @@ export function createPipeline(
     return function executeDirectWithSchemas(
       req: TaserRequest,
       ctx: Record<string, unknown>,
-    ): Promise<Response> {
+    ): Response | Promise<Response> {
       const honoContext = ctx.context as Context | undefined;
       syncCtxState(ctx, EMPTY_STATE);
-      return validateSchemas(routeSchemas, req, honoContext).then(() =>
-        executeTerminal({ req, ctx, state: EMPTY_STATE, params: req.params, query: req.query }),
-      );
+      const validation = validateSchemas(routeSchemas, req, honoContext);
+      if (validation instanceof Promise) {
+        return validation.then(() =>
+          executeTerminal({ req, ctx, state: EMPTY_STATE, params: req.params, query: req.query }),
+        );
+      }
+      return executeTerminal({
+        req,
+        ctx,
+        state: EMPTY_STATE,
+        params: req.params,
+        query: req.query,
+      });
     };
   }
 
@@ -323,7 +395,10 @@ export function createPipeline(
 
       // Terminal handler dispatch
       if (hasRouteSchemas) {
-        await validateSchemas(routeSchemas, req, honoContext);
+        const validation = validateSchemas(routeSchemas, req, honoContext);
+        if (validation instanceof Promise) {
+          await validation;
+        }
       }
 
       const handlerArgs = hasServices

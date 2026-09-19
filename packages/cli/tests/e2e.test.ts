@@ -410,14 +410,12 @@ describe("E2E CLI scanner and runtime dispatch", () => {
         "/posts/:id/preview": {
           GET: {
             layouts: ["/*"],
-            route: t
-              .get("/posts/:id/preview")
-              .handler(({ req, state }: any) =>
-                Response.json({
-                  id: req.params.id,
-                  trail: [...(state?.trail ?? []), "posts:id:preview"],
-                }),
-              ),
+            route: t.get("/posts/:id/preview").handler(({ req, state }: any) =>
+              Response.json({
+                id: req.params.id,
+                trail: [...(state?.trail ?? []), "posts:id:preview"],
+              }),
+            ),
           },
         },
         "/posts": {
@@ -433,27 +431,23 @@ describe("E2E CLI scanner and runtime dispatch", () => {
         "/tasks/:id/complete": {
           PATCH: {
             layouts: ["/*", "/tasks/*"],
-            route: t
-              .patch("/tasks/:id/complete")
-              .handler(({ req, state }: any) =>
-                Response.json({
-                  id: req.params.id,
-                  trail: [...(state?.trail ?? []), "tasks:id:complete"],
-                }),
-              ),
+            route: t.patch("/tasks/:id/complete").handler(({ req, state }: any) =>
+              Response.json({
+                id: req.params.id,
+                trail: [...(state?.trail ?? []), "tasks:id:complete"],
+              }),
+            ),
           },
         },
         "/posts/:id/details": {
           GET: {
             layouts: ["/*", "/_auth/*"],
-            route: t
-              .get("/posts/:id/details")
-              .handler(({ req, state }: any) =>
-                Response.json({
-                  id: req.params.id,
-                  trail: [...(state?.trail ?? []), "auth:posts:details"],
-                }),
-              ),
+            route: t.get("/posts/:id/details").handler(({ req, state }: any) =>
+              Response.json({
+                id: req.params.id,
+                trail: [...(state?.trail ?? []), "auth:posts:details"],
+              }),
+            ),
           },
         },
         "/posts/:id": {

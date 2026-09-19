@@ -73,10 +73,10 @@ describe("ValidationError & Standard Schema validation primitives", () => {
       },
     };
 
-    await expect(validateStandardSchema(schema, 123, "body")).rejects.toThrow(ValidationError);
+    expect(() => validateStandardSchema(schema, 123, "body")).toThrow(ValidationError);
 
     try {
-      await validateStandardSchema(schema, 123, "body");
+      validateStandardSchema(schema, 123, "body");
     } catch (err) {
       expect(err).toBeInstanceOf(ValidationError);
       const valErr = err as ValidationError;
@@ -85,6 +85,23 @@ describe("ValidationError & Standard Schema validation primitives", () => {
       expect(valErr.issues[0]?.message).toBe("Expected string");
       expect(valErr.issues[0]?.path).toEqual(["name"]);
     }
+
+    const asyncFailSchema: StandardSchemaV1<unknown, string> = {
+      "~standard": {
+        version: 1,
+        vendor: "test",
+        async validate(value: unknown) {
+          if (typeof value !== "string") {
+            return { issues: [{ message: "Expected string", path: ["name"] }] };
+          }
+          return { value };
+        },
+      },
+    };
+
+    await expect(validateStandardSchema(asyncFailSchema, 123, "body")).rejects.toThrow(
+      ValidationError,
+    );
   });
 
   it("creates a 415 unsupportedMediaType Response helper", async () => {

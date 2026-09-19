@@ -70,14 +70,19 @@ export function executeSchema<TOutput = unknown>(
   return schema["~standard"].validate(value);
 }
 
-export async function validateStandardSchema<TOutput = unknown>(
+export function validateStandardSchema<TOutput = unknown>(
   schema: StandardSchemaV1<unknown, TOutput>,
   value: unknown,
   facet: ValidationFacet,
-): Promise<TOutput> {
-  let result = executeSchema(schema, value);
+): TOutput | Promise<TOutput> {
+  const result = executeSchema(schema, value);
   if (result instanceof Promise) {
-    result = await result;
+    return result.then((res) => {
+      if (res.issues) {
+        throw new ValidationError(res.issues, facet);
+      }
+      return res.value;
+    });
   }
 
   if (result.issues) {
@@ -87,14 +92,19 @@ export async function validateStandardSchema<TOutput = unknown>(
   return result.value;
 }
 
-export async function validateResponseSchema<TOutput = unknown>(
+export function validateResponseSchema<TOutput = unknown>(
   schema: StandardSchemaV1<unknown, TOutput>,
   value: unknown,
   status: number,
-): Promise<TOutput> {
-  let result = executeSchema(schema, value);
+): TOutput | Promise<TOutput> {
+  const result = executeSchema(schema, value);
   if (result instanceof Promise) {
-    result = await result;
+    return result.then((res) => {
+      if (res.issues) {
+        throw new ResponseValidationError(status, value, res.issues);
+      }
+      return res.value;
+    });
   }
 
   if (result.issues) {

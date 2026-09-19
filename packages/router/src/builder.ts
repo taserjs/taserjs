@@ -418,9 +418,7 @@ export class LayoutBuilder<
     Overwrite<TQuery, ExtractQueryFromMiddleware<F>>,
     Overwrite<TBody, ExtractBodyFromMiddleware<F>>
   >;
-  use<
-    M extends MiddlewareDefinition<any, any, any, any, any, any, any>,
-  >(
+  use<M extends MiddlewareDefinition<any, any, any, any, any, any, any>>(
     middleware: ValidateLayoutMiddlewareUse<
       TPath,
       [keyof InferLayoutParams<TPath>] extends [never]
@@ -715,9 +713,7 @@ export class RouteBuilder<
     TQueryIn,
     TBodyIn
   >;
-  use<
-    M extends MiddlewareDefinition<any, any, any, any, any, any, any>,
-  >(
+  use<M extends MiddlewareDefinition<any, any, any, any, any, any, any>>(
     middleware: ValidateRouteMiddlewareUse<
       TPath,
       TMethod,
