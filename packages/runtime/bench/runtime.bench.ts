@@ -357,6 +357,39 @@ describe("5. Layout Middleware with State & Dynamic Service", () => {
 // Scenario 6: Body Parsing & Schema Validation (POST /body/validate)
 // ============================================================================
 
+const multiSchemaTaserApp = createTaserApp({
+  routes: {
+    "/users/:id/items": {
+      POST: {
+        route: t
+          .post("/users/:id/items")
+          .params(paramsCoerceSchema)
+          .query(queryCoerceSchema)
+          .body(personBodySchema)
+          .handler(({ req }) =>
+            json({ params: req.params, query: req.query, body: req.body }),
+          ),
+      },
+    },
+  },
+});
+
+const multiSchemaHonoApp = new Hono<{ Variables: Record<string, any> }>();
+multiSchemaHonoApp.post(
+  "/users/:id/items",
+  createHonoValidatorMiddleware(paramsCoerceSchema, (c) => c.req.param(), "params"),
+  createHonoValidatorMiddleware(queryCoerceSchema, (c) => c.req.query(), "query"),
+  createHonoValidatorMiddleware(personBodySchema, (c) => c.req.json(), "validatedBody"),
+  (c) =>
+    c.json({
+      params: c.get("params"),
+      query: c.get("query"),
+      body: c.get("validatedBody"),
+    }),
+);
+
+const multiSchemaUrl = "/users/42/items?q=bench&limit=10&page=1";
+
 const bodyTaserApp = createTaserApp({
   routes: {
     "/body/validate": {
@@ -391,6 +424,22 @@ describe("6. Body Parsing & Schema Validation", () => {
 
   bench("Hono: POST JSON with equivalent validation middleware", async () => {
     await bodyHonoApp.request("/body/validate", {
+      method: "POST",
+      headers: postHeaders,
+      body: validJsonPayload,
+    });
+  });
+
+  bench("Taser: POST with params + query + body schema validation", async () => {
+    await multiSchemaTaserApp.request(multiSchemaUrl, {
+      method: "POST",
+      headers: postHeaders,
+      body: validJsonPayload,
+    });
+  });
+
+  bench("Hono: POST with params + query + body schema validation", async () => {
+    await multiSchemaHonoApp.request(multiSchemaUrl, {
       method: "POST",
       headers: postHeaders,
       body: validJsonPayload,

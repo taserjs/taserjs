@@ -88,26 +88,53 @@ export async function validateSchemas(
 ): Promise<void> {
   if (!schemas) return;
 
-  // 1. params
-  if (schemas.params) {
-    const validated = await validateStandardSchema(schemas.params, req.params, "params");
-    (req as { params: unknown }).params = mergeValidated(req.params, validated);
-  }
+  const hasParams = Boolean(schemas.params);
+  const hasQuery = Boolean(schemas.query);
+  const hasBody = Boolean(schemas.body);
 
-  // 2. query
-  if (schemas.query) {
-    const validated = await validateStandardSchema(schemas.query, req.query, "query");
-    (req as { query: unknown }).query = mergeValidated(req.query, validated);
-  }
+  // Fast path for single schema or sequential execution when only 1 schema is defined
+  const schemaCount = (hasParams ? 1 : 0) + (hasQuery ? 1 : 0) + (hasBody ? 1 : 0);
 
-  // 3. body
-  if (schemas.body) {
-    if (req.body === undefined && c) {
-      req.body = await extractBody(c, schemas.body.mode);
+  if (schemaCount <= 1) {
+    if (hasParams) {
+      const validated = await validateStandardSchema(schemas.params!, req.params, "params");
+      (req as { params: unknown }).params = mergeValidated(req.params, validated);
+    } else if (hasQuery) {
+      const validated = await validateStandardSchema(schemas.query!, req.query, "query");
+      (req as { query: unknown }).query = mergeValidated(req.query, validated);
+    } else if (hasBody) {
+      if (req.body === undefined && c) {
+        req.body = await extractBody(c, schemas.body!.mode);
+      }
+      const validated = await validateStandardSchema(schemas.body!.schema, req.body, "body");
+      req.body = mergeValidated(req.body, validated);
     }
-    const validated = await validateStandardSchema(schemas.body.schema, req.body, "body");
-    req.body = mergeValidated(req.body, validated);
+    return;
   }
+
+  // Fast extraction of body before parallel validation if body schema is present
+  if (hasBody && req.body === undefined && c) {
+    req.body = await extractBody(c, schemas.body!.mode);
+  }
+
+  // Execute schema validations concurrently across independent facets via Promise.all
+  await Promise.all([
+    hasParams
+      ? validateStandardSchema(schemas.params!, req.params, "params").then((validated) => {
+          (req as { params: unknown }).params = mergeValidated(req.params, validated);
+        })
+      : undefined,
+    hasQuery
+      ? validateStandardSchema(schemas.query!, req.query, "query").then((validated) => {
+          (req as { query: unknown }).query = mergeValidated(req.query, validated);
+        })
+      : undefined,
+    hasBody
+      ? validateStandardSchema(schemas.body!.schema, req.body, "body").then((validated) => {
+          req.body = mergeValidated(req.body, validated);
+        })
+      : undefined,
+  ]);
 }
 
 function ensureResponse(res: unknown): Response {
