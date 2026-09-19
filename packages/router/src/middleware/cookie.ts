@@ -3,7 +3,7 @@ import { deleteCookie, getCookie, getSignedCookie, setCookie, setSignedCookie } 
 import type { Cookie, CookieOptions, CookiePrefixOptions, SignedCookie } from "hono/utils/cookie";
 import { mergeResponseCookies } from "@taserjs/utils";
 import { middleware } from "../builder.js";
-import type { MiddlewareDefinition } from "../types.js";
+import type { MiddlewareDefinition, MiddlewareResponse } from "../types.js";
 
 export type { Cookie, CookieOptions, CookiePrefixOptions, SignedCookie };
 
@@ -104,11 +104,11 @@ export class TaserCookieJar {
       : [];
   }
 
-  flush<TRes extends Response>(res: TRes): TRes {
+  flush<TRes extends Response | MiddlewareResponse<any, any>>(res: TRes): TRes {
     if (!this.#dirty) {
       return res;
     }
-    return mergeResponseCookies(this.#c, res) as TRes;
+    return mergeResponseCookies(this.#c, res as Response) as unknown as TRes;
   }
 }
 

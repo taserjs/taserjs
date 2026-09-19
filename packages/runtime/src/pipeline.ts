@@ -213,9 +213,9 @@ export function createPipeline(
           params: req.params,
           query: req.query,
         });
-      }) as NextFunction;
+      }) as unknown as NextFunction;
 
-      next.provide = async (
+      next.provide = (async (
         providedServices: Record<string, unknown>,
         nextState?: Record<string, unknown>,
       ) => {
@@ -234,7 +234,7 @@ export function createPipeline(
           query: req.query,
           ...providedServices,
         });
-      };
+      }) as any;
 
       syncCtxState(ctx, EMPTY_STATE);
       const res = await middleware(
@@ -283,9 +283,9 @@ export function createPipeline(
 
           const mergedState = nextState ? { ...currentState, ...nextState } : currentState;
           return await dispatch(index + 1, mergedState, currentServices, hasServices);
-        }) as NextFunction;
+        }) as unknown as NextFunction;
 
-        next.provide = async (
+        next.provide = (async (
           providedServices: Record<string, unknown>,
           nextState?: Record<string, unknown> | undefined,
         ) => {
@@ -299,7 +299,7 @@ export function createPipeline(
             : providedServices;
           const mergedState = nextState ? { ...currentState, ...nextState } : currentState;
           return await dispatch(index + 1, mergedState, mergedServices, true);
-        };
+        }) as any;
 
         const middlewareArgs = hasServices
           ? {

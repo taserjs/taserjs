@@ -182,13 +182,20 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
   });
 }
 
+export interface TaserNitroPlugin {
+  name: string;
+  __taserOptions: TaserPluginOptions;
+  setup: (nitro: any) => Promise<void> | void;
+  [key: string]: any;
+}
+
 /**
  * Taser Nitro module.
  *
  * Can be used as a Nitro module (`modules: [taser()]`) in `nitro.config.ts`,
  * or chained as a rollup plugin.
  */
-export function taser(options: TaserPluginOptions = {}) {
+export function taser(options: TaserPluginOptions = {}): TaserNitroPlugin {
   const rollupPlugin = taserPlugin.rollup(options);
   return {
     ...rollupPlugin,
