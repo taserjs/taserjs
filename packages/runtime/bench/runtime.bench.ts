@@ -399,6 +399,61 @@ describe("6. Body Parsing & Schema Validation", () => {
 });
 
 // ============================================================================
+// Scenario 12: Concurrent Multi-Schema Validation (Params + Query + Body)
+// ============================================================================
+
+const multiSchemaTaserApp = createTaserApp({
+  routes: {
+    "/users/:id/posts/:postId": {
+      POST: {
+        route: t
+          .post("/users/:id/posts/:postId")
+          .params(paramsCoerceSchema)
+          .query(queryCoerceSchema)
+          .body(personBodySchema)
+          .handler(({ req }) =>
+            json({ params: req.params, query: req.query, body: req.body }),
+          ),
+      },
+    },
+  },
+});
+
+const multiSchemaHonoApp = new Hono<{ Variables: Record<string, any> }>();
+multiSchemaHonoApp.post(
+  "/users/:id/posts/:postId",
+  createHonoValidatorMiddleware(paramsCoerceSchema, (c) => c.req.param(), "params"),
+  createHonoValidatorMiddleware(queryCoerceSchema, (c) => c.req.query(), "query"),
+  createHonoValidatorMiddleware(personBodySchema, (c) => c.req.json(), "body"),
+  (c) =>
+    c.json({
+      params: c.get("params"),
+      query: c.get("query"),
+      body: c.get("body"),
+    }),
+);
+
+const multiSchemaUrl = "/users/42/posts/108?q=performance&limit=25&page=2";
+
+describe("12. Concurrent Multi-Schema Validation (Params + Query + Body)", () => {
+  bench("Taser: POST with params + query + body validation", async () => {
+    await multiSchemaTaserApp.request(multiSchemaUrl, {
+      method: "POST",
+      headers: postHeaders,
+      body: validJsonPayload,
+    });
+  });
+
+  bench("Hono: POST with sequential validation middlewares", async () => {
+    await multiSchemaHonoApp.request(multiSchemaUrl, {
+      method: "POST",
+      headers: postHeaders,
+      body: validJsonPayload,
+    });
+  });
+});
+
+// ============================================================================
 // Scenario 7: Context Resolution Overhead (GET /context/data)
 // ============================================================================
 

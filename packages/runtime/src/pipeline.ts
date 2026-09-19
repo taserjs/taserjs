@@ -88,26 +88,71 @@ export async function validateSchemas(
 ): Promise<void> {
   if (!schemas) return;
 
-  // 1. params
-  if (schemas.params) {
-    const validated = await validateStandardSchema(schemas.params, req.params, "params");
-    (req as { params: unknown }).params = mergeValidated(req.params, validated);
-  }
+  const hasParams = schemas.params !== undefined;
+  const hasQuery = schemas.query !== undefined;
+  const hasBody = schemas.body !== undefined;
 
-  // 2. query
-  if (schemas.query) {
-    const validated = await validateStandardSchema(schemas.query, req.query, "query");
-    (req as { query: unknown }).query = mergeValidated(req.query, validated);
-  }
+  const activeCount =
+    (hasParams ? 1 : 0) + (hasQuery ? 1 : 0) + (hasBody ? 1 : 0);
 
-  // 3. body
-  if (schemas.body) {
-    if (req.body === undefined && c) {
-      req.body = await extractBody(c, schemas.body.mode);
+  if (activeCount === 0) return;
+
+  // Fast path for routes with exactly 1 schema
+  if (activeCount === 1) {
+    if (hasParams) {
+      const validated = await validateStandardSchema(schemas.params!, req.params, "params");
+      (req as { params: unknown }).params = mergeValidated(req.params, validated);
+      return;
     }
-    const validated = await validateStandardSchema(schemas.body.schema, req.body, "body");
-    req.body = mergeValidated(req.body, validated);
+    if (hasQuery) {
+      const validated = await validateStandardSchema(schemas.query!, req.query, "query");
+      (req as { query: unknown }).query = mergeValidated(req.query, validated);
+      return;
+    }
+    if (hasBody) {
+      if (req.body === undefined && c) {
+        req.body = await extractBody(c, schemas.body!.mode);
+      }
+      const validated = await validateStandardSchema(schemas.body!.schema, req.body, "body");
+      req.body = mergeValidated(req.body, validated);
+      return;
+    }
   }
+
+  // Concurrent execution when multiple schemas are active
+  const promises: Promise<void>[] = [];
+
+  if (hasParams) {
+    promises.push(
+      validateStandardSchema(schemas.params!, req.params, "params").then((validated) => {
+        (req as { params: unknown }).params = mergeValidated(req.params, validated);
+      }),
+    );
+  }
+
+  if (hasQuery) {
+    promises.push(
+      validateStandardSchema(schemas.query!, req.query, "query").then((validated) => {
+        (req as { query: unknown }).query = mergeValidated(req.query, validated);
+      }),
+    );
+  }
+
+  if (hasBody) {
+    const bodyConfig = schemas.body!;
+    promises.push(
+      (req.body === undefined && c
+        ? extractBody(c, bodyConfig.mode)
+        : Promise.resolve(req.body)
+      ).then(async (extractedBody) => {
+        req.body = extractedBody;
+        const validated = await validateStandardSchema(bodyConfig.schema, extractedBody, "body");
+        req.body = mergeValidated(extractedBody, validated);
+      }),
+    );
+  }
+
+  await Promise.all(promises);
 }
 
 function ensureResponse(res: unknown): Response {
