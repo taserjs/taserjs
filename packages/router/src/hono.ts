@@ -40,7 +40,7 @@ export function hono<
       const honoNext: HonoNext = async () => {
         nextCalled = true;
         void c.res;
-        downstreamResponse = refine ? await refine(c, next) : await next();
+        downstreamResponse = (refine ? await refine(c, next) : await next()) as unknown as Response;
         mergeResponseCookies(c, downstreamResponse);
       };
 

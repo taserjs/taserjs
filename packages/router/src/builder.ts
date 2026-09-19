@@ -386,20 +386,18 @@ export class LayoutBuilder<
   }
 
   use<
-    TMw extends
-      | MiddlewareDefinition<any, any, any, any, any, any, any>
-      | ((
-          args: MiddlewareArgs<
-            InferLayoutServices<TPath> & TServices,
-            InferLayoutState<TPath> & TState,
-            [keyof InferLayoutParams<TPath>] extends [never]
-              ? TParams
-              : Overwrite<InferLayoutParams<TPath>, TParams>,
-            Overwrite<InferLayoutQuery<TPath>, TQuery>,
-            Overwrite<InferLayoutBody<TPath>, TBody>
-          >,
-          next: NextFunction,
-        ) => any),
+    F extends (
+      args: MiddlewareArgs<
+        InferLayoutServices<TPath> & TServices,
+        InferLayoutState<TPath> & TState,
+        [keyof InferLayoutParams<TPath>] extends [never]
+          ? TParams
+          : Overwrite<InferLayoutParams<TPath>, TParams>,
+        Overwrite<InferLayoutQuery<TPath>, TQuery>,
+        Overwrite<InferLayoutBody<TPath>, TBody>
+      >,
+      next: NextFunction,
+    ) => any,
   >(
     middleware: ValidateLayoutMiddlewareUse<
       TPath,
@@ -410,25 +408,41 @@ export class LayoutBuilder<
       Overwrite<InferLayoutBody<TPath>, TBody>,
       TServices,
       TState,
-      TMw
+      F
     >,
   ): LayoutBuilder<
     TPath,
-    Overwrite<TParams, ExtractParamsFromMiddleware<TMw>>,
-    TServices & InferServicesFromMw<TMw>,
-    TState & InferStateFromMw<TMw>,
-    Overwrite<TQuery, ExtractQueryFromMiddleware<TMw>>,
-    Overwrite<TBody, ExtractBodyFromMiddleware<TMw>>
-  > {
-    this.middlewares.push(toMiddlewareDefinition(middleware));
-    return this as unknown as LayoutBuilder<
+    Overwrite<TParams, ExtractParamsFromMiddleware<F>>,
+    TServices & InferServicesFromMw<F>,
+    TState & InferStateFromMw<F>,
+    Overwrite<TQuery, ExtractQueryFromMiddleware<F>>,
+    Overwrite<TBody, ExtractBodyFromMiddleware<F>>
+  >;
+  use<
+    M extends MiddlewareDefinition<any, any, any, any, any, any, any>,
+  >(
+    middleware: ValidateLayoutMiddlewareUse<
       TPath,
-      Overwrite<TParams, ExtractParamsFromMiddleware<TMw>>,
-      TServices & InferServicesFromMw<TMw>,
-      TState & InferStateFromMw<TMw>,
-      Overwrite<TQuery, ExtractQueryFromMiddleware<TMw>>,
-      Overwrite<TBody, ExtractBodyFromMiddleware<TMw>>
-    >;
+      [keyof InferLayoutParams<TPath>] extends [never]
+        ? TParams
+        : Overwrite<InferLayoutParams<TPath>, TParams>,
+      Overwrite<InferLayoutQuery<TPath>, TQuery>,
+      Overwrite<InferLayoutBody<TPath>, TBody>,
+      TServices,
+      TState,
+      M
+    >,
+  ): LayoutBuilder<
+    TPath,
+    Overwrite<TParams, ExtractParamsFromMiddleware<M>>,
+    TServices & InferServicesFromMw<M>,
+    TState & InferStateFromMw<M>,
+    Overwrite<TQuery, ExtractQueryFromMiddleware<M>>,
+    Overwrite<TBody, ExtractBodyFromMiddleware<M>>
+  >;
+  use(middleware: any): any {
+    this.middlewares.push(toMiddlewareDefinition(middleware));
+    return this;
   }
 }
 
@@ -667,18 +681,16 @@ export class RouteBuilder<
   }
 
   use<
-    TMw extends
-      | MiddlewareDefinition<any, any, any, any, any, any, any>
-      | ((
-          args: MiddlewareArgs<
-            InferRouteServices<TPath, TMethod> & TRouteServices,
-            InferRouteState<TPath, TMethod> & TRouteState,
-            InferEffectiveParams<TPath, TMethod, TParams>,
-            InferEffectiveQuery<TPath, TMethod, TQuery>,
-            InferEffectiveBody<TPath, TMethod, TBody>
-          >,
-          next: NextFunction,
-        ) => any),
+    F extends (
+      args: MiddlewareArgs<
+        InferRouteServices<TPath, TMethod> & TRouteServices,
+        InferRouteState<TPath, TMethod> & TRouteState,
+        InferEffectiveParams<TPath, TMethod, TParams>,
+        InferEffectiveQuery<TPath, TMethod, TQuery>,
+        InferEffectiveBody<TPath, TMethod, TBody>
+      >,
+      next: NextFunction,
+    ) => any,
   >(
     middleware: ValidateRouteMiddlewareUse<
       TPath,
@@ -688,35 +700,50 @@ export class RouteBuilder<
       InferEffectiveBody<TPath, TMethod, TBody>,
       TRouteServices,
       TRouteState,
-      TMw
+      F
     >,
   ): RouteBuilder<
     TMethod,
     TPath,
-    Overwrite<TParams, ExtractParamsFromMiddleware<TMw>>,
-    Overwrite<TQuery, ExtractQueryFromMiddleware<TMw>>,
-    Overwrite<TBody, ExtractBodyFromMiddleware<TMw>>,
-    TRouteServices & InferServicesFromMw<TMw>,
-    TRouteState & InferStateFromMw<TMw>,
+    Overwrite<TParams, ExtractParamsFromMiddleware<F>>,
+    Overwrite<TQuery, ExtractQueryFromMiddleware<F>>,
+    Overwrite<TBody, ExtractBodyFromMiddleware<F>>,
+    TRouteServices & InferServicesFromMw<F>,
+    TRouteState & InferStateFromMw<F>,
     TReturns,
     TParamsIn,
     TQueryIn,
     TBodyIn
-  > {
-    this.middlewares.push(toMiddlewareDefinition(middleware));
-    return this as unknown as RouteBuilder<
-      TMethod,
+  >;
+  use<
+    M extends MiddlewareDefinition<any, any, any, any, any, any, any>,
+  >(
+    middleware: ValidateRouteMiddlewareUse<
       TPath,
-      Overwrite<TParams, ExtractParamsFromMiddleware<TMw>>,
-      Overwrite<TQuery, ExtractQueryFromMiddleware<TMw>>,
-      Overwrite<TBody, ExtractBodyFromMiddleware<TMw>>,
-      TRouteServices & InferServicesFromMw<TMw>,
-      TRouteState & InferStateFromMw<TMw>,
-      TReturns,
-      TParamsIn,
-      TQueryIn,
-      TBodyIn
-    >;
+      TMethod,
+      InferEffectiveParams<TPath, TMethod, TParams>,
+      InferEffectiveQuery<TPath, TMethod, TQuery>,
+      InferEffectiveBody<TPath, TMethod, TBody>,
+      TRouteServices,
+      TRouteState,
+      M
+    >,
+  ): RouteBuilder<
+    TMethod,
+    TPath,
+    Overwrite<TParams, ExtractParamsFromMiddleware<M>>,
+    Overwrite<TQuery, ExtractQueryFromMiddleware<M>>,
+    Overwrite<TBody, ExtractBodyFromMiddleware<M>>,
+    TRouteServices & InferServicesFromMw<M>,
+    TRouteState & InferStateFromMw<M>,
+    TReturns,
+    TParamsIn,
+    TQueryIn,
+    TBodyIn
+  >;
+  use(middleware: any): any {
+    this.middlewares.push(toMiddlewareDefinition(middleware));
+    return this;
   }
 }
 

@@ -106,33 +106,70 @@ export type Overwrite<T, U> = unknown extends U
     ? T
     : Simplify<Omit<T, keyof U> & U>;
 
-export type DistributeServices<T> = T extends { readonly _services?: infer S }
-  ? [S] extends [never]
-    ? {}
-    : NonNullable<S>
-  : {};
+export type AllUnionKeys<T> = T extends any ? keyof T : never;
 
-export type DistributeState<T> = T extends { readonly _state?: infer St }
-  ? [St] extends [never]
-    ? {}
-    : NonNullable<St>
-  : {};
+export type OptionalUnionKeys<U> = U extends any
+  ? { [K in keyof U]-?: {} extends Pick<U, K> ? K : never }[keyof U]
+  : never;
 
-export type InferServicesFromMw<T> = T extends (args: any, next: any) => infer R
-  ? DistributeServices<Awaited<R>>
-  : T extends { readonly _services?: infer S }
-    ? [S] extends [never]
+export type RequiredUnionKeys<U> = Exclude<keyof U, OptionalUnionKeys<U>>;
+
+export type ExtractUnionKey<U, K extends PropertyKey> = U extends any
+  ? K extends keyof U
+    ? U[K]
+    : never
+  : never;
+
+export type NormalizeUnion<U> = Simplify<
+  {
+    [K in RequiredUnionKeys<U>]: ExtractUnionKey<U, K>;
+  } & {
+    [K in Exclude<AllUnionKeys<U>, RequiredUnionKeys<U>>]?: ExtractUnionKey<U, K>;
+  }
+>;
+
+export type MergeUnion<U> = 0 extends 1 & U
+  ? {}
+  : [U] extends [never]
+    ? {}
+    : unknown extends U
       ? {}
-      : NonNullable<S>
+      : [AllUnionKeys<U>] extends [keyof U]
+        ? [U] extends [UnionToIntersection<U>]
+          ? U
+          : NormalizeUnion<U>
+        : NormalizeUnion<U>;
+
+export type IsAny<T> = 0 extends 1 & T ? true : false;
+
+export type DistributeProp<T, K extends "_services" | "_state"> = IsAny<T> extends true
+  ? {}
+  : T extends { readonly _isMiddlewareResponse: true }
+    ? T extends { readonly [P in K]?: (_: any) => infer Val }
+      ? [Val] extends [never]
+        ? {}
+        : NonNullable<Val>
+      : {}
+    : never;
+
+export type DistributeServices<T> = DistributeProp<T, "_services">;
+
+export type DistributeState<T> = DistributeProp<T, "_state">;
+
+export type InferPropFromMw<
+  T,
+  K extends "_services" | "_state",
+> = T extends (args: any, next: any) => infer R
+  ? MergeUnion<DistributeProp<Awaited<R>, K>>
+  : T extends { readonly [P in K]?: infer V }
+    ? [V] extends [never]
+      ? {}
+      : MergeUnion<NonNullable<V>>
     : {};
 
-export type InferStateFromMw<T> = T extends (args: any, next: any) => infer R
-  ? DistributeState<Awaited<R>>
-  : T extends { readonly _state?: infer St }
-    ? [St] extends [never]
-      ? {}
-      : NonNullable<St>
-    : {};
+export type InferServicesFromMw<T> = InferPropFromMw<T, "_services">;
+
+export type InferStateFromMw<T> = InferPropFromMw<T, "_state">;
 
 export type ExtractServicesFromMiddleware<TMw> = TMw extends { readonly _services?: infer S }
   ? NonNullable<S>
@@ -408,7 +445,7 @@ export type RouteHandlerArgs<
   {
     req: Simplify<TaserRequest<Simplify<TParams>, Simplify<TQuery>, TBody>>;
     ctx: InferredAppContext;
-    state: [keyof TState] extends [never] ? {} : Simplify<TState>;
+    state: [AllUnionKeys<TState>] extends [never] ? {} : Simplify<MergeUnion<TState>>;
   } & TServices
 >;
 
@@ -421,9 +458,12 @@ export type RouteHandler<
   TReturn extends Response | Promise<Response> = Response | Promise<Response>,
 > = (args: RouteHandlerArgs<TParams, TQuery, TBody, TServices, TState>) => TReturn;
 
-export interface MiddlewareResponse<TServices = {}, TState = {}> extends Response {
-  readonly _services?: TServices;
-  readonly _state?: TState;
+export interface MiddlewareResponse<TServices = {}, TState = {}>
+  extends Omit<Response, "type"> {
+  readonly type?: "middleware";
+  readonly _isMiddlewareResponse: true;
+  readonly _services?: (_: TServices) => TServices;
+  readonly _state?: (_: TState) => TState;
 }
 
 export interface NextFunction {
@@ -442,11 +482,13 @@ export type MiddlewareArgs<
   TParams = {},
   TQuery = {},
   TBody = unknown,
-> = Simplify<
+  > = Simplify<
   {
     req: Simplify<TaserRequest<Simplify<TParams & { _splat: string }>, Simplify<TQuery>, TBody>>;
     ctx: InferredAppContext;
-    state: [keyof TState] extends [never] ? Record<string, unknown> : Simplify<TState>;
+    state: [AllUnionKeys<TState>] extends [never]
+      ? Record<string, unknown>
+      : Simplify<MergeUnion<TState>>;
   } & TServices
 >;
 
@@ -461,9 +503,8 @@ export type MiddlewareHandler<
   next: NextFunction,
 ) =>
   | Response
-  | Promise<Response>
   | MiddlewareResponse<any, any>
-  | Promise<MiddlewareResponse<any, any>>;
+  | Promise<Response | MiddlewareResponse<any, any>>;
 
 export interface MiddlewareDefinition<
   TServices = {},
