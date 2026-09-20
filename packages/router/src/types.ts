@@ -493,9 +493,7 @@ export type MiddlewareArgs<
   {
     req: Simplify<TaserRequest<Simplify<TParams & { _splat: string }>, Simplify<TQuery>, TBody>>;
     ctx: InferredAppContext;
-    state: [AllUnionKeys<TState>] extends [never]
-      ? Record<string, unknown>
-      : Simplify<MergeUnion<TState>>;
+    state: [AllUnionKeys<TState>] extends [never] ? {} : Simplify<MergeUnion<TState>>;
   } & TServices
 >;
 

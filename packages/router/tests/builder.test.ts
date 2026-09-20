@@ -675,6 +675,47 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
     });
   });
 
+  describe("State inference in route handlers and middlewares", () => {
+    it("types empty state as {} in endpoint .use() middleware when no state exists upstream", () => {
+      t.get("/user")
+        .use(({ state }, next) => {
+          // @ts-expect-error Property 'user' does not exist on type '{}'
+          const _val = state.user;
+          return next();
+        })
+        .handler(({ state }) => {
+          // @ts-expect-error Property 'user' does not exist on type '{}'
+          const _val = state.user;
+          return new Response("ok");
+        });
+    });
+
+    it("types empty state as {} in layout middlewares when no state exists upstream", () => {
+      t.layout("/user").use(({ state }, next) => {
+        // @ts-expect-error Property 'user' does not exist on type '{}'
+        const _val = state.user;
+        return next();
+      });
+    });
+
+    it("accumulates state across sequential middlewares and passes to route handler", () => {
+      const r = t
+        .get("/user")
+        .use((_args, next) => next({ authUser: "Alice" }))
+        .use(({ state }, next) => {
+          const _user: string = state.authUser;
+          return next({ permissions: ["read"] });
+        })
+        .handler(({ state }) => {
+          const user: string = state.authUser;
+          const perms: string[] = state.permissions;
+          return new Response(`ok: ${user}, ${perms.join(",")}`);
+        });
+
+      expect(r).toBeDefined();
+    });
+  });
+
   describe("Multi-method and catch-all route builders (t.all, t.any, t.query, t.options)", () => {
     it("builds t.all() catch-all route definition", () => {
       const handler = () => new Response("all-methods");
