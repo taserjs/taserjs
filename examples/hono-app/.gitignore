@@ -1,6 +1,5 @@
 node_modules/
 dist/
-.taserjs/
 .nitro/
 .output/
 .env

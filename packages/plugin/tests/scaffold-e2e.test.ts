@@ -89,9 +89,6 @@ describe(
       expect(existsSync(join(projectDir, "src", "context.ts"))).toBe(true);
       expect(existsSync(join(projectDir, ".gitignore"))).toBe(true);
 
-      const gitignore = readFileSync(join(projectDir, ".gitignore"), "utf-8");
-      expect(gitignore).toContain(".taserjs/");
-
       const viteConfig = readFileSync(join(projectDir, "vite.config.ts"), "utf-8");
       expect(viteConfig).toContain("@taserjs/plugin/vite");
 

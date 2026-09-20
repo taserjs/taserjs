@@ -48,7 +48,6 @@ export function gitignoreTemplate(): string {
   return `node_modules/
 dist/
 .output/
-.taserjs/
 .env
 .env.*
 !.env.example
