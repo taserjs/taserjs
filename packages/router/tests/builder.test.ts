@@ -542,6 +542,139 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
       });
   });
 
+  describe("Enforces valid Response and MiddlewareResponse return types at compile time", () => {
+    it("rejects non-Response return types in route handlers without .returns()", () => {
+      // @ts-expect-error Route handler returning boolean must fail typecheck
+      t.get("/user").handler(() => true);
+
+      // @ts-expect-error Route handler returning number must fail typecheck
+      t.get("/user").handler(() => 123);
+
+      // @ts-expect-error Route handler returning void must fail typecheck
+      t.get("/user").handler(() => {});
+
+      // @ts-expect-error Route handler returning plain object must fail typecheck
+      t.get("/user").handler(() => ({ error: "bad" }));
+
+      // Valid: returning Response or Promise<Response>
+      const r1 = t.get("/user").handler(() => new Response("ok"));
+      const r2 = t.get("/user").handler(async () => ok({ user: "Alice" }));
+      expect(r1).toBeDefined();
+      expect(r2).toBeDefined();
+    });
+
+    it("rejects non-Response and mismatched return types in route handlers with .returns()", () => {
+      const userSchema = createMockSchema({ id: "u-1", name: "Alice" });
+
+      t.get("/user")
+        .returns({ 200: userSchema })
+        // @ts-expect-error Route handler with .returns() returning boolean must fail typecheck
+        .handler(() => true);
+
+      t.get("/user")
+        .returns({ 200: userSchema })
+        // @ts-expect-error Route handler with .returns() returning number must fail typecheck
+        .handler(() => 123);
+
+      t.get("/user")
+        .returns({ 200: userSchema })
+        // @ts-expect-error Route handler with .returns() returning void must fail typecheck
+        .handler(() => {});
+
+      t.get("/user")
+        .returns({ 200: userSchema })
+        // @ts-expect-error Route handler with .returns() returning plain object must fail typecheck
+        .handler(() => ({ id: "u-1", name: "Alice" }));
+
+      t.get("/user")
+        .returns({ 200: userSchema })
+        // @ts-expect-error Route handler with .returns() returning mismatched status code must fail typecheck
+        .handler(async () => notFound({ error: "not found" }));
+
+      t.get("/user")
+        .returns({ 200: userSchema })
+        // @ts-expect-error Route handler with .returns() returning mismatched schema payload must fail typecheck
+        .handler(async () => ok({ id: 123, name: 456 }));
+
+      // Valid: returning typed response matching schema
+      const r = t
+        .get("/user")
+        .returns({ 200: userSchema })
+        .handler(async () => ok({ id: "u-1", name: "Alice" }));
+      expect(r).toBeDefined();
+    });
+
+    it("rejects non-Response/MiddlewareResponse return types in endpoint .use() middleware", () => {
+      t.get("/user")
+        // @ts-expect-error Middleware returning boolean must fail typecheck
+        .use((_args, _next) => true)
+        .handler(() => new Response("ok"));
+
+      t.get("/user")
+        // @ts-expect-error Middleware returning void must fail typecheck
+        .use((_args, _next) => {})
+        .handler(() => new Response("ok"));
+
+      t.get("/user")
+        // @ts-expect-error Middleware returning number must fail typecheck
+        .use((_args, _next) => 42)
+        .handler(() => new Response("ok"));
+
+      // Valid: returning next(), next(state), next.provide(), or Response
+      const r1 = t
+        .get("/user")
+        .use(async (_args, next) => next())
+        .handler(() => new Response("ok"));
+      const r2 = t
+        .get("/user")
+        .use((_args, next) => next({ foo: "bar" }))
+        .handler(() => new Response("ok"));
+      const r3 = t
+        .get("/user")
+        .use((_args, next) => next.provide({ svc: 123 }))
+        .handler(() => new Response("ok"));
+      const r4 = t
+        .get("/user")
+        .use((_args, _next) => new Response("early"))
+        .handler(() => new Response("ok"));
+      expect(r1).toBeDefined();
+      expect(r2).toBeDefined();
+      expect(r3).toBeDefined();
+      expect(r4).toBeDefined();
+    });
+
+    it("rejects non-Response/MiddlewareResponse return types in layout middlewares", () => {
+      // @ts-expect-error Layout middleware returning boolean must fail typecheck
+      t.layout("/user").use((_args, _next) => true);
+
+      // @ts-expect-error Layout middleware returning void must fail typecheck
+      t.layout("/user").use((_args, _next) => {});
+
+      // Valid layout middleware
+      const l1 = t.layout("/user").use(async (_args, next) => next());
+      const l2 = t.layout("/user").use((_args, _next) => new Response("blocked"));
+      expect(l1).toBeDefined();
+      expect(l2).toBeDefined();
+    });
+
+    it("rejects non-Response/MiddlewareResponse return types in t.middleware()", () => {
+      // @ts-expect-error t.middleware returning boolean must fail typecheck
+      t.middleware("/*", (_args, _next) => true);
+
+      // @ts-expect-error t.middleware returning void must fail typecheck
+      t.middleware("/*", (_args, _next) => {});
+
+      // @ts-expect-error MiddlewareBuilder.handler returning boolean must fail typecheck
+      t.middleware().handler((_args, _next) => true);
+
+      // Valid t.middleware
+      const m1 = t.middleware("/*", async (_args, next) => next());
+      const m2 = t.middleware().handler(async (_args, next) => next());
+      expect(m1).toBeDefined();
+      expect(m2).toBeDefined();
+    });
+  });
+
   describe("Multi-method and catch-all route builders (t.all, t.any, t.query, t.options)", () => {
     it("builds t.all() catch-all route definition", () => {
       const handler = () => new Response("all-methods");

@@ -450,21 +450,28 @@ export type RouteHandlerArgs<
   } & TServices
 >;
 
-export type RouteHandler<
-  TParams = {},
-  TQuery = {},
-  TBody = unknown,
-  TServices = {},
-  TState = {},
-  TReturn extends Response | Promise<Response> = Response | Promise<Response>,
-> = (args: RouteHandlerArgs<TParams, TQuery, TBody, TServices, TState>) => TReturn;
-
 export interface MiddlewareResponse<TServices = {}, TState = {}> extends Omit<Response, "type"> {
   readonly type?: "middleware";
   readonly _isMiddlewareResponse: true;
   readonly _services?: (_: TServices) => TServices;
   readonly _state?: (_: TState) => TState;
 }
+
+export type ValidRouteHandlerReturn = Response | Promise<Response>;
+
+export type ValidMiddlewareReturn =
+  | Response
+  | MiddlewareResponse<any, any>
+  | Promise<Response | MiddlewareResponse<any, any>>;
+
+export type RouteHandler<
+  TParams = {},
+  TQuery = {},
+  TBody = unknown,
+  TServices = {},
+  TState = {},
+  TReturn extends ValidRouteHandlerReturn = ValidRouteHandlerReturn,
+> = (args: RouteHandlerArgs<TParams, TQuery, TBody, TServices, TState>) => TReturn;
 
 export interface NextFunction {
   <TState extends Record<string, unknown> = {}>(
@@ -501,7 +508,7 @@ export type MiddlewareHandler<
 > = (
   args: MiddlewareArgs<TServices, TState, TParams, TQuery, TBody>,
   next: NextFunction,
-) => Response | MiddlewareResponse<any, any> | Promise<Response | MiddlewareResponse<any, any>>;
+) => ValidMiddlewareReturn;
 
 export interface MiddlewareDefinition<
   TServices = {},
@@ -696,6 +703,17 @@ type NormalizeQuery<T> = unknown extends T
     ? Record<string, string | string[]>
     : T;
 
+export type CheckMiddlewareReturn<TMw> = TMw extends (...args: any[]) => infer R
+  ? [Awaited<R>] extends [Response | MiddlewareResponse<any, any>]
+    ? true
+    : false
+  : true;
+
+export type ValidateMiddlewareFn<F> =
+  CheckMiddlewareReturn<F> extends false
+    ? CompileError<`Middleware must return a valid Response, next(), or next.provide()`>
+    : F;
+
 export type ValidateRouteMiddlewareUse<
   TPath extends string,
   TMethod extends HttpMethod,
@@ -705,8 +723,9 @@ export type ValidateRouteMiddlewareUse<
   TRouteServices,
   TRouteState,
   TMw,
-> =
-  IsBranchAllowedForRoute<TPath, TMethod, ExtractLayoutIdFromMiddleware<TMw>> extends false
+> = [ValidateMiddlewareFn<TMw>] extends [never]
+  ? ValidateMiddlewareFn<TMw>
+  : IsBranchAllowedForRoute<TPath, TMethod, ExtractLayoutIdFromMiddleware<TMw>> extends false
     ? CompileError<`Cannot mount layout-scoped middleware: route "${TPath}" is outside layout branch "${NonNullable<ExtractLayoutIdFromMiddleware<TMw>>}"`>
     : CheckMiddlewarePreconditions<
           InferRouteState<TPath, TMethod> & TRouteState,
@@ -727,8 +746,9 @@ export type ValidateLayoutMiddlewareUse<
   TServices,
   TState,
   TMw,
-> =
-  IsBranchAllowedForLayout<TPath, ExtractLayoutIdFromMiddleware<TMw>> extends false
+> = [ValidateMiddlewareFn<TMw>] extends [never]
+  ? ValidateMiddlewareFn<TMw>
+  : IsBranchAllowedForLayout<TPath, ExtractLayoutIdFromMiddleware<TMw>> extends false
     ? CompileError<`Cannot mount layout-scoped middleware: layout "${TPath}" is outside layout branch "${NonNullable<ExtractLayoutIdFromMiddleware<TMw>>}"`>
     : CheckMiddlewarePreconditions<
           InferLayoutState<TPath> & TState,

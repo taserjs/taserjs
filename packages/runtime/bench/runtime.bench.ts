@@ -135,6 +135,16 @@ const queryCoerceSchema = createStandardSchema<QueryParams, CoercedQueryParams>(
 });
 
 // ============================================================================
+// Benchmark Configuration (Warmup & Comparison Options)
+// ============================================================================
+
+const BENCH_OPTIONS = {
+  warmupIterations: 10,
+  warmupTime: 100,
+  time: 1000,
+};
+
+// ============================================================================
 // Scenario 1: Plain Route (GET /plain)
 // ============================================================================
 
@@ -152,13 +162,21 @@ const plainHonoApp = new Hono();
 plainHonoApp.get("/plain", (c) => c.json({ message: "ok" }));
 
 describe("1. Plain Route (Baseline GET)", () => {
-  bench("Taser: plain route", async () => {
-    await plainTaserApp.request("/plain");
-  });
+  bench(
+    "Taser: plain route",
+    async () => {
+      await plainTaserApp.request("/plain");
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Hono: plain route", async () => {
-    await plainHonoApp.request("/plain");
-  });
+  bench(
+    "Hono: plain route",
+    async () => {
+      await plainHonoApp.request("/plain");
+    },
+    BENCH_OPTIONS,
+  );
 });
 
 // ============================================================================
@@ -192,13 +210,21 @@ routeMwHonoApp.get(
 );
 
 describe("2. Route Middleware (1 inline middleware)", () => {
-  bench("Taser: 1 route middleware", async () => {
-    await routeMwTaserApp.request("/route-mw");
-  });
+  bench(
+    "Taser: 1 route middleware",
+    async () => {
+      await routeMwTaserApp.request("/route-mw");
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Hono: 1 route middleware", async () => {
-    await routeMwHonoApp.request("/route-mw");
-  });
+  bench(
+    "Hono: 1 route middleware",
+    async () => {
+      await routeMwHonoApp.request("/route-mw");
+    },
+    BENCH_OPTIONS,
+  );
 });
 
 // ============================================================================
@@ -235,13 +261,21 @@ layoutStateHonoApp.use("/layout-state/*", async (c, next) => {
 layoutStateHonoApp.get("/layout-state/profile", (c) => c.json({ user: c.get("user") }));
 
 describe("3. Layout Middleware with State", () => {
-  bench("Taser: 1 layout middleware with state", async () => {
-    await layoutStateTaserApp.request("/layout-state/profile");
-  });
+  bench(
+    "Taser: 1 layout middleware with state",
+    async () => {
+      await layoutStateTaserApp.request("/layout-state/profile");
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Hono: 1 layout middleware with state", async () => {
-    await layoutStateHonoApp.request("/layout-state/profile");
-  });
+  bench(
+    "Hono: 1 layout middleware with state",
+    async () => {
+      await layoutStateHonoApp.request("/layout-state/profile");
+    },
+    BENCH_OPTIONS,
+  );
 });
 
 // ============================================================================
@@ -290,13 +324,21 @@ composedHonoApp.get(
 );
 
 describe("4. Composed Layout + Route Middleware", () => {
-  bench("Taser: 1 layout + 1 route middleware", async () => {
-    await composedTaserApp.request("/composed/item");
-  });
+  bench(
+    "Taser: 1 layout + 1 route middleware",
+    async () => {
+      await composedTaserApp.request("/composed/item");
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Hono: 1 layout + 1 route middleware", async () => {
-    await composedHonoApp.request("/composed/item");
-  });
+  bench(
+    "Hono: 1 layout + 1 route middleware",
+    async () => {
+      await composedHonoApp.request("/composed/item");
+    },
+    BENCH_OPTIONS,
+  );
 });
 
 // ============================================================================
@@ -344,13 +386,21 @@ serviceHonoApp.get("/service/calc", (c) => {
 });
 
 describe("5. Layout Middleware with State & Dynamic Service", () => {
-  bench("Taser: layout state + dynamic service", async () => {
-    await serviceTaserApp.request("/service/calc");
-  });
+  bench(
+    "Taser: layout state + dynamic service",
+    async () => {
+      await serviceTaserApp.request("/service/calc");
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Hono: layout state + dynamic service", async () => {
-    await serviceHonoApp.request("/service/calc");
-  });
+  bench(
+    "Hono: layout state + dynamic service",
+    async () => {
+      await serviceHonoApp.request("/service/calc");
+    },
+    BENCH_OPTIONS,
+  );
 });
 
 // ============================================================================
@@ -381,21 +431,29 @@ const validJsonPayload = JSON.stringify({ name: "Alice", age: 30 });
 const postHeaders = { "content-type": "application/json" };
 
 describe("6. Body Parsing & Schema Validation", () => {
-  bench("Taser: POST JSON with Standard Schema validation", async () => {
-    await bodyTaserApp.request("/body/validate", {
-      method: "POST",
-      headers: postHeaders,
-      body: validJsonPayload,
-    });
-  });
+  bench(
+    "Taser: POST JSON with Standard Schema validation",
+    async () => {
+      await bodyTaserApp.request("/body/validate", {
+        method: "POST",
+        headers: postHeaders,
+        body: validJsonPayload,
+      });
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Hono: POST JSON with equivalent validation middleware", async () => {
-    await bodyHonoApp.request("/body/validate", {
-      method: "POST",
-      headers: postHeaders,
-      body: validJsonPayload,
-    });
-  });
+  bench(
+    "Hono: POST JSON with equivalent validation middleware",
+    async () => {
+      await bodyHonoApp.request("/body/validate", {
+        method: "POST",
+        headers: postHeaders,
+        body: validJsonPayload,
+      });
+    },
+    BENCH_OPTIONS,
+  );
 });
 
 // ============================================================================
@@ -437,13 +495,21 @@ contextHonoApp.get("/context/data", (c) => {
 });
 
 describe("7. Context Resolution Overhead (boot + request context)", () => {
-  bench("Taser: createContext resolution", async () => {
-    await contextTaserApp.request("/context/data");
-  });
+  bench(
+    "Taser: createContext resolution",
+    async () => {
+      await contextTaserApp.request("/context/data");
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Hono: middleware context assignment", async () => {
-    await contextHonoApp.request("/context/data");
-  });
+  bench(
+    "Hono: middleware context assignment",
+    async () => {
+      await contextHonoApp.request("/context/data");
+    },
+    BENCH_OPTIONS,
+  );
 });
 
 // ============================================================================
@@ -486,21 +552,37 @@ dynamicHonoApp.get(
 );
 
 describe("8. Dynamic Route Parameter Extraction", () => {
-  bench("Taser: params extraction (no schema)", async () => {
-    await dynamicTaserApp.request("/users/42/posts/108");
-  });
+  bench(
+    "Taser: params extraction (no schema)",
+    async () => {
+      await dynamicTaserApp.request("/users/42/posts/108");
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Hono: params extraction (no schema)", async () => {
-    await dynamicHonoApp.request("/users/42/posts/108");
-  });
+  bench(
+    "Hono: params extraction (no schema)",
+    async () => {
+      await dynamicHonoApp.request("/users/42/posts/108");
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Taser: params extraction + schema coercion", async () => {
-    await dynamicTaserApp.request("/users/42/posts/108/coerced");
-  });
+  bench(
+    "Taser: params extraction + schema coercion",
+    async () => {
+      await dynamicTaserApp.request("/users/42/posts/108/coerced");
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Hono: params extraction + schema coercion", async () => {
-    await dynamicHonoApp.request("/users/42/posts/108/coerced");
-  });
+  bench(
+    "Hono: params extraction + schema coercion",
+    async () => {
+      await dynamicHonoApp.request("/users/42/posts/108/coerced");
+    },
+    BENCH_OPTIONS,
+  );
 });
 
 // ============================================================================
@@ -549,21 +631,37 @@ const searchUrl = "/search?q=performance&limit=25&page=2";
 const searchCoercedUrl = "/search/coerced?q=performance&limit=25&page=2";
 
 describe("9. Query Parameter Extraction & Coercion", () => {
-  bench("Taser: query extraction (no schema)", async () => {
-    await queryTaserApp.request(searchUrl);
-  });
+  bench(
+    "Taser: query extraction (no schema)",
+    async () => {
+      await queryTaserApp.request(searchUrl);
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Hono: query extraction (no schema)", async () => {
-    await queryHonoApp.request(searchUrl);
-  });
+  bench(
+    "Hono: query extraction (no schema)",
+    async () => {
+      await queryHonoApp.request(searchUrl);
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Taser: query extraction + schema coercion", async () => {
-    await queryTaserApp.request(searchCoercedUrl);
-  });
+  bench(
+    "Taser: query extraction + schema coercion",
+    async () => {
+      await queryTaserApp.request(searchCoercedUrl);
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Hono: query extraction + schema coercion", async () => {
-    await queryHonoApp.request(searchCoercedUrl);
-  });
+  bench(
+    "Hono: query extraction + schema coercion",
+    async () => {
+      await queryHonoApp.request(searchCoercedUrl);
+    },
+    BENCH_OPTIONS,
+  );
 });
 
 // ============================================================================
@@ -606,17 +704,25 @@ const cookieReqHeaders = {
 };
 
 describe("10. Cookie Middleware & Flushing Lifecycle", () => {
-  bench("Taser: TaserCookieJar read + buffered flush on unwinding", async () => {
-    await cookieTaserApp.request("/cookies/session", {
-      headers: cookieReqHeaders,
-    });
-  });
+  bench(
+    "Taser: TaserCookieJar read + buffered flush on unwinding",
+    async () => {
+      await cookieTaserApp.request("/cookies/session", {
+        headers: cookieReqHeaders,
+      });
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Hono: direct getCookie + setCookie", async () => {
-    await cookieHonoApp.request("/cookies/session", {
-      headers: cookieReqHeaders,
-    });
-  });
+  bench(
+    "Hono: direct getCookie + setCookie",
+    async () => {
+      await cookieHonoApp.request("/cookies/session", {
+        headers: cookieReqHeaders,
+      });
+    },
+    BENCH_OPTIONS,
+  );
 });
 
 // ============================================================================
@@ -626,19 +732,27 @@ describe("10. Cookie Middleware & Flushing Lifecycle", () => {
 const invalidPayload = JSON.stringify({ name: 12345, age: "not-a-number" });
 
 describe("11. Validation Error Fast Path (422 Rejection)", () => {
-  bench("Taser: 422 early rejection on invalid body", async () => {
-    await bodyTaserApp.request("/body/validate", {
-      method: "POST",
-      headers: postHeaders,
-      body: invalidPayload,
-    });
-  });
+  bench(
+    "Taser: 422 early rejection on invalid body",
+    async () => {
+      await bodyTaserApp.request("/body/validate", {
+        method: "POST",
+        headers: postHeaders,
+        body: invalidPayload,
+      });
+    },
+    BENCH_OPTIONS,
+  );
 
-  bench("Hono: 422 early rejection on invalid body", async () => {
-    await bodyHonoApp.request("/body/validate", {
-      method: "POST",
-      headers: postHeaders,
-      body: invalidPayload,
-    });
-  });
+  bench(
+    "Hono: 422 early rejection on invalid body",
+    async () => {
+      await bodyHonoApp.request("/body/validate", {
+        method: "POST",
+        headers: postHeaders,
+        body: invalidPayload,
+      });
+    },
+    BENCH_OPTIONS,
+  );
 });

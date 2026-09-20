@@ -32,7 +32,6 @@ import type {
   MiddlewareDefinition,
   MiddlewareHandler,
   MiddlewarePreconditions,
-  MiddlewareResponse,
   NextFunction,
   Overwrite,
   RegisteredRoutePath,
@@ -44,6 +43,8 @@ import type {
   StatusCode,
   ValidateLayoutMiddlewareUse,
   ValidateRouteMiddlewareUse,
+  ValidateMiddlewareFn,
+  ValidMiddlewareReturn,
 } from "./types.js";
 
 export function toMiddlewareDefinition<TMw>(
@@ -184,21 +185,14 @@ export class MiddlewareBuilder<
     >;
   }
 
-  handler(
-    args: MiddlewareArgs<any, any, any, any, any>,
-    next: NextFunction,
-  ):
-    | Response
-    | Promise<Response>
-    | MiddlewareResponse<any, any>
-    | Promise<MiddlewareResponse<any, any>>;
+  handler(args: MiddlewareArgs<any, any, any, any, any>, next: NextFunction): ValidMiddlewareReturn;
   handler<
     F extends (
       args: InferMiddlewareArgs<TLayoutId, TParams, TQuery, TBody, TRequires>,
       next: NextFunction,
     ) => any,
   >(
-    fn: F,
+    fn: ValidateMiddlewareFn<F>,
   ): MiddlewareDefinition<
     InferServicesFromMw<F>,
     InferStateFromMw<F>,
@@ -236,7 +230,7 @@ export function middleware<
   ) => any,
 >(
   layoutId: TLayoutId,
-  fn: F,
+  fn: ValidateMiddlewareFn<F>,
 ): MiddlewareDefinition<
   InferServicesFromMw<F>,
   InferStateFromMw<F>,
@@ -250,7 +244,7 @@ export function middleware<TLayoutId extends RegisteredLayoutId>(
   layoutId: TLayoutId,
 ): MiddlewareBuilder<InferLayoutBranchParams<TLayoutId>, unknown, unknown, {}, {}, TLayoutId, {}>;
 export function middleware<F extends (args: MiddlewareArgs<{}, {}>, next: NextFunction) => any>(
-  fn: F,
+  fn: ValidateMiddlewareFn<F>,
 ): MiddlewareDefinition<
   InferServicesFromMw<F>,
   InferStateFromMw<F>,
@@ -598,15 +592,7 @@ export class RouteValidationBuilder<
     >;
   }
 
-  handler<
-    TReturn extends ([TReturns] extends [undefined]
-      ? any
-      : [TReturns] extends [never]
-        ? any
-        : unknown extends TReturns
-          ? any
-          : InferReturnsResponse<TReturns> | Promise<InferReturnsResponse<TReturns>>),
-  >(
+  handler<TReturn extends InferReturnsResponse<TReturns> | Promise<InferReturnsResponse<TReturns>>>(
     fn: RouteHandler<
       InferEffectiveParams<TPath, TMethod, TParams>,
       InferEffectiveQuery<TPath, TMethod, TQuery>,

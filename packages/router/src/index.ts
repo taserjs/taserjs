@@ -37,6 +37,8 @@ export type {
   MiddlewareDefinition,
   MiddlewareHandler,
   MiddlewareInput,
+  ValidRouteHandlerReturn,
+  ValidMiddlewareReturn,
   NextFunction,
   RouteDefaultParams,
   RouteDefinition,

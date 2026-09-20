@@ -5,17 +5,11 @@ import type {
   DistributeServices,
   DistributeState,
   MiddlewareDefinition,
-  MiddlewareResponse,
   NextFunction,
+  ValidMiddlewareReturn,
 } from "./types.js";
 
-export function hono<
-  R extends
-    | Response
-    | Promise<Response>
-    | MiddlewareResponse<any, any>
-    | Promise<MiddlewareResponse<any, any>> = Promise<Response>,
->(
+export function hono<R extends ValidMiddlewareReturn = Promise<Response>>(
   honoMw: HonoMiddlewareHandler,
   refine?: (c: Context, next: NextFunction) => R,
 ): MiddlewareDefinition<
