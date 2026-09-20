@@ -1,5 +1,13 @@
 # @taserjs/router
 
+## 0.2.4
+
+### Patch Changes
+
+- 66b4561: Smart Merge State, Service and Strict Return Types
+- Updated dependencies [66b4561]
+  - @taserjs/utils@0.2.4
+
 ## 0.2.3
 
 ### Patch Changes

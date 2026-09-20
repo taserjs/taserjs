@@ -1,5 +1,11 @@
 # @taserjs/client
 
+## 0.2.4
+
+### Patch Changes
+
+- 66b4561: Smart Merge State, Service and Strict Return Types
+
 ## 0.2.3
 
 ### Patch Changes
