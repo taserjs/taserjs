@@ -7,10 +7,16 @@ import {
   resolveAppFile,
   resolveImportExtension,
   resolveOutputDir,
+  resolveRoutesDir,
   type ResolvedTaserConfig,
 } from "./config.js";
 import { formatRelativeImport } from "./paths.js";
-import type { DiscoveredLayout, DiscoveredRoute, ScanResult } from "./scanner.js";
+import {
+  scanRoutes,
+  type DiscoveredLayout,
+  type DiscoveredRoute,
+  type ScanResult,
+} from "./scanner.js";
 
 export interface GenerateResult {
   manifestPath: string;
@@ -69,7 +75,7 @@ export function resolveLayoutsForRoute(
   return matchingLayoutIds;
 }
 
-export function resolveParentLayoutsForLayout(
+function resolveParentLayoutsForLayout(
   layout: DiscoveredLayout,
   layoutsBySegment: Map<string, DiscoveredLayout>,
 ): string[] {
@@ -295,4 +301,41 @@ export function generateManifest(
     manifestWritten,
     content: manifestCode,
   };
+}
+
+export interface ExecuteGenerateOptions {
+  cwd?: string | undefined;
+  config: ResolvedTaserConfig;
+  scaffold?: boolean | undefined;
+}
+
+export interface ExecuteGenerateResult {
+  scanResult: ScanResult;
+  generateResult: GenerateResult;
+}
+
+/**
+ * Standardized orchestrator for scanning routes and generating the routes manifest.
+ * Returns null (after warning) when the routes directory does not exist, so callers
+ * never overwrite an existing manifest with an empty one.
+ */
+export function executeGenerate(options: ExecuteGenerateOptions): ExecuteGenerateResult | null {
+  const { config } = options;
+  const cwd = options.cwd ?? process.cwd();
+  const routesDir = resolveRoutesDir(config, cwd);
+  if (!existsSync(routesDir)) {
+    console.warn(
+      `[taserjs] Routes directory not found: ${routesDir}. Skipping manifest generation.`,
+    );
+    return null;
+  }
+
+  const scanResult = scanRoutes({
+    routesDir,
+    cwd,
+    scaffold: options.scaffold,
+    formatting: config.formatting,
+  });
+  const generateResult = generateManifest(scanResult, config, cwd);
+  return { scanResult, generateResult };
 }

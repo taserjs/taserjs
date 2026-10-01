@@ -1,13 +1,13 @@
 import type { ValidatorId } from "../core/types.js";
 import type { AddonDefinition } from "./types.js";
 
-export const IMPORT_LINES: Record<ValidatorId, string> = {
+const IMPORT_LINES: Record<ValidatorId, string> = {
   zod: `import { z } from "zod";`,
   arktype: `import { type } from "arktype";`,
   valibot: `import * as v from "valibot";`,
 };
 
-export const QUERY_SCHEMA_EXPR: Record<ValidatorId, string> = {
+const QUERY_SCHEMA_EXPR: Record<ValidatorId, string> = {
   zod: `z.object({ name: z.string().default("Taser.js") })`,
   arktype: `type({ "name?": 'string = "Taser.js"' })`,
   valibot: `v.object({ name: v.optional(v.string(), "Taser.js") })`,

@@ -1,3 +1,5 @@
+import { isPlainObjectOrArray } from "./object.js";
+
 export interface TypedResponse<T = unknown, TStatus extends number = number> extends Response {
   readonly _data?: T;
   readonly _status?: TStatus;
@@ -52,10 +54,6 @@ export function createTypedResponse<T, TStatus extends number>(
 
   return res;
 }
-
-import { isPlainObjectOrArray } from "./object.js";
-
-export { isPlainObjectOrArray };
 
 /**
  * Creates a generic TypedResponse helper factory with zero default headers and auto-detection.

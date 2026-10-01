@@ -49,7 +49,10 @@ export {
   generateManifest,
   generateManifestCode,
   resolveLayoutsForRoute,
+  executeGenerate,
   type GenerateResult,
+  type ExecuteGenerateOptions,
+  type ExecuteGenerateResult,
 } from "./generator.js";
 
 export {

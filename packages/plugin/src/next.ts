@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 
-import { generateManifest, loadConfig, resolveRoutesDir, scanRoutes } from "@taserjs/cli";
+import { executeGenerate, loadConfig, resolveRoutesDir } from "@taserjs/cli";
 import { watch, type FSWatcher } from "chokidar";
 import { resolve } from "pathe";
 
@@ -18,14 +18,7 @@ export async function runNextTaserGeneration(
   options?: NextTaserOptions,
 ): Promise<void> {
   const config = await loadConfig(cwd, options?.config);
-  const routesDir = resolveRoutesDir(config, cwd);
-  if (existsSync(routesDir)) {
-    const scanResult = scanRoutes({
-      routesDir,
-      cwd,
-    });
-    generateManifest(scanResult, config, cwd);
-  }
+  executeGenerate({ cwd, config });
 }
 
 export async function startTurbopackWatcher(
@@ -51,13 +44,11 @@ export async function startTurbopackWatcher(
     turbopackWatcher.on("all", () => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
-        const scanResult = scanRoutes({
-          routesDir,
+        executeGenerate({
           cwd,
+          config,
           scaffold: true,
-          formatting: config.formatting,
         });
-        generateManifest(scanResult, config, cwd);
       }, 50);
     });
   }

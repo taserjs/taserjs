@@ -172,6 +172,7 @@ export const routeManifest = {
 } as const;
 
 export type RouteManifest = typeof routeManifest;
+export type AppManifest = RouteManifest;
 
 export const app = createTaserApp(routeManifest, taser);
 export default app;

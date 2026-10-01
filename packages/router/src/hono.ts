@@ -1,7 +1,7 @@
 import { mergeResponseCookies } from "@taserjs/utils";
-import { Context } from "hono";
-import type { MiddlewareHandler as HonoMiddlewareHandler, Next as HonoNext } from "hono";
+import type { Context, MiddlewareHandler as HonoMiddlewareHandler, Next as HonoNext } from "hono";
 
+import { getOrCreateHonoContext } from "./context.js";
 import type {
   DistributeServices,
   DistributeState,
@@ -23,11 +23,7 @@ export function hono<R extends ValidMiddlewareReturn = Promise<Response>>(
   return {
     kind: "middleware",
     handler: async (args, next) => {
-      let c = (args.ctx as Record<string, unknown>).context as Context | undefined;
-      if (!c) {
-        c = new Context(args.req.raw);
-        (args.ctx as Record<string, unknown>).context = c;
-      }
+      const c = getOrCreateHonoContext(args.req, args.ctx as Record<string, unknown>);
 
       let nextCalled = false;
       let downstreamResponse: Response | undefined;

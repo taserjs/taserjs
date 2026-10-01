@@ -11,9 +11,6 @@ importers:
       '@changesets/cli':
         specifier: ^3.0.0
         version: 3.0.2
-      '@hono/node-server':
-        specifier: ^2.1.1
-        version: 2.1.1(hono@4.13.7)
       '@types/node':
         specifier: ^26.1.2
         version: 26.5.1

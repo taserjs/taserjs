@@ -11,14 +11,7 @@ export {
 export { hono } from "./hono.js";
 export { createContext } from "./context.js";
 export { defineTaser, TaserBuilder } from "./taser.js";
-export {
-  ValidationError,
-  ResponseValidationError,
-  unsupportedMediaType,
-  UnsupportedMediaTypeError,
-  isStandardSchema,
-  validateStandardSchema,
-} from "@taserjs/utils";
+export { ValidationError, ResponseValidationError } from "@taserjs/utils";
 export type {
   BodyMode,
   ValidationFacet,

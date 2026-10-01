@@ -31,7 +31,7 @@ export function hasSchemas(schemas?: RouteSchemas | undefined): boolean {
   return Boolean(schemas && (schemas.params || schemas.query || schemas.body));
 }
 
-export function shouldValidateResponse(
+function shouldValidateResponse(
   options?: ResponseOptions | undefined,
   schemas?: RouteSchemas | undefined,
 ): boolean {
@@ -60,7 +60,7 @@ async function extractResponsePayload(res: Response): Promise<unknown> {
   }
 }
 
-export async function validateResponseContract(
+async function validateResponseContract(
   res: Response,
   schemas: RouteSchemas | undefined,
 ): Promise<Response> {

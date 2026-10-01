@@ -1,12 +1,11 @@
 import { existsSync } from "node:fs";
 
 import {
-  generateManifest,
+  executeGenerate,
   loadConfig,
   resolveAppFile,
   resolveOutputDir,
   resolveRoutesDir,
-  scanRoutes,
   type ResolvedTaserConfig,
 } from "@taserjs/cli";
 import { watch, type FSWatcher } from "chokidar";
@@ -109,15 +108,11 @@ export async function applyTaserNitro(nitro: any, options: TaserPluginOptions): 
   const routesGenPath = resolve(outputDir, "routes.gen.ts");
 
   const executeGeneration = (scaffold = Boolean(nitro.options.dev)) => {
-    if (existsSync(routesDir)) {
-      const scanResult = scanRoutes({
-        routesDir,
-        cwd,
-        scaffold,
-        formatting: config.formatting,
-      });
-      generateManifest(scanResult, config, cwd);
-    }
+    executeGenerate({
+      cwd,
+      config,
+      scaffold,
+    });
   };
 
   executeGeneration();

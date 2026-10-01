@@ -20,6 +20,8 @@ export type {
   MiddlewareHandler,
   MiddlewareInput,
   NextFunction,
+  NotFoundHandler,
+  OnErrorHandler,
   RequestHeader,
   RouteDefinition,
   RouteHandler,

@@ -82,7 +82,6 @@
     "srvx": "^1.0.4"
   },
   "devDependencies": {
-    "@taserjs/utils": "workspace:*",
     "publint": "^0.3.22",
     "rimraf": "^6.0.1",
     "tsdown": "^0.23.0",

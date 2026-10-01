@@ -1,9 +1,10 @@
 import { mergeResponseCookies } from "@taserjs/utils";
-import { Context } from "hono";
+import type { Context } from "hono";
 import { deleteCookie, getCookie, getSignedCookie, setCookie, setSignedCookie } from "hono/cookie";
 import type { Cookie, CookieOptions, CookiePrefixOptions, SignedCookie } from "hono/utils/cookie";
 
 import { middleware } from "../builder.js";
+import { getOrCreateHonoContext } from "../context.js";
 import type { MiddlewareDefinition, MiddlewareResponse } from "../types.js";
 
 export type { Cookie, CookieOptions, CookiePrefixOptions, SignedCookie };
@@ -117,11 +118,7 @@ export function cookie(
   options?: CookieJarOptions,
 ): MiddlewareDefinition<{ cookies: TaserCookieJar }> {
   return middleware(async ({ req, ctx }, next) => {
-    let c = (ctx as Record<string, unknown>).context as Context | undefined;
-    if (!c) {
-      c = new Context(req.raw);
-      (ctx as Record<string, unknown>).context = c;
-    }
+    const c = getOrCreateHonoContext(req, ctx as Record<string, unknown>);
     const jar = new TaserCookieJar(c, options);
     const res = await next.provide({ cookies: jar });
     return jar.flush(res);

@@ -8,8 +8,6 @@ import type {
   RouteManifestEntry,
 } from "./types.js";
 
-export { hasSchemas };
-
 export function resolveMiddleware(mw: MiddlewareDefinition): MiddlewareHandler {
   if (hasSchemas(mw.schemas)) {
     const schemas = mw.schemas!;

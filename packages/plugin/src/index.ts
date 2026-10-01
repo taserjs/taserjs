@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
 
 import {
+  executeGenerate,
   formatRelativeImport,
-  generateManifest,
   loadConfig,
   normalizeImportPath,
   resolveAppFile,
@@ -10,7 +10,6 @@ import {
   resolveOutputDir,
   resolveRoutesDir,
   resolveServerDir,
-  scanRoutes,
   type ResolvedTaserConfig,
 } from "@taserjs/cli";
 import { isAbsolute, join, relative, resolve } from "pathe";
@@ -304,15 +303,11 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
   async function executeGeneration(isDev = false): Promise<void> {
     try {
       const config = await getConfig();
-      const routesDir = resolveRoutesDir(config, cwd);
-      const scanResult = scanRoutes({
-        routesDir,
+      executeGenerate({
         cwd,
+        config,
         scaffold: isDev,
-        formatting: config.formatting,
       });
-
-      generateManifest(scanResult, config, cwd);
       cachedDevHandler = null;
 
       if (viteDevServer) {

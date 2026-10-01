@@ -2,12 +2,12 @@ import type { BodyMode } from "@taserjs/utils";
 import { UnsupportedMediaTypeError } from "@taserjs/utils";
 import type { Context } from "hono";
 
-export interface ParsedMediaType {
+interface ParsedMediaType {
   type: string;
   subtype: string;
 }
 
-export function parseMediaType(contentType: string | null | undefined): ParsedMediaType | null {
+function parseMediaType(contentType: string | null | undefined): ParsedMediaType | null {
   if (!contentType) {
     return null;
   }
@@ -25,33 +25,33 @@ export function parseMediaType(contentType: string | null | undefined): ParsedMe
   };
 }
 
-export function isJsonMediaType(media: ParsedMediaType | null): boolean {
+function isJsonMediaType(media: ParsedMediaType | null): boolean {
   if (!media) return false;
   return (
     media.type === "application" && (media.subtype === "json" || media.subtype.endsWith("+json"))
   );
 }
 
-export function isMultipartMediaType(media: ParsedMediaType | null): boolean {
+function isMultipartMediaType(media: ParsedMediaType | null): boolean {
   if (!media) return false;
   return media.type === "multipart" && media.subtype === "form-data";
 }
 
-export function isUrlencodedMediaType(media: ParsedMediaType | null): boolean {
+function isUrlencodedMediaType(media: ParsedMediaType | null): boolean {
   if (!media) return false;
   return media.type === "application" && media.subtype === "x-www-form-urlencoded";
 }
 
-export function isFormMediaType(media: ParsedMediaType | null): boolean {
+function isFormMediaType(media: ParsedMediaType | null): boolean {
   return isMultipartMediaType(media) || isUrlencodedMediaType(media);
 }
 
-export function isTextMediaType(media: ParsedMediaType | null): boolean {
+function isTextMediaType(media: ParsedMediaType | null): boolean {
   if (!media) return false;
   return media.type === "text";
 }
 
-export function matchMediaType(mode: BodyMode, media: ParsedMediaType | null): boolean {
+function matchMediaType(mode: BodyMode, media: ParsedMediaType | null): boolean {
   switch (mode) {
     case "json":
       return isJsonMediaType(media);
