@@ -27,6 +27,11 @@ declare module "../src/types.js" {
           layouts: readonly ["/*", "/admin/*"];
         };
       };
+      "/admin/assets/*": {
+        GET: {
+          layouts: readonly ["/*", "/admin/*"];
+        };
+      };
       "/public": {
         GET: {
           layouts: readonly ["/*"];
@@ -35,6 +40,11 @@ declare module "../src/types.js" {
       "/users/:id": {
         GET: {
           layouts: readonly ["/*"];
+        };
+      };
+      "/_auth/me": {
+        GET: {
+          layouts: readonly ["/*", "/_auth/*"];
         };
       };
     };
@@ -828,6 +838,78 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
 
       // @ts-expect-error Layout-scoped middleware "/admin/*" cannot be mounted on unrelated route "/users/:id"
       t.get("/users/:id").use(adminMw);
+    });
+
+    it("does not leak _splat into route handlers or $Infer.Params from layout-scoped middleware", () => {
+      const adminMwDirect = t.middleware("/admin/*", async ({ req }, next) => {
+        // Scoped middleware handler CAN access _splat
+        const _mwSplat: string = req.params._splat;
+        return next();
+      });
+
+      const adminMwChained = t
+        .middleware("/admin/*")
+        .handler(async ({ req }, next) => {
+          // Scoped middleware handler CAN access _splat
+          const _mwSplat: string = req.params._splat;
+          return next();
+        });
+
+      // Non-wildcard route using direct scoped middleware
+      const routeWithDirectMw = t
+        .get("/admin/users")
+        .use(adminMwDirect)
+        .handler(({ req }) => {
+          // @ts-expect-error _splat must not exist on non-wildcard route
+          void req.params._splat;
+          return new Response("ok");
+        });
+
+      // Non-wildcard route using chained scoped middleware
+      const routeWithChainedMw = t
+        .get("/admin/users")
+        .use(adminMwChained)
+        .handler(({ req }) => {
+          // @ts-expect-error _splat must not exist on non-wildcard route
+          void req.params._splat;
+          return new Response("ok");
+        });
+
+      type _ParamsDirect = NonNullable<typeof routeWithDirectMw.$Infer>["Params"];
+      // @ts-expect-error _splat must not exist in $Infer.Params for non-wildcard route
+      type _BadSplatDirect = _ParamsDirect["_splat"];
+
+      type _ParamsChained = NonNullable<typeof routeWithChainedMw.$Infer>["Params"];
+      // @ts-expect-error _splat must not exist in $Infer.Params for non-wildcard route
+      type _BadSplatChained = _ParamsChained["_splat"];
+
+      // Wildcard route mounting scoped middleware still receives _splat
+      const wildcardRoute = t
+        .get("/admin/assets/*")
+        .use(adminMwDirect)
+        .handler(({ req }) => {
+          const _splat: string = req.params._splat;
+          return new Response(_splat);
+        });
+      expect(wildcardRoute.path).toBe("/admin/assets/*");
+    });
+
+    it("matches the exact user issue: /_auth/me mounting /_auth/* middleware does not have _splat", () => {
+      const useRole = t.middleware("/_auth/*", async ({ state }, next) => {
+        return next({ role: "admin" });
+      });
+
+      const route = t
+        .get("/_auth/me")
+        .use(useRole)
+        .handler(async ({ req, state }) => {
+          // @ts-expect-error _splat should not exist on non-wildcard route
+          const _splat = req.params._splat;
+          const _role: string = state.role;
+          return new Response(_role);
+        });
+
+      expect(route.path).toBe("/_auth/me");
     });
   });
 

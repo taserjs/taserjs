@@ -49,11 +49,15 @@ type ExtractPathSegments<T extends string> = T extends `/${infer Rest}`
       ? never
       : T;
 
-type HasWildcard<T extends string> = string extends T
+export type HasWildcard<T extends string> = string extends T
   ? false
   : T extends `${string}*${string}`
     ? true
     : false;
+
+export type SanitizeRouteParams<TPath extends string, TParams> = HasWildcard<TPath> extends true
+  ? TParams
+  : Omit<TParams, "_splat">;
 
 type ParamsFromSegments<T extends string> = Simplify<{
   [K in ExtractPathSegments<T> as ExtractParamName<K>]: string;
@@ -415,11 +419,14 @@ export type InferEffectiveParams<
   TRouteParams = unknown,
 > = Simplify<
   (HasWildcard<TPath> extends true ? { _splat: string } : {}) &
-    ([keyof InferRouteParams<TPath, TMethod>] extends [never]
-      ? TRouteParams
-      : [TRouteParams] extends [RouteDefaultParams<TPath>]
-        ? Overwrite<RouteDefaultParams<TPath>, InferRouteParams<TPath, TMethod>>
-        : Overwrite<InferRouteParams<TPath, TMethod>, TRouteParams>)
+    Omit<
+      [keyof InferRouteParams<TPath, TMethod>] extends [never]
+        ? TRouteParams
+        : [TRouteParams] extends [RouteDefaultParams<TPath>]
+          ? Overwrite<RouteDefaultParams<TPath>, InferRouteParams<TPath, TMethod>>
+          : Overwrite<InferRouteParams<TPath, TMethod>, TRouteParams>,
+      "_splat"
+    >
 >;
 
 export type InferEffectiveQuery<
@@ -759,14 +766,18 @@ export type ValidateLayoutMiddlewareUse<
       ? CompileError<`Cannot mount middleware: layout does not satisfy declared preconditions`>
       : TMw;
 
-type ResolveMwParam<T, TReq> = unknown extends T
-  ? [TReq] extends [undefined]
+type ResolveLayoutFallbackParams<TReq, TLayoutId extends string | undefined> = [TReq] extends [undefined]
+  ? [TLayoutId] extends [undefined]
     ? Record<string, string>
-    : NonNullable<TReq>
-  : [T] extends [never]
-    ? [TReq] extends [undefined]
+    : [TLayoutId] extends [never]
       ? Record<string, string>
-      : NonNullable<TReq>
+      : InferLayoutBranchParams<TLayoutId>
+  : NonNullable<TReq>;
+
+type ResolveMwParam<T, TReq, TLayoutId extends string | undefined = undefined> = unknown extends T
+  ? ResolveLayoutFallbackParams<TReq, TLayoutId>
+  : [T] extends [never]
+    ? ResolveLayoutFallbackParams<TReq, TLayoutId>
     : T;
 
 type ResolveMwQuery<T, TReq> = unknown extends T
@@ -792,7 +803,7 @@ export type InferMiddlewareArgs<
     (TRequires extends { services?: infer S } ? NonNullable<S> : {}),
   InferLayoutBranchState<TLayoutId> &
     (TRequires extends { state?: infer St } ? NonNullable<St> : {}),
-  ResolveMwParam<TParams, TRequires["params"]>,
+  ResolveMwParam<TParams, TRequires["params"], TLayoutId>,
   ResolveMwQuery<TQuery, TRequires["query"]>,
   ResolveMwBody<TBody, TRequires["body"]>
 >;

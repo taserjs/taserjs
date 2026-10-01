@@ -90,6 +90,37 @@ describe("createTaserApp and Hono runtime dispatch", () => {
     expect(data).toEqual({ splat: "docs/2026/spec.pdf" });
   });
 
+  it("does not leak req.params._splat to non-wildcard routes when mounting scoped middleware", async () => {
+    const useRole = t.middleware("/admin/*", async ({ state }, next) => {
+      return next({ role: "admin" });
+    });
+
+    const adminMeRoute = t
+      .get("/admin/me")
+      .use(useRole)
+      .handler(({ req, state }) => {
+        return json({
+          role: state.role,
+          splat: (req.params as Record<string, string>)._splat,
+        });
+      });
+
+    const app = createTaserApp({
+      routes: {
+        "/admin/me": {
+          GET: {
+            route: adminMeRoute,
+          },
+        },
+      },
+    });
+
+    const res = await app.request("/admin/me");
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toEqual({ role: "admin", splat: undefined });
+  });
+
   it("supports multiple HTTP methods on different paths", async () => {
     const postRoute = t.post("/items").handler(({ req }) => {
       return created({ created: true, path: req.url });

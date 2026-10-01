@@ -8,6 +8,7 @@ import type {
   ExtractParamsFromMiddleware,
   ExtractPreconditionsFromMiddleware,
   ExtractQueryFromMiddleware,
+  HasWildcard,
   HttpMethod,
   HttpNoBodyMethod,
   InferEffectiveBody,
@@ -40,6 +41,7 @@ import type {
   RouteDefinition,
   RouteHandler,
   RouteSchemas,
+  SanitizeRouteParams,
   StatusCode,
   ValidateLayoutMiddlewareUse,
   ValidateRouteMiddlewareUse,
@@ -234,7 +236,7 @@ export function middleware<
 ): MiddlewareDefinition<
   InferServicesFromMw<F>,
   InferStateFromMw<F>,
-  InferLayoutBranchParams<TLayoutId>,
+  unknown,
   unknown,
   unknown,
   TLayoutId,
@@ -242,7 +244,7 @@ export function middleware<
 >;
 export function middleware<TLayoutId extends RegisteredLayoutId>(
   layoutId: TLayoutId,
-): MiddlewareBuilder<InferLayoutBranchParams<TLayoutId>, unknown, unknown, {}, {}, TLayoutId, {}>;
+): MiddlewareBuilder<unknown, unknown, unknown, {}, {}, TLayoutId, {}>;
 export function middleware<F extends (args: MiddlewareArgs<{}, {}>, next: NextFunction) => any>(
   fn: ValidateMiddlewareFn<F>,
 ): MiddlewareDefinition<
@@ -603,7 +605,7 @@ export class RouteValidationBuilder<
     >,
   ): RouteDefinition<
     TPath,
-    TParams,
+    SanitizeRouteParams<TPath, TParams>,
     TQuery,
     TBody,
     TReturns,
@@ -689,7 +691,7 @@ export class RouteBuilder<
   ): RouteBuilder<
     TMethod,
     TPath,
-    Overwrite<TParams, ExtractParamsFromMiddleware<F>>,
+    SanitizeRouteParams<TPath, Overwrite<TParams, ExtractParamsFromMiddleware<F>>>,
     Overwrite<TQuery, ExtractQueryFromMiddleware<F>>,
     Overwrite<TBody, ExtractBodyFromMiddleware<F>>,
     TRouteServices & InferServicesFromMw<F>,
@@ -713,7 +715,7 @@ export class RouteBuilder<
   ): RouteBuilder<
     TMethod,
     TPath,
-    Overwrite<TParams, ExtractParamsFromMiddleware<M>>,
+    SanitizeRouteParams<TPath, Overwrite<TParams, ExtractParamsFromMiddleware<M>>>,
     Overwrite<TQuery, ExtractQueryFromMiddleware<M>>,
     Overwrite<TBody, ExtractBodyFromMiddleware<M>>,
     TRouteServices & InferServicesFromMw<M>,
