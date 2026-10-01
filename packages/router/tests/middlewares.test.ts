@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
+
 import { t } from "../src/index.js";
-import { cors } from "../src/middleware/cors.js";
-import { jwt, sign } from "../src/middleware/jwt.js";
-import { jwk } from "../src/middleware/jwk.js";
-import { secureHeaders } from "../src/middleware/secure-headers.js";
+import type { TaserRequest } from "../src/index.js";
 import { bodyLimit } from "../src/middleware/body-limit.js";
+import { compress } from "../src/middleware/compress.js";
+import { cors } from "../src/middleware/cors.js";
 import { csrf } from "../src/middleware/csrf.js";
 import { etag } from "../src/middleware/etag.js";
+import { jwk } from "../src/middleware/jwk.js";
+import { jwt, sign } from "../src/middleware/jwt.js";
+import { secureHeaders } from "../src/middleware/secure-headers.js";
 import { timing, startTime, endTime } from "../src/middleware/timing.js";
-import { compress } from "../src/middleware/compress.js";
-import type { TaserRequest } from "../src/index.js";
 
 function createDummyRequest(url = "http://localhost/test", init: RequestInit = {}): TaserRequest {
   const raw = new Request(url, init);

@@ -1,8 +1,10 @@
 import { Heart, Sparkles } from "lucide-react";
+import Image from "next/image";
+
 import { GithubIcon } from "@/components/icons/github-icon";
 import { XIcon } from "@/components/icons/x-icon";
+
 import { SectionSeparator } from "./section-separator";
-import Image from "next/image";
 
 export function AuthorSection() {
   return (

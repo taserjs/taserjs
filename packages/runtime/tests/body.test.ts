@@ -1,6 +1,7 @@
+import { UnsupportedMediaTypeError } from "@taserjs/utils";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import { UnsupportedMediaTypeError } from "@taserjs/utils";
+
 import { extractBody } from "../src/body.js";
 
 describe("Body parser & media type enforcement", () => {

@@ -1,8 +1,10 @@
 import { RootProvider } from "fumadocs-ui/provider/next";
+
 import "./global.css";
 import { Inter } from "next/font/google";
-import { rootMetadata } from "@/lib/metadata";
 import Script from "next/script";
+
+import { rootMetadata } from "@/lib/metadata";
 
 const inter = Inter({
   subsets: ["latin"],

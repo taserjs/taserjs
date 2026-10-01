@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Check,
   Copy,
@@ -10,11 +9,14 @@ import {
   Terminal as TerminalIcon,
   Lightbulb,
 } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+
 import { cn } from "@/lib/cn";
+
 import { SectionAccent, SectionHeader } from "./section-header";
 import { SectionSeparator } from "./section-separator";
 import { WindowFrame } from "./window-frame";
-import Link from "next/link";
 
 type ToolType = "npx" | "pnpm" | "bun";
 

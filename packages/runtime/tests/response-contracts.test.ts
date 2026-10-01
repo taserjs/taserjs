@@ -1,4 +1,3 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import {
   defineTaser,
   t,
@@ -7,6 +6,8 @@ import {
   type StandardSchemaV1,
 } from "@taserjs/router";
 import { json, ok } from "@taserjs/router/reply";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+
 import { createTaserApp } from "../src/index.js";
 
 function createTestSchema<T>(

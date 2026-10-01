@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+
 import { getUserAgent, resolveCommand, type Agent } from "package-manager-detector";
 
 export function resolveUserAgent(): Agent {

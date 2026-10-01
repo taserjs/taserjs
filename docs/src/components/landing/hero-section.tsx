@@ -1,9 +1,10 @@
 import { ArrowRight, Brain, Sparkles } from "lucide-react";
+import Link from "next/link";
+
+import { Logo } from "@/components/logo";
 
 import { HeroVisual } from "./hero-visual";
-import { Logo } from "@/components/logo";
 import { SectionSeparator } from "./section-separator";
-import Link from "next/link";
 
 export function HeroSection() {
   return (

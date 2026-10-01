@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { defineConfig, loadConfig, scanRoutes } from "../src/index.js";
 
 describe("@taserjs/cli", () => {

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
+
 import { runCreateCommand, type RunCreateCommandOptions } from "./commands/create.js";
 import type {
   DbDriver,

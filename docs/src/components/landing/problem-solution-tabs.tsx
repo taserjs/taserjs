@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { AlertCircle, CheckCircle2, FileCode, Layers, ShieldCheck, Waypoints } from "lucide-react";
-import { cn } from "@/lib/cn";
 import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
+import { AlertCircle, CheckCircle2, FileCode, Layers, ShieldCheck, Waypoints } from "lucide-react";
+import { useState } from "react";
+
+import { cn } from "@/lib/cn";
+
 import { SectionAccent, SectionHeader } from "./section-header";
 import { SectionSeparator } from "./section-separator";
 import { WindowFrame } from "./window-frame";

@@ -1,5 +1,6 @@
 // oxlint-disable no-await-in-loop
 import { describe, expect, it } from "vitest";
+
 import { blob, buffer, formatSSE, pipe, sse, type SSEMessage } from "../src/stream.js";
 
 async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {

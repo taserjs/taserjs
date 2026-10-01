@@ -1,10 +1,11 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { serve } from "@hono/node-server";
 import type { ServerType } from "@hono/node-server";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { t } from "@taserjs/router";
 import { createTaserApp } from "@taserjs/runtime";
 import { json } from "@taserjs/utils";
-import type { StandardSchemaV1 } from "@standard-schema/spec";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { createClient } from "../src/index.js";
 
 // Minimal Standard Schema mock

@@ -1,13 +1,14 @@
-import defaultMdxComponents from "fumadocs-ui/mdx";
+import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
-import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import { Step, Steps } from "fumadocs-ui/components/steps";
-import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
-import { TypeTable } from "./type-table";
-import { File, Files, Folder } from "./files";
-import { RequestFlowDiagram } from "./diagrams/request-flow";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
+
+import { RequestFlowDiagram } from "./diagrams/request-flow";
+import { File, Files, Folder } from "./files";
+import { TypeTable } from "./type-table";
 
 export function getMDXComponents(components?: MDXComponents) {
   return {

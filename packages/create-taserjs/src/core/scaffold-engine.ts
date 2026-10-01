@@ -1,8 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+
 import { collectBootBindings, resolveAddons } from "../addons/registry.js";
-import { resolveDeployEntry, validateCombination } from "./targets.js";
-import type { ScaffoldOptions, ScaffoldResult } from "./types.js";
 import {
   contextTemplate,
   gitignoreTemplate,
@@ -16,6 +15,8 @@ import {
   tsconfigTemplate,
   viteConfigTemplate,
 } from "../templates/base.js";
+import { resolveDeployEntry, validateCombination } from "./targets.js";
+import type { ScaffoldOptions, ScaffoldResult } from "./types.js";
 
 async function write(filePath: string, contents: string): Promise<void> {
   await mkdir(dirname(filePath), { recursive: true });

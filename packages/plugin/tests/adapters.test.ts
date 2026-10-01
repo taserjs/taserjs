@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import vitePlugin, { taser as viteTaser } from "../src/vite.js";
-import rollupPlugin, { taser as rollupTaser } from "../src/rollup.js";
-import rolldownPlugin, { taser as rolldownTaser } from "../src/rolldown.js";
-import webpackPlugin, { taser as webpackTaser } from "../src/webpack.js";
-import rspackPlugin, { taser as rspackTaser } from "../src/rspack.js";
+
 import esbuildPlugin, { taser as esbuildTaser } from "../src/esbuild.js";
 import nitroPlugin, { taser as nitroTaser } from "../src/nitro.js";
+import rolldownPlugin, { taser as rolldownTaser } from "../src/rolldown.js";
+import rollupPlugin, { taser as rollupTaser } from "../src/rollup.js";
+import rspackPlugin, { taser as rspackTaser } from "../src/rspack.js";
+import vitePlugin, { taser as viteTaser } from "../src/vite.js";
+import webpackPlugin, { taser as webpackTaser } from "../src/webpack.js";
 
 describe("bundler plugin subpath adapters", () => {
   it("vite adapter exports default and named taser functions", () => {

@@ -1,8 +1,8 @@
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 import { SectionAccent, SectionHeader } from "./section-header";
 import { SectionSeparator } from "./section-separator";
-import Link from "next/link";
 
 export function CtaSection() {
   return (

@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
 import { createContext, defineTaser, t } from "@taserjs/router";
 import { forbidden, json, unauthorized } from "@taserjs/utils";
+import { describe, it, expect } from "vitest";
+
 import { createTaserApp } from "../src/index.js";
 
 describe("Composed Onion Pipeline Integration", () => {

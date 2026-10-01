@@ -1,9 +1,10 @@
-import { describe, it, expect } from "vitest";
 import { t } from "@taserjs/router";
 import { cookie } from "@taserjs/router/middleware/cookie";
-import { cors } from "hono/cors";
-import { setCookie } from "hono/cookie";
 import { json } from "@taserjs/utils";
+import { setCookie } from "hono/cookie";
+import { cors } from "hono/cors";
+import { describe, it, expect } from "vitest";
+
 import { createTaserApp } from "../src/index.js";
 
 describe("Dynamic Services, Cookie Middleware, and t.hono Adapter Integration", () => {

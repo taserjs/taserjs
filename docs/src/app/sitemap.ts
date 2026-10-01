@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
-import { source } from "@/lib/source";
+
 import { siteConfig } from "@/lib/metadata";
+import { source } from "@/lib/source";
 
 export const revalidate = 86400; // 24 hours
 

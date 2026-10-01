@@ -1,4 +1,5 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
+
 import { hono } from "./hono.js";
 import { defineTaser } from "./taser.js";
 import type {
@@ -8,7 +9,6 @@ import type {
   ExtractParamsFromMiddleware,
   ExtractPreconditionsFromMiddleware,
   ExtractQueryFromMiddleware,
-  HasWildcard,
   HttpMethod,
   HttpNoBodyMethod,
   InferEffectiveBody,

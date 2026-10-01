@@ -1,10 +1,11 @@
-import type { Context } from "hono";
 import {
   isPlainObject,
   isProduction,
   validateResponseSchema,
   validateStandardSchema,
 } from "@taserjs/utils";
+import type { Context } from "hono";
+
 import { extractBody } from "./body.js";
 import type {
   MiddlewareHandler,

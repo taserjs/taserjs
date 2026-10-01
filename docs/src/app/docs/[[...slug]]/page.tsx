@@ -1,5 +1,3 @@
-import { createDocsPageMetadata } from "@/lib/metadata";
-import { getPageImageUrl, getPageMarkdownUrl, source } from "@/lib/source";
 import {
   DocsBody,
   DocsDescription,
@@ -8,11 +6,14 @@ import {
   MarkdownCopyButton,
   ViewOptionsPopover,
 } from "fumadocs-ui/layouts/docs/page";
-import { notFound } from "next/navigation";
-import { getMDXComponents } from "@/components/mdx";
 import { createRelativeLink } from "fumadocs-ui/mdx";
-import { gitConfig } from "@/lib/shared";
+import { notFound } from "next/navigation";
+
 import { TechArticleJsonLd } from "@/components/json-ld";
+import { getMDXComponents } from "@/components/mdx";
+import { createDocsPageMetadata } from "@/lib/metadata";
+import { gitConfig } from "@/lib/shared";
+import { getPageImageUrl, getPageMarkdownUrl, source } from "@/lib/source";
 
 export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
   const params = await props.params;

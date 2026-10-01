@@ -1,6 +1,7 @@
+import { Hono } from "hono";
 // oxlint-disable no-await-in-loop
 import { describe, expect, it } from "vitest";
-import { Hono } from "hono";
+
 import { blob, buffer, formatSSE, pipe, sse } from "../src/stream.js";
 
 async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {

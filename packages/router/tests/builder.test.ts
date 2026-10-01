@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { t } from "../src/index.js";
 import { ok, notFound } from "../src/reply.js";
 
@@ -847,13 +848,11 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
         return next();
       });
 
-      const adminMwChained = t
-        .middleware("/admin/*")
-        .handler(async ({ req }, next) => {
-          // Scoped middleware handler CAN access _splat
-          const _mwSplat: string = req.params._splat;
-          return next();
-        });
+      const adminMwChained = t.middleware("/admin/*").handler(async ({ req }, next) => {
+        // Scoped middleware handler CAN access _splat
+        const _mwSplat: string = req.params._splat;
+        return next();
+      });
 
       // Non-wildcard route using direct scoped middleware
       const routeWithDirectMw = t
@@ -895,7 +894,7 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
     });
 
     it("matches the exact user issue: /_auth/me mounting /_auth/* middleware does not have _splat", () => {
-      const useRole = t.middleware("/_auth/*", async ({ state }, next) => {
+      const useRole = t.middleware("/_auth/*", async (_, next) => {
         return next({ role: "admin" });
       });
 

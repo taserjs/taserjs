@@ -1,6 +1,7 @@
 "use client";
 import { Collapsible as Primitive } from "@base-ui/react/collapsible";
 import type { ComponentProps } from "react";
+
 import { cn } from "../../lib/cn";
 
 export const Collapsible = Primitive.Root;

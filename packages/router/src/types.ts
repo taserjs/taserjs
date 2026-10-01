@@ -55,9 +55,8 @@ export type HasWildcard<T extends string> = string extends T
     ? true
     : false;
 
-export type SanitizeRouteParams<TPath extends string, TParams> = HasWildcard<TPath> extends true
-  ? TParams
-  : Omit<TParams, "_splat">;
+export type SanitizeRouteParams<TPath extends string, TParams> =
+  HasWildcard<TPath> extends true ? TParams : Omit<TParams, "_splat">;
 
 type ParamsFromSegments<T extends string> = Simplify<{
   [K in ExtractPathSegments<T> as ExtractParamName<K>]: string;
@@ -766,7 +765,9 @@ export type ValidateLayoutMiddlewareUse<
       ? CompileError<`Cannot mount middleware: layout does not satisfy declared preconditions`>
       : TMw;
 
-type ResolveLayoutFallbackParams<TReq, TLayoutId extends string | undefined> = [TReq] extends [undefined]
+type ResolveLayoutFallbackParams<TReq, TLayoutId extends string | undefined> = [TReq] extends [
+  undefined,
+]
   ? [TLayoutId] extends [undefined]
     ? Record<string, string>
     : [TLayoutId] extends [never]

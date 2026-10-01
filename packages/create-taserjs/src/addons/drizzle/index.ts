@@ -1,5 +1,5 @@
-import type { AddonDefinition } from "../types.js";
 import type { DbDriver } from "../../core/types.js";
+import type { AddonDefinition } from "../types.js";
 
 function schemaSource(driver: DbDriver): string {
   switch (driver) {

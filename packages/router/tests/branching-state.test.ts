@@ -1,5 +1,6 @@
 // oxlint-disable no-constant-condition
 import { describe, it, expect, expectTypeOf } from "vitest";
+
 import { t } from "../src/index.js";
 import { unauthorized } from "../src/reply.js";
 

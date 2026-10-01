@@ -9,8 +9,10 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+
 import { build, createServer, type ViteDevServer } from "vite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import { taser } from "../src/vite.js";
 
 describe("vite dev server integration with @taserjs/plugin/vite", () => {

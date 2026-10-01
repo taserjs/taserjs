@@ -1,5 +1,5 @@
-import { defineConfig } from "nitro/config";
 import { taser } from "@taserjs/plugin/nitro";
+import { defineConfig } from "nitro/config";
 
 export default defineConfig({
   preset: "node-server",

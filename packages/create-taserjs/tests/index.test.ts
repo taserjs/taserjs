@@ -1,7 +1,9 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import { DEPLOY_TARGETS, run, runCreateCommand, scaffoldProject } from "../src/index.js";
 
 describe("create-taserjs unit and integration tests", () => {

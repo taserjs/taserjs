@@ -1,4 +1,5 @@
 import { jwt as honoJwt, sign, verify, decode, verifyWithJwks, AlgorithmTypes } from "hono/jwt";
+
 import { hono } from "../hono.js";
 import type { MiddlewareDefinition } from "../types.js";
 

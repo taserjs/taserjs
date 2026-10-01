@@ -1,4 +1,5 @@
 import { etag as honoEtag, RETAINED_304_HEADERS } from "hono/etag";
+
 import { hono } from "../hono.js";
 import type { MiddlewareDefinition } from "../types.js";
 

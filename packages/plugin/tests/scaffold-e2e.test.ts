@@ -9,11 +9,13 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { build } from "vite";
+
 import { runCreateCommand, scaffoldProject } from "create-taserjs";
-import { taser } from "../src/vite.js";
+import { build } from "vite";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import { applyTaserNitro } from "../src/nitro.js";
+import { taser } from "../src/vite.js";
 
 describe(
   "E2E Scaffolding Engine, Nitro Plugin, Build, and Request Serving",

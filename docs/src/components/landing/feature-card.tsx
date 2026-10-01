@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
 import { Card } from "fumadocs-ui/components/card";
+import type { ReactNode } from "react";
+
 import { cn } from "@/lib/cn";
 
 export const iconTones = {

@@ -1,4 +1,5 @@
 import type { SVGProps } from "react";
+
 import { cn } from "@/lib/cn";
 
 export function XIcon({ className, ...props }: SVGProps<SVGSVGElement>) {

@@ -1,6 +1,7 @@
-import { getPageImageUrl, source } from "@/lib/source";
 import { notFound } from "next/navigation";
+
 import { OpenGraphImage } from "@/lib/og.image";
+import { getPageImageUrl, source } from "@/lib/source";
 
 export const runtime = "nodejs";
 export const revalidate = false;

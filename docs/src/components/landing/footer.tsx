@@ -1,11 +1,13 @@
-import Link from "next/link";
-import { Logo } from "@/components/logo";
-import { GithubIcon } from "@/components/icons/github-icon";
-import { DiscordIcon } from "@/components/icons/discord-icon";
-import { XIcon } from "@/components/icons/x-icon";
 import { FileCode, FileText, Globe, Sparkles } from "lucide-react";
-import { SectionSeparator } from "./section-separator";
+import Link from "next/link";
+
+import { DiscordIcon } from "@/components/icons/discord-icon";
+import { GithubIcon } from "@/components/icons/github-icon";
+import { XIcon } from "@/components/icons/x-icon";
+import { Logo } from "@/components/logo";
 import { gitConfig } from "@/lib/shared";
+
+import { SectionSeparator } from "./section-separator";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();

@@ -1,6 +1,7 @@
+import type { Metadata } from "next";
+
 import { homeMetadata } from "./metadata";
 import { pageImageRoute } from "./shared";
-import type { Metadata } from "next";
 
 export const source: Record<string, Metadata["openGraph"]> = {
   home: homeMetadata.openGraph,

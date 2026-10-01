@@ -1,6 +1,7 @@
+import { createContext, defineTaser, t, ValidationError } from "@taserjs/router";
 // oxlint-disable no-await-in-loop
 import { describe, expect, it, vi } from "vitest";
-import { createContext, defineTaser, t, ValidationError } from "@taserjs/router";
+
 import { createTaserApp, UnsupportedMediaTypeError } from "../src/index.js";
 
 describe("createTaserApp with defineTaser and error boundaries", () => {

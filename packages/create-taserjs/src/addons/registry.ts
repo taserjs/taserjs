@@ -1,3 +1,4 @@
+import type { ScaffoldContext } from "../core/types.js";
 import { drizzleAddon } from "./drizzle/index.js";
 import { kyselyAddon } from "./kysely/index.js";
 import { pinoAddon } from "./pino/index.js";
@@ -5,7 +6,6 @@ import { prismaAddon } from "./prisma/index.js";
 import type { AddonDefinition, BootBinding } from "./types.js";
 import { ValidatorAddon } from "./validators.js";
 import { winstonAddon } from "./winston/index.js";
-import type { ScaffoldContext } from "../core/types.js";
 
 export const ADDONS: Record<string, AddonDefinition> = {
   drizzle: drizzleAddon,

@@ -1,7 +1,9 @@
 import { existsSync } from "node:fs";
-import { resolve } from "pathe";
+
 import { generateManifest, loadConfig, resolveRoutesDir, scanRoutes } from "@taserjs/cli";
 import { watch, type FSWatcher } from "chokidar";
+import { resolve } from "pathe";
+
 import { taserPlugin } from "./index.js";
 
 export interface NextTaserOptions {

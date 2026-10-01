@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { createContext } from "../src/index.js";
 
 describe("createContext in @taserjs/router", () => {

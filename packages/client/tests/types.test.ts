@@ -1,7 +1,8 @@
-import { describe, expectTypeOf, it } from "vitest";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { t } from "@taserjs/router";
 import { json } from "@taserjs/router/reply";
-import type { StandardSchemaV1 } from "@standard-schema/spec";
+import { describe, expectTypeOf, it } from "vitest";
+
 import { createClient, type InferRequestType, type InferResponseType } from "../src/index.js";
 
 // Helper mock standard schema

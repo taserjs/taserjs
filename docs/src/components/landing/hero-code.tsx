@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { cn } from "@/lib/cn";
-import { Logo } from "@/components/logo";
 import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
-import { heroCodeTabs, heroTabSources } from "./hero-code-sample";
 import { CodeXmlIcon } from "lucide-react";
+import { useState } from "react";
+
+import { Logo } from "@/components/logo";
+import { cn } from "@/lib/cn";
+
+import { heroCodeTabs, heroTabSources } from "./hero-code-sample";
 import { WindowFrame } from "./window-frame";
 
 export function HeroCode() {

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Globe,
@@ -15,6 +14,8 @@ import {
   ChevronRight,
   RotateCcw,
 } from "lucide-react";
+import { useState } from "react";
+
 import { cn } from "@/lib/cn";
 
 interface FlowStep {

@@ -1,6 +1,7 @@
 import type { StandardSchemaV1 } from "@taserjs/router";
-import { describe, expect, it } from "vitest";
 import { t } from "@taserjs/router";
+import { describe, expect, it } from "vitest";
+
 import { createTaserApp } from "../src/index.js";
 
 // Helper to create a Standard Schema

@@ -1,8 +1,9 @@
-// oxlint-disable no-await-in-loop
-import { describe, it, expect } from "vitest";
-import { Hono } from "hono";
 import { t } from "@taserjs/router";
 import { created, json } from "@taserjs/utils";
+import { Hono } from "hono";
+// oxlint-disable no-await-in-loop
+import { describe, it, expect } from "vitest";
+
 import { createTaserApp } from "../src/index.js";
 
 declare module "@taserjs/router" {
@@ -91,7 +92,7 @@ describe("createTaserApp and Hono runtime dispatch", () => {
   });
 
   it("does not leak req.params._splat to non-wildcard routes when mounting scoped middleware", async () => {
-    const useRole = t.middleware("/admin/*", async ({ state }, next) => {
+    const useRole = t.middleware("/admin/*", async (_, next) => {
       return next({ role: "admin" });
     });
 

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { json, isStandardSchema } from "../src/index.js";
 
 describe("@taserjs/utils", () => {

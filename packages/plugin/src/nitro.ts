@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { resolve } from "pathe";
+
 import {
   generateManifest,
   loadConfig,
@@ -10,6 +10,8 @@ import {
   type ResolvedTaserConfig,
 } from "@taserjs/cli";
 import { watch, type FSWatcher } from "chokidar";
+import { resolve } from "pathe";
+
 import {
   buildHostFallbackCode,
   getHostServer,

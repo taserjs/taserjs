@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, join, resolve } from "pathe";
+
 import { parseSync } from "oxc-parser";
+import { basename, join, resolve } from "pathe";
+
 import type { TaserFormattingConfig } from "./config.js";
 import {
   deriveCanonicalUrl,

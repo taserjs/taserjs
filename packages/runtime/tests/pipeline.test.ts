@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { createPipeline } from "../src/index.js";
 import type { MiddlewareHandler, TaserRequest } from "../src/index.js";
 

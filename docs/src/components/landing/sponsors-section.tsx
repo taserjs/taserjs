@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Heart, Sparkles } from "lucide-react";
 
 import { sponsorUrl } from "@/lib/shared";
+
 import { SectionAccent, SectionHeader } from "./section-header";
 import { SectionSeparator } from "./section-separator";
 

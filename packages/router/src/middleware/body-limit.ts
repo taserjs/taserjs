@@ -1,6 +1,7 @@
-import { bodyLimit as honoBodyLimit } from "hono/body-limit";
-import type { Context } from "hono";
 import { payloadTooLarge } from "@taserjs/utils";
+import type { Context } from "hono";
+import { bodyLimit as honoBodyLimit } from "hono/body-limit";
+
 import { hono } from "../hono.js";
 import type { MiddlewareDefinition } from "../types.js";
 

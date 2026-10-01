@@ -1,5 +1,6 @@
-import { HeroCode } from "./hero-code";
 import heroGlow from "@/assets/hero-glow.svg";
+
+import { HeroCode } from "./hero-code";
 
 export function HeroVisual() {
   return (

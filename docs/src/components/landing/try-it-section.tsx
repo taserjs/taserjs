@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { Check, Copy, Terminal as TerminalIcon, SlidersHorizontal } from "lucide-react";
+import { useState } from "react";
+
 import { cn } from "@/lib/cn";
+
 import { SectionAccent, SectionHeader } from "./section-header";
 import { SectionSeparator } from "./section-separator";
 import { WindowFrame } from "./window-frame";

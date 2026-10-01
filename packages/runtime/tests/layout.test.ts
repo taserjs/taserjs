@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { resolveMiddlewares, resolveMiddleware } from "../src/layout.js";
 import type {
   LayoutDefinition,

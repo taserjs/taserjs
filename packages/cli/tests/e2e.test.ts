@@ -1,9 +1,11 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import { t } from "@taserjs/router";
 import { createTaserApp } from "@taserjs/runtime";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import { DEFAULT_CONFIG } from "../src/config.js";
 import { generateManifest } from "../src/generator.js";
 import { scanRoutes } from "../src/scanner.js";

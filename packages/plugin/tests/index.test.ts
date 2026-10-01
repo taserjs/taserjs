@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { taserPlugin, taser } from "../src/index.js";
 
 describe("@taserjs/plugin", () => {

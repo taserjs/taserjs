@@ -1,4 +1,5 @@
 import { cors as honoCors } from "hono/cors";
+
 import { hono } from "../hono.js";
 import type { MiddlewareDefinition } from "../types.js";
 

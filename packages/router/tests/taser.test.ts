@@ -1,4 +1,5 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
+
 import { createContext, defineTaser, t, type TaserRequest } from "../src/index.js";
 
 describe("defineTaser declarative builder", () => {

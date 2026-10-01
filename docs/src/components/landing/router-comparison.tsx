@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
 import {
   FileCode2,
   Folder,
@@ -11,7 +10,10 @@ import {
   Monitor,
   Code2,
 } from "lucide-react";
+import { useState, type ReactNode } from "react";
+
 import { cn } from "@/lib/cn";
+
 import { WindowFrame } from "./window-frame";
 
 type HttpVerb = "GET" | "POST" | "PUT" | "DELETE" | "MW" | "LAYOUT" | "PAGE";

@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 import { existsSync } from "node:fs";
+
 import { watch, type FSWatcher } from "chokidar";
 import pc from "picocolors";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
+
 import { loadConfig, resolveAppFile, resolveRoutesDir } from "./config.js";
 import { generateManifest } from "./generator.js";
 import { scanRoutes } from "./scanner.js";

@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import {
   Box,
   Braces,
@@ -13,6 +12,7 @@ import {
   Workflow,
   Zap,
 } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { FeatureCard } from "./feature-card";
 import type { IconTone } from "./feature-card";

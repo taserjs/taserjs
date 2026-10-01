@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+
 import type { TaserHeaders, TaserRequest } from "./types.js";
 
 export function createTaserHeaders(c: Context): TaserHeaders {

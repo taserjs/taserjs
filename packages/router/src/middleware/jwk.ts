@@ -1,4 +1,5 @@
 import { jwk as honoJwk } from "hono/jwk";
+
 import { hono } from "../hono.js";
 import type { MiddlewareDefinition } from "../types.js";
 

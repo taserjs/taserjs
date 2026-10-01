@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+
 import { hasSchemas, validateSchemas } from "./pipeline.js";
 import type {
   MiddlewareDefinition,

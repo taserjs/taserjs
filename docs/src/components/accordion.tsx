@@ -1,12 +1,12 @@
 "use client";
 
+import { useTranslations } from "@fuma-translate/react";
+import { useCopyButton } from "@fumadocs/base-ui/utils/use-copy-button";
 import { Check, LinkIcon } from "lucide-react";
 import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from "react";
+
 import { cn } from "../lib/cn";
-import { useCopyButton } from "@fumadocs/base-ui/utils/use-copy-button";
-import { buttonVariants } from "./ui/button";
 import { mergeRefs } from "../lib/merge-refs";
-import { useTranslations } from "@fuma-translate/react";
 import {
   Accordion as Root,
   AccordionContent,
@@ -14,6 +14,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
+import { buttonVariants } from "./ui/button";
 
 export function Accordions({
   ref,

@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
-import { isAbsolute, join, relative, resolve } from "pathe";
+
 import {
   formatRelativeImport,
   generateManifest,
@@ -13,6 +13,7 @@ import {
   scanRoutes,
   type ResolvedTaserConfig,
 } from "@taserjs/cli";
+import { isAbsolute, join, relative, resolve } from "pathe";
 import { toFetchHandler, toNodeHandler } from "srvx/node";
 import { createUnplugin } from "unplugin";
 

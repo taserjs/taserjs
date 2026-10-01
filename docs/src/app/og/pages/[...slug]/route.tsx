@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+
 import { OpenGraphImage } from "@/lib/og.image";
 import { source, getPageImageUrl } from "@/lib/pages";
 

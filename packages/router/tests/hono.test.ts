@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
 import { Context } from "hono";
 import { cors } from "hono/cors";
+import { describe, it, expect } from "vitest";
+
 import { t } from "../src/index.js";
 import type { TaserRequest } from "../src/index.js";
 

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { t, layout, RouteBuilder, RouteValidationBuilder } from "../src/index.js";
 
 describe("@taserjs/router", () => {

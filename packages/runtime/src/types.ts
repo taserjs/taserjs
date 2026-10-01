@@ -1,4 +1,3 @@
-import type { Hono } from "hono";
 import type {
   ContextDefinition,
   HeaderKey,
@@ -22,6 +21,7 @@ import type {
   TaserHeaders,
   TaserRequest,
 } from "@taserjs/router";
+import type { Hono } from "hono";
 
 export type {
   ContextDefinition,

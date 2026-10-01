@@ -1,6 +1,7 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import type { FormBody, FormBodyField, FormBodyInput } from "./form-body.js";
+
 import type { HttpMethodName } from "./constants.js";
+import type { FormBody, FormBodyField, FormBodyInput } from "./form-body.js";
 import type { HeaderValue } from "./url.js";
 
 export type { FormBody, FormBodyField, FormBodyInput, HttpMethodName, HeaderValue };
