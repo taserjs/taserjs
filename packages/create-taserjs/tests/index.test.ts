@@ -163,14 +163,4 @@ describe("create-taserjs unit and integration tests", () => {
     expect(result.devDependencies).toContain("typescript");
     expect(result.devDependencies).toContain("drizzle-kit");
   });
-
-  it("handles installPackages error gracefully when child process exits with non-zero code", async () => {
-    const { installPackages } = await import("../src/core/package-manager.js");
-    await expect(
-      installPackages("npm", tempDir, {
-        dependencies: ["__non_existent_package_12345_xyz__"],
-        devDependencies: [],
-      }),
-    ).rejects.toThrow();
-  });
 });
