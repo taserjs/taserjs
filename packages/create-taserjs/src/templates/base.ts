@@ -137,9 +137,10 @@ export default t.layout("/*").use(async (_args, next) => {
 
 export function indexRouteTemplate(): string {
   return `import { t } from "@taserjs/router";
+import { json } from "@taserjs/router/reply";
 
 export default t.get("/").handler(() => {
-  return Response.json({ message: "Welcome to Taser.js!" });
+  return json({ message: "Welcome to Taser.js!" });
 });
 `;
 }

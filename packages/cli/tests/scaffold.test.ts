@@ -3,7 +3,8 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { generateLayoutStub, generateRouteStub, scanRoutes } from "../src/index.js";
+import { generateLayoutStub, generateRouteStub } from "../src/scaffold.js";
+import { scanRoutes } from "../src/scanner.js";
 
 describe("route & layout scaffolding", () => {
   const tempDir = join(process.cwd(), "tests", "fixtures", "temp-scaffold-test");

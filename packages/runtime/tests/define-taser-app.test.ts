@@ -1,8 +1,9 @@
 import { createContext, defineTaser, t, ValidationError } from "@taserjs/router";
+import { UnsupportedMediaTypeError } from "@taserjs/utils";
 // oxlint-disable no-await-in-loop
 import { describe, expect, it, vi } from "vitest";
 
-import { createTaserApp, UnsupportedMediaTypeError } from "../src/index.js";
+import { createTaserApp } from "../src/index.js";
 
 describe("createTaserApp with defineTaser and error boundaries", () => {
   it("mounts routes with basePath and provides context to notFound handler", async () => {

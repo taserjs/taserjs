@@ -5,7 +5,6 @@ import {
   badRequest,
   conflict,
   created,
-  createTypedResponse,
   forbidden,
   html,
   internalServerError,
@@ -42,7 +41,6 @@ describe("@taserjs/router/reply re-exports", () => {
     expect(typeof unprocessable).toBe("function");
     expect(typeof tooManyRequests).toBe("function");
     expect(typeof internalServerError).toBe("function");
-    expect(typeof createTypedResponse).toBe("function");
   });
 
   it("produces correct responses via @taserjs/router/reply", async () => {

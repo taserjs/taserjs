@@ -1,3 +1,4 @@
+import { startTime, endTime } from "hono/timing";
 import { describe, expect, it } from "vitest";
 
 import { t } from "../src/index.js";
@@ -10,7 +11,7 @@ import { etag } from "../src/middleware/etag.js";
 import { jwk } from "../src/middleware/jwk.js";
 import { jwt, sign } from "../src/middleware/jwt.js";
 import { secureHeaders } from "../src/middleware/secure-headers.js";
-import { timing, startTime, endTime } from "../src/middleware/timing.js";
+import { timing } from "../src/middleware/timing.js";
 
 function createDummyRequest(url = "http://localhost/test", init: RequestInit = {}): TaserRequest {
   const raw = new Request(url, init);

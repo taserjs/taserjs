@@ -314,6 +314,10 @@ Imported as `import { t } from "@taserjs/router"`. `t` provides builder factory 
       description: "413 Payload Too Large.",
       type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 413>",
     },
+    unsupportedMediaType: {
+      description: "415 Unsupported Media Type.",
+      type: "(data?: unknown, init?: number | ResponseInit) => Response",
+    },
     unprocessable: {
       description: "422 Unprocessable Entity (validation failures).",
       type: "<T>(data?: T, init?: ResponseInit) => TypedResponse<T, 422>",
@@ -398,19 +402,43 @@ Import `cookie` from `@taserjs/router/middleware/cookie` and mount it on a layou
 
 ```ts
 import type {
-  InferAppContext,
-  InferAppManifest,
-  InferRouteContext,
-  InferRouteInput,
-  InferRouteOutput,
+  BodyMode,
+  ContextDefinition,
+  HeaderKey,
+  HttpMethod,
+  LayoutDefinition,
+  MiddlewareArgs,
+  MiddlewareDefinition,
+  MiddlewareHandler,
+  MiddlewareInput,
+  MiddlewarePreconditions,
+  NextFunction,
+  NotFoundHandler,
+  OnErrorHandler,
+  RequestHeader,
+  ResponseOptions,
+  RouteBodySchema,
+  RouteBuilder,
   RouteDefinition,
-  RouteExport,
-  TaserApp,
-  TaserCookieJar,
-  TaserCookieOptions,
-  RouteManifestShape,
-  ReturnsMap,
+  RouteHandler,
+  RouteHandlerArgs,
+  RouteSchemas,
+  RouterRegister,
+  StandardSchemaV1,
+  StatusCode,
+  TaserAppOptions,
+  TaserDefinition,
+  TaserHeaders,
+  TaserRequest,
+  ValidationFacet,
 } from "@taserjs/router";
+
+import type {
+  Cookie,
+  CookieJarOptions,
+  CookieOptions,
+  TaserCookieJar,
+} from "@taserjs/router/middleware";
 ```
 
 <Callout type="info" title="Context Type Extraction Best Practice">

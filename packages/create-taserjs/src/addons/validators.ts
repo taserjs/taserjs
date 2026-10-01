@@ -21,13 +21,14 @@ export const ValidatorAddon = (validator: ValidatorId): AddonDefinition => {
     devDependencies: () => [],
     apply: async (_ctx, write) => {
       const content = `import { t } from "@taserjs/router";
+import { json } from "@taserjs/router/reply";
 ${IMPORT_LINES[validator]}
 
 export default t
   .get("/")
   .query(${QUERY_SCHEMA_EXPR[validator]})
   .handler(({ req }) => {
-    return Response.json({ message: \`Hello, \${req.query.name}!\` });
+    return json({ message: \`Hello, \${req.query.name}!\` });
   });
 `;
       await write("src/routes/index.get.ts", content);

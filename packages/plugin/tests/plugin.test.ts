@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
+import { normalizeImportPath } from "@taserjs/cli";
 import { join } from "pathe";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,7 +11,6 @@ import {
   isOutputDir,
   isSubPath,
   mountHostFallback,
-  normalizeImportPath,
   resolveHostFetchHandler,
   taserPlugin,
   taser,

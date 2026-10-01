@@ -165,7 +165,7 @@ describe("create-taserjs unit and integration tests", () => {
   });
 
   it("handles installPackages error gracefully when child process exits with non-zero code", async () => {
-    const { installPackages } = await import("../src/index.js");
+    const { installPackages } = await import("../src/core/package-manager.js");
     await expect(
       installPackages("npm", tempDir, {
         dependencies: ["__non_existent_package_12345_xyz__"],

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
-import { createPipeline } from "../src/index.js";
-import type { MiddlewareHandler, TaserRequest } from "../src/index.js";
+import { createPipeline } from "../src/pipeline.js";
+import type { MiddlewareHandler, TaserRequest } from "../src/types.js";
 
 function createDummyRequest(): TaserRequest {
   const raw = new Request("http://localhost/test");

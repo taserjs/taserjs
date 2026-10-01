@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 import {
   UnsupportedMediaTypeError,
   ValidationError,
-  unsupportedMediaType,
   validateStandardSchema,
 } from "../src/index.js";
+import { unsupportedMediaType } from "../src/media.js";
 
 describe("ValidationError & Standard Schema validation primitives", () => {
   it("creates a ValidationError with issues and target facet", () => {

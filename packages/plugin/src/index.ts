@@ -16,8 +16,6 @@ import { isAbsolute, join, relative, resolve } from "pathe";
 import { toFetchHandler, toNodeHandler } from "srvx/node";
 import { createUnplugin } from "unplugin";
 
-export const DEFAULT_WATCH_DEBOUNCE_MS = 50;
-
 export interface TaserPluginOptions {
   server?: boolean | undefined;
   serverEntry?: string | undefined;
@@ -136,8 +134,6 @@ function isRunnableEnvironment(environment: any): boolean {
   }
   return true;
 }
-
-export { normalizeImportPath, formatRelativeImport };
 
 const toRealPath = (p: string): string => {
   try {

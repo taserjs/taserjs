@@ -196,18 +196,24 @@ export type ClientResponse<TJson = unknown> = Omit<Response, "json"> & {
 ```ts
 import type {
   Client,
-  CreateClientOptions,
+  ClientArgsFor,
+  ClientMethodFn,
+  ClientMethodReturn,
+  ClientMethods,
   ClientRequestOptions,
   ClientResponse,
+  CreateClientOptions,
   FormBody,
   FormBodyField,
   FormBodyInput,
-  HttpMethodName,
   InferRequestType,
   InferResponseType,
-  OpenQuery,
-  QueryWithOpen,
+  InferRoutes,
+  InferSchemaInput,
+  InferSchemaOutput,
+  InferredJsonOutput,
+  SuccessStatusCode,
 } from "@taserjs/client";
 
-import { METHOD_MAP, CLIENT_METHODS, createClient, formBody } from "@taserjs/client";
+import { createClient, formBody } from "@taserjs/client";
 ```

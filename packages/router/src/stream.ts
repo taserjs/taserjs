@@ -7,4 +7,4 @@ export {
   type SSEController,
   type SSEInit,
   type SSEMessage,
-} from "@taserjs/utils/stream";
+} from "@taserjs/utils";

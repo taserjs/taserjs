@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import {
   executeGenerate,
   loadConfig,
+  normalizeImportPath,
   resolveAppFile,
   resolveOutputDir,
   resolveRoutesDir,
@@ -14,7 +15,6 @@ import { resolve } from "pathe";
 import {
   buildHostFallbackCode,
   getHostServer,
-  normalizeImportPath,
   taserPlugin,
   type HostServerInfo,
   type TaserPluginOptions,

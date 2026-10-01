@@ -16,7 +16,7 @@ async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
   return result;
 }
 
-describe("@taserjs/utils/stream", () => {
+describe("@taserjs/utils stream helpers", () => {
   describe("pipe", () => {
     it("wraps a ReadableStream into a streaming Response with custom init", async () => {
       const encoder = new TextEncoder();

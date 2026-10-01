@@ -1,22 +1,5 @@
 export { createClient } from "./client.js";
 export { formBody } from "./form-body.js";
-export {
-  CLIENT_METHODS,
-  CLIENT_TO_HTTP,
-  METHOD_MAP,
-  type ClientMethodKey,
-  type HttpMethodName,
-} from "./constants.js";
-export {
-  applyPathParams,
-  buildSearchParams,
-  clientMethodToHttp,
-  decodeClientSegment,
-  isClientMethod,
-  joinUrl,
-  resolveHeaders,
-  type HeaderValue,
-} from "./url.js";
 export type {
   Client,
   ClientArgsFor,
@@ -35,6 +18,5 @@ export type {
   InferSchemaInput,
   InferSchemaOutput,
   InferredJsonOutput,
-  Simplify,
   SuccessStatusCode,
 } from "./types.js";

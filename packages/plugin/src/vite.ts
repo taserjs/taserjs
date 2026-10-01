@@ -1,13 +1,4 @@
-import {
-  detectFullStack,
-  detectHostServer,
-  emitServeShim,
-  mountHostFallback,
-  resolveHostFetchHandler,
-  taserPlugin,
-  type HostServerInfo,
-  type TaserPluginOptions,
-} from "./index.js";
+import { detectFullStack, taserPlugin, type TaserPluginOptions } from "./index.js";
 import { setupTaserNitro } from "./nitro.js";
 
 export type VitePluginReturn = ReturnType<typeof taserPlugin.vite> & {
@@ -70,12 +61,4 @@ export const taser: (options?: TaserPluginOptions) => VitePluginReturn = (
 };
 
 export default taser;
-export {
-  detectFullStack,
-  detectHostServer,
-  emitServeShim,
-  mountHostFallback,
-  resolveHostFetchHandler,
-  type HostServerInfo,
-  type TaserPluginOptions,
-};
+export type { TaserPluginOptions };

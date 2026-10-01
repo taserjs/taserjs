@@ -18,7 +18,7 @@ async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
 }
 
 describe("@taserjs/router/stream", () => {
-  it("re-exports all stream helpers from @taserjs/utils/stream", () => {
+  it("re-exports all stream helpers from @taserjs/utils", () => {
     expect(typeof pipe).toBe("function");
     expect(typeof buffer).toBe("function");
     expect(typeof blob).toBe("function");

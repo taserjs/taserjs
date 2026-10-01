@@ -2,7 +2,8 @@ import { defineTaser, t } from "@taserjs/router";
 import { json } from "@taserjs/utils";
 import { describe, it, expect } from "vitest";
 
-import { createContext, createTaserApp } from "../src/index.js";
+import { createContext } from "../src/context.js";
+import { createTaserApp } from "../src/index.js";
 
 describe("createContext & context resolution", () => {
   it("evaluates boot singleton once and resolves request context per request", async () => {

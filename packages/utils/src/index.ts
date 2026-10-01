@@ -3,8 +3,6 @@ export {
   badRequest,
   conflict,
   created,
-  createReply,
-  createTypedResponse,
   forbidden,
   html,
   internalServerError,
@@ -19,22 +17,18 @@ export {
   tooManyRequests,
   unauthorized,
   unprocessable,
-  type ExtractStatus,
-  type JsonResponse,
   type TypedResponse,
 } from "./reply.js";
 export { type BodyMode, unsupportedMediaType, UnsupportedMediaTypeError } from "./media.js";
-export { type ResponseContext, mergeResponseCookies } from "./cookie.js";
+export { mergeResponseCookies } from "./cookie.js";
 export {
   type ValidationFacet,
   ValidationError,
   ResponseValidationError,
-  executeSchema,
-  isStandardSchema,
   validateStandardSchema,
   validateResponseSchema,
 } from "./validation.js";
-export { isPlainObject, isPlainObjectOrArray } from "./object.js";
+export { isPlainObject } from "./object.js";
 export { isProduction } from "./env.js";
 export {
   blob,
