@@ -1,5 +1,14 @@
 # @taserjs/runtime
 
+## 0.2.5
+
+### Patch Changes
+
+- ff53de8: Remove Duplicate and Unused Exports, use standard json in scaffold
+- Updated dependencies [ff53de8]
+  - @taserjs/router@0.2.5
+  - @taserjs/utils@0.2.5
+
 ## 0.2.4
 
 ### Patch Changes
