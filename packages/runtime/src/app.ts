@@ -34,10 +34,6 @@ export function prefixRoutePath(basePath: string, routePath: string): string {
   return `${basePath}${normalizedRoute}`;
 }
 
-export function toHonoPathPattern(canonicalPath: string): string {
-  return canonicalPath.replace(/\{(-\$|\$)([^}]+)\}/g, ":$2?");
-}
-
 export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<any>): TaserApp {
   const options = taser?.options;
   const basePath = normalizeBasePath(options?.basePath);
@@ -115,7 +111,6 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
       const method = (routeDefinition.method || methodKey).toUpperCase();
       const rawTargetPath = routeDefinition.path || routePath;
       const targetPath = prefixRoutePath(basePath, rawTargetPath);
-      const honoPath = toHonoPathPattern(targetPath);
       const isStatic = isStaticRoutePath(targetPath);
 
       const middlewares = resolveMiddlewares(entry, manifest);
@@ -147,15 +142,15 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
       };
 
       if (method === "ALL") {
-        app.all(honoPath, routeHandler);
+        app.all(targetPath, routeHandler);
       } else if (method === "ANY") {
         const methodsToMount =
           routeDefinition.methods && routeDefinition.methods.length > 0
             ? routeDefinition.methods.map((m) => m.toUpperCase())
             : ["GET", "POST", "PUT", "DELETE", "PATCH"];
-        app.on(methodsToMount, honoPath, routeHandler);
+        app.on(methodsToMount, targetPath, routeHandler);
       } else {
-        app.on(method, honoPath, routeHandler);
+        app.on(method, targetPath, routeHandler);
       }
     }
   }

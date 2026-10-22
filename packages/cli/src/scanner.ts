@@ -183,7 +183,7 @@ export function validateAst(
       return diagnostics;
     }
 
-    if (passedPath.includes("$") && !canonicalPath.includes("{-$")) {
+    if (passedPath.includes("$")) {
       diagnostics.push({
         filePath,
         message: `Route definition in "${filePath}" contains filesystem tokens like "$param" ("${passedPath}"). Route builders strictly accept Canonical URL Patterns (e.g. "${canonicalPath}").`,

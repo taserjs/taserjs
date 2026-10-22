@@ -68,8 +68,8 @@ describe("createTaserApp and Hono runtime dispatch", () => {
     expect(data).toEqual({ userId: "42", filter: "active" });
   });
 
-  it("handles optional path parameters with {-$param} syntax", async () => {
-    const postsRoute = t.get("/posts/{-$category}").handler(({ req }) => {
+  it("handles optional path parameters with :category? syntax derived from {-$category} route file", async () => {
+    const postsRoute = t.get("/posts/:category?").handler(({ req }) => {
       return json({
         category: (req.params as any).category ?? null,
       });
@@ -77,7 +77,7 @@ describe("createTaserApp and Hono runtime dispatch", () => {
 
     const app = createTaserApp({
       routes: {
-        "/posts/{-$category}": {
+        "/posts/:category?": {
           GET: {
             route: postsRoute,
           },
