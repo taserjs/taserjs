@@ -1,5 +1,12 @@
 # create-taserjs
 
+## 0.2.6
+
+### Patch Changes
+
+- d7d2985: feat: Optional Path Params Support
+  fix: Optimize router types and builder immutability
+
 ## 0.2.5
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @taserjs/router
 
+## 0.2.6
+
+### Patch Changes
+
+- d7d2985: feat: Optional Path Params Support
+  fix: Optimize router types and builder immutability
+- Updated dependencies [d7d2985]
+  - @taserjs/utils@0.2.6
+
 ## 0.2.5
 
 ### Patch Changes
