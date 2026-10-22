@@ -1,106 +1,118 @@
-import { execSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { promisify } from "node:util";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { DEFAULT_CONFIG } from "../src/config.js";
 import { generateManifest } from "../src/generator.js";
 import { scanRoutes } from "../src/scanner.js";
 
-describe("TypeScript ambient types and route context inference (tsc)", { timeout: 30000 }, () => {
-  let tempDir: string;
-  const routerDir = resolve(__dirname, "../../router/src");
-  const runtimeDir = resolve(__dirname, "../../runtime/src");
-  const utilsDir = resolve(__dirname, "../../utils/src");
+const execFileAsync = promisify(execFile);
 
-  beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "taser-tsc-test-"));
-  });
+// Invoking tsc through node directly avoids the ~1s `pnpm exec` startup cost on every run.
+const TSC_BIN = createRequire(import.meta.url).resolve("typescript/bin/tsc");
+const TSC_TEST_TIMEOUT_MS = 120_000;
 
-  afterEach(() => {
+// Each test owns an isolated temp project, so tests can safely run concurrently.
+const test = it.extend<{ tempDir: string }>({
+  // oxlint-disable-next-line no-empty-pattern
+  tempDir: async ({}, use) => {
+    const tempDir = mkdtempSync(join(tmpdir(), "taser-tsc-test-"));
+    await use(tempDir);
     try {
       rmSync(tempDir, { recursive: true, force: true });
     } catch {}
-  });
+  },
+});
 
-  function setupTsConfig(dir: string): void {
-    writeFileSync(
-      join(dir, "tsconfig.json"),
-      JSON.stringify({
-        compilerOptions: {
-          target: "ES2022",
-          lib: ["ES2022", "DOM"],
-          module: "ESNext",
-          moduleResolution: "bundler",
-          allowImportingTsExtensions: true,
-          strict: true,
-          noEmit: true,
-          skipLibCheck: true,
-          typeRoots: [resolve(__dirname, "../../../node_modules/@types")],
-          types: ["node"],
-          baseUrl: ".",
-          paths: {
-            "@taserjs/router": [routerDir + "/index.ts"],
-            "@taserjs/router/middleware/*": [routerDir + "/middleware/*.ts"],
-            "@taserjs/router/*": [routerDir + "/*.ts"],
-            "@taserjs/runtime": [runtimeDir + "/index.ts"],
-            "@taserjs/runtime/serve": [runtimeDir + "/serve.ts"],
-            "@taserjs/runtime/serve/node": [runtimeDir + "/serve-node.ts"],
-            "@taserjs/runtime/*": [runtimeDir + "/*.ts"],
-            "@taserjs/utils": [utilsDir + "/index.ts"],
-            "@taserjs/utils/*": [utilsDir + "/*.ts"],
+describe.concurrent(
+  "TypeScript ambient types and route context inference (tsc)",
+  { timeout: TSC_TEST_TIMEOUT_MS },
+  () => {
+    const routerDir = resolve(__dirname, "../../router/src");
+    const runtimeDir = resolve(__dirname, "../../runtime/src");
+    const utilsDir = resolve(__dirname, "../../utils/src");
+
+    function setupTsConfig(dir: string): void {
+      writeFileSync(
+        join(dir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: {
+            target: "ES2022",
+            lib: ["ES2022", "DOM"],
+            module: "ESNext",
+            moduleResolution: "bundler",
+            allowImportingTsExtensions: true,
+            strict: true,
+            noEmit: true,
+            skipLibCheck: true,
+            types: [],
+            baseUrl: ".",
+            paths: {
+              "@taserjs/router": [routerDir + "/index.ts"],
+              "@taserjs/router/middleware/*": [routerDir + "/middleware/*.ts"],
+              "@taserjs/router/*": [routerDir + "/*.ts"],
+              "@taserjs/runtime": [runtimeDir + "/index.ts"],
+              "@taserjs/runtime/serve": [runtimeDir + "/serve.ts"],
+              "@taserjs/runtime/serve/node": [runtimeDir + "/serve-node.ts"],
+              "@taserjs/runtime/*": [runtimeDir + "/*.ts"],
+              "@taserjs/utils": [utilsDir + "/index.ts"],
+              "@taserjs/utils/*": [utilsDir + "/*.ts"],
+            },
           },
-        },
-        include: ["src/**/*", "src/.taserjs/**/*"],
-      }),
-    );
-  }
-
-  function runTsc(dir: string): { success: boolean; output: string } {
-    try {
-      const output = execSync("pnpm exec tsc -p " + dir, {
-        encoding: "utf-8",
-        stdio: "pipe",
-      });
-      return { success: true, output };
-    } catch (err: any) {
-      const output = (err.stdout?.toString() ?? "") + (err.stderr?.toString() ?? "");
-      return { success: false, output };
+          include: ["src/**/*", "src/.taserjs/**/*"],
+        }),
+      );
     }
-  }
 
-  it("validates that tsc compiles valid routes, infers AppContext, path params, and provided cookies", () => {
-    setupTsConfig(tempDir);
+    async function runTsc(dir: string): Promise<{ success: boolean; output: string }> {
+      try {
+        const { stdout } = await execFileAsync(process.execPath, [TSC_BIN, "-p", dir], {
+          encoding: "utf-8",
+        });
+        return { success: true, output: stdout };
+      } catch (err: any) {
+        const output = (err.stdout?.toString() ?? "") + (err.stderr?.toString() ?? "");
+        return { success: false, output };
+      }
+    }
 
-    const routesDir = join(tempDir, "src", "routes");
-    mkdirSync(join(routesDir, "admin"), { recursive: true });
+    test("validates that tsc compiles valid routes, infers AppContext, path params, and provided cookies", async ({
+      tempDir,
+    }) => {
+      setupTsConfig(tempDir);
 
-    // 1. src/taser.ts with defineTaser and context
-    writeFileSync(
-      join(tempDir, "src", "taser.ts"),
-      `import { createContext, defineTaser } from "@taserjs/router";
+      const routesDir = join(tempDir, "src", "routes");
+      mkdirSync(join(routesDir, "admin"), { recursive: true });
+
+      // 1. src/taser.ts with defineTaser and context
+      writeFileSync(
+        join(tempDir, "src", "taser.ts"),
+        `import { createContext, defineTaser } from "@taserjs/router";
 export default defineTaser().context(createContext({
   boot: async () => ({ db: { findUser: (id: string) => ({ id, name: "Alice" }) } }),
   request: (req) => ({ requestId: "req-123" }),
 }));
 `,
-    );
+      );
 
-    // 2. Root layout with cookie(): src/routes/$.ts
-    writeFileSync(
-      join(routesDir, "$.ts"),
-      `import { t } from "@taserjs/router";
+      // 2. Root layout with cookie(): src/routes/$.ts
+      writeFileSync(
+        join(routesDir, "$.ts"),
+        `import { t } from "@taserjs/router";
 import { cookie } from "@taserjs/router/middleware/cookie";
 export default t.layout("/*").use(cookie());
 `,
-    );
+      );
 
-    // 3. Valid route: src/routes/admin/users.$id.get.ts
-    writeFileSync(
-      join(routesDir, "admin", "users.$id.get.ts"),
-      `import { t } from "@taserjs/router";
+      // 3. Valid route: src/routes/admin/users.$id.get.ts
+      writeFileSync(
+        join(routesDir, "admin", "users.$id.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/admin/users/:id").handler(async ({ req, ctx, state, cookies }) => {
   const userId: string = req.params.id;
   const user = ctx.db.findUser(userId);
@@ -109,222 +121,230 @@ export default t.get("/admin/users/:id").handler(async ({ req, ctx, state, cooki
   return new Response(user.name + (cookieVal ?? "") + reqId);
 });
 `,
-    );
+      );
 
-    const config = { ...DEFAULT_CONFIG };
-    const scan = scanRoutes({ routesDir, cwd: tempDir });
-    expect(scan.diagnostics).toHaveLength(0);
+      const config = { ...DEFAULT_CONFIG };
+      const scan = scanRoutes({ routesDir, cwd: tempDir });
+      expect(scan.diagnostics).toHaveLength(0);
 
-    const gen = generateManifest(scan, config, tempDir);
-    expect(gen.manifestWritten).toBe(true);
+      const gen = generateManifest(scan, config, tempDir);
+      expect(gen.manifestWritten).toBe(true);
 
-    const result = runTsc(tempDir);
-    if (!result.success) {
-      console.error("TSC FAIL:", result.output);
-    }
-    expect(result.success).toBe(true);
-  });
+      const result = await runTsc(tempDir);
+      if (!result.success) {
+        console.error("TSC FAIL:", result.output);
+      }
+      expect(result.success).toBe(true);
+    });
 
-  it("ensures tsc rejects unknown or misspelled route path strings", () => {
-    setupTsConfig(tempDir);
+    test("ensures tsc rejects unknown or misspelled route path strings", async ({ tempDir }) => {
+      setupTsConfig(tempDir);
 
-    const routesDir = join(tempDir, "src", "routes");
-    mkdirSync(routesDir, { recursive: true });
+      const routesDir = join(tempDir, "src", "routes");
+      mkdirSync(routesDir, { recursive: true });
 
-    writeFileSync(
-      join(routesDir, "valid.get.ts"),
-      `import { t } from "@taserjs/router";
+      writeFileSync(
+        join(routesDir, "valid.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/valid").handler(() => new Response("ok"));
 `,
-    );
+      );
 
-    const config = { ...DEFAULT_CONFIG };
-    const scan = scanRoutes({ routesDir, cwd: tempDir });
-    generateManifest(scan, config, tempDir);
+      const config = { ...DEFAULT_CONFIG };
+      const scan = scanRoutes({ routesDir, cwd: tempDir });
+      generateManifest(scan, config, tempDir);
 
-    // Add a file with an invalid/misspelled route path
-    writeFileSync(
-      join(tempDir, "src", "bad-route.ts"),
-      `import { t } from "@taserjs/router";
+      // Add a file with an invalid/misspelled route path
+      writeFileSync(
+        join(tempDir, "src", "bad-route.ts"),
+        `import { t } from "@taserjs/router";
 t.get("/invalid/misspelled");
 `,
-    );
+      );
 
-    const result = runTsc(tempDir);
-    expect(result.success).toBe(false);
-    expect(result.output).toMatch(/not assignable to parameter of type/);
-  });
+      const result = await runTsc(tempDir);
+      expect(result.success).toBe(false);
+      expect(result.output).toMatch(/not assignable to parameter of type/);
+    });
 
-  it("ensures destructuring { cookies } produces a compile-time type error unless cookie middleware is mounted upstream", () => {
-    setupTsConfig(tempDir);
+    test("ensures destructuring { cookies } produces a compile-time type error unless cookie middleware is mounted upstream", async ({
+      tempDir,
+    }) => {
+      setupTsConfig(tempDir);
 
-    const routesDir = join(tempDir, "src", "routes");
-    mkdirSync(join(routesDir, "admin"), { recursive: true });
-    mkdirSync(join(routesDir, "public"), { recursive: true });
+      const routesDir = join(tempDir, "src", "routes");
+      mkdirSync(join(routesDir, "admin"), { recursive: true });
+      mkdirSync(join(routesDir, "public"), { recursive: true });
 
-    // Scoped admin layout with cookie(): src/routes/admin.ts
-    writeFileSync(
-      join(routesDir, "admin.ts"),
-      `import { t } from "@taserjs/router";
+      // Scoped admin layout with cookie(): src/routes/admin.ts
+      writeFileSync(
+        join(routesDir, "admin.ts"),
+        `import { t } from "@taserjs/router";
 import { cookie } from "@taserjs/router/middleware/cookie";
 export default t.layout("/admin/*").use(cookie());
 `,
-    );
+      );
 
-    // Admin route inheriting cookies: src/routes/admin/dashboard.get.ts
-    writeFileSync(
-      join(routesDir, "admin", "dashboard.get.ts"),
-      `import { t } from "@taserjs/router";
+      // Admin route inheriting cookies: src/routes/admin/dashboard.get.ts
+      writeFileSync(
+        join(routesDir, "admin", "dashboard.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/admin/dashboard").handler(async ({ cookies }) => {
   const session = cookies.get("admin_session");
   return new Response(session ?? "");
 });
 `,
-    );
+      );
 
-    // Public route WITHOUT upstream cookie middleware: src/routes/public/about.get.ts
-    writeFileSync(
-      join(routesDir, "public", "about.get.ts"),
-      `import { t } from "@taserjs/router";
+      // Public route WITHOUT upstream cookie middleware: src/routes/public/about.get.ts
+      writeFileSync(
+        join(routesDir, "public", "about.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/public/about").handler(async ({ req, ctx, state }) => {
   return new Response("about");
 });
 `,
-    );
+      );
 
-    const config = { ...DEFAULT_CONFIG };
-    const scan = scanRoutes({ routesDir, cwd: tempDir });
-    generateManifest(scan, config, tempDir);
+      const config = { ...DEFAULT_CONFIG };
+      const scan = scanRoutes({ routesDir, cwd: tempDir });
+      generateManifest(scan, config, tempDir);
 
-    // Base configuration compiles cleanly
-    const baseResult = runTsc(tempDir);
-    if (!baseResult.success) {
-      console.error("BASE RESULT FAILED:", baseResult.output);
-    }
-    expect(baseResult.success).toBe(true);
+      // Base configuration compiles cleanly
+      const baseResult = await runTsc(tempDir);
+      if (!baseResult.success) {
+        console.error("BASE RESULT FAILED:", baseResult.output);
+      }
+      expect(baseResult.success).toBe(true);
 
-    // Now update public route to illegally destructure { cookies }
-    writeFileSync(
-      join(routesDir, "public", "about.get.ts"),
-      `import { t } from "@taserjs/router";
+      // Now update public route to illegally destructure { cookies }
+      writeFileSync(
+        join(routesDir, "public", "about.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/public/about").handler(async ({ req, cookies }) => {
   return new Response("about");
 });
 `,
-    );
+      );
 
-    const errorResult = runTsc(tempDir);
-    expect(errorResult.success).toBe(false);
-    expect(errorResult.output).toContain("cookies");
-    expect(errorResult.output).toMatch(/Property 'cookies' does not exist on type/);
-  });
+      const errorResult = await runTsc(tempDir);
+      expect(errorResult.success).toBe(false);
+      expect(errorResult.output).toContain("cookies");
+      expect(errorResult.output).toMatch(/Property 'cookies' does not exist on type/);
+    });
 
-  it("infers default string route params and rejects type mismatches", () => {
-    setupTsConfig(tempDir);
+    test("infers default string route params and rejects type mismatches", async ({ tempDir }) => {
+      setupTsConfig(tempDir);
 
-    const routesDir = join(tempDir, "src", "routes");
-    mkdirSync(join(routesDir, "items"), { recursive: true });
+      const routesDir = join(tempDir, "src", "routes");
+      mkdirSync(join(routesDir, "items"), { recursive: true });
 
-    writeFileSync(
-      join(routesDir, "items", "$id.get.ts"),
-      `import { t } from "@taserjs/router";
+      writeFileSync(
+        join(routesDir, "items", "$id.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/items/:id").handler(async ({ req }) => {
   const idStr: string = req.params.id;
   return new Response(idStr);
 });
 `,
-    );
+      );
 
-    const config = { ...DEFAULT_CONFIG };
-    const scan = scanRoutes({ routesDir, cwd: tempDir });
-    generateManifest(scan, config, tempDir);
+      const config = { ...DEFAULT_CONFIG };
+      const scan = scanRoutes({ routesDir, cwd: tempDir });
+      generateManifest(scan, config, tempDir);
 
-    // Correct string param compiles cleanly
-    expect(runTsc(tempDir).success).toBe(true);
+      // Correct string param compiles cleanly
+      expect((await runTsc(tempDir)).success).toBe(true);
 
-    // Treating string param as number fails compile
-    writeFileSync(
-      join(routesDir, "items", "$id.get.ts"),
-      `import { t } from "@taserjs/router";
+      // Treating string param as number fails compile
+      writeFileSync(
+        join(routesDir, "items", "$id.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/items/:id").handler(async ({ req }) => {
   const idNum: number = req.params.id;
   return new Response(String(idNum));
 });
 `,
-    );
+      );
 
-    const mismatchResult = runTsc(tempDir);
-    expect(mismatchResult.success).toBe(false);
-    expect(mismatchResult.output).toMatch(/Type 'string' is not assignable to type 'number'/);
-  });
+      const mismatchResult = await runTsc(tempDir);
+      expect(mismatchResult.success).toBe(false);
+      expect(mismatchResult.output).toMatch(/Type 'string' is not assignable to type 'number'/);
+    });
 
-  it("infers single and multiple optional path params as optional string properties ({ param?: string })", () => {
-    setupTsConfig(tempDir);
+    test("infers single and multiple optional path params as optional string properties ({ param?: string })", async ({
+      tempDir,
+    }) => {
+      setupTsConfig(tempDir);
 
-    const routesDir = join(tempDir, "src", "routes");
-    mkdirSync(join(routesDir, "posts", "{-$category}"), { recursive: true });
+      const routesDir = join(tempDir, "src", "routes");
+      mkdirSync(join(routesDir, "posts", "{-$category}"), { recursive: true });
 
-    // Single optional param: src/routes/posts/{-$category}.get.ts -> /posts/:category?
-    writeFileSync(
-      join(routesDir, "posts", "{-$category}.get.ts"),
-      `import { t } from "@taserjs/router";
+      // Single optional param: src/routes/posts/{-$category}.get.ts -> /posts/:category?
+      writeFileSync(
+        join(routesDir, "posts", "{-$category}.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/posts/:category?").handler(async ({ req }) => {
   const category: string | undefined = req.params.category;
   return new Response(category ?? "all");
 });
 `,
-    );
+      );
 
-    // Multiple optional params: src/routes/posts/{-$category}/{-$slug}.get.ts -> /posts/:category?/:slug?
-    writeFileSync(
-      join(routesDir, "posts", "{-$category}", "{-$slug}.get.ts"),
-      `import { t } from "@taserjs/router";
+      // Multiple optional params: src/routes/posts/{-$category}/{-$slug}.get.ts -> /posts/:category?/:slug?
+      writeFileSync(
+        join(routesDir, "posts", "{-$category}", "{-$slug}.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/posts/:category?/:slug?").handler(async ({ req }) => {
   const category: string | undefined = req.params.category;
   const slug: string | undefined = req.params.slug;
   return new Response((category ?? "all") + "/" + (slug ?? "index"));
 });
 `,
-    );
+      );
 
-    const config = { ...DEFAULT_CONFIG };
-    const scan = scanRoutes({ routesDir, cwd: tempDir });
-    expect(scan.diagnostics).toHaveLength(0);
+      const config = { ...DEFAULT_CONFIG };
+      const scan = scanRoutes({ routesDir, cwd: tempDir });
+      expect(scan.diagnostics).toHaveLength(0);
 
-    generateManifest(scan, config, tempDir);
+      generateManifest(scan, config, tempDir);
 
-    const validResult = runTsc(tempDir);
-    if (!validResult.success) {
-      console.error("FAIL ON OPTIONAL PARAMS TYPECHECK:", validResult.output);
-    }
-    expect(validResult.success).toBe(true);
+      const validResult = await runTsc(tempDir);
+      if (!validResult.success) {
+        console.error("FAIL ON OPTIONAL PARAMS TYPECHECK:", validResult.output);
+      }
+      expect(validResult.success).toBe(true);
 
-    // Assigning req.params.category directly to number fails compile
-    writeFileSync(
-      join(routesDir, "posts", "{-$category}.get.ts"),
-      `import { t } from "@taserjs/router";
+      // Assigning req.params.category directly to number fails compile
+      writeFileSync(
+        join(routesDir, "posts", "{-$category}.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/posts/:category?").handler(async ({ req }) => {
   const categoryNum: number = req.params.category;
   return new Response(String(categoryNum));
 });
 `,
-    );
+      );
 
-    const errorResult = runTsc(tempDir);
-    expect(errorResult.success).toBe(false);
-    expect(errorResult.output).toMatch(/Type 'string \| undefined' is not assignable to type 'number'/);
-  });
+      const errorResult = await runTsc(tempDir);
+      expect(errorResult.success).toBe(false);
+      expect(errorResult.output).toMatch(
+        /Type 'string \| undefined' is not assignable to type 'number'/,
+      );
+    });
 
-  it("verifies downstream state and schema inheritance from parent layouts and compile error on undeclared state", () => {
-    setupTsConfig(tempDir);
+    test("verifies downstream state and schema inheritance from parent layouts and compile error on undeclared state", async ({
+      tempDir,
+    }) => {
+      setupTsConfig(tempDir);
 
-    const routesDir = join(tempDir, "src", "routes");
-    mkdirSync(join(routesDir, "_auth", "items", "$id"), { recursive: true });
+      const routesDir = join(tempDir, "src", "routes");
+      mkdirSync(join(routesDir, "_auth", "items", "$id"), { recursive: true });
 
-    // Mock schema helper
-    writeFileSync(
-      join(tempDir, "src", "schema.ts"),
-      `export const numSchema = {
+      // Mock schema helper
+      writeFileSync(
+        join(tempDir, "src", "schema.ts"),
+        `export const numSchema = {
   "~standard": {
     version: 1 as const,
     vendor: "test",
@@ -341,22 +361,22 @@ export const querySchema = {
   },
 };
 `,
-    );
+      );
 
-    // 1. Root layout with state: src/routes/$.ts
-    writeFileSync(
-      join(routesDir, "$.ts"),
-      `import { t } from "@taserjs/router";
+      // 1. Root layout with state: src/routes/$.ts
+      writeFileSync(
+        join(routesDir, "$.ts"),
+        `import { t } from "@taserjs/router";
 export default t.layout("/*").use(async (_args, next) => {
   return await next({ appEnv: "production" });
 });
 `,
-    );
+      );
 
-    // 2. Auth layout inheriting root and adding token state and query schema: src/routes/_auth.ts
-    writeFileSync(
-      join(routesDir, "_auth.ts"),
-      `import { t } from "@taserjs/router";
+      // 2. Auth layout inheriting root and adding token state and query schema: src/routes/_auth.ts
+      writeFileSync(
+        join(routesDir, "_auth.ts"),
+        `import { t } from "@taserjs/router";
 import { querySchema } from "../schema.js";
 export default t.layout("/_auth/*")
   .query(querySchema)
@@ -366,12 +386,12 @@ export default t.layout("/_auth/*")
     return await next({ token: "token-abc" });
   });
 `,
-    );
+      );
 
-    // 3. Child layout with params schema: src/routes/_auth/items/$id.ts
-    writeFileSync(
-      join(routesDir, "_auth", "items", "$id.ts"),
-      `import { t } from "@taserjs/router";
+      // 3. Child layout with params schema: src/routes/_auth/items/$id.ts
+      writeFileSync(
+        join(routesDir, "_auth", "items", "$id.ts"),
+        `import { t } from "@taserjs/router";
 import { numSchema } from "../../../schema.js";
 export default t.layout("/_auth/items/:id/*")
   .params(numSchema)
@@ -382,12 +402,12 @@ export default t.layout("/_auth/items/:id/*")
     return await next({ itemId: id });
   });
 `,
-    );
+      );
 
-    // 4. Downstream route inheriting params, query, and cascading state: src/routes/_auth/items/$id/index.get.ts
-    writeFileSync(
-      join(routesDir, "_auth", "items", "$id", "index.get.ts"),
-      `import { t } from "@taserjs/router";
+      // 4. Downstream route inheriting params, query, and cascading state: src/routes/_auth/items/$id/index.get.ts
+      writeFileSync(
+        join(routesDir, "_auth", "items", "$id", "index.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/items/:id").handler(async ({ req, state }) => {
   const id: number = req.params.id;
   const filter: string = req.query.filter;
@@ -397,62 +417,64 @@ export default t.get("/items/:id").handler(async ({ req, state }) => {
   return new Response(\`\${id}-\${filter}-\${token}-\${env}-\${itemId}\`);
 });
 `,
-    );
+      );
 
-    const config = { ...DEFAULT_CONFIG };
-    const scan = scanRoutes({ routesDir, cwd: tempDir });
-    generateManifest(scan, config, tempDir);
+      const config = { ...DEFAULT_CONFIG };
+      const scan = scanRoutes({ routesDir, cwd: tempDir });
+      generateManifest(scan, config, tempDir);
 
-    const validResult = runTsc(tempDir);
-    if (!validResult.success) {
-      console.error("FAIL ON VALID:", validResult.output);
-    }
-    expect(validResult.success).toBe(true);
+      const validResult = await runTsc(tempDir);
+      if (!validResult.success) {
+        console.error("FAIL ON VALID:", validResult.output);
+      }
+      expect(validResult.success).toBe(true);
 
-    // 5. Undeclared state property fails compile
-    writeFileSync(
-      join(routesDir, "_auth", "items", "$id", "index.get.ts"),
-      `import { t } from "@taserjs/router";
+      // 5. Undeclared state property fails compile
+      writeFileSync(
+        join(routesDir, "_auth", "items", "$id", "index.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/items/:id").handler(async ({ state }) => {
   // @ts-expect-error undeclared property
   const invalid = state.nonExistent;
   return new Response("ok");
 });
 `,
-    );
+      );
 
-    const step5Result = runTsc(tempDir);
-    if (!step5Result.success) {
-      console.error("FAIL ON STEP 5:", step5Result.output);
-    }
-    // Should compile because of @ts-expect-error
-    expect(step5Result.success).toBe(true);
+      const step5Result = await runTsc(tempDir);
+      if (!step5Result.success) {
+        console.error("FAIL ON STEP 5:", step5Result.output);
+      }
+      // Should compile because of @ts-expect-error
+      expect(step5Result.success).toBe(true);
 
-    // Remove @ts-expect-error -> must fail compile
-    writeFileSync(
-      join(routesDir, "_auth", "items", "$id", "index.get.ts"),
-      `import { t } from "@taserjs/router";
+      // Remove @ts-expect-error -> must fail compile
+      writeFileSync(
+        join(routesDir, "_auth", "items", "$id", "index.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/items/:id").handler(async ({ state }) => {
   const invalid = state.nonExistent;
   return new Response("ok");
 });
 `,
-    );
+      );
 
-    const errorResult = runTsc(tempDir);
-    expect(errorResult.success).toBe(false);
-    expect(errorResult.output).toMatch(/Property 'nonExistent' does not exist/);
-  });
+      const errorResult = await runTsc(tempDir);
+      expect(errorResult.success).toBe(false);
+      expect(errorResult.output).toMatch(/Property 'nonExistent' does not exist/);
+    });
 
-  it("enforces that tsc rejects chaining .use() after route schema validations", () => {
-    setupTsConfig(tempDir);
+    test("enforces that tsc rejects chaining .use() after route schema validations", async ({
+      tempDir,
+    }) => {
+      setupTsConfig(tempDir);
 
-    const routesDir = join(tempDir, "src", "routes");
-    mkdirSync(routesDir, { recursive: true });
+      const routesDir = join(tempDir, "src", "routes");
+      mkdirSync(routesDir, { recursive: true });
 
-    writeFileSync(
-      join(tempDir, "src", "schema.ts"),
-      `export const schema = {
+      writeFileSync(
+        join(tempDir, "src", "schema.ts"),
+        `export const schema = {
   "~standard": {
     version: 1 as const,
     vendor: "test",
@@ -461,12 +483,12 @@ export default t.get("/items/:id").handler(async ({ state }) => {
   },
 };
 `,
-    );
+      );
 
-    // 1. Valid: .use() before .params()
-    writeFileSync(
-      join(routesDir, "valid.get.ts"),
-      `import { t } from "@taserjs/router";
+      // 1. Valid: .use() before .params()
+      writeFileSync(
+        join(routesDir, "valid.get.ts"),
+        `import { t } from "@taserjs/router";
 import { schema } from "../schema.js";
 export default t
   .get("/valid")
@@ -474,19 +496,19 @@ export default t
   .params(schema)
   .handler(() => new Response("ok"));
 `,
-    );
+      );
 
-    const config = { ...DEFAULT_CONFIG };
-    const scan = scanRoutes({ routesDir, cwd: tempDir });
-    generateManifest(scan, config, tempDir);
+      const config = { ...DEFAULT_CONFIG };
+      const scan = scanRoutes({ routesDir, cwd: tempDir });
+      generateManifest(scan, config, tempDir);
 
-    const validResult = runTsc(tempDir);
-    expect(validResult.success).toBe(true);
+      const validResult = await runTsc(tempDir);
+      expect(validResult.success).toBe(true);
 
-    // 2. Invalid: .use() after .params()
-    writeFileSync(
-      join(routesDir, "invalid.get.ts"),
-      `import { t } from "@taserjs/router";
+      // 2. Invalid: .use() after .params()
+      writeFileSync(
+        join(routesDir, "invalid.get.ts"),
+        `import { t } from "@taserjs/router";
 import { schema } from "../schema.js";
 export default t
   .get("/invalid")
@@ -494,20 +516,20 @@ export default t
   .use(async (_args, next) => next())
   .handler(() => new Response("ok"));
 `,
-    );
-    const scanInvalid = scanRoutes({ routesDir, cwd: tempDir });
-    generateManifest(scanInvalid, config, tempDir);
+      );
+      const scanInvalid = scanRoutes({ routesDir, cwd: tempDir });
+      generateManifest(scanInvalid, config, tempDir);
 
-    const paramsError = runTsc(tempDir);
-    expect(paramsError.success).toBe(false);
-    expect(paramsError.output).toMatch(
-      /Property 'use' does not exist on type 'RouteValidationBuilder/,
-    );
+      const paramsError = await runTsc(tempDir);
+      expect(paramsError.success).toBe(false);
+      expect(paramsError.output).toMatch(
+        /Property 'use' does not exist on type 'RouteValidationBuilder/,
+      );
 
-    // 3. Invalid: .use() after .body()
-    writeFileSync(
-      join(routesDir, "invalid.get.ts"),
-      `import { t } from "@taserjs/router";
+      // 3. Invalid: .use() after .body()
+      writeFileSync(
+        join(routesDir, "invalid.get.ts"),
+        `import { t } from "@taserjs/router";
 import { schema } from "../schema.js";
 export default t
   .get("/invalid")
@@ -515,17 +537,17 @@ export default t
   .use(async (_args, next) => next())
   .handler(() => new Response("ok"));
 `,
-    );
-    const bodyError = runTsc(tempDir);
-    expect(bodyError.success).toBe(false);
-    expect(bodyError.output).toMatch(
-      /Property 'use' does not exist on type 'RouteValidationBuilder/,
-    );
+      );
+      const bodyError = await runTsc(tempDir);
+      expect(bodyError.success).toBe(false);
+      expect(bodyError.output).toMatch(
+        /Property 'use' does not exist on type 'RouteValidationBuilder/,
+      );
 
-    // 4. Invalid: .use() after .query()
-    writeFileSync(
-      join(routesDir, "invalid.get.ts"),
-      `import { t } from "@taserjs/router";
+      // 4. Invalid: .use() after .query()
+      writeFileSync(
+        join(routesDir, "invalid.get.ts"),
+        `import { t } from "@taserjs/router";
 import { schema } from "../schema.js";
 export default t
   .get("/invalid")
@@ -533,17 +555,17 @@ export default t
   .use(async (_args, next) => next())
   .handler(() => new Response("ok"));
 `,
-    );
-    const queryError = runTsc(tempDir);
-    expect(queryError.success).toBe(false);
-    expect(queryError.output).toMatch(
-      /Property 'use' does not exist on type 'RouteValidationBuilder/,
-    );
+      );
+      const queryError = await runTsc(tempDir);
+      expect(queryError.success).toBe(false);
+      expect(queryError.output).toMatch(
+        /Property 'use' does not exist on type 'RouteValidationBuilder/,
+      );
 
-    // 5. Invalid: .use() after .returns()
-    writeFileSync(
-      join(routesDir, "invalid.get.ts"),
-      `import { t } from "@taserjs/router";
+      // 5. Invalid: .use() after .returns()
+      writeFileSync(
+        join(routesDir, "invalid.get.ts"),
+        `import { t } from "@taserjs/router";
 import { schema } from "../schema.js";
 export default t
   .get("/invalid")
@@ -551,45 +573,47 @@ export default t
   .use(async (_args, next) => next())
   .handler(() => new Response("ok"));
 `,
-    );
-    const returnsError = runTsc(tempDir);
-    expect(returnsError.success).toBe(false);
-    expect(returnsError.output).toMatch(
-      /Property 'use' does not exist on type 'RouteValidationBuilder/,
-    );
-  });
+      );
+      const returnsError = await runTsc(tempDir);
+      expect(returnsError.success).toBe(false);
+      expect(returnsError.output).toMatch(
+        /Property 'use' does not exist on type 'RouteValidationBuilder/,
+      );
+    });
 
-  it("verifies compile-time type inference for breakout routes: req.params.id, ambient RouteByPathMethod, and layout service access", () => {
-    setupTsConfig(tempDir);
+    test("verifies compile-time type inference for breakout routes: req.params.id, ambient RouteByPathMethod, and layout service access", async ({
+      tempDir,
+    }) => {
+      setupTsConfig(tempDir);
 
-    const routesDir = join(tempDir, "src", "routes");
-    mkdirSync(routesDir, { recursive: true });
-    mkdirSync(join(routesDir, "posts"), { recursive: true });
+      const routesDir = join(tempDir, "src", "routes");
+      mkdirSync(routesDir, { recursive: true });
+      mkdirSync(join(routesDir, "posts"), { recursive: true });
 
-    // 1. Root layout (/*) providing rootService and rootState
-    writeFileSync(
-      join(routesDir, "$.ts"),
-      `import { t } from "@taserjs/router";
+      // 1. Root layout (/*) providing rootService and rootState
+      writeFileSync(
+        join(routesDir, "$.ts"),
+        `import { t } from "@taserjs/router";
 export default t.layout("/*").use(async (_args, next) => {
   return await next.provide({ rootService: "root-svc" }, { rootState: true });
 });
 `,
-    );
+      );
 
-    // 2. Posts layout (/posts/*) providing postsService and postsState
-    writeFileSync(
-      join(routesDir, "posts.ts"),
-      `import { t } from "@taserjs/router";
+      // 2. Posts layout (/posts/*) providing postsService and postsState
+      writeFileSync(
+        join(routesDir, "posts.ts"),
+        `import { t } from "@taserjs/router";
 export default t.layout("/posts/*").use(async (_args, next) => {
   return await next.provide({ postsService: "posts-svc" }, { postsState: true });
 });
 `,
-    );
+      );
 
-    // 3. Base route: src/routes/posts/$id.get.ts -> /posts/:id (inherits /* and /posts/*)
-    writeFileSync(
-      join(routesDir, "posts", "$id.get.ts"),
-      `import { t } from "@taserjs/router";
+      // 3. Base route: src/routes/posts/$id.get.ts -> /posts/:id (inherits /* and /posts/*)
+      writeFileSync(
+        join(routesDir, "posts", "$id.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/posts/:id").handler(async ({ req, state, rootService, postsService }) => {
   const id: string = req.params.id;
   const rootServiceValue: string = rootService;
@@ -599,13 +623,13 @@ export default t.get("/posts/:id").handler(async ({ req, state, rootService, pos
   return new Response(\`\${id}-\${rootServiceValue}-\${postsServiceValue}-\${rootStateValue}-\${postsStateValue}\`);
 });
 `,
-    );
+      );
 
-    // 4. Flat breakout route: src/routes/posts_.$id.preview.get.ts -> /posts/:id/preview
-    // Bypasses /posts/*, retains /* -> has rootService and rootState, but NOT postsService / postsState
-    writeFileSync(
-      join(routesDir, "posts_.$id.preview.get.ts"),
-      `import { t } from "@taserjs/router";
+      // 4. Flat breakout route: src/routes/posts_.$id.preview.get.ts -> /posts/:id/preview
+      // Bypasses /posts/*, retains /* -> has rootService and rootState, but NOT postsService / postsState
+      writeFileSync(
+        join(routesDir, "posts_.$id.preview.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/posts/:id/preview").handler(async (args) => {
   const id: string = args.req.params.id;
   const rootServiceValue: string = args.rootService;
@@ -619,13 +643,13 @@ export default t.get("/posts/:id/preview").handler(async (args) => {
   return new Response(\`\${id}-\${rootServiceValue}\`);
 });
 `,
-    );
+      );
 
-    // 5. Root breakout route: src/routes/health_.get.ts -> /health
-    // Bypasses /* completely -> has NO layout services or layout state
-    writeFileSync(
-      join(routesDir, "health_.get.ts"),
-      `import { t } from "@taserjs/router";
+      // 5. Root breakout route: src/routes/health_.get.ts -> /health
+      // Bypasses /* completely -> has NO layout services or layout state
+      writeFileSync(
+        join(routesDir, "health_.get.ts"),
+        `import { t } from "@taserjs/router";
 import type { RouteByPathMethod } from "../.taserjs/routes.gen.js";
 
 type HealthLayouts = RouteByPathMethod["/health"]["GET"]["layouts"];
@@ -649,54 +673,55 @@ export default t.get("/health").handler(async (args) => {
   return new Response("health");
 });
 `,
-    );
+      );
 
-    const config = { ...DEFAULT_CONFIG };
-    const scan = scanRoutes({ routesDir, cwd: tempDir });
-    expect(scan.diagnostics).toHaveLength(0);
+      const config = { ...DEFAULT_CONFIG };
+      const scan = scanRoutes({ routesDir, cwd: tempDir });
+      expect(scan.diagnostics).toHaveLength(0);
 
-    generateManifest(scan, config, tempDir);
+      generateManifest(scan, config, tempDir);
 
-    const validResult = runTsc(tempDir);
-    if (!validResult.success) {
-      console.error("FAIL ON BREAKOUT TYPECHECK:", validResult.output);
-    }
-    expect(validResult.success).toBe(true);
+      const validResult = await runTsc(tempDir);
+      if (!validResult.success) {
+        console.error("FAIL ON BREAKOUT TYPECHECK:", validResult.output);
+      }
+      expect(validResult.success).toBe(true);
 
-    // 6. Verify that accessing bypassed layout state without @ts-expect-error fails compilation
-    writeFileSync(
-      join(routesDir, "posts_.$id.preview.get.ts"),
-      `import { t } from "@taserjs/router";
+      // 6. Verify that accessing bypassed layout state without @ts-expect-error fails compilation
+      writeFileSync(
+        join(routesDir, "posts_.$id.preview.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/posts/:id/preview").handler(async ({ state }) => {
   const invalid = state.postsState;
   return new Response("err");
 });
 `,
-    );
-    const postBypassError = runTsc(tempDir);
-    expect(postBypassError.success).toBe(false);
-    expect(postBypassError.output).toMatch(/Property 'postsState' does not exist/);
+      );
+      const postBypassError = await runTsc(tempDir);
+      expect(postBypassError.success).toBe(false);
+      expect(postBypassError.output).toMatch(/Property 'postsState' does not exist/);
 
-    // 7. Verify that accessing root layout state from root breakout route fails compilation
-    writeFileSync(
-      join(routesDir, "posts_.$id.preview.get.ts"),
-      `import { t } from "@taserjs/router";
+      // 7. Verify that accessing root layout state from root breakout route fails compilation
+      writeFileSync(
+        join(routesDir, "posts_.$id.preview.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/posts/:id/preview").handler(async ({ state }) => {
   return new Response("ok");
 });
 `,
-    );
-    writeFileSync(
-      join(routesDir, "health_.get.ts"),
-      `import { t } from "@taserjs/router";
+      );
+      writeFileSync(
+        join(routesDir, "health_.get.ts"),
+        `import { t } from "@taserjs/router";
 export default t.get("/health").handler(async ({ state }) => {
   const invalid = state.rootState;
   return new Response("err");
 });
 `,
-    );
-    const rootBypassError = runTsc(tempDir);
-    expect(rootBypassError.success).toBe(false);
-    expect(rootBypassError.output).toMatch(/Property 'rootState' does not exist/);
-  });
-});
+      );
+      const rootBypassError = await runTsc(tempDir);
+      expect(rootBypassError.success).toBe(false);
+      expect(rootBypassError.output).toMatch(/Property 'rootState' does not exist/);
+    });
+  },
+);
