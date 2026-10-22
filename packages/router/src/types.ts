@@ -39,23 +39,15 @@ export type Simplify<T> = unknown extends T
       ? T
       : { [K in keyof T]: T[K] } & {};
 
-type ExtractRequiredParamName<T extends string> = T extends `{-$${string}}`
+type ExtractRequiredParamName<T extends string> = T extends `:${infer P}?`
   ? never
-  : T extends `:${infer P}?`
-    ? never
-    : T extends `:${infer P}`
-      ? P
-      : T extends `{$${infer P}}`
-        ? P
-        : T extends `$${infer P}`
-          ? P
-          : never;
-
-type ExtractOptionalParamName<T extends string> = T extends `{-$${infer P}}`
-  ? P
-  : T extends `:${infer P}?`
+  : T extends `:${infer P}`
     ? P
     : never;
+
+type ExtractOptionalParamName<T extends string> = T extends `:${infer P}?`
+  ? P
+  : never;
 
 type ExtractPathSegments<T extends string> = T extends `/${infer Rest}`
   ? ExtractPathSegments<Rest>
