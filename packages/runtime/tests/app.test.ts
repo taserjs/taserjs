@@ -68,6 +68,34 @@ describe("createTaserApp and Hono runtime dispatch", () => {
     expect(data).toEqual({ userId: "42", filter: "active" });
   });
 
+  it("handles optional path parameters with :category? syntax derived from {-$category} route file", async () => {
+    const postsRoute = t.get("/posts/:category?").handler(({ req }) => {
+      return json({
+        category: (req.params as any).category ?? null,
+      });
+    });
+
+    const app = createTaserApp({
+      routes: {
+        "/posts/:category?": {
+          GET: {
+            route: postsRoute,
+          },
+        },
+      },
+    });
+
+    // Case 1: Param is present
+    const resWithCategory = await app.request("/posts/tech");
+    expect(resWithCategory.status).toBe(200);
+    expect(await resWithCategory.json()).toEqual({ category: "tech" });
+
+    // Case 2: Param is omitted
+    const resWithoutCategory = await app.request("/posts");
+    expect(resWithoutCategory.status).toBe(200);
+    expect(await resWithoutCategory.json()).toEqual({ category: null });
+  });
+
   it("extracts req.params._splat for wildcard routes", async () => {
     const fileRoute = t.get("/files/*").handler(({ req }) => {
       return json({
