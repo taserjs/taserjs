@@ -258,6 +258,63 @@ export default t.get("/items/:id").handler(async ({ req }) => {
     expect(mismatchResult.output).toMatch(/Type 'string' is not assignable to type 'number'/);
   });
 
+  it("infers single and multiple optional path params as optional string properties ({ param?: string })", () => {
+    setupTsConfig(tempDir);
+
+    const routesDir = join(tempDir, "src", "routes");
+    mkdirSync(join(routesDir, "posts", "{-$category}"), { recursive: true });
+
+    // Single optional param: src/routes/posts/{-$category}.get.ts -> /posts/:category?
+    writeFileSync(
+      join(routesDir, "posts", "{-$category}.get.ts"),
+      `import { t } from "@taserjs/router";
+export default t.get("/posts/:category?").handler(async ({ req }) => {
+  const category: string | undefined = req.params.category;
+  return new Response(category ?? "all");
+});
+`,
+    );
+
+    // Multiple optional params: src/routes/posts/{-$category}/{-$slug}.get.ts -> /posts/:category?/:slug?
+    writeFileSync(
+      join(routesDir, "posts", "{-$category}", "{-$slug}.get.ts"),
+      `import { t } from "@taserjs/router";
+export default t.get("/posts/:category?/:slug?").handler(async ({ req }) => {
+  const category: string | undefined = req.params.category;
+  const slug: string | undefined = req.params.slug;
+  return new Response((category ?? "all") + "/" + (slug ?? "index"));
+});
+`,
+    );
+
+    const config = { ...DEFAULT_CONFIG };
+    const scan = scanRoutes({ routesDir, cwd: tempDir });
+    expect(scan.diagnostics).toHaveLength(0);
+
+    generateManifest(scan, config, tempDir);
+
+    const validResult = runTsc(tempDir);
+    if (!validResult.success) {
+      console.error("FAIL ON OPTIONAL PARAMS TYPECHECK:", validResult.output);
+    }
+    expect(validResult.success).toBe(true);
+
+    // Assigning req.params.category directly to number fails compile
+    writeFileSync(
+      join(routesDir, "posts", "{-$category}.get.ts"),
+      `import { t } from "@taserjs/router";
+export default t.get("/posts/:category?").handler(async ({ req }) => {
+  const categoryNum: number = req.params.category;
+  return new Response(String(categoryNum));
+});
+`,
+    );
+
+    const errorResult = runTsc(tempDir);
+    expect(errorResult.success).toBe(false);
+    expect(errorResult.output).toMatch(/Type 'string \| undefined' is not assignable to type 'number'/);
+  });
+
   it("verifies downstream state and schema inheritance from parent layouts and compile error on undeclared state", () => {
     setupTsConfig(tempDir);
 
