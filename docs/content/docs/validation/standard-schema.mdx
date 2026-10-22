@@ -29,6 +29,18 @@ export default t.get("/users/:id").handler(async ({ ctx, req }) => {
 });
 ```
 
+Optional path parameters (`{-$param}` file segments, `:param?` in the builder path) are instead inferred as optional `string` properties (`string | undefined`), and are `undefined` when the request omits the segment:
+
+```ts title="src/routes/posts/{-$category}.get.ts"
+import { json } from "@taserjs/router/reply";
+import { t } from "@taserjs/router";
+
+export default t.get("/posts/:category?").handler(async ({ ctx, req }) => {
+  // req.params.category is inferred as string | undefined by default:
+  return json({ category: req.params.category ?? "all" });
+});
+```
+
 ### Validating & Coercing Path Parameters
 
 When you need strict validation (such as UUID formats, integer IDs, or enum values), chain `.params()` with a schema:
@@ -51,6 +63,22 @@ export default t
     // req.params.memberId is a coerced number
     const member = await ctx.db.getMember(req.params.orgId, req.params.memberId);
     return json(member);
+  });
+```
+
+For an optional path parameter, declare the field optional in the `.params()` schema so requests that omit the segment still validate:
+
+```ts title="src/routes/posts/{-$category}.get.ts"
+import { json } from "@taserjs/router/reply";
+import { z } from "zod";
+import { t } from "@taserjs/router";
+
+export default t
+  .get("/posts/:category?")
+  .params(z.object({ category: z.string().optional() }))
+  .handler(async ({ req }) => {
+    // req.params.category is string | undefined
+    return json({ category: req.params.category ?? "all" });
   });
 ```
 

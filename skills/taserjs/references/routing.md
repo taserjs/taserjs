@@ -10,21 +10,23 @@ Routes live under `${serverDir}/routes` (default `src/routes/`). Every route fil
 
 During `dev` / `build`, `@taserjs/plugin` regenerates `${serverDir}/.taserjs/routes.gen.ts` (compiled `app`, ambient types, `AppManifest`). For standalone `tsc`, run `taser generate` / `npx @taserjs/cli generate`. Mount cookies with `cookie()` on a layout — see [layouts-and-middleware.md](layouts-and-middleware.md).
 
-| File Name                      | HTTP Method | Resolved URL          | Layouts Applied | Description                                     |
-| :----------------------------- | :---------- | :-------------------- | :-------------- | :---------------------------------------------- |
-| `index.get.ts`                 | `GET`       | `/`                   | `/*`            | Root index route                                |
-| `[index].get.ts`               | `GET`       | `/index`              | `/index`        | Literal /index path                             |
-| `users.get.ts`                 | `GET`       | `/users`              | `/*`            | Static segment                                  |
-| `users.index.get.ts`           | `GET`       | `/users`              | `/*`, `/users`  | Explicit nested index                           |
-| `users/$id.get.ts`             | `GET`       | `/users/:id`          | `/*`, `/users`  | Dynamic URL parameter                           |
-| `users.$id.posts.get.ts`       | `GET`       | `/users/:id/posts`    | `/*`, `/users`  | Flat dot-notation nested route                  |
-| `files.$.get.ts`               | `GET`       | `/files/*`            | `/*`, `/files`  | Wildcard splat (`req.params._splat`)            |
-| `sitemap[.]xml.get.ts`         | `GET`       | `/sitemap.xml`        | `/*`            | Bracket-escaped literal dot                     |
-| `_auth.login.post.ts`          | `POST`      | `/login`              | `/*`, `/_auth`  | Pathless group (`_auth` omitted from URL)       |
-| `posts_.$id.edit.get.ts`       | `GET`       | `/posts/:id/edit`     | `/*`            | **Breakout route**: skips `posts.ts` layout     |
-| `tasks/$id_.complete.patch.ts` | `PATCH`     | `/tasks/:id/complete` | `/*`, `/tasks`  | **Breakout route**: skips `tasks/$id.ts` layout |
-| `-helpers.ts`                  | N/A         | N/A                   | None            | Ignored file (leading dash `-`)                 |
-| `-utils/helpers.ts`            | N/A         | N/A                   | None            | Ignored folder (leading dash `-`)               |
+| File Name                            | HTTP Method | Resolved URL               | Layouts Applied | Description                                     |
+| :----------------------------------- | :---------- | :------------------------- | :-------------- | :---------------------------------------------- |
+| `index.get.ts`                       | `GET`       | `/`                        | `/*`            | Root index route                                |
+| `[index].get.ts`                     | `GET`       | `/index`                   | `/index`        | Literal /index path                             |
+| `users.get.ts`                       | `GET`       | `/users`                   | `/*`            | Static segment                                  |
+| `users.index.get.ts`                 | `GET`       | `/users`                   | `/*`, `/users`  | Explicit nested index                           |
+| `users/$id.get.ts`                   | `GET`       | `/users/:id`               | `/*`, `/users`  | Dynamic URL parameter                           |
+| `users.$id.posts.get.ts`             | `GET`       | `/users/:id/posts`         | `/*`, `/users`  | Flat dot-notation nested route                  |
+| `posts.{-$category}.get.ts`          | `GET`       | `/posts/:category?`        | `/*`, `/posts`  | Optional path parameter (`category?: string`)   |
+| `posts/{-$category}/{-$slug}.get.ts` | `GET`       | `/posts/:category?/:slug?` | `/*`, `/posts`  | Chained optional path parameters                |
+| `files.$.get.ts`                     | `GET`       | `/files/*`                 | `/*`, `/files`  | Wildcard splat (`req.params._splat`)            |
+| `sitemap[.]xml.get.ts`               | `GET`       | `/sitemap.xml`             | `/*`            | Bracket-escaped literal dot                     |
+| `_auth.login.post.ts`                | `POST`      | `/login`                   | `/*`, `/_auth`  | Pathless group (`_auth` omitted from URL)       |
+| `posts_.$id.edit.get.ts`             | `GET`       | `/posts/:id/edit`          | `/*`            | **Breakout route**: skips `posts.ts` layout     |
+| `tasks/$id_.complete.patch.ts`       | `PATCH`     | `/tasks/:id/complete`      | `/*`, `/tasks`  | **Breakout route**: skips `tasks/$id.ts` layout |
+| `-helpers.ts`                        | N/A         | N/A                        | None            | Ignored file (leading dash `-`)                 |
+| `-utils/helpers.ts`                  | N/A         | N/A                        | None            | Ignored folder (leading dash `-`)               |
 
 ---
 
@@ -34,6 +36,12 @@ During `dev` / `build`, `@taserjs/plugin` regenerates `${serverDir}/.taserjs/rou
 
 - A dollar sign followed by a name indicates a path parameter: `$id` -> `:id`, `$slug` -> `:slug`.
 - In handlers, path parameters are on `req.params` (e.g. `req.params.id`). They default to `string` unless refined with `.params(schema)`.
+
+### Optional Parameters (`{-$param}`)
+
+- Braces with a leading dash make a segment optional: `{-$category}` -> `:category?` (e.g. `posts.{-$category}.get.ts` -> `GET /posts/:category?`, `posts/{-$category}/{-$slug}.get.ts` -> `GET /posts/:category?/:slug?`).
+- The route matches with and without the segment. In handlers the param is an optional property (`req.params.category: string | undefined`), `undefined` when omitted.
+- Builder path uses the same syntax: `t.get("/posts/:category?")`. With `.params(schema)`, declare the field optional (e.g. `z.object({ category: z.string().optional() })`).
 
 ### Wildcards / Splats (`$`)
 

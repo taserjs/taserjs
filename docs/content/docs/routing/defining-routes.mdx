@@ -152,6 +152,20 @@ export default t
 
 Any path parameter not explicitly mentioned in the `.params()` schema retains its inferred `string` type (for example, `/orgs/:orgId/tasks/:id` preserves `req.params.orgId` as `string`).
 
+Optional path parameters use a trailing `?` in the builder path (`:category?`, from a `{-$category}` file segment — see [Optional Path Parameters](/docs/routing/file-conventions#optional-path-parameters--param)). They are inferred as optional `string` properties (`string | undefined`) and are `undefined` when the request omits the segment:
+
+```ts title="src/routes/posts/{-$category}.get.ts"
+import { json } from "@taserjs/router/reply";
+import { t } from "@taserjs/router";
+
+export default t.get("/posts/:category?").handler(async ({ req }) => {
+  // req.params.category: string | undefined — "tech" for /posts/tech, undefined for /posts
+  return json({ category: req.params.category ?? "all" });
+});
+```
+
+Multiple optional parameters chain the same way (`/posts/:category?/:slug?` infers `{ category?: string; slug?: string }`). When validating an optional parameter with `.params()`, declare it optional in the schema (e.g. `z.object({ category: z.string().optional() })`); the schema output type then takes precedence as described above.
+
 ---
 
 ## Defining a POST Route

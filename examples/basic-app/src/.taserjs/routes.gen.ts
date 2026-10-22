@@ -12,7 +12,8 @@ import route_3 from "../routes/_auth/save.post.js";
 import route_4 from "../routes/_auth/token.get.js";
 import route_5 from "../routes/files.$.get.js";
 import route_6 from "../routes/index.get.js";
-import route_7 from "../routes/users.get.js";
+import route_7 from "../routes/posts.{-$category}.get.js";
+import route_8 from "../routes/users.get.js";
 
 export type LayoutTree = {
   "/*": typeof layout_0;
@@ -73,10 +74,16 @@ export const routeManifest = {
         route: route_6,
       },
     },
-    "/users": {
+    "/posts/:category?": {
       GET: {
         layouts: ["/*"],
         route: route_7,
+      },
+    },
+    "/users": {
+      GET: {
+        layouts: ["/*"],
+        route: route_8,
       },
     },
   },
@@ -90,7 +97,7 @@ export default app;
 export const createApp = (overrideTaser?: typeof taser) =>
   createTaserApp(routeManifest, overrideTaser ?? taser);
 
-export type RoutePath = "/.well-known" | "/items/:id" | "/items" | "/save" | "/token" | "/files/*" | "/" | "/users";
+export type RoutePath = "/.well-known" | "/items/:id" | "/items" | "/save" | "/token" | "/files/*" | "/" | "/posts/:category?" | "/users";
 
 export type LayoutHierarchy = {
   "/*": readonly [];
@@ -131,6 +138,11 @@ export type RouteByPathMethod = {
       };
     };
     "/": {
+      GET: {
+        layouts: readonly ["/*"];
+      };
+    };
+    "/posts/:category?": {
       GET: {
         layouts: readonly ["/*"];
       };

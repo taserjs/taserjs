@@ -77,11 +77,11 @@ A route filename segment wrapped in brackets (such as `[.]` or `[_]`) to treat s
 _Avoid_: literal path, quoted segment
 
 **Canonical URL Pattern**:
-The standard Hono-compatible path pattern (e.g. `/users/:id`, `/files/*`, `/sitemap.xml`) used as the `path` argument in `t.get()` / `t.post()`, in route manifests, and in HTTP dispatch.
+The standard Hono-compatible path pattern (e.g. `/users/:id`, `/posts/:category?`, `/files/*`, `/sitemap.xml`) used as the `path` argument in `t.get()` / `t.post()`, in route manifests, and in HTTP dispatch. A trailing `?` on a parameter (`:category?`) marks it optional.
 _Avoid_: filesystem pattern, file path, route key
 
 **Filesystem Route Pattern**:
-The OS-compatible file and directory naming convention (e.g. `users/$id.get.ts`, `files/$.get.ts`, `sitemap[.]xml.get.ts`) used on disk to avoid OS filename limitations (such as forbidden `:` characters on Windows). Dynamic parameters use `$param` and splats/wildcards use `$` (e.g. `$.get.ts`).
+The OS-compatible file and directory naming convention (e.g. `users/$id.get.ts`, `files/$.get.ts`, `sitemap[.]xml.get.ts`) used on disk to avoid OS filename limitations (such as forbidden `:` characters on Windows). Dynamic parameters use `$param`, optional parameters use `{-$param}` (canonical `:param?`), and splats/wildcards use `$` (e.g. `$.get.ts`).
 _Avoid_: URL pattern, endpoint path, route pattern, [...slug]
 
 **Route File**:

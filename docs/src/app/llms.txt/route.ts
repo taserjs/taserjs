@@ -18,6 +18,7 @@ const LLM_SUMMARY_HEADER = `# Taser.js API Router Quick Reference
 ## Core File Naming Conventions
 - Root Route: \`src/routes/index.get.ts\` -> GET /
 - Dynamic Param: \`src/routes/users/$id.get.ts\` -> GET /users/:id
+- Optional Param: \`src/routes/posts/{-$category}.get.ts\` -> GET /posts/:category? (matches /posts and /posts/:category; \`req.params.category: string | undefined\`)
 - Nested Flat Route: \`src/routes/users.$id.posts.get.ts\` -> GET /users/:id/posts
 - Catch-All Splat: \`src/routes/files.$.get.ts\` -> GET /files/* (\`req.params._splat\`)
 - Pathless Layout: \`src/routes/_auth.ts\` -> Scoped middleware for pathless group

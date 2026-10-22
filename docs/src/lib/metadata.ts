@@ -111,7 +111,7 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
   "frameworks/fastify":
     "Pair Taser.js file routing with Fastify plugins and hooks using the host pass-through architecture.",
   "routing/file-conventions":
-    "HTTP method suffixes, index routes, dynamic parameters ($id), splat catch-alls ($), and pathless layouts explained.",
+    "HTTP method suffixes, index routes, dynamic parameters ($id), optional parameters ({-$id}), splat catch-alls ($), and pathless layouts explained.",
   "routing/defining-routes":
     "Create GET, POST, PUT, PATCH, DELETE routes with fluent chaining, query, param, and body validation schemas.",
   "routing/layouts-and-middleware":
