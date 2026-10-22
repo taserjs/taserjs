@@ -498,22 +498,22 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
     // Invalid chaining: .use() after .params()
     const builderAfterParams = t.get("/items/:id").params(mockSchema({ id: "123" }));
     // @ts-expect-error .use() must not be callable after .params()
-    builderAfterParams.use(mw1);
+    expect(builderAfterParams.use).toBeUndefined();
 
     // Invalid chaining: .use() after .body()
     const builderAfterBody = t.post("/items").body(mockSchema({ count: 1 }));
     // @ts-expect-error .use() must not be callable after .body()
-    builderAfterBody.use(mw1);
+    expect(builderAfterBody.use).toBeUndefined();
 
     // Invalid chaining: .use() after .query()
     const builderAfterQuery = t.get("/items").query(mockSchema({ search: "test" }));
     // @ts-expect-error .use() must not be callable after .query()
-    builderAfterQuery.use(mw1);
+    expect(builderAfterQuery.use).toBeUndefined();
 
     // Invalid chaining: .use() after .returns()
     const builderAfterReturns = t.get("/items").returns({ 200: mockSchema({ ok: true }) });
     // @ts-expect-error .use() must not be callable after .returns()
-    builderAfterReturns.use(mw1);
+    expect(builderAfterReturns.use).toBeUndefined();
   });
 
   it("constrains handler return types when .returns() is specified", () => {
@@ -1169,6 +1169,136 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
         const _bad = ctx.nonExistent;
         return new Response("ok");
       });
+    });
+  });
+});
+
+describe("Builder immutability when a builder is reused", () => {
+  const schemaOf = <T>(value: T) => ({
+    "~standard": {
+      version: 1 as const,
+      vendor: "test",
+      validate: (_value: unknown) => ({ value }),
+      types: { input: value, output: value },
+    },
+  });
+
+  const passThrough = async (_args: unknown, next: () => Promise<unknown>) => next();
+  const respond = () => new Response("ok");
+
+  describe("route builders", () => {
+    it("does not leak .use() calls into the builder they branched from", () => {
+      const base = t.get("/x").use(async (_args, next) => next());
+      const extended = base.use(async (_args, next) => next());
+
+      expect(extended).not.toBe(base);
+      expect(base.handler(respond).middlewares).toHaveLength(1);
+      expect(extended.handler(respond).middlewares).toHaveLength(2);
+    });
+
+    it("keeps schemas of branches isolated", () => {
+      const base = t.get("/items/:id").use(async (_args, next) => next());
+      const withParams = base.params(schemaOf({ id: "a" }));
+      const withQuery = base.query(schemaOf({ q: "b" }));
+
+      expect(base.schemas).toEqual({});
+      expect(withParams.schemas.query).toBeUndefined();
+      expect(withQuery.schemas.params).toBeUndefined();
+      expect(base.handler(respond).schemas).toEqual({});
+    });
+
+    it("keeps returns maps of branches isolated", () => {
+      const base = t.get("/x");
+      const withReturns = base.returns({ 200: schemaOf("ok") });
+
+      expect(withReturns).not.toBe(base);
+      expect(base.schemas.returns).toBeUndefined();
+      expect(withReturns.handler(() => new Response("ok")).returns).toBeDefined();
+    });
+
+    it("keeps body schemas of branches isolated", () => {
+      const base = t.post("/x");
+      const withBody = base.body(schemaOf({ a: 1 }));
+
+      expect(withBody).not.toBe(base);
+      expect(base.schemas.body).toBeUndefined();
+      expect(withBody.schemas.body).toBeDefined();
+    });
+
+    it("preserves middleware order and schemas through a full chain", () => {
+      const route = t
+        .post("/x")
+        .use(async (_args, next) => next())
+        .params(schemaOf({}))
+        .query(schemaOf({}))
+        .body(schemaOf({}))
+        .handler(respond);
+
+      expect(route.middlewares).toHaveLength(1);
+      expect(Object.keys(route.schemas ?? {}).sort()).toEqual(["body", "params", "query"]);
+    });
+
+    it("does not allow .use() after a schema method at compile time", () => {
+      const withParams = t.get("/x").params(schemaOf({}));
+      // @ts-expect-error .use() must come before schema methods
+      expect(withParams.use).toBeUndefined();
+    });
+  });
+
+  describe("layout builders", () => {
+    it("does not leak .use() calls into the builder they branched from", () => {
+      const base = t.layout("/*").use(async (_args, next) => next());
+      const extended = base.use(async (_args, next) => next());
+
+      expect(extended).not.toBe(base);
+      expect(base.middlewares).toHaveLength(1);
+      expect(extended.middlewares).toHaveLength(2);
+    });
+
+    it("keeps schemas and schema middlewares of branches isolated", () => {
+      const base = t.layout("/*");
+      const withParams = base.params(schemaOf({}));
+      const withQuery = base.query(schemaOf({}));
+      const withBody = base.body(schemaOf({}));
+
+      expect(base.schemas).toEqual({});
+      expect(base.middlewares).toHaveLength(0);
+      expect(withParams.middlewares).toHaveLength(1);
+      expect(withParams.schemas.query).toBeUndefined();
+      expect(withQuery.schemas.params).toBeUndefined();
+      expect(withBody.schemas.params).toBeUndefined();
+    });
+  });
+
+  describe("middleware builders", () => {
+    it("keeps schemas of branches isolated", () => {
+      const base = t.middleware();
+      const withParams = base.params(schemaOf({}));
+      const withQuery = base.query(schemaOf({}));
+      const withBody = base.body(schemaOf({}));
+
+      expect(base.schemas).toEqual({});
+      expect(withParams.schemas.query).toBeUndefined();
+      expect(withQuery.schemas.params).toBeUndefined();
+      expect(withBody.schemas.params).toBeUndefined();
+    });
+
+    it("returns a new builder from .requires()", () => {
+      const base = t.middleware();
+
+      expect(base.requires<{ state: { a: string } }>()).not.toBe(base);
+    });
+
+    it("keeps working as a pass-through middleware and as a definition factory", async () => {
+      const built = t.middleware().params(schemaOf({}));
+      const next = async () => new Response("next");
+
+      const response = await built.handler({} as never, next as never);
+      expect(await (response as Response).text()).toBe("next");
+
+      const definition = built.handler(passThrough as never);
+      expect(definition.kind).toBe("middleware");
+      expect(definition.schemas?.params).toBeDefined();
     });
   });
 });
