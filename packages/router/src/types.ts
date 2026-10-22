@@ -39,7 +39,23 @@ export type Simplify<T> = unknown extends T
       ? T
       : { [K in keyof T]: T[K] } & {};
 
-type ExtractParamName<T extends string> = T extends `:${infer P}` ? P : never;
+type ExtractRequiredParamName<T extends string> = T extends `{-$${string}}`
+  ? never
+  : T extends `:${infer P}?`
+    ? never
+    : T extends `:${infer P}`
+      ? P
+      : T extends `{$${infer P}}`
+        ? P
+        : T extends `$${infer P}`
+          ? P
+          : never;
+
+type ExtractOptionalParamName<T extends string> = T extends `{-$${infer P}}`
+  ? P
+  : T extends `:${infer P}?`
+    ? P
+    : never;
 
 type ExtractPathSegments<T extends string> = T extends `/${infer Rest}`
   ? ExtractPathSegments<Rest>
@@ -58,9 +74,13 @@ export type HasWildcard<T extends string> = string extends T
 export type SanitizeRouteParams<TPath extends string, TParams> =
   HasWildcard<TPath> extends true ? TParams : Omit<TParams, "_splat">;
 
-type ParamsFromSegments<T extends string> = Simplify<{
-  [K in ExtractPathSegments<T> as ExtractParamName<K>]: string;
-}>;
+type ParamsFromSegments<T extends string> = Simplify<
+  {
+    [K in ExtractPathSegments<T> as ExtractRequiredParamName<K>]: string;
+  } & {
+    [K in ExtractPathSegments<T> as ExtractOptionalParamName<K>]?: string;
+  }
+>;
 
 export type RouteDefaultParams<TPath extends string = string> = string extends TPath
   ? Record<string, string>

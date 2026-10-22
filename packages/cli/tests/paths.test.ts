@@ -64,6 +64,10 @@ describe("paths and URL normalization", () => {
     expect(normalizeSegmentToUrl("$")).toEqual({ urlSegment: "*", isPathless: false });
     expect(normalizeSegmentToUrl("$id")).toEqual({ urlSegment: ":id", isPathless: false });
     expect(normalizeSegmentToUrl("$userId")).toEqual({ urlSegment: ":userId", isPathless: false });
+    expect(normalizeSegmentToUrl("{-$category}")).toEqual({
+      urlSegment: "{-$category}",
+      isPathless: false,
+    });
     expect(normalizeSegmentToUrl("sitemap[.]xml")).toEqual({
       urlSegment: "sitemap.xml",
       isPathless: false,
@@ -174,6 +178,10 @@ describe("paths and URL normalization", () => {
     expect(deriveCanonicalUrl("", "users").canonicalPath).toBe("/users");
     expect(deriveCanonicalUrl("users", "$id").canonicalPath).toBe("/users/:id");
     expect(deriveCanonicalUrl("", "posts.$id").canonicalPath).toBe("/posts/:id");
+    expect(deriveCanonicalUrl("posts", "{-$category}").canonicalPath).toBe("/posts/{-$category}");
+    expect(deriveCanonicalUrl("posts", "{-$category}.{-$slug}").canonicalPath).toBe(
+      "/posts/{-$category}/{-$slug}",
+    );
     expect(deriveCanonicalUrl("posts/$id", "index").canonicalPath).toBe("/posts/:id");
     expect(deriveCanonicalUrl("", "$").canonicalPath).toBe("/*");
     expect(deriveCanonicalUrl("", "files.$").canonicalPath).toBe("/files/*");

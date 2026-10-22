@@ -86,7 +86,13 @@ class TaserRequestImpl implements TaserRequest {
 }
 
 export function isStaticRoutePath(path: string | undefined): boolean {
-  return Boolean(path && !path.includes(":") && !path.includes("*"));
+  return Boolean(
+    path &&
+      !path.includes(":") &&
+      !path.includes("*") &&
+      !path.includes("{-$") &&
+      !path.includes("?"),
+  );
 }
 
 export function createTaserRequest(

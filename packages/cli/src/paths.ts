@@ -115,6 +115,10 @@ export function normalizeSegmentToUrl(rawSegment: string): {
     return { urlSegment: "*", isPathless: false };
   }
 
+  if (segment.startsWith("{-$") && segment.endsWith("}")) {
+    return { urlSegment: segment, isPathless: false };
+  }
+
   if (segment.startsWith("$") && segment.length > 1) {
     return { urlSegment: `:${segment.slice(1)}`, isPathless: false };
   }
