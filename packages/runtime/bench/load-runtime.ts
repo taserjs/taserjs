@@ -14,7 +14,7 @@ export async function loadBuiltCreateTaserApp(): Promise<CreateTaserApp> {
     return runtime.createTaserApp;
   } catch (error) {
     throw new Error(
-      "Could not load packages/runtime/dist. Run `pnpm --filter @taserjs/runtime build` first.",
+      "Could not load packages/runtime/dist. Run `pnpm --filter @taserjs/runtime... build` first.",
       { cause: error },
     );
   }
