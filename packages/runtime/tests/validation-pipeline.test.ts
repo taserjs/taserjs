@@ -840,3 +840,204 @@ describe("422 rejection without middleware", () => {
     expect(res.headers.get("x-outer")).toBe("kept");
   });
 });
+
+describe("handler args behind middleware", () => {
+  it.each([1, 2])(
+    "hands the handler validated params and query with %i middleware",
+    async (count) => {
+      const passThrough = async (_args: unknown, next: () => Promise<Response>) => next();
+      let seen: { params: unknown; query: unknown } | undefined;
+      const route = Array.from({ length: count }).reduce<any>(
+        (builder) => builder.use(passThrough as any),
+        t.get("/v/:id"),
+      );
+      const handled = route
+        .params(createNumberCoerceSchema("id"))
+        .query(createNumberCoerceSchema("page"))
+        .handler((args: { params: unknown; query: unknown }) => {
+          seen = { params: args.params, query: args.query };
+          return Response.json({ ok: true });
+        });
+      const app = createTaserApp({ routes: { "/v/:id": { GET: { route: handled } } } });
+
+      const res = await app.request("http://localhost/v/7?page=3");
+
+      expect(res.status).toBe(200);
+      expect(seen).toEqual({ params: { id: 7 }, query: { page: 3 } });
+    },
+  );
+});
+
+describe("layered validation keeps input no earlier stage validated", () => {
+  // Stage one strips everything except `a`, like a schema that drops unknown keys. Stage two
+  // needs `b`, which stage one did not declare, so it only passes if `b` survived stage one.
+  const prunesToA = createStringSchema("a");
+  const requiresB = createNumberCoerceSchema("b");
+
+  type Facet = "params" | "query" | "body";
+  type Variant = "sync" | "async";
+
+  function asAsync(
+    schema: StandardSchemaV1<unknown, Record<string, any>>,
+  ): StandardSchemaV1<unknown, Record<string, any>> {
+    return {
+      "~standard": {
+        version: 1,
+        vendor: "test",
+        validate: async (value: unknown) => schema["~standard"].validate(value),
+      },
+    };
+  }
+
+  function withFacet(builder: any, facet: Facet, schema: unknown): any {
+    return facet === "body" ? builder.body(schema, "json") : builder[facet](schema);
+  }
+
+  function request(app: ReturnType<typeof createTaserApp>, facet: Facet): Promise<Response> {
+    if (facet === "params") return Promise.resolve(app.request("http://localhost/lv/x/7/z"));
+    if (facet === "query") return Promise.resolve(app.request("http://localhost/lv?a=x&b=7&c=z"));
+    return Promise.resolve(
+      app.request("http://localhost/lv", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ a: "x", b: "7", c: "z" }),
+      }),
+    );
+  }
+
+  const routePath = (facet: Facet) => (facet === "params" ? "/lv/:a/:b/:c" : "/lv");
+  const startRoute = (facet: Facet): any =>
+    facet === "body" ? t.post(routePath(facet)) : t.get(routePath(facet));
+  const method = (facet: Facet) => (facet === "body" ? "POST" : "GET");
+
+  const expected = { a: "x", b: 7, c: "z" };
+
+  type Structure = (facet: Facet, wrap: (s: any) => any, handler: any) => any;
+
+  const structures: [string, Structure][] = [
+    [
+      "layout validator then route schema",
+      (facet, wrap, handler) => {
+        const layout = t.layout("/*").use(withFacet(t.middleware(), facet, wrap(prunesToA)));
+        const route = withFacet(startRoute(facet), facet, wrap(requiresB)).handler(handler);
+        return createTaserApp({
+          layouts: { "/*": layout },
+          routes: { [routePath(facet)]: { [method(facet)]: { route, layouts: ["/*"] } } },
+        } as any);
+      },
+    ],
+    [
+      "validator middleware then route schema",
+      (facet, wrap, handler) => {
+        const mw = withFacet(t.middleware(), facet, wrap(prunesToA));
+        const route = withFacet(startRoute(facet).use(mw), facet, wrap(requiresB)).handler(handler);
+        return createTaserApp({
+          routes: { [routePath(facet)]: { [method(facet)]: { route } } },
+        } as any);
+      },
+    ],
+    [
+      "two validator middlewares and a plain handler",
+      (facet, wrap, handler) => {
+        const first = withFacet(t.middleware(), facet, wrap(prunesToA));
+        const second = withFacet(t.middleware(), facet, wrap(requiresB));
+        const route = startRoute(facet).use(first).use(second).handler(handler);
+        return createTaserApp({
+          routes: { [routePath(facet)]: { [method(facet)]: { route } } },
+        } as any);
+      },
+    ],
+    [
+      "one validator middleware and a plain handler",
+      (facet, wrap, handler) => {
+        const only = withFacet(t.middleware(), facet, wrap(prunesToA));
+        const route = startRoute(facet).use(only).handler(handler);
+        return createTaserApp({
+          routes: { [routePath(facet)]: { [method(facet)]: { route } } },
+        } as any);
+      },
+    ],
+    [
+      "a single route schema and no middleware",
+      (facet, wrap, handler) => {
+        const route = withFacet(startRoute(facet), facet, wrap(prunesToA)).handler(handler);
+        return createTaserApp({
+          routes: { [routePath(facet)]: { [method(facet)]: { route } } },
+        } as any);
+      },
+    ],
+  ];
+
+  const facets: Facet[] = ["params", "query", "body"];
+  const variants: [Variant, (s: any) => any][] = [
+    ["sync", (s) => s],
+    ["async", asAsync],
+  ];
+
+  describe.each(structures)("%s", (name, build) => {
+    const validatesB = !name.includes("one validator") && !name.includes("single route");
+
+    describe.each(facets)("%s", (facet) => {
+      it.each(variants)(
+        "hands the handler the merged input (%s schemas)",
+        async (_variant, wrap) => {
+          let seen: { fromReq: unknown; fromArgs: unknown } | undefined;
+          const handler = (args: any) => {
+            seen = {
+              fromReq: args.req[facet],
+              fromArgs: facet === "body" ? args.req.body : args[facet],
+            };
+            return Response.json({ ok: true });
+          };
+          const app = build(facet, wrap, handler);
+
+          const res = await request(app, facet);
+
+          expect(res.status).toBe(200);
+          const merged = validatesB ? expected : { a: "x", b: "7", c: "z" };
+          expect(seen).toEqual({ fromReq: merged, fromArgs: merged });
+        },
+      );
+    });
+  });
+
+  it("lets a later stage override a key an earlier stage validated", async () => {
+    const shout = createStringSchema("a");
+    const upper: StandardSchemaV1<unknown, Record<string, any>> = {
+      "~standard": {
+        version: 1,
+        vendor: "test",
+        validate: (value: unknown) => ({
+          value: { a: String((value as Record<string, unknown>).a).toUpperCase() },
+        }),
+      },
+    };
+    let seen: unknown;
+    const route = t
+      .get("/lv")
+      .use(t.middleware().query(shout))
+      .query(upper)
+      .handler(({ req }) => {
+        seen = req.query;
+        return Response.json({ ok: true });
+      });
+    const app = createTaserApp({ routes: { "/lv": { GET: { route } } } });
+
+    await app.request("http://localhost/lv?a=x&keep=1");
+
+    expect(seen).toEqual({ a: "X", keep: "1" });
+  });
+
+  it("still rejects when the later stage cannot find its input", async () => {
+    const route = t
+      .get("/lv")
+      .use(t.middleware().query(prunesToA))
+      .query(requiresB)
+      .handler(() => Response.json({ ok: true }));
+    const app = createTaserApp({ routes: { "/lv": { GET: { route } } } });
+
+    const res = await app.request("http://localhost/lv?a=x");
+
+    expect(res.status).toBe(422);
+  });
+});
