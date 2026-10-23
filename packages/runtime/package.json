@@ -69,9 +69,12 @@
   "scripts": {
     "clean": "rimraf dist",
     "build": "tsdown",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p bench/tsconfig.json",
     "test": "vitest run",
-    "bench": "vitest bench --run",
+    "bench": "tsdown && vitest bench --run",
+    "bench:node": "tsdown && node --expose-gc bench/harness.ts",
+    "bench:check": "tsdown && node --expose-gc bench/harness.ts --check",
+    "bench:update": "tsdown && node --expose-gc bench/harness.ts --update-baseline --rounds 15",
     "lint": "oxlint .",
     "prepublishOnly": "pnpm run build"
   },

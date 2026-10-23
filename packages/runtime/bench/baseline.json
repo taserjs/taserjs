@@ -1,0 +1,97 @@
+{
+  "nodeVersion": "v24.7.0",
+  "rounds": 15,
+  "cases": {
+    "1. Plain Route (Baseline GET) :: plain route": {
+      "ratio": 1.044,
+      "taserMicros": 5.28,
+      "honoMicros": 5.05,
+      "taserRequestsPerSecond": 189488,
+      "honoRequestsPerSecond": 197867
+    },
+    "2. Route Middleware (1 inline middleware) :: 1 route middleware": {
+      "ratio": 1.372,
+      "taserMicros": 7.34,
+      "honoMicros": 5.71,
+      "taserRequestsPerSecond": 136176,
+      "honoRequestsPerSecond": 175258
+    },
+    "3. Layout Middleware with State :: 1 layout middleware with state": {
+      "ratio": 1.098,
+      "taserMicros": 8.34,
+      "honoMicros": 7.12,
+      "taserRequestsPerSecond": 119897,
+      "honoRequestsPerSecond": 140543
+    },
+    "4. Composed Layout + Route Middleware :: 1 layout + 1 route middleware": {
+      "ratio": 1.371,
+      "taserMicros": 10.45,
+      "honoMicros": 7.55,
+      "taserRequestsPerSecond": 95669,
+      "honoRequestsPerSecond": 132394
+    },
+    "5. Layout Middleware with State & Dynamic Service :: layout state + dynamic service": {
+      "ratio": 1.138,
+      "taserMicros": 6.37,
+      "honoMicros": 5.59,
+      "taserRequestsPerSecond": 156965,
+      "honoRequestsPerSecond": 178872
+    },
+    "6. Body Parsing & Schema Validation :: POST JSON with Standard Schema validation": {
+      "ratio": 0.98,
+      "taserMicros": 37.47,
+      "honoMicros": 37.15,
+      "taserRequestsPerSecond": 26687,
+      "honoRequestsPerSecond": 26918
+    },
+    "11. Validation Error Fast Path (422 Rejection) :: 422 early rejection on invalid body": {
+      "ratio": 1.371,
+      "taserMicros": 49.81,
+      "honoMicros": 34,
+      "taserRequestsPerSecond": 20078,
+      "honoRequestsPerSecond": 29409
+    },
+    "7. Context Resolution Overhead (boot + request context) :: createContext resolution": {
+      "ratio": 1.158,
+      "taserMicros": 7.83,
+      "honoMicros": 6.26,
+      "taserRequestsPerSecond": 127702,
+      "honoRequestsPerSecond": 159868
+    },
+    "8. Dynamic Route Parameter Extraction :: params extraction (no schema)": {
+      "ratio": 1.068,
+      "taserMicros": 7.59,
+      "honoMicros": 6.04,
+      "taserRequestsPerSecond": 131703,
+      "honoRequestsPerSecond": 165428
+    },
+    "8. Dynamic Route Parameter Extraction :: params extraction + schema coercion": {
+      "ratio": 0.845,
+      "taserMicros": 8.23,
+      "honoMicros": 9.82,
+      "taserRequestsPerSecond": 121552,
+      "honoRequestsPerSecond": 101845
+    },
+    "9. Query Parameter Extraction & Coercion :: query extraction (no schema)": {
+      "ratio": 1.274,
+      "taserMicros": 7.35,
+      "honoMicros": 5.63,
+      "taserRequestsPerSecond": 136096,
+      "honoRequestsPerSecond": 177534
+    },
+    "9. Query Parameter Extraction & Coercion :: query extraction + schema coercion": {
+      "ratio": 1.169,
+      "taserMicros": 9.06,
+      "honoMicros": 7.93,
+      "taserRequestsPerSecond": 110371,
+      "honoRequestsPerSecond": 126116
+    },
+    "10. Cookie Middleware & Flushing Lifecycle :: cookie read + 2 Set-Cookie writes": {
+      "ratio": 2.132,
+      "taserMicros": 27.39,
+      "honoMicros": 12.76,
+      "taserRequestsPerSecond": 36509,
+      "honoRequestsPerSecond": 78393
+    }
+  }
+}
