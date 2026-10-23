@@ -3,7 +3,7 @@ import type { Context } from "hono";
 import { parseQueryString, type ParsedQuery } from "./query.js";
 import type { TaserHeaders, TaserRequest } from "./types.js";
 
-export function createTaserHeaders(c: Context): TaserHeaders {
+function createTaserHeaders(c: Context): TaserHeaders {
   return c.req.raw.headers as unknown as TaserHeaders;
 }
 

@@ -43,13 +43,9 @@ export function hono<R extends ValidMiddlewareReturn = Promise<Response>>(
     handler: async (args, next) => {
       const c = getOrCreateHonoContext(args.req, args.ctx as Record<string, unknown>);
 
-      let nextCalled = false;
-      let downstreamResponse: Response | undefined;
-
       const honoNext: HonoNext = async () => {
-        nextCalled = true;
-        downstreamResponse = (refine ? await refine(c, next) : await next()) as unknown as Response;
-        adoptDownstreamResponse(c, downstreamResponse);
+        const downstream = (refine ? await refine(c, next) : await next()) as unknown as Response;
+        adoptDownstreamResponse(c, downstream);
       };
 
       let result: Response | void;
@@ -65,19 +61,8 @@ export function hono<R extends ValidMiddlewareReturn = Promise<Response>>(
         throw err;
       }
 
-      if (result instanceof Response) {
-        return result;
-      }
-
-      if (nextCalled) {
-        return c.res ?? downstreamResponse!;
-      }
-
-      if (c.res instanceof Response) {
-        return c.res;
-      }
-
-      throw new Error("Hono middleware did not call next() or return a Response");
+      // `c.res` is always a Response: Hono creates an empty one on first read.
+      return result instanceof Response ? result : c.res;
     },
   };
 }

@@ -6,8 +6,6 @@ export interface TypedResponse<T = unknown, TStatus extends number = number> ext
   json(): Promise<T>;
 }
 
-export type JsonResponse<T = unknown, TStatus extends number = 200> = TypedResponse<T, TStatus>;
-
 export type ExtractStatus<
   TDefault extends number,
   TInit extends ResponseInit | undefined,
@@ -17,7 +15,7 @@ function defaultJsonHeaders(): Record<string, string> {
   return { "content-type": "application/json; charset=utf-8" };
 }
 
-export function createTypedResponse<T, TStatus extends number>(
+function createTypedResponse<T, TStatus extends number>(
   body: BodyInit | null | undefined,
   init: ResponseInit | undefined,
   defaultStatus: TStatus,
@@ -58,7 +56,7 @@ export function createTypedResponse<T, TStatus extends number>(
 /**
  * Creates a generic TypedResponse helper factory with zero default headers and auto-detection.
  */
-export function createReply<TStatus extends number>(defaultStatus: TStatus) {
+function createReply<TStatus extends number>(defaultStatus: TStatus) {
   return function <T = unknown, const TInit extends ResponseInit = ResponseInit>(
     data?: T,
     init?: TInit,

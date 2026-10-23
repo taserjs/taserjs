@@ -268,7 +268,6 @@ export class LayoutBuilder<
   constructor(
     public readonly path: TPath,
     public readonly middlewares: MiddlewareDefinition<any, any, any, any, any>[] = [],
-    public readonly schemas: RouteSchemas = {},
   ) {}
 
   // Builders are immutable so a reused builder never leaks state into the layouts derived from it.
@@ -279,10 +278,7 @@ export class LayoutBuilder<
       handler: async (_args, next) => next(),
       schemas: patch,
     };
-    return new LayoutBuilder(this.path, [...this.middlewares, schemaMiddleware], {
-      ...this.schemas,
-      ...patch,
-    });
+    return new LayoutBuilder(this.path, [...this.middlewares, schemaMiddleware]);
   }
 
   params<TSchema extends StandardSchemaV1>(
@@ -373,9 +369,7 @@ export class LayoutBuilder<
     Overwrite<TBody, ExtractBodyFromMiddleware<M>>
   >;
   use(middleware: any): any {
-    return new LayoutBuilder(this.path, [...this.middlewares, toMiddlewareDefinition(middleware)], {
-      ...this.schemas,
-    });
+    return new LayoutBuilder(this.path, [...this.middlewares, toMiddlewareDefinition(middleware)]);
   }
 }
 

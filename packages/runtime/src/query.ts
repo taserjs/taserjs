@@ -2,7 +2,7 @@ import { tryDecodeURIComponent } from "hono/utils/url";
 
 export type ParsedQuery = Record<string, string | string[]>;
 
-export const EMPTY_QUERY: ParsedQuery = Object.freeze({});
+const EMPTY_QUERY: ParsedQuery = Object.freeze({});
 
 /** Past "scheme://", so a "?" or "#" in the scheme part can never be mistaken for the query. */
 const URL_SEARCH_START = 8;

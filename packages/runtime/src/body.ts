@@ -63,8 +63,6 @@ function matchMediaType(mode: BodyMode, media: ParsedMediaType | null): boolean 
       return isTextMediaType(media);
     case "raw":
       return true;
-    default:
-      return false;
   }
 }
 

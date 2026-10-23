@@ -20,7 +20,7 @@ function catchResponse(err: unknown): Response {
   throw err;
 }
 
-export function normalizeBasePath(basePath?: string): string {
+function normalizeBasePath(basePath?: string): string {
   if (!basePath || basePath === "/") return "";
   let base = basePath.trim();
   if (!base.startsWith("/")) base = `/${base}`;
@@ -28,7 +28,7 @@ export function normalizeBasePath(basePath?: string): string {
   return base;
 }
 
-export function prefixRoutePath(basePath: string, routePath: string): string {
+function prefixRoutePath(basePath: string, routePath: string): string {
   if (!basePath) return routePath;
   const normalizedRoute = routePath.startsWith("/") ? routePath : `/${routePath}`;
   if (normalizedRoute === "/") return basePath;
