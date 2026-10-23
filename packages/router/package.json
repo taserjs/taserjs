@@ -1,6 +1,6 @@
 {
   "name": "@taserjs/router",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Type-safe route builder and middleware composition for Taser.js",
   "keywords": [
     "express",

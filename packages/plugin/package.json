@@ -1,6 +1,6 @@
 {
   "name": "@taserjs/plugin",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Universal bundler plugin for Taser.js",
   "keywords": [
     "bundler",
