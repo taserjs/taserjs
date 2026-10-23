@@ -1,126 +1,50 @@
-import { mergeResponseCookies } from "@taserjs/utils";
 import type { Context } from "hono";
-import { deleteCookie, getCookie, getSignedCookie, setCookie, setSignedCookie } from "hono/cookie";
 import type { Cookie, CookieOptions, CookiePrefixOptions, SignedCookie } from "hono/utils/cookie";
 
 import { middleware } from "../builder.js";
-import { getOrCreateHonoContext } from "../context.js";
-import type { MiddlewareDefinition, MiddlewareResponse } from "../types.js";
+import type { MiddlewareDefinition } from "../types.js";
+import {
+  CookieJar,
+  resolveCookieJarConfig,
+  type CookieJarOptions,
+  type TaserCookieJar,
+} from "./cookie-jar.js";
 
-export type { Cookie, CookieOptions, CookiePrefixOptions, SignedCookie };
-
-export type CookieJarOptions = CookieOptions & {
-  secret?: string | BufferSource | undefined;
+export type {
+  Cookie,
+  CookieJarOptions,
+  CookieOptions,
+  CookiePrefixOptions,
+  SignedCookie,
+  TaserCookieJar,
 };
 
-export class TaserCookieJar {
-  readonly #c: Context;
-  readonly #defaultOptions: CookieJarOptions;
-  #dirty = false;
-
-  constructor(c: Context, defaultOptions?: CookieJarOptions) {
-    this.#c = c;
-    this.#defaultOptions = defaultOptions ?? {};
-  }
-
-  get(name: string, prefixOptions?: CookiePrefixOptions): string | undefined;
-  get(): Cookie;
-  get(name?: string, prefixOptions?: CookiePrefixOptions): string | Cookie | undefined {
-    if (typeof name === "string") {
-      return getCookie(this.#c, name, prefixOptions);
-    }
-    return getCookie(this.#c);
-  }
-
-  async getSigned(
-    name: string,
-    secret?: string | BufferSource,
-    prefixOptions?: CookiePrefixOptions,
-  ): Promise<string | undefined | false>;
-  async getSigned(secret?: string | BufferSource): Promise<SignedCookie>;
-  async getSigned(
-    nameOrSecret?: string | BufferSource,
-    maybeSecret?: string | BufferSource,
-    prefixOptions?: CookiePrefixOptions,
-  ): Promise<string | SignedCookie | undefined | false> {
-    if (
-      typeof nameOrSecret === "string" &&
-      (maybeSecret !== undefined || this.#defaultOptions.secret !== undefined)
-    ) {
-      const secret = maybeSecret ?? this.#defaultOptions.secret!;
-      return await getSignedCookie(this.#c, secret, nameOrSecret, prefixOptions);
-    }
-
-    const secret =
-      (nameOrSecret as string | BufferSource | undefined) ?? this.#defaultOptions.secret;
-    if (!secret) {
-      throw new Error("Secret is required to read signed cookies");
-    }
-    return await getSignedCookie(this.#c, secret);
-  }
-
-  set(name: string, value: string, opt?: CookieOptions): this {
-    this.#dirty = true;
-    const mergedOpt = opt ? { ...this.#defaultOptions, ...opt } : this.#defaultOptions;
-    setCookie(this.#c, name, value, mergedOpt);
-    return this;
-  }
-
-  async setSigned(
-    name: string,
-    value: string,
-    secretOrOpt?: string | BufferSource | CookieOptions,
-    opt?: CookieOptions,
-  ): Promise<this> {
-    this.#dirty = true;
-    let secret: string | BufferSource;
-    let options: CookieOptions | undefined;
-
-    if (typeof secretOrOpt === "string" || (secretOrOpt && "byteLength" in secretOrOpt)) {
-      secret = secretOrOpt;
-      options = opt;
-    } else {
-      secret = this.#defaultOptions.secret!;
-      options = secretOrOpt;
-    }
-
-    if (!secret) {
-      throw new Error("Secret is required to set signed cookies");
-    }
-
-    const mergedOpt = { ...this.#defaultOptions, ...options };
-    await setSignedCookie(this.#c, name, value, secret, mergedOpt);
-    return this;
-  }
-
-  delete(name: string, opt?: CookieOptions): string | undefined {
-    this.#dirty = true;
-    const mergedOpt = opt ? { ...this.#defaultOptions, ...opt } : this.#defaultOptions;
-    return deleteCookie(this.#c, name, mergedOpt);
-  }
-
-  getSetCookieHeaders(): string[] {
-    void this.#c.res;
-    return typeof this.#c.res?.headers?.getSetCookie === "function"
-      ? this.#c.res.headers.getSetCookie()
-      : [];
-  }
-
-  flush<TRes extends Response | MiddlewareResponse<any, any>>(res: TRes): TRes {
-    if (!this.#dirty) {
-      return res;
-    }
-    return mergeResponseCookies(this.#c, res as Response) as unknown as TRes;
-  }
-}
-
+/**
+ * Provides `{ cookies }` to everything below it. Cookies set through the jar are written to the
+ * response when the middleware unwinds, including a thrown `Response`. For a thrown `Error` they
+ * are handed to Hono's default `onError`; a custom `onError` owns its own cookies.
+ */
 export function cookie(
   options?: CookieJarOptions,
 ): MiddlewareDefinition<{ cookies: TaserCookieJar }> {
+  const config = resolveCookieJarConfig(options);
+
   return middleware(async ({ req, ctx }, next) => {
-    const c = getOrCreateHonoContext(req, ctx as Record<string, unknown>);
-    const jar = new TaserCookieJar(c, options);
-    const res = await next.provide({ cookies: jar });
-    return jar.flush(res);
+    const jar = new CookieJar(req.raw.headers, config);
+    const response = await next
+      .provide({ cookies: jar })
+      .catch((error: unknown) => rethrowWithCookies(jar, error, ctx as Record<string, unknown>));
+    return jar.flush(response);
   });
+}
+
+function rethrowWithCookies(jar: CookieJar, error: unknown, ctx: Record<string, unknown>): never {
+  if (error instanceof Response) {
+    throw jar.flush(error);
+  }
+  const honoContext = ctx.context as Context | undefined;
+  if (honoContext) {
+    jar.queueOn(honoContext);
+  }
+  throw error;
 }

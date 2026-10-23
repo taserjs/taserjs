@@ -346,4 +346,102 @@ describe("Dynamic Services, Cookie Middleware, and t.hono Adapter Integration", 
       canWrite: true,
     });
   });
+
+  describe("cookies when the request does not return normally", () => {
+    function appWithCookieRoute(handler: (args: any) => unknown, taser?: any) {
+      return createTaserApp(
+        {
+          layouts: { "/*": t.layout("/*").use(cookie()) },
+          routes: {
+            "/work": { POST: { layouts: ["/*"], route: t.post("/work").handler(handler as any) } },
+          },
+        },
+        taser,
+      );
+    }
+
+    it("keeps cookies on the default 500 response for a thrown Error", async () => {
+      const app = appWithCookieRoute(({ cookies }: any) => {
+        cookies.set("refreshed", "1", { path: "/" });
+        throw new Error("boom");
+      });
+
+      const res = await app.request("/work", { method: "POST" });
+      expect(res.status).toBe(500);
+      expect(res.headers.getSetCookie()).toEqual(["refreshed=1; Path=/"]);
+    });
+
+    it("keeps cookies on a thrown Response", async () => {
+      const app = appWithCookieRoute(({ cookies }: any) => {
+        cookies.set("refreshed", "1", { path: "/" });
+        throw new Response("denied", { status: 403 });
+      });
+
+      const res = await app.request("/work", { method: "POST" });
+      expect(res.status).toBe(403);
+      expect(res.headers.getSetCookie()).toEqual(["refreshed=1; Path=/"]);
+    });
+
+    it("leaves cookie handling to a custom onError", async () => {
+      const app = appWithCookieRoute(
+        ({ cookies }: any) => {
+          cookies.set("refreshed", "1", { path: "/" });
+          throw new Error("boom");
+        },
+        { kind: "taser", options: { onError: () => new Response("custom", { status: 500 }) } },
+      );
+
+      const res = await app.request("/work", { method: "POST" });
+      expect(await res.text()).toBe("custom");
+      expect(res.headers.getSetCookie()).toEqual([]);
+    });
+
+    it("emits cookies set by middleware before a schema validation failure on the 422 response", async () => {
+      const rejectEverything = {
+        "~standard": {
+          version: 1,
+          vendor: "test",
+          validate: () => ({ issues: [{ message: "nope" }] }),
+        },
+      } as any;
+      const app = createTaserApp({
+        layouts: { "/*": t.layout("/*").use(cookie()) },
+        routes: {
+          "/work": {
+            POST: {
+              layouts: ["/*"],
+              route: t
+                .post("/work")
+                .use((async ({ cookies }: any, next: any) => {
+                  cookies.set("seen", "1", { path: "/" });
+                  return next();
+                }) as any)
+                .body(rejectEverything)
+                .handler(() => json({ ok: true })),
+            },
+          },
+        },
+      });
+
+      const res = await app.request("/work", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      });
+      expect(res.status).toBe(422);
+      expect(res.headers.getSetCookie()).toEqual(["seen=1; Path=/"]);
+    });
+
+    it("writes cookies onto a raw Response.redirect() with immutable headers", async () => {
+      const app = appWithCookieRoute(({ cookies }: any) => {
+        cookies.set("flash", "saved", { path: "/" });
+        return Response.redirect("http://localhost/done", 303);
+      });
+
+      const res = await app.request("/work", { method: "POST" });
+      expect(res.status).toBe(303);
+      expect(res.headers.get("location")).toBe("http://localhost/done");
+      expect(res.headers.getSetCookie()).toEqual(["flash=saved; Path=/"]);
+    });
+  });
 });

@@ -1,4 +1,3 @@
-import { mergeResponseCookies } from "@taserjs/utils";
 import type { Context, MiddlewareHandler as HonoMiddlewareHandler, Next as HonoNext } from "hono";
 
 import { getOrCreateHonoContext } from "./context.js";
@@ -9,6 +8,25 @@ import type {
   NextFunction,
   ValidMiddlewareReturn,
 } from "./types.js";
+
+/**
+ * Makes the Hono context carry the downstream response. Hono's `c.res` setter clones the response
+ * and copies the context's prepared headers over it, replacing `Set-Cookie` with the context's own
+ * values, so downstream cookies only need re-adding when both sides have some.
+ */
+function adoptDownstreamResponse(c: Context, downstream: Response): void {
+  const prepared = c.res;
+  if (prepared === downstream) return;
+
+  const preparedCookies = prepared.headers.getSetCookie();
+  const downstreamCookies = downstream.headers.getSetCookie();
+  c.res = downstream;
+
+  if (preparedCookies.length === 0 || downstreamCookies.length === 0) return;
+  for (const cookie of downstreamCookies) {
+    c.res.headers.append("set-cookie", cookie);
+  }
+}
 
 export function hono<R extends ValidMiddlewareReturn = Promise<Response>>(
   honoMw: HonoMiddlewareHandler,
@@ -30,9 +48,8 @@ export function hono<R extends ValidMiddlewareReturn = Promise<Response>>(
 
       const honoNext: HonoNext = async () => {
         nextCalled = true;
-        void c.res;
         downstreamResponse = (refine ? await refine(c, next) : await next()) as unknown as Response;
-        mergeResponseCookies(c, downstreamResponse);
+        adoptDownstreamResponse(c, downstreamResponse);
       };
 
       let result: Response | void;

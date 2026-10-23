@@ -1,4 +1,5 @@
 import { Context } from "hono";
+import { setCookie } from "hono/cookie";
 import { cors } from "hono/cors";
 import { describe, it, expect } from "vitest";
 
@@ -376,5 +377,92 @@ describe("t.hono adapter", () => {
 
       expect(route).toBeDefined();
     });
+  });
+});
+
+describe("t.hono adapter Set-Cookie merging", () => {
+  function runAdapter(
+    honoMiddleware: Parameters<typeof t.hono>[0],
+    downstream: () => Response,
+    context = new Context(new Request("http://localhost/test")),
+  ) {
+    const nextFn = Object.assign(async () => downstream(), { provide: async () => downstream() });
+    return t
+      .hono(honoMiddleware)
+      .handler({ req: createDummyRequest(), ctx: { context }, state: {} }, nextFn as any);
+  }
+
+  it("emits cookies from both the Hono middleware and the downstream response", async () => {
+    const res = await runAdapter(
+      async (c, next) => {
+        setCookie(c, "from_hono", "1", { path: "/" });
+        await next();
+      },
+      () => new Response("ok", { headers: { "set-cookie": "from_downstream=2; Path=/" } }),
+    );
+
+    expect(res.headers.getSetCookie()).toEqual([
+      "from_hono=1; Path=/",
+      "from_downstream=2; Path=/",
+    ]);
+  });
+
+  it("keeps the downstream cookies when the Hono middleware set none", async () => {
+    const res = await runAdapter(
+      async (c, next) => {
+        c.header("X-Hono", "1");
+        await next();
+      },
+      () => new Response("ok", { headers: { "set-cookie": "from_downstream=2; Path=/" } }),
+    );
+
+    expect(res.headers.getSetCookie()).toEqual(["from_downstream=2; Path=/"]);
+    expect(res.headers.get("X-Hono")).toBe("1");
+  });
+
+  it("keeps the Hono middleware cookies when the downstream response has none", async () => {
+    const res = await runAdapter(
+      async (c, next) => {
+        setCookie(c, "from_hono", "1", { path: "/" });
+        await next();
+      },
+      () => new Response("body", { status: 201 }),
+    );
+
+    expect(res.headers.getSetCookie()).toEqual(["from_hono=1; Path=/"]);
+    expect(res.status).toBe(201);
+    expect(await res.text()).toBe("body");
+  });
+
+  it("does not duplicate cookies when Hono middlewares are nested on one context", async () => {
+    const context = new Context(new Request("http://localhost/test"));
+    const inner = t.hono(async (c, next) => {
+      setCookie(c, "inner", "1", { path: "/" });
+      await next();
+    });
+    const outer = t.hono(async (c, next) => {
+      setCookie(c, "outer", "1", { path: "/" });
+      await next();
+    });
+
+    const downstream = () =>
+      new Response("ok", { headers: { "set-cookie": "from_downstream=1; Path=/" } });
+    const nextFn = Object.assign(async () => downstream(), { provide: async () => downstream() });
+    const innerNext = Object.assign(
+      async () =>
+        inner.handler({ req: createDummyRequest(), ctx: { context }, state: {} }, nextFn as any),
+      { provide: async () => downstream() },
+    );
+
+    const res = await outer.handler(
+      { req: createDummyRequest(), ctx: { context }, state: {} },
+      innerNext as any,
+    );
+
+    expect(res.headers.getSetCookie().sort()).toEqual([
+      "from_downstream=1; Path=/",
+      "inner=1; Path=/",
+      "outer=1; Path=/",
+    ]);
   });
 });

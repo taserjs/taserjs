@@ -98,6 +98,8 @@ export default t
 
 Set-Cookie headers are applied on the response automatically — you do not append headers manually.
 
+`cookies.get()` always reflects the request's `Cookie` header. A cookie you set during the same request is not visible to `get`, and each call returns a copy you can modify freely.
+
 ---
 
 ## Cryptographically Signed Cookies
@@ -237,6 +239,19 @@ Defaults passed to `cookie(options)` merge into every `set` / `setSigned` / `del
     },
   }}
 />
+
+---
+
+## Cookies on Error Responses
+
+Cookies you set are written when the response leaves the `cookie()` middleware:
+
+| What the request ends with                      | Set-Cookie headers                                                          |
+| ----------------------------------------------- | --------------------------------------------------------------------------- |
+| A returned `Response`                           | Written to it (including raw `Response.redirect()` results)                 |
+| A thrown `Response`                             | Written to the thrown response                                              |
+| A thrown `Error` and the default error handling | Written to the default error response (500, or 422 for validation failures) |
+| A thrown `Error` and a custom `onError`         | **Not** written — your `onError` builds the response and owns its cookies   |
 
 ---
 
