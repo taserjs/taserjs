@@ -16,7 +16,10 @@ import type {
  */
 function adoptDownstreamResponse(c: Context, downstream: Response): void {
   const prepared = c.res;
-  if (prepared === downstream) return;
+  if (prepared === downstream) {
+    c.finalized = true;
+    return;
+  }
 
   const preparedCookies = prepared.headers.getSetCookie();
   const downstreamCookies = downstream.headers.getSetCookie();
@@ -61,8 +64,14 @@ export function hono<R extends ValidMiddlewareReturn = Promise<Response>>(
         throw err;
       }
 
-      // `c.res` is always a Response: Hono creates an empty one on first read.
-      return result instanceof Response ? result : c.res;
+      if (result instanceof Response) return result;
+
+      if (!c.finalized) {
+        throw new Error(
+          "Hono middleware must call next() or return a Response (context was not finalized)",
+        );
+      }
+      return c.res;
     },
   };
 }

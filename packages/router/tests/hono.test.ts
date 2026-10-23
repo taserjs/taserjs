@@ -105,6 +105,39 @@ describe("t.hono adapter", () => {
     expect(await res.json()).toEqual({ error: "blocked" });
   });
 
+  it("rejects Hono middleware that neither calls next() nor returns a Response", async () => {
+    const mw = t.hono(async (c) => {
+      c.header("x-forgotten", "1");
+    });
+
+    const c = new Context(new Request("http://localhost/test"));
+    const nextFn = Object.assign(async () => new Response("ok"), {
+      provide: async () => new Response("ok"),
+    });
+
+    await expect(
+      mw.handler({ req: createDummyRequest(), ctx: { context: c }, state: {} }, nextFn as any),
+    ).rejects.toThrow("must call next() or return a Response");
+  });
+
+  it("accepts Hono middleware that assigns c.res without calling next()", async () => {
+    const mw = t.hono(async (c) => {
+      c.res = new Response("assigned", { status: 202 });
+    });
+
+    const c = new Context(new Request("http://localhost/test"));
+    const nextFn = Object.assign(async () => new Response("ok"), {
+      provide: async () => new Response("ok"),
+    });
+
+    const res = await mw.handler(
+      { req: createDummyRequest(), ctx: { context: c }, state: {} },
+      nextFn as any,
+    );
+    expect(res.status).toBe(202);
+    expect(await res.text()).toBe("assigned");
+  });
+
   it("bubbles downstream errors through Hono middleware", async () => {
     let caughtInHono = false;
 
