@@ -543,6 +543,11 @@ export function createBenchCases(createTaserApp: CreateTaserApp): BenchCase[] {
           }),
         },
       },
+      "/ignored-query": {
+        GET: {
+          route: t.get("/ignored-query").handler(() => json({ ok: true })),
+        },
+      },
       "/search/coerced": {
         GET: {
           route: t
@@ -564,6 +569,7 @@ export function createBenchCases(createTaserApp: CreateTaserApp): BenchCase[] {
       page: c.req.query("page"),
     });
   });
+  queryHonoApp.get("/ignored-query", (c) => c.json({ ok: true }));
   queryHonoApp.get(
     "/search/coerced",
     createHonoValidatorMiddleware(queryCoerceSchema, (c) => c.req.query(), "query"),
@@ -575,6 +581,7 @@ export function createBenchCases(createTaserApp: CreateTaserApp): BenchCase[] {
 
   const searchUrl = "/search?q=performance&limit=25&page=2";
   const searchCoercedUrl = "/search/coerced?q=performance&limit=25&page=2";
+  const ignoredQueryUrl = "/ignored-query?q=performance&limit=25&page=2";
 
   cases.push(
     {
@@ -590,6 +597,13 @@ export function createBenchCases(createTaserApp: CreateTaserApp): BenchCase[] {
       expectedStatus: 200,
       taser: prebuiltGet(queryTaserApp, searchCoercedUrl),
       hono: prebuiltGet(queryHonoApp, searchCoercedUrl),
+    },
+    {
+      group: "9. Query Parameter Extraction & Coercion",
+      name: "query string present, handler ignores it",
+      expectedStatus: 200,
+      taser: prebuiltGet(queryTaserApp, ignoredQueryUrl),
+      hono: prebuiltGet(queryHonoApp, ignoredQueryUrl),
     },
   );
 
