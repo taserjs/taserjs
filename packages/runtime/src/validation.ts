@@ -27,7 +27,7 @@ export function hasSchemas(schemas?: RouteSchemas | undefined): boolean {
 
 function mergeValidated(original: unknown, validated: unknown): unknown {
   return isPlainObject(validated) && isPlainObject(original)
-    ? Object.assign({}, original, validated)
+    ? { ...original, ...validated }
     : validated;
 }
 
