@@ -1,12 +1,6 @@
-import {
-  isPlainObject,
-  isProduction,
-  validateResponseSchema,
-  validateStandardSchema,
-} from "@taserjs/utils";
+import { isProduction, ValidationError, validateResponseSchema } from "@taserjs/utils";
 import type { Context } from "hono";
 
-import { extractBody } from "./body.js";
 import type {
   MiddlewareHandler,
   NextFunction,
@@ -15,6 +9,13 @@ import type {
   RouteSchemas,
   TaserRequest,
 } from "./types.js";
+import {
+  hasSchemas,
+  validateSchemas,
+  validateSchemasResult,
+  validationErrorResponse,
+  type ValidationFailure,
+} from "./validation.js";
 
 const EMPTY_STATE: Record<string, unknown> = Object.freeze({});
 
@@ -25,10 +26,6 @@ function syncCtxState(
 ): void {
   (ctx as any).state = state;
   (ctx as any).services = services ?? {};
-}
-
-export function hasSchemas(schemas?: RouteSchemas | undefined): boolean {
-  return Boolean(schemas && (schemas.params || schemas.query || schemas.body));
 }
 
 function shouldValidateResponse(
@@ -76,101 +73,14 @@ async function validateResponseContract(
   return res;
 }
 
-function mergeValidated(original: unknown, validated: unknown): unknown {
-  return isPlainObject(validated) && isPlainObject(original)
-    ? Object.assign({}, original, validated)
-    : validated;
-}
-
-async function validateRemainingAfterParams(
-  schemas: RouteSchemas,
-  req: TaserRequest<any, any, any>,
-  c?: Context,
-): Promise<void> {
-  if (schemas.query) {
-    const validated = await validateStandardSchema(schemas.query, req.query, "query");
-    (req as { query: unknown }).query = mergeValidated(req.query, validated);
-  }
-
-  if (schemas.body) {
-    if (req.body === undefined && c) {
-      req.body = await extractBody(c, schemas.body.mode);
-    }
-    const validated = await validateStandardSchema(schemas.body.schema, req.body, "body");
-    req.body = mergeValidated(req.body, validated);
-  }
-}
-
-async function validateRemainingAfterQuery(
-  schemas: RouteSchemas,
-  req: TaserRequest<any, any, any>,
-  c?: Context,
-): Promise<void> {
-  if (schemas.body) {
-    if (req.body === undefined && c) {
-      req.body = await extractBody(c, schemas.body.mode);
-    }
-    const validated = await validateStandardSchema(schemas.body.schema, req.body, "body");
-    req.body = mergeValidated(req.body, validated);
-  }
-}
-
-export function validateSchemas(
-  schemas: RouteSchemas | undefined,
-  req: TaserRequest<any, any, any>,
-  c?: Context,
-): void | Promise<void> {
-  if (!hasSchemas(schemas)) return;
-  const s = schemas!;
-
-  // 1. params
-  if (s.params) {
-    const res = validateStandardSchema(s.params, req.params, "params");
-    if (res instanceof Promise) {
-      return res.then((validated) => {
-        (req as { params: unknown }).params = mergeValidated(req.params, validated);
-        return validateRemainingAfterParams(s, req, c);
-      });
-    }
-    (req as { params: unknown }).params = mergeValidated(req.params, res);
-  }
-
-  // 2. query
-  if (s.query) {
-    const res = validateStandardSchema(s.query, req.query, "query");
-    if (res instanceof Promise) {
-      return res.then((validated) => {
-        (req as { query: unknown }).query = mergeValidated(req.query, validated);
-        return validateRemainingAfterQuery(s, req, c);
-      });
-    }
-    (req as { query: unknown }).query = mergeValidated(req.query, res);
-  }
-
-  // 3. body
-  if (s.body) {
-    if (req.body === undefined && c) {
-      const extracted = extractBody(c, s.body.mode);
-      return extracted.then((body) => {
-        req.body = body;
-        const res = validateStandardSchema(s.body!.schema, req.body, "body");
-        if (res instanceof Promise) {
-          return res.then((validated) => {
-            req.body = mergeValidated(req.body, validated);
-          });
-        }
-        req.body = mergeValidated(req.body, res);
-      });
-    }
-
-    const res = validateStandardSchema(s.body.schema, req.body, "body");
-    if (res instanceof Promise) {
-      return res.then((validated) => {
-        req.body = mergeValidated(req.body, validated);
-      });
-    }
-    req.body = mergeValidated(req.body, res);
-  }
+/**
+ * Answers a rejected input with the 422 envelope directly. Only valid where no middleware sits
+ * between validation and the app, because middleware is documented to catch `ValidationError`.
+ * Without a Hono context there is nothing to build the response with, so it throws instead.
+ */
+function rejectValidation(failure: ValidationFailure, honoContext: Context | undefined): Response {
+  if (!honoContext) throw new ValidationError(failure.issues, failure.facet);
+  return validationErrorResponse(honoContext, failure.issues);
 }
 
 function ensureResponse(res: unknown): Response {
@@ -245,12 +155,21 @@ export function createPipeline(
     ): Response | Promise<Response> {
       const honoContext = ctx.context as Context | undefined;
       syncCtxState(ctx, EMPTY_STATE);
-      const validation = validateSchemas(routeSchemas, req, honoContext);
-      if (validation instanceof Promise) {
-        return validation.then(() =>
-          executeTerminal({ req, ctx, state: EMPTY_STATE, params: req.params, query: req.query }),
+      const outcome = validateSchemasResult(routeSchemas, req, honoContext);
+      if (outcome instanceof Promise) {
+        return outcome.then((failure) =>
+          failure
+            ? rejectValidation(failure, honoContext)
+            : executeTerminal({
+                req,
+                ctx,
+                state: EMPTY_STATE,
+                params: req.params,
+                query: req.query,
+              }),
         );
       }
+      if (outcome) return rejectValidation(outcome, honoContext);
       return executeTerminal({
         req,
         ctx,

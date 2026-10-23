@@ -1,6 +1,7 @@
 import type { StandardSchemaV1 } from "@taserjs/router";
 import { t } from "@taserjs/router";
-import { describe, expect, it } from "vitest";
+import { Hono } from "hono";
+import { describe, expect, it, vi } from "vitest";
 
 import { createTaserApp } from "../src/index.js";
 
@@ -709,5 +710,133 @@ describe("Standard Schema Bidirectional Validation Pipeline", () => {
       const data = await res.json();
       expect(data).toEqual({ limit: 10 });
     });
+  });
+});
+
+describe("422 rejection without middleware", () => {
+  function asAsync(
+    schema: StandardSchemaV1<unknown, Record<string, any>>,
+  ): StandardSchemaV1<unknown, Record<string, any>> {
+    return {
+      "~standard": {
+        version: 1,
+        vendor: "test",
+        validate: async (value: unknown) => schema["~standard"].validate(value),
+      },
+    };
+  }
+
+  function headerEntries(res: Response): [string, string][] {
+    const entries: [string, string][] = [];
+    res.headers.forEach((value, key) => entries.push([key, value]));
+    return entries.sort();
+  }
+
+  const passThrough = async (_args: unknown, next: () => Promise<Response>) => next();
+
+  function jsonPost(path: string, body: unknown): [string, RequestInit] {
+    return [
+      `http://localhost${path}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    ];
+  }
+
+  it.each([
+    ["params", "sync", (s: any) => s],
+    ["params", "async", asAsync],
+    ["query", "sync", (s: any) => s],
+    ["query", "async", asAsync],
+    ["body", "sync", (s: any) => s],
+    ["body", "async", asAsync],
+  ] as const)("rejects an invalid %s facet with a %s schema", async (facet, _mode, wrap) => {
+    const handler = vi.fn(() => Response.json({ ok: true }));
+    const schema = wrap(createNumberCoerceSchema("n"));
+    const base: any = facet === "body" ? t.post(`/f/:n`) : t.get(`/f/:n`);
+    const route =
+      facet === "params"
+        ? base.params(schema).handler(handler)
+        : facet === "query"
+          ? base.query(schema).handler(handler)
+          : base.body(schema, "json").handler(handler);
+
+    const app = createTaserApp({
+      routes: { "/f/:n": { [facet === "body" ? "POST" : "GET"]: { route } } },
+    });
+    const res =
+      facet === "body"
+        ? await app.request(...jsonPost("/f/1", { n: "x" }))
+        : await app.request(
+            facet === "params" ? "http://localhost/f/x" : "http://localhost/f/1?n=x",
+          );
+
+    expect(res.status).toBe(422);
+    expect(res.headers.get("content-type")).toContain("application/json");
+    expect(await res.json()).toEqual({
+      errors: [{ message: "Expected valid number for n", path: ["n"] }],
+    });
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("reports the first failing facet and does not validate later ones", async () => {
+    const querySchema = createNumberCoerceSchema("page");
+    const validateQuery = vi.spyOn(querySchema["~standard"], "validate");
+    const route = t
+      .get("/order/:id")
+      .params(createNumberCoerceSchema("id"))
+      .query(querySchema)
+      .handler(() => Response.json({ ok: true }));
+    const app = createTaserApp({ routes: { "/order/:id": { GET: { route } } } });
+
+    const res = await app.request("http://localhost/order/x?page=y");
+
+    expect(res.status).toBe(422);
+    expect((await res.json()).errors[0].path).toEqual(["id"]);
+    expect(validateQuery).not.toHaveBeenCalled();
+  });
+
+  it("answers exactly like the thrown path used behind middleware", async () => {
+    const schema = createNumberCoerceSchema("id");
+    const direct = t
+      .get("/p/:id")
+      .params(schema)
+      .handler(() => Response.json({ ok: true }));
+    const viaMiddleware = t
+      .get("/m/:id")
+      .use(passThrough as any)
+      .params(schema)
+      .handler(() => Response.json({ ok: true }));
+    const app = createTaserApp({
+      routes: { "/p/:id": { GET: { route: direct } }, "/m/:id": { GET: { route: viaMiddleware } } },
+    });
+
+    const fast = await app.request("http://localhost/p/x");
+    const thrown = await app.request("http://localhost/m/x");
+
+    expect(fast.status).toBe(thrown.status);
+    expect(await fast.json()).toEqual(await thrown.json());
+    expect(headerEntries(fast)).toEqual(headerEntries(thrown));
+  });
+
+  it("keeps headers prepared by an outer Hono middleware", async () => {
+    const route = t
+      .get("/h/:id")
+      .params(createNumberCoerceSchema("id"))
+      .handler(() => Response.json({ ok: true }));
+    const taser = createTaserApp({ routes: { "/h/:id": { GET: { route } } } });
+    const outer = new Hono();
+    outer.use("*", async (c, next) => {
+      c.header("x-outer", "kept");
+      await next();
+    });
+    outer.route("/", taser);
+
+    const res = await outer.request("http://localhost/h/x");
+
+    expect(res.status).toBe(422);
+    expect(res.headers.get("x-outer")).toBe("kept");
   });
 });

@@ -1,4 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { ValidationError } from "@taserjs/utils";
+import type { Context } from "hono";
+import { describe, it, expect, vi } from "vitest";
 
 import { createPipeline } from "../src/pipeline.js";
 import type { MiddlewareHandler, TaserRequest } from "../src/types.js";
@@ -263,5 +265,61 @@ describe("createPipeline (onion execution pipeline)", () => {
     await expect(pipeline2(createDummyRequest(), {})).rejects.toThrow(
       "next() called multiple times",
     );
+  });
+
+  describe("input validation failures", () => {
+    const rejectingParams = {
+      "~standard": {
+        version: 1,
+        vendor: "test",
+        validate: () => ({ issues: [{ message: "bad id", path: ["id"] }] }),
+      },
+    } as any;
+
+    function createHonoContextStub() {
+      const json = vi.fn((body: unknown, status: number) => Response.json(body, { status }));
+      return { context: { json } as unknown as Context, json };
+    }
+
+    it("returns the 422 response without throwing when no middleware can observe the error", async () => {
+      const { context, json } = createHonoContextStub();
+      const handler = vi.fn(async () => new Response("ok"));
+      const pipeline = createPipeline([], handler, { params: rejectingParams });
+
+      const res = await pipeline(createDummyRequest(), { context });
+
+      expect(res.status).toBe(422);
+      expect(json).toHaveBeenCalledWith({ errors: [{ message: "bad id", path: ["id"] }] }, 422);
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("throws ValidationError when there is no Hono context to answer with", () => {
+      const pipeline = createPipeline([], async () => new Response("ok"), {
+        params: rejectingParams,
+      });
+
+      expect(() => pipeline(createDummyRequest(), {})).toThrow(ValidationError);
+    });
+
+    it("still throws ValidationError to middleware", async () => {
+      const { context } = createHonoContextStub();
+      let caught: unknown;
+      const observing: MiddlewareHandler = async (_args, next) => {
+        try {
+          return await next();
+        } catch (error) {
+          caught = error;
+          return new Response("handled", { status: 400 });
+        }
+      };
+      const pipeline = createPipeline([observing], async () => new Response("ok"), {
+        params: rejectingParams,
+      });
+
+      const res = await pipeline(createDummyRequest(), { context });
+
+      expect(res.status).toBe(400);
+      expect(caught).toBeInstanceOf(ValidationError);
+    });
   });
 });

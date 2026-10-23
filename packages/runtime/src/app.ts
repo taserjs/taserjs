@@ -11,6 +11,7 @@ import { resolveMiddlewares } from "./layout.js";
 import { createPipeline } from "./pipeline.js";
 import { createTaserRequest, isStaticRoutePath } from "./request.js";
 import type { RouteManifest, TaserApp, TaserDefinition, TaserRequest } from "./types.js";
+import { validationErrorResponse } from "./validation.js";
 
 function catchResponse(err: unknown): Response {
   if (err instanceof Response) {
@@ -74,7 +75,7 @@ export function createTaserApp(manifest: RouteManifest, taser?: TaserDefinition<
 
   app.onError(async (err: unknown, c: Context) => {
     if (err instanceof ValidationError) {
-      return c.json({ errors: err.issues }, 422);
+      return validationErrorResponse(c, err.issues);
     }
 
     if (err instanceof ResponseValidationError) {

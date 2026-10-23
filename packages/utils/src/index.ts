@@ -24,6 +24,7 @@ export {
   type ValidationFacet,
   ValidationError,
   ResponseValidationError,
+  executeSchema,
   validateStandardSchema,
   validateResponseSchema,
 } from "./validation.js";
