@@ -20,11 +20,11 @@ export {
   type TypedResponse,
 } from "./reply.js";
 export { type BodyMode, unsupportedMediaType, UnsupportedMediaTypeError } from "./media.js";
-export { mergeResponseCookies } from "./cookie.js";
 export {
   type ValidationFacet,
   ValidationError,
   ResponseValidationError,
+  executeSchema,
   validateStandardSchema,
   validateResponseSchema,
 } from "./validation.js";

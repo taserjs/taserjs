@@ -1,12 +1,12 @@
 import type { Context } from "hono";
 
-import { hasSchemas, validateSchemas } from "./pipeline.js";
 import type {
   MiddlewareDefinition,
   MiddlewareHandler,
   RouteManifest,
   RouteManifestEntry,
 } from "./types.js";
+import { hasSchemas, validateSchemas } from "./validation.js";
 
 export function resolveMiddleware(mw: MiddlewareDefinition): MiddlewareHandler {
   if (hasSchemas(mw.schemas)) {

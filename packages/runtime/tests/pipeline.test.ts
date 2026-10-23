@@ -1,4 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { ValidationError } from "@taserjs/utils";
+import type { Context } from "hono";
+import { describe, it, expect, vi } from "vitest";
 
 import { createPipeline } from "../src/pipeline.js";
 import type { MiddlewareHandler, TaserRequest } from "../src/types.js";
@@ -263,5 +265,211 @@ describe("createPipeline (onion execution pipeline)", () => {
     await expect(pipeline2(createDummyRequest(), {})).rejects.toThrow(
       "next() called multiple times",
     );
+  });
+
+  describe("input validation failures", () => {
+    const rejectingParams = {
+      "~standard": {
+        version: 1,
+        vendor: "test",
+        validate: () => ({ issues: [{ message: "bad id", path: ["id"] }] }),
+      },
+    } as any;
+
+    function createHonoContextStub() {
+      const json = vi.fn((body: unknown, status: number) => Response.json(body, { status }));
+      return { context: { json } as unknown as Context, json };
+    }
+
+    it("returns the 422 response without throwing when no middleware can observe the error", async () => {
+      const { context, json } = createHonoContextStub();
+      const handler = vi.fn(async () => new Response("ok"));
+      const pipeline = createPipeline([], handler, { params: rejectingParams });
+
+      const res = await pipeline(createDummyRequest(), { context });
+
+      expect(res.status).toBe(422);
+      expect(json).toHaveBeenCalledWith({ errors: [{ message: "bad id", path: ["id"] }] }, 422);
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("throws ValidationError when there is no Hono context to answer with", () => {
+      const pipeline = createPipeline([], async () => new Response("ok"), {
+        params: rejectingParams,
+      });
+
+      expect(() => pipeline(createDummyRequest(), {})).toThrow(ValidationError);
+    });
+
+    it("still throws ValidationError to middleware", async () => {
+      const { context } = createHonoContextStub();
+      let caught: unknown;
+      const observing: MiddlewareHandler = async (_args, next) => {
+        try {
+          return await next();
+        } catch (error) {
+          caught = error;
+          return new Response("handled", { status: 400 });
+        }
+      };
+      const pipeline = createPipeline([observing], async () => new Response("ok"), {
+        params: rejectingParams,
+      });
+
+      const res = await pipeline(createDummyRequest(), { context });
+
+      expect(res.status).toBe(400);
+      expect(caught).toBeInstanceOf(ValidationError);
+    });
+  });
+
+  describe("error and promise contract through middleware", () => {
+    const syncThrowingHandler = (() => {
+      throw new Error("sync handler failure");
+    }) as unknown as () => Response;
+
+    const rejectingParams = {
+      "~standard": {
+        version: 1,
+        vendor: "test",
+        validate: () => ({ issues: [{ message: "bad", path: [] }] }),
+      },
+    } as any;
+
+    const layouts: [string, number][] = [
+      ["single middleware", 1],
+      ["multiple middleware", 2],
+    ];
+
+    function buildChain(count: number, middleware: MiddlewareHandler): MiddlewareHandler[] {
+      const passThrough: MiddlewareHandler = (_args, next) => next();
+      return [middleware, ...Array.from({ length: count - 1 }, () => passThrough)];
+    }
+
+    it.each(layouts)(
+      "next() returns a Promise for a synchronous handler (%s)",
+      async (_name, count) => {
+        let returned: unknown;
+        const probing: MiddlewareHandler = async (_args, next) => {
+          const result = next();
+          returned = result;
+          return await result;
+        };
+        const pipeline = createPipeline(buildChain(count, probing), () => new Response("ok"));
+
+        await pipeline(createDummyRequest(), {});
+
+        expect(returned).toBeInstanceOf(Promise);
+      },
+    );
+
+    it.each(layouts)("a synchronous handler throw rejects next() (%s)", async (_name, count) => {
+      let outcome: unknown;
+      const catching: MiddlewareHandler = (_args, next) =>
+        next().catch((error: unknown) => {
+          outcome = error;
+          return new Response("recovered", { status: 500 });
+        });
+      const pipeline = createPipeline(buildChain(count, catching), syncThrowingHandler);
+
+      const res = await pipeline(createDummyRequest(), {});
+
+      expect(res.status).toBe(500);
+      expect((outcome as Error).message).toBe("sync handler failure");
+    });
+
+    it.each(layouts)(
+      "a synchronous handler throw rejects next.provide() (%s)",
+      async (_name, count) => {
+        let outcome: unknown;
+        const catching: MiddlewareHandler = (_args, next) =>
+          next.provide({ svc: 1 }).catch((error: unknown) => {
+            outcome = error;
+            return new Response("recovered", { status: 500 });
+          });
+        const pipeline = createPipeline(buildChain(count, catching), syncThrowingHandler);
+
+        await pipeline(createDummyRequest(), {});
+
+        expect((outcome as Error).message).toBe("sync handler failure");
+      },
+    );
+
+    it.each(layouts)(
+      "calling next() twice rejects instead of throwing (%s)",
+      async (_name, count) => {
+        let secondCall: unknown;
+        const doubleCalling: MiddlewareHandler = async (_args, next) => {
+          await next();
+          secondCall = next();
+          return await (secondCall as Promise<Response>).catch(() => new Response("second failed"));
+        };
+        const pipeline = createPipeline(buildChain(count, doubleCalling), () => new Response("ok"));
+
+        const res = await pipeline(createDummyRequest(), {});
+
+        expect(secondCall).toBeInstanceOf(Promise);
+        expect(await res.text()).toBe("second failed");
+      },
+    );
+
+    it("rejects when a synchronous middleware returns a non-Response", async () => {
+      const bad = (() => "nope") as unknown as MiddlewareHandler;
+      const pipeline = createPipeline([bad], () => new Response("ok"));
+
+      await expect(
+        Promise.resolve().then(() => pipeline(createDummyRequest(), {})),
+      ).rejects.toThrow("Middleware at index 0 must return a Response");
+    });
+
+    it("accepts a synchronous middleware that returns a Response", async () => {
+      const sync: MiddlewareHandler = () => new Response("from middleware");
+      const pipeline = createPipeline([sync, sync], () => new Response("ok"));
+
+      expect(await (await pipeline(createDummyRequest(), {})).text()).toBe("from middleware");
+    });
+
+    it("reports the index of the offending middleware", async () => {
+      const good: MiddlewareHandler = (_args, next) => next();
+      const bad = (async () => "nope") as unknown as MiddlewareHandler;
+      const pipeline = createPipeline([good, bad], () => new Response("ok"));
+
+      await expect(pipeline(createDummyRequest(), {})).rejects.toThrow(
+        "Middleware at index 1 must return a Response",
+      );
+    });
+
+    it("surfaces terminal validation failures as a rejection of next()", async () => {
+      let outcome: unknown;
+      const catching: MiddlewareHandler = (_args, next) =>
+        next().catch((error: unknown) => {
+          outcome = error;
+          return new Response("recovered", { status: 400 });
+        });
+      const pipeline = createPipeline(
+        [catching, (_args, next) => next()],
+        () => new Response("ok"),
+        { params: rejectingParams },
+      );
+
+      await pipeline(createDummyRequest(), {});
+
+      expect(outcome).toBeInstanceOf(ValidationError);
+    });
+
+    it("exposes merged state and services on ctx while the handler runs", async () => {
+      const ctx: Record<string, unknown> = {};
+      let seen: { state: unknown; services: unknown } | undefined;
+      const first: MiddlewareHandler = (_args, next) => next.provide({ a: 1 }, { s: 1 });
+      const second: MiddlewareHandler = (_args, next) => next.provide({ b: 2 }, { t: 2 });
+      const pipeline = createPipeline([first, second], () => {
+        seen = { state: ctx.state, services: ctx.services };
+        return new Response("ok");
+      });
+
+      await pipeline(createDummyRequest(), ctx);
+
+      expect(seen).toEqual({ state: { s: 1, t: 2 }, services: { a: 1, b: 2 } });
+    });
   });
 });

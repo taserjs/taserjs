@@ -200,25 +200,11 @@ type ExtractFacetFromLayout<TLayout, K extends FacetKey> = TLayout extends {
     ? ExtractFacetFromMiddleware<M, K>
     : {};
 
-export type ExtractServicesFromMiddleware<TMw> = ExtractFacetFromMiddleware<TMw, "_services">;
-
-export type ExtractStateFromMiddleware<TMw> = ExtractFacetFromMiddleware<TMw, "_state">;
-
 export type ExtractParamsFromMiddleware<TMw> = ExtractFacetFromMiddleware<TMw, "_params">;
 
 export type ExtractQueryFromMiddleware<TMw> = ExtractFacetFromMiddleware<TMw, "_query">;
 
 export type ExtractBodyFromMiddleware<TMw> = ExtractFacetFromMiddleware<TMw, "_body">;
-
-export type ExtractServicesFromLayout<TLayout> = ExtractFacetFromLayout<TLayout, "_services">;
-
-export type ExtractStateFromLayout<TLayout> = ExtractFacetFromLayout<TLayout, "_state">;
-
-export type ExtractParamsFromLayout<TLayout> = ExtractFacetFromLayout<TLayout, "_params">;
-
-export type ExtractQueryFromLayout<TLayout> = ExtractFacetFromLayout<TLayout, "_query">;
-
-export type ExtractBodyFromLayout<TLayout> = ExtractFacetFromLayout<TLayout, "_body">;
 
 type GetRouteLayoutIds<TPath extends string, TMethod extends HttpMethod> = RouterRegister extends {
   RouteByPathMethod: infer R;
@@ -490,7 +476,6 @@ export interface LayoutDefinition<
   readonly kind: "layout";
   readonly path: TPath;
   readonly middlewares: readonly MiddlewareDefinition<any, any, any, any, any, any, any>[];
-  readonly schemas?: RouteSchemas | undefined;
   readonly _services?: TServices;
   readonly _state?: TState;
   readonly _params?: TParams;

@@ -52,17 +52,6 @@ export class ResponseValidationError extends BaseZeroTraceError {
   }
 }
 
-export function isStandardSchema(value: unknown): value is StandardSchemaV1 {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "~standard" in value &&
-    typeof (value as StandardSchemaV1)["~standard"] === "object" &&
-    (value as StandardSchemaV1)["~standard"] !== null &&
-    typeof (value as StandardSchemaV1)["~standard"].validate === "function"
-  );
-}
-
 export function executeSchema<TOutput = unknown>(
   schema: StandardSchemaV1<unknown, TOutput>,
   value: unknown,

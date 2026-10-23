@@ -137,7 +137,6 @@ export function sse(
 
   if (signal) {
     if (signal.aborted) {
-      isAborted = true;
       isClosed = true;
     } else {
       signal.addEventListener("abort", onSignalAbort, { once: true });

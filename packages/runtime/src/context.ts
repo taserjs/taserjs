@@ -10,35 +10,20 @@ export interface BootManager {
 export function createBootManager(
   contextDef?: ContextDefinition<any, any> | undefined,
 ): BootManager {
-  let bootPromise: Promise<Record<string, unknown>> | null = null;
-  let bootResult: Record<string, unknown> | null = null;
-
-  const getBootSync = (): Record<string, unknown> | null => {
-    return bootResult;
-  };
-
-  const getBoot = async (): Promise<Record<string, unknown>> => {
-    if (bootResult) return bootResult;
-    if (!contextDef?.boot) {
-      bootResult = {};
-      return bootResult;
-    }
-    if (!bootPromise) {
-      bootPromise = (async () => {
-        const res = await contextDef.boot!();
-        const data = res ?? {};
-        bootResult = data;
-        return data;
-      })();
-    }
-    return await bootPromise;
-  };
-
-  if (contextDef?.boot) {
-    getBoot().catch(() => {});
-  } else {
-    bootResult = {};
+  const boot = contextDef?.boot;
+  if (!boot) {
+    const empty: Record<string, unknown> = {};
+    return { getBoot: async () => empty, getBootSync: () => empty };
   }
 
-  return { getBoot, getBootSync };
+  let bootResult: Record<string, unknown> | null = null;
+  const bootPromise = (async () => {
+    const data = (await boot()) ?? {};
+    bootResult = data;
+    return data;
+  })();
+  // Boot starts immediately; a failure surfaces to the first request awaiting `getBoot`.
+  bootPromise.catch(() => {});
+
+  return { getBoot: () => bootPromise, getBootSync: () => bootResult };
 }

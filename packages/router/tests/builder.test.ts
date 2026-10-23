@@ -433,11 +433,14 @@ describe("Route builder (t.get, t.post, t.put, t.delete, t.patch)", () => {
     type _Q_filter = Assert<Equal<NonNullable<typeof l._query>["filter"], string>>;
     type _B_data = Assert<Equal<NonNullable<typeof l._body>["data"], boolean>>;
 
-    expect(l.schemas).toBeDefined();
-    expect(l.schemas?.params).toBeDefined();
-    expect(l.schemas?.query).toBeDefined();
-    expect(l.schemas?.body?.schema).toBeDefined();
-    expect(l.schemas?.body?.mode).toBe("json");
+    expect(l.middlewares.flatMap((mw) => Object.keys(mw.schemas ?? {}))).toEqual([
+      "params",
+      "query",
+      "body",
+    ]);
+    const bodySchema = l.middlewares.find((mw) => mw.schemas?.body)?.schemas?.body;
+    expect(bodySchema?.schema).toBeDefined();
+    expect(bodySchema?.mode).toBe("json");
   });
 
   it("enforces fluent ordering restricting .use() before route validations", () => {
@@ -1255,18 +1258,18 @@ describe("Builder immutability when a builder is reused", () => {
       expect(extended.middlewares).toHaveLength(2);
     });
 
-    it("keeps schemas and schema middlewares of branches isolated", () => {
+    it("keeps schema middlewares of branches isolated", () => {
       const base = t.layout("/*");
       const withParams = base.params(schemaOf({}));
       const withQuery = base.query(schemaOf({}));
       const withBody = base.body(schemaOf({}));
+      const facetsOf = (layout: { middlewares: readonly { schemas?: object | undefined }[] }) =>
+        layout.middlewares.map((mw) => Object.keys(mw.schemas ?? {}));
 
-      expect(base.schemas).toEqual({});
       expect(base.middlewares).toHaveLength(0);
-      expect(withParams.middlewares).toHaveLength(1);
-      expect(withParams.schemas.query).toBeUndefined();
-      expect(withQuery.schemas.params).toBeUndefined();
-      expect(withBody.schemas.params).toBeUndefined();
+      expect(facetsOf(withParams)).toEqual([["params"]]);
+      expect(facetsOf(withQuery)).toEqual([["query"]]);
+      expect(facetsOf(withBody)).toEqual([["body"]]);
     });
   });
 

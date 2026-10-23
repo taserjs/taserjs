@@ -1,46 +1,17 @@
 import type { Context } from "hono";
 
+import { parseQueryString, type ParsedQuery } from "./query.js";
 import type { TaserHeaders, TaserRequest } from "./types.js";
 
-export function createTaserHeaders(c: Context): TaserHeaders {
+function createTaserHeaders(c: Context): TaserHeaders {
   return c.req.raw.headers as unknown as TaserHeaders;
 }
 
 const EMPTY_PARAMS: Record<string, string> = Object.freeze({});
-const EMPTY_QUERY: Record<string, string | string[]> = Object.freeze({});
-
-function parseQuery(c: Context): Record<string, string | string[]> {
-  const url = c.req.url;
-  if (!url || !url.includes("?")) {
-    return EMPTY_QUERY;
-  }
-  let rawQueries: Record<string, string[]> | undefined;
-  // Hono can throw when queries() is called on unmatched or synthetic requests (e.g. notFound)
-  try {
-    rawQueries = c.req.queries();
-  } catch {
-    rawQueries = undefined;
-  }
-
-  if (!rawQueries) {
-    return EMPTY_QUERY;
-  }
-
-  const query: Record<string, string | string[]> = {};
-
-  for (const [key, values] of Object.entries(rawQueries)) {
-    if (values.length === 1) {
-      query[key] = values[0]!;
-    } else if (values.length > 1) {
-      query[key] = values;
-    }
-  }
-  return query;
-}
 
 class TaserRequestImpl implements TaserRequest {
   #c: Context;
-  #parsedQuery: Record<string, string | string[]> | undefined;
+  #parsedQuery: ParsedQuery | undefined;
   #headersCache: TaserHeaders | undefined;
   params: Record<string, string>;
   body: unknown = undefined;
@@ -50,14 +21,14 @@ class TaserRequestImpl implements TaserRequest {
     this.params = params;
   }
 
-  get query(): Record<string, string | string[]> {
+  get query(): ParsedQuery {
     if (this.#parsedQuery === undefined) {
-      this.#parsedQuery = parseQuery(this.#c);
+      this.#parsedQuery = parseQueryString(this.#c.req.url);
     }
     return this.#parsedQuery;
   }
 
-  set query(val: Record<string, string | string[]>) {
+  set query(val: ParsedQuery) {
     this.#parsedQuery = val;
   }
 
