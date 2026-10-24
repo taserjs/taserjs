@@ -1,8 +1,7 @@
-import { defineConfig } from "tsdown";
+import { definePackageBuild } from "../../tsdown.base.ts";
 
-export default defineConfig({
+export default definePackageBuild({
   entry: [
-    "src/index.ts",
     "src/vite.ts",
     "src/rollup.ts",
     "src/rolldown.ts",
@@ -12,15 +11,4 @@ export default defineConfig({
     "src/nitro.ts",
     "src/next.ts",
   ],
-  format: ["esm"],
-  dts: true,
-  clean: true,
-  publint: true,
-  outExtensions({ format }) {
-    const isEsm = format === "es";
-    return {
-      js: isEsm ? ".js" : ".cjs",
-      dts: isEsm ? ".d.ts" : ".d.cts",
-    };
-  },
 });

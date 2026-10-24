@@ -14,7 +14,7 @@ import { runCreateCommand, scaffoldProject } from "create-taserjs";
 import { build } from "vite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { applyTaserNitro } from "../src/nitro.js";
+import { setupTaserNitro } from "../src/nitro-setup.js";
 import { taser } from "../src/vite.js";
 
 describe(
@@ -245,7 +245,7 @@ describe(
         },
       };
 
-      await applyTaserNitro(standaloneNitro, { standalone: true, cwd: projectDir });
+      await setupTaserNitro(standaloneNitro, { standalone: true, cwd: projectDir });
 
       expect(typeof standaloneNitro.options.virtual["#nitro/virtual/app"]).toBe("function");
       expect(typeof standaloneNitro.options.virtual["#nitro/virtual/routing"]).toBe("function");
@@ -272,7 +272,7 @@ describe(
         },
       };
 
-      await applyTaserNitro(middlewareNitro, { standalone: false, cwd: projectDir });
+      await setupTaserNitro(middlewareNitro, { standalone: false, cwd: projectDir });
 
       expect(middlewareNitro.options.handlers.length).toBeGreaterThan(0);
       expect(middlewareNitro.options.handlers[0].route).toBe("/**");
@@ -296,7 +296,7 @@ describe(
         },
       };
 
-      await applyTaserNitro(defaultNitro, { cwd: projectDir });
+      await setupTaserNitro(defaultNitro, { cwd: projectDir });
       expect(typeof defaultNitro.options.virtual["#nitro/virtual/app"]).toBe("function");
       expect(typeof defaultNitro.options.virtual["#nitro/virtual/routing"]).toBe("function");
     });

@@ -6,7 +6,7 @@ import { t } from "@taserjs/router";
 import { createTaserApp } from "@taserjs/runtime";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { DEFAULT_CONFIG } from "../src/config.js";
+import { resolveConfig } from "../src/config.js";
 import { generateManifest } from "../src/generator.js";
 import { scanRoutes } from "../src/scanner.js";
 
@@ -99,11 +99,7 @@ describe("E2E CLI scanner and runtime dispatch", () => {
     writeFileSync(join(routesDir, "-types.ts"), "export type RouteState = {};");
     writeFileSync(join(routesDir, "-schema.ts"), "export const s = {};");
 
-    const config = {
-      ...DEFAULT_CONFIG,
-      routesDir: "./src/routes",
-      outputDir: "./.taserjs",
-    };
+    const config = resolveConfig();
 
     const scanResult = scanRoutes({ routesDir, cwd: tempDir });
     expect(scanResult.diagnostics).toHaveLength(0);
@@ -328,11 +324,7 @@ describe("E2E CLI scanner and runtime dispatch", () => {
       'import { t } from "@taserjs/router";\nexport default t.get("/").handler(({ state }: any) => Response.json({ trail: [...(state?.trail ?? []), "root-index"] }));',
     );
 
-    const config = {
-      ...DEFAULT_CONFIG,
-      routesDir: "./src/routes-breakout-e2e",
-      outputDir: "./.taserjs",
-    };
+    const config = resolveConfig();
 
     const scanResult = scanRoutes({ routesDir, cwd: tempDir });
     expect(scanResult.diagnostics).toHaveLength(0);

@@ -23,10 +23,10 @@ export type LayoutTree = {
 };
 
 export const layoutManifest = {
-    "/*": layout_0,
-    "/_auth/items/:id/*": layout_1,
-    "/_auth/*": layout_2,
-    "/admin/*": layout_3,
+  "/*": layout_0,
+  "/_auth/items/:id/*": layout_1,
+  "/_auth/*": layout_2,
+  "/admin/*": layout_3,
 } as const;
 
 export const routeManifest = {
@@ -107,51 +107,51 @@ export type LayoutHierarchy = {
 };
 
 export type RouteByPathMethod = {
-    "/.well-known": {
-      GET: {
-        layouts: readonly ["/*"];
-      };
+  "/.well-known": {
+    GET: {
+      layouts: readonly ["/*"];
     };
-    "/items/:id": {
-      GET: {
-        layouts: readonly ["/*", "/_auth/*", "/_auth/items/:id/*"];
-      };
+  };
+  "/items/:id": {
+    GET: {
+      layouts: readonly ["/*", "/_auth/*", "/_auth/items/:id/*"];
     };
-    "/items": {
-      GET: {
-        layouts: readonly ["/*", "/_auth/*"];
-      };
+  };
+  "/items": {
+    GET: {
+      layouts: readonly ["/*", "/_auth/*"];
     };
-    "/save": {
-      POST: {
-        layouts: readonly ["/*", "/_auth/*"];
-      };
+  };
+  "/save": {
+    POST: {
+      layouts: readonly ["/*", "/_auth/*"];
     };
-    "/token": {
-      GET: {
-        layouts: readonly ["/*", "/_auth/*"];
-      };
+  };
+  "/token": {
+    GET: {
+      layouts: readonly ["/*", "/_auth/*"];
     };
-    "/files/*": {
-      GET: {
-        layouts: readonly ["/*"];
-      };
+  };
+  "/files/*": {
+    GET: {
+      layouts: readonly ["/*"];
     };
-    "/": {
-      GET: {
-        layouts: readonly ["/*"];
-      };
+  };
+  "/": {
+    GET: {
+      layouts: readonly ["/*"];
     };
-    "/posts/:category?": {
-      GET: {
-        layouts: readonly ["/*"];
-      };
+  };
+  "/posts/:category?": {
+    GET: {
+      layouts: readonly ["/*"];
     };
-    "/users": {
-      GET: {
-        layouts: readonly ["/*"];
-      };
+  };
+  "/users": {
+    GET: {
+      layouts: readonly ["/*"];
     };
+  };
 };
 
 export type AppContext = typeof taser.$Infer.Context;

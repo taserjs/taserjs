@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { generateLayoutStub, generateRouteStub } from "../src/scaffold.js";
+import { layoutStub, routeStub } from "../src/scaffold.js";
 import { scanRoutes } from "../src/scanner.js";
 
 describe("route & layout scaffolding", () => {
@@ -21,66 +21,26 @@ describe("route & layout scaffolding", () => {
   });
 
   describe("stub generators", () => {
-    it("generates route stub with default double quotes and semicolons", () => {
-      const code = generateRouteStub({
-        method: "get",
-        canonicalPath: "/users/:id",
-      });
+    it("generates a route stub", () => {
+      const code = routeStub("get", "/users/:id");
 
       expect(code).toContain('import { t } from "@taserjs/router";');
       expect(code).toContain('import { json } from "@taserjs/router/reply";');
       expect(code).toContain('export default t.get("/users/:id").handler(async () => {');
       expect(code).toContain('  return json({ message: "Hello from /users/:id" });');
-      expect(code).toContain("});");
     });
 
-    it("generates route stub respecting single quotes and semi: false", () => {
-      const code = generateRouteStub({
-        method: "post",
-        canonicalPath: "/items",
-        formatting: {
-          quotes: "single",
-          semi: false,
-        },
-      });
-
-      expect(code).toContain("import { t } from '@taserjs/router'");
-      expect(code).toContain("import { json } from '@taserjs/router/reply'");
-      expect(code).toContain("export default t.post('/items').handler(async () => {");
-      expect(code).toContain("  return json({ message: 'Hello from /items' })");
-      expect(code).toContain("})");
-      expect(code).not.toContain(";");
+    it("generates a t.any stub with a default methods array", () => {
+      expect(routeStub("any", "/hook")).toContain('t.any("/hook", ["GET", "POST"])');
     });
 
-    it("generates layout stub with destructured args ready to use", () => {
-      const code = generateLayoutStub({
-        layoutId: "/_auth/*",
-      });
+    it("generates a layout stub with destructured args ready to use", () => {
+      const code = layoutStub("/admin/*");
 
-      expect(code).toContain('import { t } from "@taserjs/router";');
       expect(code).toContain(
-        'export default t.layout("/_auth/*").use(async ({ req, ctx, state }, next) => {',
+        'export default t.layout("/admin/*").use(async ({ req, ctx, state }, next) => {',
       );
       expect(code).toContain("  return await next();");
-      expect(code).toContain("});");
-    });
-
-    it("generates root layout stub respecting single quotes and semi: false", () => {
-      const code = generateLayoutStub({
-        layoutId: "/*",
-        formatting: {
-          quotes: "single",
-          semi: false,
-        },
-      });
-
-      expect(code).toContain("import { t } from '@taserjs/router'");
-      expect(code).toContain(
-        "export default t.layout('/*').use(async ({ req, ctx, state }, next) => {",
-      );
-      expect(code).toContain("  return await next()");
-      expect(code).toContain("})");
-      expect(code).not.toContain(";");
     });
   });
 
@@ -197,28 +157,6 @@ describe("route & layout scaffolding", () => {
       expect(result.routes).toHaveLength(0);
       expect(result.layouts).toHaveLength(0);
       expect(readFileSync(ignoredFile, "utf-8")).toBe("");
-    });
-
-    it("honors custom formatting options when scaffolding", () => {
-      const routeFile = join(fullRoutesDir, "api.post.ts");
-      writeFileSync(routeFile, "", "utf-8");
-
-      const result = scanRoutes({
-        routesDir,
-        cwd: tempDir,
-        scaffold: true,
-        formatting: {
-          quotes: "single",
-          semi: false,
-        },
-      });
-
-      expect(result.diagnostics).toHaveLength(0);
-      const writtenContent = readFileSync(routeFile, "utf-8");
-      expect(writtenContent).toContain("import { t } from '@taserjs/router'");
-      expect(writtenContent).toContain("export default t.post('/api').handler(async () => {");
-      expect(writtenContent).toContain("return json({ message: 'Hello from /api' })");
-      expect(writtenContent).not.toContain(";");
     });
   });
 });

@@ -42,7 +42,6 @@ export default {
   serverDir: "src",
   routesDir: "routes",
   outputDir: ".taserjs",
-  formatting: { quotes: "single" },
 };
 `;
     writeFileSync(join(tempDir, "taserjs.config.ts"), configContent, "utf-8");
@@ -71,7 +70,7 @@ export default t.get("/health").handler(() => Response.json({ status: "ok" }));
     expect(existsSync(manifestPath)).toBe(true);
 
     const manifestCode = readFileSync(manifestPath, "utf-8");
-    expect(manifestCode).toContain("'/health'");
+    expect(manifestCode).toContain('"/health"');
   });
 
   it("regenerates manifest when route files are added and removed in watcher", async () => {
@@ -611,14 +610,12 @@ export default function legacyHost(req, res) {
     expect(existsSync(serveShimPath)).toBe(true);
 
     const shimContent = readFileSync(serveShimPath, "utf-8");
-    expect(shimContent).toContain("toFetchHandler");
-    expect(shimContent).toContain('app.all("*", (c) => hostFetch(c.req.raw));');
-    expect(shimContent).toContain("hostServerEntry");
+    expect(shimContent).toContain("mountNodeHost(taserApp, hostEntry);");
 
     const distServePath = join(tempDir, "dist", "serve.mjs");
     expect(existsSync(distServePath)).toBe(true);
     const distContent = readFileSync(distServePath, "utf-8");
-    expect(distContent).toContain("app.all");
+    expect(distContent).toContain("mountNodeHost");
   });
 
   it("serves both basePath-scoped Taser routes and host server pass-through in Vite dev server", async () => {

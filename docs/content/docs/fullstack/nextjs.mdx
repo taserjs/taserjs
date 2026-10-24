@@ -83,7 +83,7 @@ Install the necessary dependencies in your Next.js project:
   <Step>
     ### 1. Wrap `next.config.ts`
 
-    Use `createTaser` (or `withTaser`) from `@taserjs/plugin/next` to wrap your Next.js configuration:
+    Use `createTaser` from `@taserjs/plugin/next` to wrap your Next.js configuration:
 
     ```ts title="next.config.ts"
     import type { NextConfig } from "next";
@@ -243,7 +243,7 @@ Here is the recommended file layout for a fullstack Next.js App Router project w
 
 ```
 my-next-app/
-├── next.config.ts                  # createTaser() / withTaser(nextConfig)
+├── next.config.ts                  # createTaser()(nextConfig)
 ├── taserjs.config.ts               # serverDir, routesDir, outputDir, app
 ├── tsconfig.json                   # paths: @/* covering src/** including src/server/.taserjs
 ├── package.json

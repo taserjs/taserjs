@@ -1,3 +1,5 @@
+import { withDefaultHeaders } from "./headers.js";
+
 export interface SSEMessage {
   data: string | number | boolean | object | null | undefined;
   event?: string;
@@ -16,40 +18,33 @@ export interface SSEInit extends ResponseInit {
   signal?: AbortSignal;
 }
 
+const OCTET_STREAM = "application/octet-stream";
+
+const SSE_HEADERS = {
+  "content-type": "text/event-stream; charset=utf-8",
+  "cache-control": "no-cache, no-transform",
+  connection: "keep-alive",
+  "x-accel-buffering": "no",
+};
+
 /**
  * Formats an SSE message or string into W3C Server-Sent Events text protocol lines.
  */
 export function formatSSE(msg: SSEMessage | string): string {
-  if (typeof msg === "string") {
-    const lines = msg.split(/\r?\n/);
-    return lines.map((line) => `data: ${line}`).join("\n") + "\n\n";
-  }
+  const { id, event, retry, data }: SSEMessage = typeof msg === "string" ? { data: msg } : msg;
+  const payload =
+    data === undefined ? "" : typeof data === "object" ? JSON.stringify(data) : String(data);
 
-  let result = "";
-  if (msg.id !== undefined) {
-    result += `id: ${msg.id}\n`;
-  }
-  if (msg.event !== undefined) {
-    result += `event: ${msg.event}\n`;
-  }
-  if (msg.retry !== undefined) {
-    result += `retry: ${msg.retry}\n`;
-  }
-
-  const rawData =
-    msg.data === undefined
-      ? ""
-      : typeof msg.data === "object"
-        ? JSON.stringify(msg.data)
-        : String(msg.data);
-
-  const lines = rawData.split(/\r?\n/);
-  for (const line of lines) {
-    result += `data: ${line}\n`;
-  }
-  result += "\n";
-
-  return result;
+  return (
+    (id !== undefined ? `id: ${id}\n` : "") +
+    (event !== undefined ? `event: ${event}\n` : "") +
+    (retry !== undefined ? `retry: ${retry}\n` : "") +
+    payload
+      .split(/\r?\n/)
+      .map((line) => `data: ${line}\n`)
+      .join("") +
+    "\n"
+  );
 }
 
 /**
@@ -59,39 +54,30 @@ export function pipe(stream: ReadableStream, init?: ResponseInit): Response {
   return new Response(stream, init);
 }
 
+function binaryResponse(data: BodyInit, contentType: string, init?: ResponseInit): Response {
+  return new Response(data, {
+    ...init,
+    status: init?.status ?? 200,
+    headers: withDefaultHeaders(init?.headers, { "content-type": contentType }),
+  });
+}
+
 /**
  * Wraps an ArrayBuffer or Uint8Array into a binary Web Response defaulting to application/octet-stream.
  */
 export function buffer(data: ArrayBuffer | Uint8Array, init?: ResponseInit): Response {
-  const headers = new Headers(init?.headers);
-  if (!headers.has("content-type")) {
-    headers.set("content-type", "application/octet-stream");
-  }
-
-  return new Response(data as BodyInit, {
-    ...init,
-    status: init?.status ?? 200,
-    headers,
-  });
+  return binaryResponse(data as BodyInit, OCTET_STREAM, init);
 }
 
 /**
  * Wraps a Blob instance into a Web Response with proper content-type.
  */
 export function blob(data: Blob, init?: ResponseInit): Response {
-  const headers = new Headers(init?.headers);
-  if (!headers.has("content-type") && data.type) {
-    headers.set("content-type", data.type);
-  } else if (!headers.has("content-type")) {
-    headers.set("content-type", "application/octet-stream");
-  }
-
-  return new Response(data, {
-    ...init,
-    status: init?.status ?? 200,
-    headers,
-  });
+  return binaryResponse(data, data.type || OCTET_STREAM, init);
 }
+
+const isThenable = (value: unknown): value is PromiseLike<unknown> =>
+  typeof (value as PromiseLike<unknown> | undefined)?.then === "function";
 
 /**
  * Creates a Server-Sent Events (SSE) streaming Web Response.
@@ -102,20 +88,18 @@ export function sse(
 ): Response {
   const encoder = new TextEncoder();
   const signal = init?.signal;
-
-  let streamController: ReadableStreamDefaultController<Uint8Array> | undefined;
-  let isClosed = false;
-  let isAborted = Boolean(signal?.aborted);
   const abortListeners = new Set<() => void>();
 
-  const triggerAbort = () => {
-    if (isAborted) return;
-    isAborted = true;
-    isClosed = true;
+  // Closed means no more writes; aborted additionally means the consumer is gone.
+  let aborted = Boolean(signal?.aborted);
+  let closed = aborted;
+  let controller!: ReadableStreamDefaultController<Uint8Array>;
 
-    if (signal) {
-      signal.removeEventListener("abort", onSignalAbort);
-    }
+  const abort = () => {
+    if (aborted) return;
+    aborted = true;
+    closed = true;
+    signal?.removeEventListener("abort", abort);
 
     for (const listener of abortListeners) {
       try {
@@ -124,54 +108,36 @@ export function sse(
     }
     abortListeners.clear();
 
-    if (streamController) {
-      try {
-        streamController.close();
-      } catch {}
-    }
+    try {
+      controller.close();
+    } catch {}
   };
 
-  const onSignalAbort = () => {
-    triggerAbort();
+  // Settles the stream once, either cleanly or with the callback's failure.
+  const end = (settle: () => void) => {
+    if (closed) return;
+    closed = true;
+    signal?.removeEventListener("abort", abort);
+    try {
+      settle();
+    } catch {}
   };
 
-  if (signal) {
-    if (signal.aborted) {
-      isClosed = true;
-    } else {
-      signal.addEventListener("abort", onSignalAbort, { once: true });
-    }
-  }
-
-  const sseController: SSEController = {
+  const stream: SSEController = {
     get aborted() {
-      return isAborted;
+      return aborted;
     },
-    async write(message: SSEMessage | string): Promise<void> {
-      if (isClosed || isAborted || !streamController) {
-        return;
-      }
-      const text = formatSSE(message);
+    async write(message) {
+      if (closed) return;
       try {
-        streamController.enqueue(encoder.encode(text));
+        controller.enqueue(encoder.encode(formatSSE(message)));
       } catch {
-        triggerAbort();
+        abort();
       }
     },
-    close(): void {
-      if (isClosed) return;
-      isClosed = true;
-      if (signal) {
-        signal.removeEventListener("abort", onSignalAbort);
-      }
-      if (streamController) {
-        try {
-          streamController.close();
-        } catch {}
-      }
-    },
-    onAbort(listener: () => void): () => void {
-      if (isAborted) {
+    close: () => end(() => controller.close()),
+    onAbort(listener) {
+      if (aborted) {
         listener();
         return () => {};
       }
@@ -182,66 +148,31 @@ export function sse(
     },
   };
 
+  if (signal && !signal.aborted) {
+    signal.addEventListener("abort", abort, { once: true });
+  }
+
   const readable = new ReadableStream<Uint8Array>({
-    start(controller) {
-      streamController = controller;
+    start(streamController) {
+      controller = streamController;
+      // No abort event will fire for a signal that was aborted before construction.
+      if (aborted) streamController.close();
 
       try {
-        const result = callback(sseController);
-        if (result && typeof (result as any).then === "function") {
-          (result as Promise<void>).then(
-            () => {
-              if (!isClosed && !isAborted) {
-                sseController.close();
-              }
-            },
-            (err) => {
-              if (!isClosed && !isAborted) {
-                isClosed = true;
-                if (signal) {
-                  signal.removeEventListener("abort", onSignalAbort);
-                }
-                try {
-                  controller.error(err);
-                } catch {}
-              }
-            },
-          );
+        const result = callback(stream);
+        if (isThenable(result)) {
+          result.then(stream.close, (error) => end(() => controller.error(error)));
         }
-      } catch (err) {
-        if (!isClosed && !isAborted) {
-          isClosed = true;
-          if (signal) {
-            signal.removeEventListener("abort", onSignalAbort);
-          }
-          try {
-            controller.error(err);
-          } catch {}
-        }
+      } catch (error) {
+        end(() => controller.error(error));
       }
     },
-    cancel() {
-      triggerAbort();
-    },
+    cancel: abort,
   });
-
-  const headers = new Headers(init?.headers);
-  if (!headers.has("content-type")) {
-    headers.set("content-type", "text/event-stream; charset=utf-8");
-  }
-  if (!headers.has("cache-control")) {
-    headers.set("cache-control", "no-cache, no-transform");
-  }
-  if (!headers.has("connection")) {
-    headers.set("connection", "keep-alive");
-  }
-  if (!headers.has("x-accel-buffering")) {
-    headers.set("x-accel-buffering", "no");
-  }
 
   return new Response(readable, {
     ...init,
     status: init?.status ?? 200,
-    headers,
+    headers: withDefaultHeaders(init?.headers, SSE_HEADERS),
   });
 }

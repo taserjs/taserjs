@@ -375,12 +375,6 @@ importers:
       pathe:
         specifier: ^2.0.3
         version: 2.0.3
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
-      yargs:
-        specifier: ^18.1.0
-        version: 18.1.0
     devDependencies:
       '@taserjs/router':
         specifier: workspace:*
@@ -388,9 +382,6 @@ importers:
       '@taserjs/runtime':
         specifier: workspace:*
         version: link:../runtime
-      '@types/yargs':
-        specifier: ^17.0.35
-        version: 17.0.35
       publint:
         specifier: ^0.3.22
         version: 0.3.24
@@ -480,15 +471,12 @@ importers:
       '@taserjs/cli':
         specifier: workspace:^
         version: link:../cli
-      chokidar:
-        specifier: ^5.0.0
-        version: 5.0.0
+      '@taserjs/runtime':
+        specifier: workspace:^
+        version: link:../runtime
       pathe:
         specifier: ^2.0.3
         version: 2.0.3
-      srvx:
-        specifier: ^1.0.4
-        version: 1.0.4
       unplugin:
         specifier: ^2.3.11
         version: 2.3.11

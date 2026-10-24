@@ -1,267 +1,131 @@
-import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
-import { dirname, resolve } from "pathe";
+import { dirname } from "pathe";
 
-import {
-  resolveAppFile,
-  resolveImportExtension,
-  resolveOutputDir,
-  resolveRoutesDir,
-  type ResolvedTaserConfig,
-} from "./config.js";
+import { resolvePaths, type ResolvedTaserConfig } from "./config.js";
 import { formatRelativeImport } from "./paths.js";
-import {
-  scanRoutes,
-  type DiscoveredLayout,
-  type DiscoveredRoute,
-  type ScanResult,
-} from "./scanner.js";
+import { APP_STUB } from "./scaffold.js";
+import { scanRoutes, type DiscoveredLayout, type ScanResult } from "./scanner.js";
 
-export interface GenerateResult {
-  manifestPath: string;
-  manifestWritten: boolean;
-  content: string;
+const quote = JSON.stringify;
+
+type Node = string | Map<string, Node>;
+
+/** Prints nested maps as TypeScript object literals / object types; `sep` ends each entry. */
+function print(node: Node, sep: "," | ";", depth = 0): string {
+  if (typeof node === "string") return node;
+  if (node.size === 0) return "{}";
+  const pad = "  ".repeat(depth + 1);
+  const lines = [...node].map(
+    ([key, value]) => `${pad}${key}: ${print(value, sep, depth + 1)}${sep}`,
+  );
+  return `{\n${lines.join("\n")}\n${"  ".repeat(depth)}}`;
 }
 
-// In-memory content hash cache to prevent watch loop thrashing
-const contentHashCache = new Map<string, string>();
-
-function hashContent(content: string): string {
-  return createHash("sha256").update(content, "utf-8").digest("hex");
-}
-
-function safeWriteFile(filePath: string, content: string): boolean {
-  const hash = hashContent(content);
-  const cachedHash = contentHashCache.get(filePath);
-
-  if (cachedHash === hash) {
-    return false;
-  }
-
-  if (existsSync(filePath)) {
-    try {
-      const existing = readFileSync(filePath, "utf-8");
-      if (existing === content) {
-        contentHashCache.set(filePath, hash);
-        return false;
-      }
-    } catch {
-      // Ignore read errors and proceed to write
-    }
-  }
-
-  mkdirSync(dirname(filePath), { recursive: true });
-  writeFileSync(filePath, content, "utf-8");
-  contentHashCache.set(filePath, hash);
-  return true;
-}
-
-export function resolveLayoutsForRoute(
-  route: DiscoveredRoute,
+/**
+ * Layout ids that apply to `hierarchyKeys`, root first. Layouts attach to a hierarchy key
+ * (`""`, `admin`, `_auth/admin`); `selfId` skips a layout when resolving its own parents.
+ */
+function resolveLayoutIds(
+  hierarchyKeys: string[],
   layoutsBySegment: Map<string, DiscoveredLayout>,
+  selfId?: string,
 ): string[] {
-  const matchingLayoutIds: string[] = [];
-
-  for (const seg of route.segmentHierarchy) {
-    const layout = layoutsBySegment.get(seg);
-    if (layout) {
-      if (!matchingLayoutIds.includes(layout.layoutId)) {
-        matchingLayoutIds.push(layout.layoutId);
-      }
-    }
-  }
-
-  return matchingLayoutIds;
+  const ids = hierarchyKeys.flatMap((key) => layoutsBySegment.get(key)?.layoutId ?? []);
+  return [...new Set(ids)].filter((id) => id !== selfId);
 }
 
-function resolveParentLayoutsForLayout(
-  layout: DiscoveredLayout,
-  layoutsBySegment: Map<string, DiscoveredLayout>,
-): string[] {
-  if (layout.targetSegment === "" || layout.targetSegment === "$") {
-    return [];
-  }
-
-  const parts = layout.targetSegment.split("/");
-  const parentLayoutIds: string[] = [];
-
-  const rootLayout = layoutsBySegment.get("") ?? layoutsBySegment.get("$");
-  if (rootLayout && rootLayout.layoutId !== layout.layoutId) {
-    parentLayoutIds.push(rootLayout.layoutId);
-  }
-
-  let currentSegment = "";
-  for (let i = 0; i < parts.length - 1; i++) {
-    currentSegment = currentSegment ? `${currentSegment}/${parts[i]}` : parts[i]!;
-    const parentLayout = layoutsBySegment.get(currentSegment);
-    if (
-      parentLayout &&
-      parentLayout.layoutId !== layout.layoutId &&
-      !parentLayoutIds.includes(parentLayout.layoutId)
-    ) {
-      parentLayoutIds.push(parentLayout.layoutId);
-    }
-  }
-
-  return parentLayoutIds;
+function parentKeys(targetSegment: string): string[] {
+  if (!targetSegment) return [];
+  const ancestors = targetSegment.split("/").slice(0, -1);
+  return ["", ...ancestors.map((_, i) => ancestors.slice(0, i + 1).join("/"))];
 }
 
-export function generateManifestCode(
+export function renderManifest(
   scanResult: ScanResult,
   config: ResolvedTaserConfig,
   cwd: string = process.cwd(),
-): { manifestCode: string } {
-  const quote = config.formatting.quotes === "single" ? "'" : '"';
-  const ext = resolveImportExtension(config.extension);
-  const outputDirFull = resolveOutputDir(config, cwd);
-  const appFile = resolveAppFile(config, cwd);
-  const hasApp = existsSync(appFile);
+): string {
+  const { outputDir, appFile } = resolvePaths(config, cwd);
+  const importOf = (file: string) => quote(formatRelativeImport(outputDir, file, config.importExt));
+  const idList = (ids: string[]) => ids.map((id) => quote(id)).join(", ");
 
-  const appRelPath = hasApp ? formatRelativeImport(outputDirFull, appFile, ext) : "";
+  const { layouts, routes } = scanResult;
+  const layoutsBySegment = new Map(layouts.map((layout) => [layout.targetSegment, layout]));
+  const layoutIdent = (index: number) => `layout_${index}`;
 
-  // Group layouts by segment
-  const layoutsBySegment = new Map<string, DiscoveredLayout>();
-  for (const layout of scanResult.layouts) {
-    layoutsBySegment.set(layout.targetSegment, layout);
-  }
+  const imports = [
+    ...layouts.map((l, i) => `import ${layoutIdent(i)} from ${importOf(l.absolutePath)};`),
+    ...routes.map((r, i) => `import route_${i} from ${importOf(r.absolutePath)};`),
+  ];
 
-  const importLines: string[] = [];
-  const layoutIdentifierMap = new Map<string, string>(); // layoutId -> identifier
-  const routeIdentifierMap = new Map<DiscoveredRoute, string>();
-
-  // 1. Generate layout imports
-  scanResult.layouts.forEach((layout, idx) => {
-    const ident = `layout_${idx}`;
-    layoutIdentifierMap.set(layout.layoutId, ident);
-    const relPath = formatRelativeImport(outputDirFull, layout.absolutePath, ext);
-    importLines.push(`import ${ident} from ${quote}${relPath}${quote};`);
+  const layoutTree = new Map<string, Node>();
+  const layoutManifest = new Map<string, Node>();
+  const layoutHierarchy = new Map<string, Node>();
+  layouts.forEach((layout, i) => {
+    const id = quote(layout.layoutId);
+    const parents = resolveLayoutIds(
+      parentKeys(layout.targetSegment),
+      layoutsBySegment,
+      layout.layoutId,
+    );
+    layoutTree.set(id, `typeof ${layoutIdent(i)}`);
+    layoutManifest.set(id, layoutIdent(i));
+    layoutHierarchy.set(id, `readonly [${idList(parents)}]`);
   });
 
-  // 2. Generate route imports
-  scanResult.routes.forEach((route, idx) => {
-    const ident = `route_${idx}`;
-    routeIdentifierMap.set(route, ident);
-    const relPath = formatRelativeImport(outputDirFull, route.absolutePath, ext);
-    importLines.push(`import ${ident} from ${quote}${relPath}${quote};`);
+  const routeManifest = new Map<string, Node>();
+  const routeTypes = new Map<string, Node>();
+  routes.forEach((route, i) => {
+    const path = quote(route.canonicalPath);
+    const layoutIds = idList(resolveLayoutIds(route.segmentHierarchy, layoutsBySegment));
+    const methods = (routeManifest.get(path) ?? new Map()) as Map<string, Node>;
+    const methodTypes = (routeTypes.get(path) ?? new Map()) as Map<string, Node>;
+    methods.set(
+      route.method,
+      new Map<string, Node>([
+        ["layouts", `[${layoutIds}]`],
+        ["route", `route_${i}`],
+      ]),
+    );
+    methodTypes.set(route.method, new Map([["layouts", `readonly [${layoutIds}]`]]));
+    routeManifest.set(path, methods);
+    routeTypes.set(path, methodTypes);
   });
 
-  // 3. Build manifest layouts dictionary
-  const layoutEntries: string[] = [];
-  for (const layout of scanResult.layouts) {
-    const ident = layoutIdentifierMap.get(layout.layoutId)!;
-    layoutEntries.push(`    ${quote}${layout.layoutId}${quote}: ${ident},`);
-  }
+  const routePaths = [...routeTypes.keys()].join(" | ") || "string";
 
-  // 4. Group routes by canonical path
-  const routesByPath = new Map<string, DiscoveredRoute[]>();
-  for (const route of scanResult.routes) {
-    const list = routesByPath.get(route.canonicalPath) ?? [];
-    list.push(route);
-    routesByPath.set(route.canonicalPath, list);
-  }
+  return `// Generated by @taserjs/cli. Do not edit directly.
+import { createTaserApp } from "@taserjs/runtime";
+import taser from ${importOf(appFile)};
+${imports.map((line) => `${line}\n`).join("")}
+export type LayoutTree = ${print(layoutTree, ";")};
 
-  const routeEntries: string[] = [];
-  const routeByPathMethodEntries: string[] = [];
+export const layoutManifest = ${print(layoutManifest, ",")} as const;
 
-  for (const [canonicalPath, routes] of routesByPath.entries()) {
-    const methodEntries: string[] = [];
-    const dtsMethodEntries: string[] = [];
-
-    for (const route of routes) {
-      const ident = routeIdentifierMap.get(route)!;
-      const inheritedLayouts = resolveLayoutsForRoute(route, layoutsBySegment);
-      const layoutsStr = inheritedLayouts.map((lId) => `${quote}${lId}${quote}`).join(", ");
-
-      methodEntries.push(`      ${route.method}: {
-        layouts: [${layoutsStr}],
-        route: ${ident},
-      },`);
-
-      dtsMethodEntries.push(`      ${route.method}: {
-        layouts: readonly [${layoutsStr}];
-      };`);
-    }
-
-    routeEntries.push(`    ${quote}${canonicalPath}${quote}: {
-${methodEntries.join("\n")}
-    },`);
-
-    routeByPathMethodEntries.push(`    ${quote}${canonicalPath}${quote}: {
-${dtsMethodEntries.join("\n")}
-    };`);
-  }
-
-  const manifestImports = importLines.length > 0 ? `${importLines.join("\n")}\n\n` : "";
-
-  const appImport = hasApp ? `import taser from ${quote}${appRelPath}${quote};\n` : "";
-
-  const appCompilation = hasApp
-    ? `export const app = createTaserApp(routeManifest, taser);
-export default app;
-export const createApp = (overrideTaser?: typeof taser) =>
-  createTaserApp(routeManifest, overrideTaser ?? taser);`
-    : `export const app = createTaserApp(routeManifest);
-export default app;
-export const createApp = (overrideTaser?: TaserDefinition) =>
-  createTaserApp(routeManifest, overrideTaser);`;
-
-  const runtimeImports = hasApp
-    ? `import { createTaserApp } from "@taserjs/runtime";`
-    : `import { createTaserApp, type TaserDefinition } from "@taserjs/runtime";`;
-
-  // Build context type declaration without AST parsing
-  const contextDeclaration = hasApp
-    ? `export type AppContext = typeof taser.$Infer.Context;`
-    : `export type AppContext = {};`;
-
-  const uniquePaths = Array.from(new Set(scanResult.routes.map((r) => r.canonicalPath)));
-  const routePathUnion =
-    uniquePaths.length > 0 ? uniquePaths.map((p) => `${quote}${p}${quote}`).join(" | ") : "string";
-
-  const layoutHierarchyEntries: string[] = [];
-  const layoutTreeEntries: string[] = [];
-  for (let i = 0; i < scanResult.layouts.length; i++) {
-    const layout = scanResult.layouts[i]!;
-    const parentLayoutIds = resolveParentLayoutsForLayout(layout, layoutsBySegment);
-    const parentsStr = parentLayoutIds.map((lId) => `${quote}${lId}${quote}`).join(", ");
-    layoutHierarchyEntries.push(`  ${quote}${layout.layoutId}${quote}: readonly [${parentsStr}];`);
-    layoutTreeEntries.push(`  ${quote}${layout.layoutId}${quote}: typeof layout_${i};`);
-  }
-
-  const manifestCode = `// Generated by @taserjs/cli. Do not edit directly.
-${runtimeImports}
-${appImport}${manifestImports}export type LayoutTree = {
-${layoutTreeEntries.join("\n")}
-};
-
-export const layoutManifest = {
-${layoutEntries.join("\n")}
-} as const;
-
-export const routeManifest = {
-  layouts: layoutManifest,
-  routes: {
-${routeEntries.join("\n")}
-  },
-} as const;
+export const routeManifest = ${print(
+    new Map<string, Node>([
+      ["layouts", "layoutManifest"],
+      ["routes", routeManifest],
+    ]),
+    ",",
+  )} as const;
 
 export type RouteManifest = typeof routeManifest;
 export type AppManifest = RouteManifest;
 
-${appCompilation}
+export const app = createTaserApp(routeManifest, taser);
+export default app;
+export const createApp = (overrideTaser?: typeof taser) =>
+  createTaserApp(routeManifest, overrideTaser ?? taser);
 
-export type RoutePath = ${routePathUnion};
+export type RoutePath = ${routePaths};
 
-export type LayoutHierarchy = {
-${layoutHierarchyEntries.join("\n")}
-};
+export type LayoutHierarchy = ${print(layoutHierarchy, ";")};
 
-export type RouteByPathMethod = {
-${routeByPathMethodEntries.join("\n")}
-};
+export type RouteByPathMethod = ${print(routeTypes, ";")};
 
-${contextDeclaration}
+export type AppContext = typeof taser.$Infer.Context;
 
 declare module "@taserjs/router" {
   interface RouterRegister {
@@ -273,8 +137,19 @@ declare module "@taserjs/router" {
   }
 }
 `;
+}
 
-  return { manifestCode };
+function writeIfChanged(filePath: string, content: string): boolean {
+  if (existsSync(filePath) && readFileSync(filePath, "utf-8") === content) return false;
+  mkdirSync(dirname(filePath), { recursive: true });
+  writeFileSync(filePath, content, "utf-8");
+  return true;
+}
+
+export interface GenerateResult {
+  manifestPath: string;
+  manifestWritten: boolean;
+  content: string;
 }
 
 export function generateManifest(
@@ -282,30 +157,25 @@ export function generateManifest(
   config: ResolvedTaserConfig,
   cwd: string = process.cwd(),
 ): GenerateResult {
-  if (scanResult.diagnostics.length > 0) {
-    const errors = scanResult.diagnostics.map((d) => `  - ${d.filePath}: ${d.message}`).join("\n");
-    throw new Error(
-      `Build failed with ${scanResult.diagnostics.length} diagnostic error(s):\n${errors}`,
-    );
+  const { diagnostics } = scanResult;
+  if (diagnostics.length > 0) {
+    const errors = diagnostics.map((d) => `  - ${d.filePath}: ${d.message}`).join("\n");
+    throw new Error(`Build failed with ${diagnostics.length} diagnostic error(s):\n${errors}`);
   }
 
-  const { manifestCode } = generateManifestCode(scanResult, config, cwd);
-
-  const outputDirFull = resolveOutputDir(config, cwd);
-  const manifestPath = resolve(outputDirFull, "routes.gen.ts");
-
-  const manifestWritten = safeWriteFile(manifestPath, manifestCode);
-
+  const content = renderManifest(scanResult, config, cwd);
+  const { manifestFile } = resolvePaths(config, cwd);
   return {
-    manifestPath,
-    manifestWritten,
-    content: manifestCode,
+    manifestPath: manifestFile,
+    manifestWritten: writeIfChanged(manifestFile, content),
+    content,
   };
 }
 
 export interface ExecuteGenerateOptions {
   cwd?: string | undefined;
   config: ResolvedTaserConfig;
+  /** Fill empty route and layout files with starter stubs (dev and watch mode). */
   scaffold?: boolean | undefined;
 }
 
@@ -315,14 +185,14 @@ export interface ExecuteGenerateResult {
 }
 
 /**
- * Standardized orchestrator for scanning routes and generating the routes manifest.
- * Returns null (after warning) when the routes directory does not exist, so callers
- * never overwrite an existing manifest with an empty one.
+ * Scans routes and writes the manifest. Returns null (after warning) when the routes directory
+ * is missing so callers never overwrite an existing manifest with an empty one.
  */
 export function executeGenerate(options: ExecuteGenerateOptions): ExecuteGenerateResult | null {
-  const { config } = options;
+  const { config, scaffold } = options;
   const cwd = options.cwd ?? process.cwd();
-  const routesDir = resolveRoutesDir(config, cwd);
+  const { routesDir, appFile } = resolvePaths(config, cwd);
+
   if (!existsSync(routesDir)) {
     console.warn(
       `[taserjs] Routes directory not found: ${routesDir}. Skipping manifest generation.`,
@@ -330,12 +200,11 @@ export function executeGenerate(options: ExecuteGenerateOptions): ExecuteGenerat
     return null;
   }
 
-  const scanResult = scanRoutes({
-    routesDir,
-    cwd,
-    scaffold: options.scaffold,
-    formatting: config.formatting,
-  });
-  const generateResult = generateManifest(scanResult, config, cwd);
-  return { scanResult, generateResult };
+  if (!existsSync(appFile)) {
+    mkdirSync(dirname(appFile), { recursive: true });
+    writeFileSync(appFile, APP_STUB, "utf-8");
+  }
+
+  const scanResult = scanRoutes({ routesDir, cwd, scaffold });
+  return { scanResult, generateResult: generateManifest(scanResult, config, cwd) };
 }
