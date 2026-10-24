@@ -1,11 +1,11 @@
 ---
-"@taserjs/cli": minor
-"@taserjs/plugin": minor
-"@taserjs/runtime": minor
-"@taserjs/utils": minor
-"@taserjs/router": minor
-"@taserjs/client": minor
-"create-taserjs": minor
+"@taserjs/cli": patch
+"@taserjs/plugin": patch
+"@taserjs/runtime": patch
+"@taserjs/utils": patch
+"@taserjs/router": patch
+"@taserjs/client": patch
+"create-taserjs": patch
 ---
 
 refactor: Clean refactor of the dev tooling (cli, plugin, utils)
