@@ -11,9 +11,18 @@ export interface NextTaserOptions {
 // Next evaluates `next.config` repeatedly within one process; one watcher is enough.
 let routesWatcher: ReturnType<typeof watchRoutes> | undefined;
 
+function generateLoggingErrors(options: Parameters<typeof executeGenerate>[0]): void {
+  try {
+    executeGenerate(options);
+  } catch (error) {
+    console.error(`[taserjs/next] Route generation error: ${(error as Error).message}`);
+  }
+}
+
 async function generateAndWatch(cwd: string, configFile: string | undefined): Promise<void> {
   const config = await loadConfig(cwd, configFile);
-  executeGenerate({ cwd, config });
+  // A broken route must not prevent the watcher from starting, or fixing it would never regenerate.
+  generateLoggingErrors({ cwd, config });
 
   if (process.env.NODE_ENV === "production" || routesWatcher) return;
 
@@ -21,13 +30,7 @@ async function generateAndWatch(cwd: string, configFile: string | undefined): Pr
   routesWatcher = watchRoutes(
     config,
     cwd,
-    () => {
-      try {
-        executeGenerate({ cwd, config, scaffold: true });
-      } catch (error) {
-        console.error(`[taserjs/next] Route generation error: ${(error as Error).message}`);
-      }
-    },
+    () => generateLoggingErrors({ cwd, config, scaffold: true }),
     { poll: true },
   );
 }

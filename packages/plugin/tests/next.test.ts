@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -46,6 +46,23 @@ describe("@taserjs/plugin next adapter", () => {
     expect(userWebpack).toHaveBeenCalledOnce();
     expect(webpackConfig.touched).toBe(true);
     expect(webpackConfig.plugins).toHaveLength(2);
+  });
+
+  it("keeps watching after a failed first generation so fixing the route regenerates", async () => {
+    const brokenRoute = join(tempDir, "src", "server", "routes", "ping.get.ts");
+    const validSource = readFileSync(brokenRoute, "utf-8");
+    writeFileSync(brokenRoute, "export const notARoute = 1;\n");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    createTaser({ cwd: tempDir })();
+    await vi.waitFor(() => expect(consoleError).toHaveBeenCalled());
+    expect(existsSync(manifestFile)).toBe(false);
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    writeFileSync(brokenRoute, validSource);
+    await vi.waitFor(() => expect(existsSync(manifestFile)).toBe(true), { timeout: 5000 });
+
+    consoleError.mockRestore();
   });
 
   it("injects the webpack plugin when the user has no webpack hook", () => {
