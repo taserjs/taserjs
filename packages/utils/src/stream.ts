@@ -155,6 +155,8 @@ export function sse(
   const readable = new ReadableStream<Uint8Array>({
     start(streamController) {
       controller = streamController;
+      // No abort event will fire for a signal that was aborted before construction.
+      if (aborted) streamController.close();
 
       try {
         const result = callback(stream);
