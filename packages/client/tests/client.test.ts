@@ -76,7 +76,7 @@ describe("createClient unit tests", () => {
     await anyClient.$get();
 
     const [url] = fetchMock.mock.calls[0] as unknown as FetchCall;
-    expect(url).toBe("http://localhost:3000/");
+    expect(url).toBe("http://localhost:3000");
   });
 
   it("handles FormData and formBody helper without forcing application/json", async () => {

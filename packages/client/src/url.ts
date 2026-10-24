@@ -30,10 +30,8 @@ export function joinUrl(baseUrl: string, segments: string[]): string {
     .filter((s) => s.length > 0)
     .join("/");
 
-  if (path === "") {
-    return base === "" ? "/" : `${base}/`;
-  }
-  return base === "" ? `/${path}` : `${base}/${path}`;
+  // An empty result would be a request to the current page, so fall back to the root.
+  return `${base}${path === "" ? "" : `/${path}`}` || "/";
 }
 
 export function applyPathParams(

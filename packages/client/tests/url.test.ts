@@ -38,8 +38,10 @@ describe("url utils", () => {
   });
 
   it("joins base url and segments cleanly", () => {
-    expect(joinUrl("http://localhost:3000/api", [])).toBe("http://localhost:3000/api/");
-    expect(joinUrl("http://localhost:3000/api/", [])).toBe("http://localhost:3000/api/");
+    expect(joinUrl("http://localhost:3000/api", [])).toBe("http://localhost:3000/api");
+    expect(joinUrl("http://localhost:3000/api/", [])).toBe("http://localhost:3000/api");
+    expect(joinUrl("http://localhost:3000", [])).toBe("http://localhost:3000");
+    expect(joinUrl("/api", [])).toBe("/api");
     expect(joinUrl("http://localhost:3000/api", ["users"])).toBe("http://localhost:3000/api/users");
     expect(joinUrl("http://localhost:3000/api/", ["users"])).toBe(
       "http://localhost:3000/api/users",
