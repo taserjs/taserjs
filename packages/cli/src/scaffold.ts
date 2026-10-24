@@ -1,51 +1,27 @@
-import type { TaserFormattingConfig } from "./config.js";
-
-export interface GenerateRouteStubOptions {
-  method: string;
-  canonicalPath: string;
-  formatting?: TaserFormattingConfig | undefined;
-}
-
-export interface GenerateLayoutStubOptions {
-  layoutId: string;
-  formatting?: TaserFormattingConfig | undefined;
-}
-
-export function generateRouteStub({
-  method,
-  canonicalPath,
-  formatting,
-}: GenerateRouteStubOptions): string {
-  const quote = formatting?.quotes === "single" ? "'" : '"';
-  const semi = formatting?.semi === false ? "" : ";";
+export function routeStub(method: string, canonicalPath: string): string {
   const verb = method.toLowerCase();
+  const path = JSON.stringify(canonicalPath);
+  const call = verb === "any" ? `t.any(${path}, ["GET", "POST"])` : `t.${verb}(${path})`;
 
-  const callExpr =
-    verb === "any"
-      ? `t.any(${quote}${canonicalPath}${quote}, [${quote}GET${quote}, ${quote}POST${quote}])`
-      : `t.${verb}(${quote}${canonicalPath}${quote})`;
+  return `import { t } from "@taserjs/router";
+import { json } from "@taserjs/router/reply";
 
-  return [
-    `import { t } from ${quote}@taserjs/router${quote}${semi}`,
-    `import { json } from ${quote}@taserjs/router/reply${quote}${semi}`,
-    ``,
-    `export default ${callExpr}.handler(async () => {`,
-    `  return json({ message: ${quote}Hello from ${canonicalPath}${quote} })${semi}`,
-    `})${semi}`,
-    ``,
-  ].join("\n");
+export default ${call}.handler(async () => {
+  return json({ message: ${JSON.stringify(`Hello from ${canonicalPath}`)} });
+});
+`;
 }
 
-export function generateLayoutStub({ layoutId, formatting }: GenerateLayoutStubOptions): string {
-  const quote = formatting?.quotes === "single" ? "'" : '"';
-  const semi = formatting?.semi === false ? "" : ";";
+export function layoutStub(layoutId: string): string {
+  return `import { t } from "@taserjs/router";
 
-  return [
-    `import { t } from ${quote}@taserjs/router${quote}${semi}`,
-    ``,
-    `export default t.layout(${quote}${layoutId}${quote}).use(async ({ req, ctx, state }, next) => {`,
-    `  return await next()${semi}`,
-    `})${semi}`,
-    ``,
-  ].join("\n");
+export default t.layout(${JSON.stringify(layoutId)}).use(async ({ req, ctx, state }, next) => {
+  return await next();
+});
+`;
 }
+
+export const APP_STUB = `import { defineTaser } from "@taserjs/router";
+
+export default defineTaser();
+`;

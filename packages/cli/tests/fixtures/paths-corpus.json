@@ -1,0 +1,356 @@
+{
+  "index.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/",
+    "hierarchySegments": ["", "index"]
+  },
+  "users.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/users",
+    "hierarchySegments": ["", "users"]
+  },
+  "users/index.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/users",
+    "hierarchySegments": ["", "users", "users/index"]
+  },
+  "users/$id.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/users/:id",
+    "hierarchySegments": ["", "users", "users/$id"]
+  },
+  "users/$id/posts.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/users/:id/posts",
+    "hierarchySegments": ["", "users", "users/$id", "users/$id/posts"]
+  },
+  "users/{-$id}.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/users/:id?",
+    "hierarchySegments": ["", "users", "users/{-$id}"]
+  },
+  "users/{-$a}/{-$b}.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/users/:a?/:b?",
+    "hierarchySegments": ["", "users", "users/{-$a}", "users/{-$a}/{-$b}"]
+  },
+  "posts/$category/{-$slug}.post.ts": {
+    "verb": "post",
+    "canonicalPath": "/posts/:category/:slug?",
+    "hierarchySegments": ["", "posts", "posts/$category", "posts/$category/{-$slug}"]
+  },
+  "$.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/*",
+    "hierarchySegments": ["", "$"]
+  },
+  "files/$.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/files/*",
+    "hierarchySegments": ["", "files", "files/$"]
+  },
+  "files/$.all.ts": {
+    "verb": "all",
+    "canonicalPath": "/files/*",
+    "hierarchySegments": ["", "files", "files/$"]
+  },
+  "sitemap[.]xml.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/sitemap.xml",
+    "hierarchySegments": ["", "sitemap[.]xml"]
+  },
+  "a.b.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/a/b",
+    "hierarchySegments": ["", "a", "a/b"]
+  },
+  "a.b.c.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/a/b/c",
+    "hierarchySegments": ["", "a", "a/b", "a/b/c"]
+  },
+  "a[.]b.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/a.b",
+    "hierarchySegments": ["", "a[.]b"]
+  },
+  "task[_].get.ts": {
+    "verb": "get",
+    "canonicalPath": "/task_",
+    "hierarchySegments": ["", "task[_]"]
+  },
+  "task[_]_.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/task_",
+    "hierarchySegments": []
+  },
+  "[_]private.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/_private",
+    "hierarchySegments": ["", "[_]private"]
+  },
+  "_auth/login.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/login",
+    "hierarchySegments": ["", "_auth", "_auth/login", "login"]
+  },
+  "_auth/_inner/dash.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/dash",
+    "hierarchySegments": ["", "_auth", "_auth/_inner", "_auth/_inner/dash", "dash"]
+  },
+  "_auth.dash.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/dash",
+    "hierarchySegments": ["", "_auth", "_auth/dash", "dash"]
+  },
+  "_public/index.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/",
+    "hierarchySegments": ["", "_public", "_public/index", "index"]
+  },
+  "admin/index_.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/admin",
+    "hierarchySegments": [""]
+  },
+  "index_.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/",
+    "hierarchySegments": []
+  },
+  "health_.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/health",
+    "hierarchySegments": []
+  },
+  "$_.all.ts": {
+    "verb": "all",
+    "canonicalPath": "/*",
+    "hierarchySegments": []
+  },
+  "posts_.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/posts",
+    "hierarchySegments": []
+  },
+  "posts/index_.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/posts",
+    "hierarchySegments": [""]
+  },
+  "posts/$id_.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/posts/:id",
+    "hierarchySegments": ["", "posts"]
+  },
+  "posts_/$id.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/posts/:id",
+    "hierarchySegments": ["", "posts_", "posts_/$id"]
+  },
+  "admin/posts/$id_.delete.ts": {
+    "verb": "delete",
+    "canonicalPath": "/admin/posts/:id",
+    "hierarchySegments": ["", "admin", "admin/posts"]
+  },
+  "admin.users.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/admin/users",
+    "hierarchySegments": ["", "admin", "admin/users"]
+  },
+  "admin.users_.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/admin/users",
+    "hierarchySegments": ["", "admin"]
+  },
+  "_auth/admin/users_.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/admin/users",
+    "hierarchySegments": ["", "_auth", "_auth/admin", "admin"]
+  },
+  "_auth/index_.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/",
+    "hierarchySegments": ["_auth", "_auth/index"]
+  },
+  "_auth_/x.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/x",
+    "hierarchySegments": ["", "_auth_", "_auth_/x", "x"]
+  },
+  "a/b/c/d.query.ts": {
+    "verb": "query",
+    "canonicalPath": "/a/b/c/d",
+    "hierarchySegments": ["", "a", "a/b", "a/b/c", "a/b/c/d"]
+  },
+  "a/b/c/d.options.ts": {
+    "verb": "options",
+    "canonicalPath": "/a/b/c/d",
+    "hierarchySegments": ["", "a", "a/b", "a/b/c", "a/b/c/d"]
+  },
+  "nested/deep/$x/$y.patch.ts": {
+    "verb": "patch",
+    "canonicalPath": "/nested/deep/:x/:y",
+    "hierarchySegments": ["", "nested", "nested/deep", "nested/deep/$x", "nested/deep/$x/$y"]
+  },
+  "dotted.name.$id.get.ts": {
+    "verb": "get",
+    "canonicalPath": "/dotted/name/:id",
+    "hierarchySegments": ["", "dotted", "dotted/name", "dotted/name/$id"]
+  },
+  "admin.ts": {
+    "layout": {
+      "layoutId": "/admin/*",
+      "targetSegment": "admin",
+      "isSibling": true
+    },
+    "url": {
+      "canonicalPath": "/admin",
+      "hierarchySegments": ["", "admin"]
+    }
+  },
+  "admin/$.ts": {
+    "layout": {
+      "layoutId": "/admin/*",
+      "targetSegment": "admin",
+      "isSibling": false
+    },
+    "url": {
+      "canonicalPath": "/admin/*",
+      "hierarchySegments": ["", "admin", "admin/$"]
+    }
+  },
+  "$.ts": {
+    "layout": {
+      "layoutId": "/*",
+      "targetSegment": "",
+      "isSibling": false
+    },
+    "url": {
+      "canonicalPath": "/*",
+      "hierarchySegments": ["", "$"]
+    }
+  },
+  "_auth.ts": {
+    "layout": {
+      "layoutId": "/_auth/*",
+      "targetSegment": "_auth",
+      "isSibling": true
+    },
+    "url": {
+      "canonicalPath": "/",
+      "hierarchySegments": ["", "_auth"]
+    }
+  },
+  "_auth/$.ts": {
+    "layout": {
+      "layoutId": "/_auth/*",
+      "targetSegment": "_auth",
+      "isSibling": false
+    },
+    "url": {
+      "canonicalPath": "/*",
+      "hierarchySegments": ["", "_auth", "_auth/$", "$"]
+    }
+  },
+  "_public.ts": {
+    "layout": {
+      "layoutId": "/_public/*",
+      "targetSegment": "_public",
+      "isSibling": true
+    },
+    "url": {
+      "canonicalPath": "/",
+      "hierarchySegments": ["", "_public"]
+    }
+  },
+  "admin/users.ts": {
+    "layout": {
+      "layoutId": "/admin/users/*",
+      "targetSegment": "admin/users",
+      "isSibling": true
+    },
+    "url": {
+      "canonicalPath": "/admin/users",
+      "hierarchySegments": ["", "admin", "admin/users"]
+    }
+  },
+  "admin/users/$.ts": {
+    "layout": {
+      "layoutId": "/admin/users/*",
+      "targetSegment": "admin/users",
+      "isSibling": false
+    },
+    "url": {
+      "canonicalPath": "/admin/users/*",
+      "hierarchySegments": ["", "admin", "admin/users", "admin/users/$"]
+    }
+  },
+  "admin/_inner.ts": {
+    "layout": {
+      "layoutId": "/admin/_inner/*",
+      "targetSegment": "admin/_inner",
+      "isSibling": true
+    },
+    "url": {
+      "canonicalPath": "/admin",
+      "hierarchySegments": ["", "admin", "admin/_inner"]
+    }
+  },
+  "$id.ts": {
+    "layout": {
+      "layoutId": "/:id/*",
+      "targetSegment": "$id",
+      "isSibling": true
+    },
+    "url": {
+      "canonicalPath": "/:id",
+      "hierarchySegments": ["", "$id"]
+    }
+  },
+  "users/$id.ts": {
+    "layout": {
+      "layoutId": "/users/:id/*",
+      "targetSegment": "users/$id",
+      "isSibling": true
+    },
+    "url": {
+      "canonicalPath": "/users/:id",
+      "hierarchySegments": ["", "users", "users/$id"]
+    }
+  },
+  "users/$id/$.ts": {
+    "layout": {
+      "layoutId": "/users/:id/*",
+      "targetSegment": "users/$id",
+      "isSibling": false
+    },
+    "url": {
+      "canonicalPath": "/users/:id/*",
+      "hierarchySegments": ["", "users", "users/$id", "users/$id/$"]
+    }
+  },
+  "sitemap[.]xml.ts": {
+    "layout": {
+      "layoutId": "/sitemap.xml/*",
+      "targetSegment": "sitemap[.]xml",
+      "isSibling": true
+    },
+    "url": {
+      "canonicalPath": "/sitemap.xml",
+      "hierarchySegments": ["", "sitemap[.]xml"]
+    }
+  },
+  "x[_].ts": {
+    "layout": {
+      "layoutId": "/x_/*",
+      "targetSegment": "x[_]",
+      "isSibling": true
+    },
+    "url": {
+      "canonicalPath": "/x_",
+      "hierarchySegments": ["", "x[_]"]
+    }
+  }
+}

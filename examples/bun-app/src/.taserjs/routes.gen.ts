@@ -4,13 +4,9 @@ import taser from "../taser.js";
 import route_0 from "../routes/health.get.js";
 import route_1 from "../routes/index.get.js";
 
-export type LayoutTree = {
+export type LayoutTree = {};
 
-};
-
-export const layoutManifest = {
-
-} as const;
+export const layoutManifest = {} as const;
 
 export const routeManifest = {
   layouts: layoutManifest,
@@ -40,21 +36,19 @@ export const createApp = (overrideTaser?: typeof taser) =>
 
 export type RoutePath = "/health" | "/";
 
-export type LayoutHierarchy = {
-
-};
+export type LayoutHierarchy = {};
 
 export type RouteByPathMethod = {
-    "/health": {
-      GET: {
-        layouts: readonly [];
-      };
+  "/health": {
+    GET: {
+      layouts: readonly [];
     };
-    "/": {
-      GET: {
-        layouts: readonly [];
-      };
+  };
+  "/": {
+    GET: {
+      layouts: readonly [];
     };
+  };
 };
 
 export type AppContext = typeof taser.$Infer.Context;

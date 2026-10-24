@@ -26,100 +26,15 @@
   ],
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "default": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      }
-    },
-    "./vite": {
-      "import": {
-        "types": "./dist/vite.d.ts",
-        "default": "./dist/vite.js"
-      },
-      "default": {
-        "types": "./dist/vite.d.ts",
-        "default": "./dist/vite.js"
-      }
-    },
-    "./rollup": {
-      "import": {
-        "types": "./dist/rollup.d.ts",
-        "default": "./dist/rollup.js"
-      },
-      "default": {
-        "types": "./dist/rollup.d.ts",
-        "default": "./dist/rollup.js"
-      }
-    },
-    "./rolldown": {
-      "import": {
-        "types": "./dist/rolldown.d.ts",
-        "default": "./dist/rolldown.js"
-      },
-      "default": {
-        "types": "./dist/rolldown.d.ts",
-        "default": "./dist/rolldown.js"
-      }
-    },
-    "./webpack": {
-      "import": {
-        "types": "./dist/webpack.d.ts",
-        "default": "./dist/webpack.js"
-      },
-      "default": {
-        "types": "./dist/webpack.d.ts",
-        "default": "./dist/webpack.js"
-      }
-    },
-    "./rspack": {
-      "import": {
-        "types": "./dist/rspack.d.ts",
-        "default": "./dist/rspack.js"
-      },
-      "default": {
-        "types": "./dist/rspack.d.ts",
-        "default": "./dist/rspack.js"
-      }
-    },
-    "./esbuild": {
-      "import": {
-        "types": "./dist/esbuild.d.ts",
-        "default": "./dist/esbuild.js"
-      },
-      "default": {
-        "types": "./dist/esbuild.d.ts",
-        "default": "./dist/esbuild.js"
-      }
-    },
-    "./nitro": {
-      "import": {
-        "types": "./dist/nitro.d.ts",
-        "default": "./dist/nitro.js"
-      },
-      "default": {
-        "types": "./dist/nitro.d.ts",
-        "default": "./dist/nitro.js"
-      }
-    },
-    "./next": {
-      "import": {
-        "types": "./dist/next.d.ts",
-        "default": "./dist/next.js"
-      },
-      "default": {
-        "types": "./dist/next.d.ts",
-        "default": "./dist/next.js"
-      }
-    },
+    "./vite": "./dist/vite.js",
+    "./rollup": "./dist/rollup.js",
+    "./rolldown": "./dist/rolldown.js",
+    "./webpack": "./dist/webpack.js",
+    "./rspack": "./dist/rspack.js",
+    "./esbuild": "./dist/esbuild.js",
+    "./nitro": "./dist/nitro.js",
+    "./next": "./dist/next.js",
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -136,9 +51,8 @@
   },
   "dependencies": {
     "@taserjs/cli": "workspace:^",
-    "chokidar": "^5.0.0",
+    "@taserjs/runtime": "workspace:^",
     "pathe": "^2.0.3",
-    "srvx": "^1.0.4",
     "unplugin": "^2.3.11"
   },
   "devDependencies": {

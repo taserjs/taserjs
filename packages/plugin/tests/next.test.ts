@@ -2,76 +2,55 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  closeTurbopackWatcher,
-  createTaser,
-  runNextTaserGeneration,
-  withTaser,
-} from "../src/next.js";
+import { closeTaserWatcher, createTaser } from "../src/next.js";
 
 describe("@taserjs/plugin next adapter", () => {
   let tempDir: string;
-  let serverDir: string;
-  let routesDir: string;
+  let manifestFile: string;
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "taser-next-test-"));
-    serverDir = join(tempDir, "src", "server");
-    routesDir = join(serverDir, "routes");
+    const routesDir = join(tempDir, "src", "server", "routes");
+    manifestFile = join(tempDir, "src", "server", ".taserjs", "routes.gen.ts");
     mkdirSync(routesDir, { recursive: true });
 
     writeFileSync(
       join(tempDir, "taserjs.config.ts"),
-      `export default {
-  serverDir: "src/server",
-  routesDir: "routes",
-  outputDir: ".taserjs",
-  app: "taser.ts",
-};
-`,
-      "utf-8",
+      'export default { serverDir: "src/server" };\n',
     );
-
     writeFileSync(
       join(routesDir, "ping.get.ts"),
       'import { t } from "@taserjs/router";\nexport default t.get("/ping").handler(() => Response.json({ ping: "pong" }));\n',
-      "utf-8",
     );
   });
 
   afterEach(async () => {
-    await closeTurbopackWatcher();
-    try {
-      rmSync(tempDir, { recursive: true, force: true });
-    } catch {}
+    await closeTaserWatcher();
+    rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it("exports createTaser and withTaser", () => {
-    expect(typeof createTaser).toBe("function");
-    expect(typeof withTaser).toBe("function");
-  });
-
-  it("executes route generation and injects webpack plugin", async () => {
-    await runNextTaserGeneration(tempDir);
-    expect(existsSync(join(serverDir, ".taserjs", "routes.gen.ts"))).toBe(true);
-
-    const withTaserWrapper = createTaser({ cwd: tempDir });
-    const originalConfig = {
+  it("generates the manifest on config load and keeps the user's config", async () => {
+    const userWebpack = vi.fn((config: any) => ({ ...config, touched: true }));
+    const enhanced: any = createTaser({ cwd: tempDir })({
       reactStrictMode: true,
-      webpack(config: any) {
-        return config;
-      },
-    };
+      webpack: userWebpack,
+    });
 
-    const enhanced = withTaserWrapper(originalConfig);
+    await vi.waitFor(() => expect(existsSync(manifestFile)).toBe(true));
     expect(enhanced.reactStrictMode).toBe(true);
-    expect(typeof enhanced.webpack).toBe("function");
+    expect(enhanced.turbopack).toEqual({});
 
-    const mockWebpackConfig: any = { plugins: [] };
-    const resultWebpack = enhanced.webpack(mockWebpackConfig);
+    const webpackConfig = enhanced.webpack({ plugins: ["existing"] }, { dev: true });
+    expect(userWebpack).toHaveBeenCalledOnce();
+    expect(webpackConfig.touched).toBe(true);
+    expect(webpackConfig.plugins).toHaveLength(2);
+  });
 
-    expect(resultWebpack.plugins.length).toBeGreaterThan(0);
+  it("injects the webpack plugin when the user has no webpack hook", () => {
+    const enhanced: any = createTaser({ cwd: tempDir })();
+
+    expect(enhanced.webpack({}, {}).plugins).toHaveLength(1);
   });
 });

@@ -1,114 +1,70 @@
-import { existsSync } from "node:fs";
-
-import { executeGenerate, loadConfig, resolveRoutesDir } from "@taserjs/cli";
-import { watch, type FSWatcher } from "chokidar";
+import { executeGenerate, loadConfig, watchRoutes } from "@taserjs/cli";
 import { resolve } from "pathe";
 
-import { taserPlugin } from "./index.js";
+import { taserPlugin } from "./plugin.js";
 
 export interface NextTaserOptions {
   cwd?: string | undefined;
   config?: string | undefined;
 }
 
-let turbopackWatcher: FSWatcher | null = null;
+// Next evaluates `next.config` repeatedly within one process; one watcher is enough.
+let routesWatcher: ReturnType<typeof watchRoutes> | undefined;
 
-export async function runNextTaserGeneration(
-  cwd: string,
-  options?: NextTaserOptions,
-): Promise<void> {
-  const config = await loadConfig(cwd, options?.config);
+async function generateAndWatch(cwd: string, configFile: string | undefined): Promise<void> {
+  const config = await loadConfig(cwd, configFile);
   executeGenerate({ cwd, config });
+
+  if (process.env.NODE_ENV === "production" || routesWatcher) return;
+
+  // Turbopack never runs webpack plugins and native file events are unreliable under it, so poll.
+  routesWatcher = watchRoutes(
+    config,
+    cwd,
+    () => {
+      try {
+        executeGenerate({ cwd, config, scaffold: true });
+      } catch (error) {
+        console.error(`[taserjs/next] Route generation error: ${(error as Error).message}`);
+      }
+    },
+    { poll: true },
+  );
 }
 
-export async function startTurbopackWatcher(
-  cwd: string,
-  options?: NextTaserOptions,
-): Promise<FSWatcher | null> {
-  if (turbopackWatcher) {
-    return turbopackWatcher;
-  }
-
-  const config = await loadConfig(cwd, options?.config);
-  const routesDir = resolveRoutesDir(config, cwd);
-
-  if (existsSync(routesDir)) {
-    turbopackWatcher = watch([routesDir], {
-      ignoreInitial: true,
-      usePolling: true,
-      interval: 100,
-      ignored: [/(^|[/\\])\../, /(^|[/\\])-/, /node_modules/, /\.taserjs/],
-    });
-
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    turbopackWatcher.on("all", () => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        executeGenerate({
-          cwd,
-          config,
-          scaffold: true,
-        });
-      }, 50);
-    });
-  }
-
-  return turbopackWatcher;
-}
-
-export function closeTurbopackWatcher(): Promise<void> | void {
-  if (turbopackWatcher) {
-    const p = turbopackWatcher.close();
-    turbopackWatcher = null;
-    return p;
-  }
+export async function closeTaserWatcher(): Promise<void> {
+  const watcher = routesWatcher;
+  routesWatcher = undefined;
+  await watcher?.close();
 }
 
 /**
- * Higher-order Next.js configuration wrapper for Taser.js.
- * Supports both Webpack and Turbopack dev/build flows.
+ * Next.js config wrapper that keeps the route manifest fresh under both Turbopack and webpack.
+ *
+ * Config load generates the manifest and (outside production) starts the watcher for Turbopack.
+ * The webpack plugin additionally guarantees the manifest exists before webpack compiles,
+ * which the asynchronous generation at config load cannot promise.
  */
-export function createTaser(pluginOptions: NextTaserOptions = {}) {
+export function createTaser(options: NextTaserOptions = {}) {
   return function withTaser<TNextConfig extends Record<string, any>>(
     nextConfig: TNextConfig = {} as TNextConfig,
   ): TNextConfig {
-    const cwd = pluginOptions.cwd ? resolve(pluginOptions.cwd) : process.cwd();
-    const nextPluginOptions = {
-      cwd,
-      ...(pluginOptions.config ? { config: pluginOptions.config } : {}),
-    };
+    const cwd = options.cwd ? resolve(options.cwd) : process.cwd();
+    const pluginOptions = { cwd, ...(options.config ? { config: options.config } : {}) };
 
-    // 1. Trigger initial generation
-    runNextTaserGeneration(cwd, nextPluginOptions).catch((err) => {
-      console.error(`[taserjs/next] Route generation error: ${err.message}`);
+    generateAndWatch(cwd, options.config).catch((error: Error) => {
+      console.error(`[taserjs/next] Route generation error: ${error.message}`);
     });
 
-    // 2. Start watcher for Turbopack dev mode if active or NODE_ENV != production
-    if (process.env.NODE_ENV !== "production") {
-      startTurbopackWatcher(cwd, nextPluginOptions).catch(() => {});
-    }
-
-    const enhancedConfig: any = {
+    return {
       ...nextConfig,
       turbopack: nextConfig.turbopack ?? {},
       webpack(config: any, webpackOptions: any) {
-        // Run generation during Webpack compile
-        const webpackPlugin = taserPlugin.webpack(nextPluginOptions);
-        config.plugins = config.plugins || [];
-        config.plugins.push(webpackPlugin);
-
-        if (typeof nextConfig.webpack === "function") {
-          return nextConfig.webpack(config, webpackOptions);
-        }
-        return config;
+        config.plugins = [...(config.plugins ?? []), taserPlugin.webpack(pluginOptions)];
+        return nextConfig.webpack?.(config, webpackOptions) ?? config;
       },
     };
-
-    return enhancedConfig;
   };
 }
-
-export const withTaser = (nextConfig: any, options?: NextTaserOptions) =>
-  createTaser(options)(nextConfig);
 
 export default createTaser;

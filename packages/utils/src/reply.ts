@@ -1,3 +1,4 @@
+import { withDefaultHeaders } from "./headers.js";
 import { isPlainObjectOrArray } from "./object.js";
 
 export interface TypedResponse<T = unknown, TStatus extends number = number> extends Response {
@@ -11,88 +12,50 @@ export type ExtractStatus<
   TInit extends ResponseInit | undefined,
 > = TInit extends { status: infer S extends number } ? S : TDefault;
 
-function defaultJsonHeaders(): Record<string, string> {
-  return { "content-type": "application/json; charset=utf-8" };
-}
+const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
+const TEXT_HEADERS = { "content-type": "text/plain; charset=utf-8" };
+const HTML_HEADERS = { "content-type": "text/html; charset=utf-8" };
 
-function createTypedResponse<T, TStatus extends number>(
-  body: BodyInit | null | undefined,
+/** Every helper funnels through here so `_data` and `_status` carry the typed payload for clients. */
+function typedResponse<T, TStatus extends number>(
+  body: BodyInit | null,
   init: ResponseInit | undefined,
-  defaultStatus: TStatus,
-  defaultHeaders?: Record<string, string>,
-  dataPayload?: T,
+  defaultStatus: number,
+  headers: HeadersInit | undefined,
+  data: T,
 ): TypedResponse<T, TStatus> {
-  const status = (init?.status ?? defaultStatus) as TStatus;
-
-  let headers: HeadersInit | undefined;
-  if (!init || !init.headers) {
-    headers = defaultHeaders;
-  } else {
-    const h = new Headers(init.headers);
-    if (defaultHeaders) {
-      for (const [key, value] of Object.entries(defaultHeaders)) {
-        if (!h.has(key)) {
-          h.set(key, value);
-        }
-      }
-    }
-    headers = h;
-  }
-
-  const responseInit: ResponseInit = {
+  const status = init?.status ?? defaultStatus;
+  const response = new Response(body, {
     ...init,
     status,
     ...(headers !== undefined ? { headers } : {}),
-  };
+  }) as TypedResponse<T, TStatus>;
 
-  const res = new Response(body, responseInit) as TypedResponse<T, TStatus>;
+  (response as any)._data = data;
+  (response as any)._status = status;
 
-  (res as any)._data = dataPayload;
-  (res as any)._status = status;
-
-  return res;
+  return response;
 }
 
-/**
- * Creates a generic TypedResponse helper factory with zero default headers and auto-detection.
- */
+/** A reply helper that auto-detects JSON for plain objects/arrays and otherwise passes the body through. */
 function createReply<TStatus extends number>(defaultStatus: TStatus) {
   return function <T = unknown, const TInit extends ResponseInit = ResponseInit>(
     data?: T,
     init?: TInit,
   ): TypedResponse<T, ExtractStatus<TStatus, TInit>> {
-    const status = (init?.status ?? defaultStatus) as ExtractStatus<TStatus, TInit>;
-
-    let body: BodyInit | null | undefined;
-    let headers = init?.headers;
+    let body: BodyInit | null;
+    let headers: HeadersInit | undefined;
 
     if (data === undefined || data === null) {
       body = null;
     } else if (isPlainObjectOrArray(data)) {
       body = JSON.stringify(data);
-      if (!headers) {
-        headers = { "content-type": "application/json; charset=utf-8" };
-      } else {
-        const h = new Headers(headers);
-        if (!h.has("content-type")) {
-          h.set("content-type", "application/json; charset=utf-8");
-        }
-        headers = h;
-      }
+      headers = withDefaultHeaders(init?.headers, JSON_HEADERS);
     } else {
-      body = data as unknown as BodyInit;
+      body = data as BodyInit;
     }
 
-    const res = new Response(body, {
-      ...init,
-      status,
-      ...(headers !== undefined ? { headers } : {}),
-    }) as TypedResponse<T, ExtractStatus<TStatus, TInit>>;
-
-    (res as any)._data = data;
-    (res as any)._status = status;
-
-    return res;
+    return typedResponse(body, init, defaultStatus, headers, data as T);
   };
 }
 
@@ -104,123 +67,61 @@ export function json<T, const TInit extends ResponseInit = ResponseInit>(
   data: T,
   init?: TInit,
 ): TypedResponse<T, ExtractStatus<200, TInit>> {
-  const status = (init?.status ?? 200) as ExtractStatus<200, TInit>;
-  let headers: HeadersInit;
-  if (init?.headers) {
-    const h = new Headers(init.headers);
-    if (!h.has("content-type")) {
-      h.set("content-type", "application/json; charset=utf-8");
-    }
-    headers = h;
-  } else {
-    headers = defaultJsonHeaders();
-  }
-
-  const res = new Response(JSON.stringify(data), {
-    ...init,
-    status,
-    headers,
-  }) as TypedResponse<T, ExtractStatus<200, TInit>>;
-
-  (res as any)._data = data;
-  (res as any)._status = status;
-
-  return res;
+  return typedResponse(
+    JSON.stringify(data),
+    init,
+    200,
+    withDefaultHeaders(init?.headers, JSON_HEADERS),
+    data,
+  );
 }
 
-/**
- * Creates an HTTP 200 TypedResponse with no default headers (auto-detects plain objects/arrays for JSON).
- */
+/** HTTP 200 with no default headers (auto-detects plain objects/arrays for JSON). */
 export const ok = createReply(200);
 
-/**
- * Creates an HTTP 201 TypedResponse with no default headers (auto-detects plain objects/arrays for JSON).
- */
+/** HTTP 201 with no default headers (auto-detects plain objects/arrays for JSON). */
 export const created = createReply(201);
 
-/**
- * Creates an HTTP 202 TypedResponse with no default headers (auto-detects plain objects/arrays for JSON).
- */
+/** HTTP 202 with no default headers (auto-detects plain objects/arrays for JSON). */
 export const accepted = createReply(202);
 
-/**
- * Creates a noContent (204) TypedResponse with null body and no default headers.
- */
+/** HTTP 204 with a null body and no default headers. */
 export function noContent<const TInit extends ResponseInit = ResponseInit>(
   init?: TInit,
 ): TypedResponse<null, ExtractStatus<204, TInit>> {
-  const status = (init?.status ?? 204) as ExtractStatus<204, TInit>;
-  const res = new Response(null, {
-    ...init,
-    status,
-  }) as TypedResponse<null, ExtractStatus<204, TInit>>;
-
-  (res as any)._data = null;
-  (res as any)._status = status;
-
-  return res;
+  return typedResponse(null, init, 204, undefined, null);
 }
 
-/**
- * Creates a plain text TypedResponse.
- */
+/** Creates a plain text TypedResponse. */
 export function text<const TInit extends ResponseInit = ResponseInit>(
   data: string,
   init?: TInit,
 ): TypedResponse<string, ExtractStatus<200, TInit>> {
-  return createTypedResponse(
-    data,
-    init,
-    200 as ExtractStatus<200, TInit>,
-    { "content-type": "text/plain; charset=utf-8" },
-    data,
-  );
+  return typedResponse(data, init, 200, withDefaultHeaders(init?.headers, TEXT_HEADERS), data);
 }
 
-/**
- * Creates an HTML TypedResponse.
- */
+/** Creates an HTML TypedResponse. */
 export function html<const TInit extends ResponseInit = ResponseInit>(
   data: string,
   init?: TInit,
 ): TypedResponse<string, ExtractStatus<200, TInit>> {
-  return createTypedResponse(
-    data,
-    init,
-    200 as ExtractStatus<200, TInit>,
-    { "content-type": "text/html; charset=utf-8" },
-    data,
-  );
+  return typedResponse(data, init, 200, withDefaultHeaders(init?.headers, HTML_HEADERS), data);
 }
 
-/**
- * Creates a redirect TypedResponse defaulting to 302.
- */
+/** Creates a redirect TypedResponse defaulting to 302. */
 export function redirect<const TInit extends ResponseInit = ResponseInit>(
   url: string | URL,
   init?: TInit,
 ): TypedResponse<null, ExtractStatus<302, TInit>> {
-  const status = (init?.status ?? 302) as ExtractStatus<302, TInit>;
   const location = typeof url === "string" ? url : url.toString();
-  let headers: HeadersInit;
-  if (!init || !init.headers) {
-    headers = { location };
-  } else {
-    const h = new Headers(init.headers);
-    h.set("location", location);
-    headers = h;
+
+  let headers: HeadersInit = { location };
+  if (init?.headers) {
+    headers = new Headers(init.headers);
+    headers.set("location", location);
   }
 
-  const res = new Response(null, {
-    ...init,
-    status,
-    headers,
-  }) as TypedResponse<null, ExtractStatus<302, TInit>>;
-
-  (res as any)._data = null;
-  (res as any)._status = status;
-
-  return res;
+  return typedResponse(null, init, 302, headers, null);
 }
 
 export const badRequest = createReply(400);

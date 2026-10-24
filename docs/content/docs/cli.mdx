@@ -41,7 +41,7 @@ export default defineConfig({
 });
 ```
 
-With those defaults, routes live in `src/routes/`, the app definition is `src/taser.ts`, and generation writes `src/.taserjs/routes.gen.ts`.
+With those defaults, routes live in `src/routes/`, the app definition is `src/taser.ts`, and generation writes `src/.taserjs/routes.gen.ts`. When the app file is missing, `taser generate` creates a minimal `defineTaser()` one so the generated manifest always imports it.
 
 <TypeTable
   type={{
@@ -71,10 +71,6 @@ With those defaults, routes live in `src/routes/`, the app definition is `src/ta
         "Import extension style in generated code (true → .js, false → bare, or a custom string).",
       type: "boolean | string",
       default: "true",
-    },
-    formatting: {
-      description: "Scaffold quote/semicolon style for empty route files.",
-      type: "{ quotes?: 'single' | 'double'; semi?: boolean }",
     },
   }}
 />

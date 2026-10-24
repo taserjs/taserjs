@@ -1,3 +1,5 @@
+import { ZeroTraceError } from "./errors.js";
+
 export type BodyMode = "json" | "form" | "urlencoded" | "text" | "raw";
 
 export function unsupportedMediaType(data?: unknown, init?: number | ResponseInit): Response {
@@ -6,13 +8,18 @@ export function unsupportedMediaType(data?: unknown, init?: number | ResponseIni
   return Response.json(payload, resInit);
 }
 
-export class UnsupportedMediaTypeError extends Error {
+export class UnsupportedMediaTypeError extends ZeroTraceError {
   readonly status = 415;
-  readonly response: Response;
+  readonly #data: unknown;
 
   constructor(message = "Unsupported Media Type", data?: unknown) {
     super(message);
     this.name = "UnsupportedMediaTypeError";
-    this.response = unsupportedMediaType(data ?? { message });
+    this.#data = data ?? { message };
+  }
+
+  /** Built on demand: most of these errors are thrown for logging or tests, not answered. */
+  get response(): Response {
+    return unsupportedMediaType(this.#data);
   }
 }

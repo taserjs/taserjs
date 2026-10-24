@@ -3,13 +3,9 @@ import { createTaserApp } from "@taserjs/runtime";
 import taser from "../taser";
 import route_0 from "../routes/index.get";
 
-export type LayoutTree = {
+export type LayoutTree = {};
 
-};
-
-export const layoutManifest = {
-
-} as const;
+export const layoutManifest = {} as const;
 
 export const routeManifest = {
   layouts: layoutManifest,
@@ -33,16 +29,14 @@ export const createApp = (overrideTaser?: typeof taser) =>
 
 export type RoutePath = "/";
 
-export type LayoutHierarchy = {
-
-};
+export type LayoutHierarchy = {};
 
 export type RouteByPathMethod = {
-    "/": {
-      GET: {
-        layouts: readonly [];
-      };
+  "/": {
+    GET: {
+      layouts: readonly [];
     };
+  };
 };
 
 export type AppContext = typeof taser.$Infer.Context;

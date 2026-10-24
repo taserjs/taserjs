@@ -11,7 +11,7 @@ export type LayoutTree = {
 };
 
 export const layoutManifest = {
-    "/profile/*": layout_0,
+  "/profile/*": layout_0,
 } as const;
 
 export const routeManifest = {
@@ -53,21 +53,21 @@ export type LayoutHierarchy = {
 };
 
 export type RouteByPathMethod = {
-    "/hello": {
-      GET: {
-        layouts: readonly [];
-      };
+  "/hello": {
+    GET: {
+      layouts: readonly [];
     };
-    "/": {
-      GET: {
-        layouts: readonly [];
-      };
+  };
+  "/": {
+    GET: {
+      layouts: readonly [];
     };
-    "/profile": {
-      GET: {
-        layouts: readonly ["/profile/*"];
-      };
+  };
+  "/profile": {
+    GET: {
+      layouts: readonly ["/profile/*"];
     };
+  };
 };
 
 export type AppContext = typeof taser.$Infer.Context;
