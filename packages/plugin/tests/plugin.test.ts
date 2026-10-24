@@ -1,21 +1,29 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 
-import { normalizeImportPath } from "@taserjs/cli";
+import { resolveConfig, resolvePaths } from "@taserjs/cli";
 import { join } from "pathe";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
-  detectHostServer,
-  emitServeShim,
-  isOutputDir,
-  isSubPath,
-  mountHostFallback,
-  resolveHostFetchHandler,
-  taserPlugin,
-  taser,
-} from "../src/index.js";
-import { buildNitroMiddlewareHandlerSource, buildNitroStandaloneAppSource } from "../src/nitro.js";
+  nitroHandlerSource,
+  nitroStandaloneAppSource,
+  relativeHostImport,
+  serveShimSource,
+} from "../src/codegen.js";
+import { detectHostServer } from "../src/host.js";
+import { detectFullStack, isServerMode, shouldRegenerate, taserPlugin } from "../src/plugin.js";
+
+const ROUTE_SOURCE = (path: string) =>
+  `import { t } from "@taserjs/router";\nexport default t.get("${path}").handler(() => Response.json({ ok: true }));`;
 
 describe("@taserjs/plugin core", () => {
   let tempDir: string;
@@ -30,510 +38,280 @@ describe("@taserjs/plugin core", () => {
   });
 
   afterEach(() => {
-    try {
-      rmSync(tempDir, { recursive: true, force: true });
-    } catch {}
+    rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it("exports plugin factories", () => {
-    expect(typeof taserPlugin).toBe("object");
-    expect(typeof taserPlugin.vite).toBe("function");
-    expect(typeof taserPlugin.rollup).toBe("function");
-    expect(typeof taserPlugin.webpack).toBe("function");
-    expect(typeof taserPlugin.rspack).toBe("function");
-    expect(typeof taserPlugin.esbuild).toBe("function");
-    expect(typeof taser).toBe("function");
+  const createPlugin = (options: Record<string, unknown> = {}, framework = "rollup") => {
+    const raw = taserPlugin.raw({ cwd: tempDir, ...options }, { framework } as any);
+    return (Array.isArray(raw) ? raw[0] : raw) as any;
+  };
+  const buildStart = (plugin: any) => plugin.buildStart.call({});
+  const watchChange = (plugin: any, file: string) => plugin.watchChange.call({}, file, {});
+  const viteConfig = (plugin: any, config: any, command = "build") =>
+    plugin.vite.config(config, { command, mode: "production" });
+
+  it("exposes a factory for every supported bundler", () => {
+    for (const bundler of ["vite", "rollup", "webpack", "rspack", "esbuild"] as const) {
+      expect(typeof taserPlugin[bundler]).toBe("function");
+    }
   });
 
-  it("buildStart triggers initial manifest generation", async () => {
-    // Write a route file
-    const routeCode = `
-import { t } from "@taserjs/router";
-export default t.get("/users").handler(() => Response.json({ ok: true }));
-`;
-    writeFileSync(join(routesDir, "users.get.ts"), routeCode, "utf-8");
+  it("buildStart generates the manifest", async () => {
+    writeFileSync(join(routesDir, "users.get.ts"), ROUTE_SOURCE("/users"));
 
-    const rawPlugin = taserPlugin.raw({ cwd: tempDir }, { framework: "rollup" });
-    const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
+    await buildStart(createPlugin());
 
-    // Call buildStart
-    await (pluginInstance.buildStart as any)?.call({
-      addWatchFile: vi.fn(),
-      emitFile: vi.fn(),
-      getWatchFiles: vi.fn(),
-      parse: vi.fn(),
+    expect(readFileSync(join(outputDir, "routes.gen.ts"), "utf-8")).toContain('"/users"');
+  });
+
+  describe("watchChange", () => {
+    it("regenerates when a route is added", async () => {
+      const plugin = createPlugin();
+      await buildStart(plugin);
+
+      const added = join(routesDir, "posts.get.ts");
+      writeFileSync(added, ROUTE_SOURCE("/posts"));
+      await watchChange(plugin, added);
+
+      expect(readFileSync(join(outputDir, "routes.gen.ts"), "utf-8")).toContain('"/posts"');
     });
 
-    const manifestPath = join(outputDir, "routes.gen.ts");
+    it("ignores files inside the output directory", async () => {
+      const plugin = createPlugin();
+      await buildStart(plugin);
+      const manifest = join(outputDir, "routes.gen.ts");
+      const before = readFileSync(manifest, "utf-8");
 
-    expect(existsSync(manifestPath)).toBe(true);
+      writeFileSync(join(routesDir, "late.get.ts"), ROUTE_SOURCE("/late"));
+      await watchChange(plugin, manifest);
 
-    const manifestContent = readFileSync(manifestPath, "utf-8");
-    expect(manifestContent).toContain('"/users"');
+      expect(readFileSync(manifest, "utf-8")).toBe(before);
+    });
   });
 
-  it("watchChange ignores changes in outputDir (.taserjs/**)", async () => {
-    const rawPlugin = taserPlugin.raw({ cwd: tempDir }, { framework: "rollup" });
-    const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
+  it("emits the serve shim honoring the configured import extension", async () => {
+    const shim = join(outputDir, "serve.ts");
 
-    // Initialize via buildStart
-    await (pluginInstance.buildStart as any)?.call({
-      addWatchFile: vi.fn(),
-      emitFile: vi.fn(),
-      getWatchFiles: vi.fn(),
-      parse: vi.fn(),
-    });
-
-    const outputFilePath = join(outputDir, "routes.gen.ts");
-
-    // Invoking watchChange for a file in outputDir should be ignored
-    expect(() => {
-      pluginInstance.watchChange?.call(
-        {
-          addWatchFile: vi.fn(),
-          emitFile: vi.fn(),
-          getWatchFiles: vi.fn(),
-          parse: vi.fn(),
-        },
-        outputFilePath,
-        { event: "update" },
-      );
-    }).not.toThrow();
-  });
-
-  it("watchChange triggers manifest regeneration when routes change", async () => {
-    const rawPlugin = taserPlugin.raw({ cwd: tempDir }, { framework: "rollup" });
-    const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
-
-    // Initial buildStart with no routes
-    await (pluginInstance.buildStart as any)?.call({
-      addWatchFile: vi.fn(),
-      emitFile: vi.fn(),
-      getWatchFiles: vi.fn(),
-      parse: vi.fn(),
-    });
-
-    const manifestPath = join(outputDir, "routes.gen.ts");
-    expect(existsSync(manifestPath)).toBe(true);
-    let content = readFileSync(manifestPath, "utf-8");
-    expect(content).not.toContain('"/posts"');
-
-    // Add a new route file
-    const postRoutePath = join(routesDir, "posts.get.ts");
-    writeFileSync(
-      postRoutePath,
-      'import { t } from "@taserjs/router";\nexport default t.get("/posts").handler(() => Response.json([]));',
-      "utf-8",
+    await buildStart(createPlugin());
+    expect(readFileSync(shim, "utf-8")).toContain(
+      'import { app as taserApp } from "./routes.gen.js";',
     );
 
-    // Trigger watchChange
-    await (pluginInstance.watchChange as any)?.call(
-      {
-        addWatchFile: vi.fn(),
-        emitFile: vi.fn(),
-        getWatchFiles: vi.fn(),
-        parse: vi.fn(),
+    writeFileSync(join(tempDir, "taserjs.config.ts"), "export default { extension: false };");
+    await buildStart(createPlugin());
+    expect(readFileSync(shim, "utf-8")).toContain(
+      'import { app as taserApp } from "./routes.gen";',
+    );
+  });
+
+  it("never asks vite to ignore the output directory", async () => {
+    const config: any = { server: { watch: {} } };
+
+    await viteConfig(createPlugin({}, "vite"), config, "serve");
+
+    expect(config.server.watch.ignored).toBeUndefined();
+  });
+
+  describe("server mode", () => {
+    const taserConfig = (server?: boolean) => resolveConfig(server === undefined ? {} : { server });
+
+    it.each([
+      [{ server: true }, taserConfig(false), true],
+      [{ server: false }, taserConfig(true), false],
+      [{}, taserConfig(false), false],
+      [{}, taserConfig(true), true],
+    ])("isServerMode precedence: option %j, config %#", (options, config, expected) => {
+      expect(
+        isServerMode({ options, config, viteConfig: { plugins: [{ name: "nitro:init" }] } }),
+      ).toBe(expected);
+    });
+
+    it("falls back to the absence of a full-stack framework", () => {
+      const options = {};
+      const config = taserConfig();
+      expect(isServerMode({ options, config })).toBe(true);
+      expect(isServerMode({ options, config, viteConfig: { plugins: [] } })).toBe(true);
+      expect(
+        isServerMode({ options, config, viteConfig: { plugins: [{ name: "astro:server" }] } }),
+      ).toBe(false);
+    });
+
+    it.each([
+      "tanstack-react-start:config",
+      "nitro:init",
+      "react-router",
+      "@remix-run/dev",
+      "astro:server",
+      "vite-plugin-sveltekit-compile",
+    ])("detectFullStack recognizes %s", (name) => {
+      expect(detectFullStack({ plugins: [[{ name }]] })).toBe(true);
+    });
+
+    it("detectFullStack can ignore Nitro to find a wrapping framework", () => {
+      expect(detectFullStack({ plugins: [{ name: "nitro:init" }] }, true)).toBe(false);
+      expect(detectFullStack({ plugins: [{ name: "tanstack-start" }] }, true)).toBe(true);
+      expect(detectFullStack({ nitro: {} })).toBe(true);
+      expect(detectFullStack({ nitro: {} }, true)).toBe(false);
+      expect(detectFullStack(undefined)).toBe(false);
+    });
+
+    it.each([
+      ["the server option", { server: false }, undefined, []],
+      ["a full-stack framework plugin", {}, undefined, [{ name: "nitro:init" }]],
+      ["taserjs.config", {}, "export default { server: false };", []],
+    ])(
+      "emits no shim and no build config when disabled by %s",
+      async (_name, options, configSource, plugins) => {
+        if (configSource) writeFileSync(join(tempDir, "taserjs.config.ts"), configSource);
+        const plugin = createPlugin(options, "vite");
+
+        expect(await viteConfig(plugin, { plugins })).toBeUndefined();
+        await buildStart(plugin);
+
+        expect(existsSync(join(outputDir, "serve.ts"))).toBe(false);
+        expect(existsSync(join(outputDir, "routes.gen.ts"))).toBe(true);
       },
-      postRoutePath,
-      { event: "create" },
     );
 
-    content = readFileSync(manifestPath, "utf-8");
-    expect(content).toContain('"/posts"');
-  });
+    it("lets server: true override full-stack detection", async () => {
+      const plugin = createPlugin({ server: true }, "vite");
 
-  it("vite config hook does not ignore outputDir so vite can watch and reload generated routes", () => {
-    const rawPlugin = taserPlugin.raw({ cwd: tempDir }, { framework: "vite" });
-    const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
+      const result = await viteConfig(plugin, { plugins: [{ name: "nitro:init" }] });
+      await buildStart(plugin);
 
-    const viteHooks = pluginInstance.vite;
-    expect(viteHooks).toBeDefined();
-    expect(typeof viteHooks?.config).toBe("function");
-
-    const viteConfig: any = { server: { watch: {} } };
-    (viteHooks!.config as any)(viteConfig, { command: "serve", mode: "development" });
-
-    const ignored = viteConfig.server.watch.ignored;
-    const isIgnored = Array.isArray(ignored)
-      ? ignored.some((pattern: string | RegExp) =>
-          typeof pattern === "string"
-            ? pattern.includes(".taserjs")
-            : pattern.test("src/.taserjs/routes.gen.ts"),
-        )
-      : false;
-    expect(isIgnored).toBe(false);
-  });
-
-  it("emitServeShim respects config.extension setting", async () => {
-    // 1. Default config (extension: true -> ./routes.gen.js)
-    const rawPluginDefault = taserPlugin.raw({ cwd: tempDir }, { framework: "rollup" });
-    const pluginDefault = (
-      Array.isArray(rawPluginDefault) ? rawPluginDefault[0] : rawPluginDefault
-    )!;
-
-    await (pluginDefault.buildStart as any)?.call({
-      addWatchFile: vi.fn(),
-      emitFile: vi.fn(),
-      getWatchFiles: vi.fn(),
-      parse: vi.fn(),
-    });
-
-    const serveShimPath = join(outputDir, "serve.ts");
-    expect(existsSync(serveShimPath)).toBe(true);
-    let serveContent = readFileSync(serveShimPath, "utf-8");
-    expect(serveContent).toContain('import { app } from "./routes.gen.js";');
-
-    // 2. Custom config with extension: false (extensionless -> ./routes.gen)
-    writeFileSync(
-      join(tempDir, "taserjs.config.ts"),
-      "export default { extension: false };",
-      "utf-8",
-    );
-
-    const rawPluginNoExt = taserPlugin.raw({ cwd: tempDir }, { framework: "rollup" });
-    const pluginNoExt = (Array.isArray(rawPluginNoExt) ? rawPluginNoExt[0] : rawPluginNoExt)!;
-
-    await (pluginNoExt.buildStart as any)?.call({
-      addWatchFile: vi.fn(),
-      emitFile: vi.fn(),
-      getWatchFiles: vi.fn(),
-      parse: vi.fn(),
-    });
-
-    serveContent = readFileSync(serveShimPath, "utf-8");
-    expect(serveContent).toContain('import { app } from "./routes.gen";');
-  });
-
-  describe("server option and full-stack auto-detection", () => {
-    it("disables serve.ts emission when server is false", async () => {
-      const rawPlugin = taserPlugin.raw({ cwd: tempDir, server: false }, { framework: "vite" });
-      const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
-
-      await (pluginInstance.buildStart as any)?.call({
-        addWatchFile: vi.fn(),
-        emitFile: vi.fn(),
-        getWatchFiles: vi.fn(),
-        parse: vi.fn(),
-      });
-
-      const manifestPath = join(outputDir, "routes.gen.ts");
-      const serveShimPath = join(outputDir, "serve.ts");
-
-      // routes.gen.ts should still be generated
-      expect(existsSync(manifestPath)).toBe(true);
-      // serve.ts should NOT be generated
-      expect(existsSync(serveShimPath)).toBe(false);
-    });
-
-    it("does not configure build.ssr in vite config hook when server is false", async () => {
-      const rawPlugin = taserPlugin.raw({ cwd: tempDir, server: false }, { framework: "vite" });
-      const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
-
-      const viteHooks = pluginInstance.vite;
-      const result = await (viteHooks!.config as any)(
-        { plugins: [] },
-        { command: "build", mode: "production" },
-      );
-      expect(result).toBeUndefined();
-    });
-
-    it("auto-detects full-stack plugins in vite config and disables server mode", async () => {
-      const fullstackPlugins = [
-        [{ name: "tanstack-react-start:config" }],
-        [{ name: "nitro:init" }],
-        [{ name: "react-router" }],
-        [{ name: "@remix-run/dev" }],
-        [{ name: "astro:server" }],
-        [{ name: "vite-plugin-sveltekit-compile" }],
-      ];
-
-      await Promise.all(
-        fullstackPlugins.map(async (plugins) => {
-          const rawPlugin = taserPlugin.raw({ cwd: tempDir }, { framework: "vite" });
-          const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
-          const viteHooks = pluginInstance.vite;
-
-          const result = await (viteHooks!.config as any)(
-            { plugins },
-            { command: "build", mode: "production" },
-          );
-          expect(result).toBeUndefined();
-
-          await (pluginInstance.buildStart as any)?.call({
-            addWatchFile: vi.fn(),
-            emitFile: vi.fn(),
-            getWatchFiles: vi.fn(),
-            parse: vi.fn(),
-          });
-
-          const serveShimPath = join(outputDir, "serve.ts");
-          expect(existsSync(serveShimPath)).toBe(false);
-        }),
-      );
-    });
-
-    it("allows explicit server: true to override full-stack auto-detection", async () => {
-      const rawPlugin = taserPlugin.raw({ cwd: tempDir, server: true }, { framework: "vite" });
-      const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
-      const viteHooks = pluginInstance.vite;
-
-      const result = await (viteHooks!.config as any)(
-        { plugins: [{ name: "nitro:init" }] },
-        { command: "build", mode: "production" },
-      );
-
-      expect(result).toBeDefined();
-      expect(result?.build?.ssr).toBeDefined();
-
-      await (pluginInstance.buildStart as any)?.call({
-        addWatchFile: vi.fn(),
-        emitFile: vi.fn(),
-        getWatchFiles: vi.fn(),
-        parse: vi.fn(),
-      });
-
-      const serveShimPath = join(outputDir, "serve.ts");
-      expect(existsSync(serveShimPath)).toBe(true);
-    });
-
-    it("respects server: false from taserjs.config.ts", async () => {
-      writeFileSync(
-        join(tempDir, "taserjs.config.ts"),
-        "export default { server: false };",
-        "utf-8",
-      );
-
-      const rawPlugin = taserPlugin.raw({ cwd: tempDir }, { framework: "vite" });
-      const pluginInstance = (Array.isArray(rawPlugin) ? rawPlugin[0] : rawPlugin)!;
-      const viteHooks = pluginInstance.vite;
-
-      const result = await (viteHooks!.config as any)(
-        { plugins: [] },
-        { command: "build", mode: "production" },
-      );
-      expect(result).toBeUndefined();
-
-      await (pluginInstance.buildStart as any)?.call({
-        addWatchFile: vi.fn(),
-        emitFile: vi.fn(),
-        getWatchFiles: vi.fn(),
-        parse: vi.fn(),
-      });
-
-      const serveShimPath = join(outputDir, "serve.ts");
-      expect(existsSync(serveShimPath)).toBe(false);
+      expect(result.build.ssr).toBe(join(outputDir, "serve.ts"));
+      expect(existsSync(join(outputDir, "serve.ts"))).toBe(true);
     });
   });
 
-  describe("cross-platform Windows path support", () => {
-    it("normalizeImportPath formats relative and absolute Windows paths correctly", () => {
-      expect(normalizeImportPath(".\\routes.gen.js")).toBe("./routes.gen.js");
-      expect(normalizeImportPath("./routes.gen.js")).toBe("./routes.gen.js");
-      expect(normalizeImportPath("..\\routes.gen.js")).toBe("../routes.gen.js");
-      expect(normalizeImportPath("C:\\Users\\alice\\project\\src\\.taserjs\\routes.gen.ts")).toBe(
-        "C:/Users/alice/project/src/.taserjs/routes.gen.ts",
-      );
+  describe("shouldRegenerate", () => {
+    const paths = resolvePaths(resolveConfig(), "/work/app");
+
+    it.each([
+      ["/work/app/src/routes/users.get.ts", true],
+      ["/work/app/src/routes/deep/er/$.ts", true],
+      ["/work/app/src/taser.ts", true],
+      ["/work/app/src/.taserjs/routes.gen.ts", false],
+      ["/work/app/src/db.ts", false],
+      ["/work/app/src/routes-other/x.ts", false],
+    ])("%s -> %s", (file, expected) => {
+      expect(shouldRegenerate(file, paths)).toBe(expected);
     });
 
-    it("isSubPath correctly detects containment with Windows-style backslashes", () => {
-      const parent = "C:\\Users\\alice\\project\\src\\routes";
-      const child = "C:\\Users\\alice\\project\\src\\routes\\users\\$id.get.ts";
-      const outside = "C:\\Users\\alice\\project\\src\\other\\file.ts";
-      const differentDrive = "D:\\Users\\alice\\project\\src\\routes\\users.get.ts";
+    it("compares Windows-style paths", () => {
+      const windowsPaths = resolvePaths(resolveConfig(), "C:/Users/alice/project");
 
-      expect(isSubPath(child, parent)).toBe(true);
-      expect(isSubPath(outside, parent)).toBe(false);
-      expect(isSubPath(differentDrive, parent)).toBe(false);
+      expect(
+        shouldRegenerate("C:\\Users\\alice\\project\\src\\routes\\users\\$id.get.ts", windowsPaths),
+      ).toBe(true);
+      expect(
+        shouldRegenerate("C:\\Users\\alice\\project\\src\\.taserjs\\routes.gen.ts", windowsPaths),
+      ).toBe(false);
+      expect(
+        shouldRegenerate("D:\\Users\\alice\\project\\src\\routes\\users.get.ts", windowsPaths),
+      ).toBe(false);
     });
 
-    it("isOutputDir matches identical paths and subpaths on Windows", () => {
-      const outputDir = "C:\\Users\\alice\\project\\src\\.taserjs";
-      const exact = "C:\\Users\\alice\\project\\src\\.taserjs";
-      const inside = "C:\\Users\\alice\\project\\src\\.taserjs\\routes.gen.ts";
-      const outside = "C:\\Users\\alice\\project\\src\\routes\\users.get.ts";
+    it("matches symlinked project roots against their real paths", () => {
+      const linked = join(tempDir, "linked");
+      symlinkSync(tempDir, linked);
+      const linkedPaths = resolvePaths(resolveConfig(), linked);
 
-      expect(isOutputDir(exact, outputDir)).toBe(true);
-      expect(isOutputDir(inside, outputDir)).toBe(true);
-      expect(isOutputDir(outside, outputDir)).toBe(false);
-    });
-
-    it("nitro code generators normalize Windows-style backslashes", () => {
-      const windowsPath = "C:\\Users\\alice\\project\\src\\.taserjs\\routes.gen.ts";
-      const standalone = buildNitroStandaloneAppSource(windowsPath);
-      expect(standalone).toContain(
-        'import { app as taserApp } from "C:/Users/alice/project/src/.taserjs/routes.gen.ts";',
-      );
-      expect(standalone).not.toContain("C:\\Users");
-
-      const middleware = buildNitroMiddlewareHandlerSource(windowsPath);
-      expect(middleware).toContain(
-        'import { app as taserApp } from "C:/Users/alice/project/src/.taserjs/routes.gen.ts";',
-      );
-      expect(middleware).not.toContain("C:\\Users");
+      expect(shouldRegenerate(join(routesDir, "real.get.ts"), linkedPaths)).toBe(true);
     });
   });
 
-  describe("host server entry detection and assembly", () => {
-    it("detectHostServer returns null when no host server entry exists", () => {
-      const result = detectHostServer(join(tempDir, "src"));
-      expect(result).toBeNull();
+  describe("host server detection", () => {
+    const serverDir = () => join(tempDir, "src");
+    const write = (name: string, dir = serverDir()) => {
+      const file = join(dir, name);
+      writeFileSync(file, "export default () => {};");
+      return file;
+    };
+
+    it("returns null without a host entry", () => {
+      expect(detectHostServer(serverDir())).toBeNull();
     });
 
-    it("detectHostServer detects server.node.ts as node host", () => {
-      const serverDir = join(tempDir, "src");
-      const hostFile = join(serverDir, "server.node.ts");
-      writeFileSync(hostFile, "export default (req, res) => res.end();", "utf-8");
+    it.each([
+      ["server.node.ts", "node"],
+      ["server.cjs", "fetch"],
+      ["server.ts", "fetch"],
+    ])("detects %s as a %s host", (fileName, type) => {
+      const path = write(fileName);
+      expect(detectHostServer(serverDir())).toEqual({ type, path });
+    });
 
-      const result = detectHostServer(serverDir);
-      expect(result).toEqual({
+    it("prefers a node host over a fetch host", () => {
+      write("server.ts");
+      const path = write("server.node.ts");
+      expect(detectHostServer(serverDir())).toEqual({ type: "node", path });
+    });
+
+    it("honors an explicit entry and infers its type from the name", () => {
+      const nodePath = write("custom.node.ts", tempDir);
+      const fetchPath = write("custom-fetch.ts", tempDir);
+
+      expect(detectHostServer(serverDir(), tempDir, "custom.node.ts")).toEqual({
         type: "node",
-        path: hostFile,
+        path: nodePath,
       });
-    });
-
-    it("detectHostServer detects server.ts as fetch host", () => {
-      const serverDir = join(tempDir, "src");
-      const hostFile = join(serverDir, "server.ts");
-      writeFileSync(hostFile, "export default (req) => new Response();", "utf-8");
-
-      const result = detectHostServer(serverDir);
-      expect(result).toEqual({
+      expect(detectHostServer(serverDir(), tempDir, fetchPath)).toEqual({
         type: "fetch",
-        path: hostFile,
+        path: fetchPath,
       });
     });
+  });
 
-    it("detectHostServer prioritizes server.node.ts over server.ts if both exist", () => {
-      const serverDir = join(tempDir, "src");
-      writeFileSync(
-        join(serverDir, "server.node.ts"),
-        "export default (req, res) => res.end();",
-        "utf-8",
+  describe("generated entries", () => {
+    const manifest = "./routes.gen.js";
+
+    it("serve shim without a host just serves the app", () => {
+      const code = serveShimSource(manifest);
+
+      expect(code).toContain('import { FastResponse, serve } from "@taserjs/runtime/serve";');
+      expect(code).toContain("serve(taserApp);");
+      expect(code).not.toContain("mount");
+    });
+
+    it("serve shim mounts a node host through the runtime helper", () => {
+      const host = relativeHostImport(
+        { type: "node", path: join(tempDir, "src", "server.node.ts") },
+        outputDir,
+        ".js",
       );
-      writeFileSync(
-        join(serverDir, "server.ts"),
-        "export default (req) => new Response();",
-        "utf-8",
+      const code = serveShimSource(manifest, host);
+
+      expect(code).toContain('import { mountNodeHost } from "@taserjs/runtime/serve/node";');
+      expect(code).toContain('import hostEntry from "../server.node.js";');
+      expect(code).toContain("mountNodeHost(taserApp, hostEntry);");
+    });
+
+    it("serve shim mounts a fetch host without importing node-only code", () => {
+      const host = relativeHostImport(
+        { type: "fetch", path: join(tempDir, "src", "server.ts") },
+        outputDir,
+        ".js",
       );
+      const code = serveShimSource(manifest, host);
 
-      const result = detectHostServer(serverDir);
-      expect(result).toEqual({
-        type: "node",
-        path: join(serverDir, "server.node.ts"),
-      });
+      expect(code).toContain("mountFetchHost(taserApp, hostEntry);");
+      expect(code).not.toContain("serve/node");
     });
 
-    it("detectHostServer supports explicit entry path", () => {
-      const customPath = join(tempDir, "custom-host.node.ts");
-      writeFileSync(customPath, "export default (req, res) => res.end();", "utf-8");
-
-      const result = detectHostServer(join(tempDir, "src"), tempDir, "custom-host.node.ts");
-      expect(result).toEqual({
-        type: "node",
-        path: customPath,
-      });
-    });
-
-    it("emitServeShim generates standalone shim with node host fallback", () => {
-      const shimPath = join(outputDir, "serve.ts");
-      const hostPath = join(tempDir, "src", "server.node.ts");
-      writeFileSync(hostPath, "export default (req, res) => res.end();", "utf-8");
-
-      emitServeShim(shimPath, "./routes.gen.js", { type: "node", path: hostPath }, ".js");
-
-      const content = readFileSync(shimPath, "utf-8");
-      expect(content).toContain('import { FastResponse, serve } from "@taserjs/runtime/serve";');
-      expect(content).toContain('import { toFetchHandler } from "@taserjs/runtime/serve/node";');
-      expect(content).toContain('import hostServerEntry from "../server.node.js";');
-      expect(content).toContain("toFetchHandler(nodeHandler)");
-      expect(content).toContain('app.all("*", (c) => hostFetch(c.req.raw));');
-      expect(content).toContain("serve(app);");
-    });
-
-    it("emitServeShim generates standalone shim with fetch host fallback", () => {
-      const shimPath = join(outputDir, "serve.ts");
-      const hostPath = join(tempDir, "src", "server.ts");
-      writeFileSync(hostPath, "export default (req) => new Response();", "utf-8");
-
-      emitServeShim(shimPath, "./routes.gen.js", { type: "fetch", path: hostPath }, ".js");
-
-      const content = readFileSync(shimPath, "utf-8");
-      expect(content).toContain('import { FastResponse, serve } from "@taserjs/runtime/serve";');
-      expect(content).toContain('import hostServerEntry from "../server.js";');
-      expect(content).not.toContain("toFetchHandler");
-      expect(content).toContain('app.all("*", (c) => hostFetch(c.req.raw));');
-      expect(content).toContain("serve(app);");
-    });
-
-    it("buildNitroStandaloneAppSource generates host server fallback code for node host", () => {
-      const routesGenPath = join(outputDir, "routes.gen.ts");
-      const hostPath = join(tempDir, "src", "server.node.ts");
-
-      const code = buildNitroStandaloneAppSource(routesGenPath, { type: "node", path: hostPath });
-      expect(code).toContain('import { toFetchHandler } from "@taserjs/runtime/serve/node";');
-      expect(code).toContain("toFetchHandler(nodeHandler)");
-      expect(code).toContain('taserApp.all("*", (c) => hostFetch(c.req.raw));');
-    });
-
-    it("buildNitroMiddlewareHandlerSource generates host server fallback code for fetch host", () => {
-      const routesGenPath = join(outputDir, "routes.gen.ts");
-      const hostPath = join(tempDir, "src", "server.ts");
-
-      const code = buildNitroMiddlewareHandlerSource(routesGenPath, {
+    it.each([
+      ["standalone app", nitroStandaloneAppSource],
+      ["handler", nitroHandlerSource],
+    ])("nitro %s normalizes Windows-style paths and mounts the host", (_name, render) => {
+      const code = render("C:\\Users\\alice\\project\\src\\.taserjs\\routes.gen.ts", {
         type: "fetch",
-        path: hostPath,
+        specifier: "C:\\Users\\alice\\project\\src\\server.ts",
       });
-      expect(code).toContain('taserApp.all("*", (c) => hostFetch(c.req.raw));');
-    });
 
-    it("resolveHostFetchHandler correctly handles node request listener and routing fastify", async () => {
-      const nodeFn = (req: any, res: any) => {
-        res.end("node response");
-      };
-      const fetchHandler1 = resolveHostFetchHandler(nodeFn, "node");
-      expect(typeof fetchHandler1).toBe("function");
-
-      const fastifyLike = {
-        routing: (req: any, res: any) => {
-          res.end("fastify response");
-        },
-      };
-      const fetchHandler2 = resolveHostFetchHandler(fastifyLike, "node");
-      expect(typeof fetchHandler2).toBe("function");
-    });
-
-    it("resolveHostFetchHandler correctly handles fetch host object or function", async () => {
-      const fetchObj = {
-        fetch: (_req: Request) => new Response("ok"),
-      };
-      const fetchHandler1 = resolveHostFetchHandler(fetchObj, "fetch");
-      expect(typeof fetchHandler1).toBe("function");
-      const res1 = await fetchHandler1!(new Request("http://localhost/test"));
-      expect(await res1.text()).toBe("ok");
-
-      const fetchFn = (_req: Request) => new Response("direct");
-      const fetchHandler2 = resolveHostFetchHandler(fetchFn, "fetch");
-      expect(typeof fetchHandler2).toBe("function");
-      const res2 = await fetchHandler2!(new Request("http://localhost/test"));
-      expect(await res2.text()).toBe("direct");
-    });
-
-    it("mountHostFallback mounts app.all once and prevents re-mounting", () => {
-      const calls: string[] = [];
-      const mockApp: any = {
-        all(path: string, _fn: any) {
-          calls.push(path);
-        },
-      };
-
-      const mounted1 = mountHostFallback(mockApp, () => {}, "node");
-      expect(mounted1).toBe(true);
-      expect(mockApp._hasHostFallback).toBe(true);
-      expect(calls).toEqual(["*"]);
-
-      const mounted2 = mountHostFallback(mockApp, () => {}, "node");
-      expect(mounted2).toBe(false);
-      expect(calls.length).toBe(1);
+      expect(code).toContain('from "C:/Users/alice/project/src/.taserjs/routes.gen.ts"');
+      expect(code).toContain('import hostEntry from "C:/Users/alice/project/src/server.ts";');
+      expect(code).toContain("mountFetchHost(taserApp, hostEntry);");
+      expect(code).not.toContain("\\");
     });
   });
 });

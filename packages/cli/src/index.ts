@@ -1,23 +1,17 @@
 export {
   defineConfig,
   loadConfig,
-  DEFAULT_CONFIG,
-  resolveServerDir,
-  resolveRoutesDir,
-  resolveOutputDir,
-  resolveAppFile,
-  resolveImportExtension,
-  type TaserConfig,
-  type TaserConfigFn,
-  type TaserConfigExport,
+  resolveConfig,
+  resolvePaths,
   type ResolvedTaserConfig,
-  type TaserFormattingConfig,
+  type TaserConfig,
+  type TaserConfigExport,
+  type TaserPaths,
 } from "./config.js";
-
-export { normalizeImportPath, formatRelativeImport } from "./paths.js";
-
 export {
   executeGenerate,
   type ExecuteGenerateOptions,
   type ExecuteGenerateResult,
 } from "./generator.js";
+export { formatRelativeImport } from "./paths.js";
+export { watchRoutes, type WatchRoutesOptions } from "./watch.js";

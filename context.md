@@ -65,7 +65,7 @@ The fluent adapter function wrapping native Hono `(c, next) => ...` middleware i
 _Avoid_: honoMw, bridge, compat wrapper
 
 **Taser Config (`taserjs.config.ts`)**:
-The dedicated root configuration file defining filesystem routing directories, manifest output paths, formatting, and emitted import extension for CLI and bundler plugins.
+The dedicated root configuration file defining filesystem routing directories, manifest output paths, and emitted import extension for CLI and bundler plugins.
 _Avoid_: vite.config routing options, nitro options, bundler options, taser.config.ts
 
 **Hono Context Escape Hatch (`ctx.context`)**:
@@ -109,7 +109,7 @@ The automated generation of starter boilerplate into an empty (0-byte or whitesp
 _Avoid_: file generation, code template, auto-create, route stubbing
 
 **Host Server Entry**:
-An optional host server file (`server.ts` for Fetch-native hosts or `server.node.ts` for Node HTTP frameworks like Express or Fastify) detected and assembled by `@taserjs/plugin` into the production entry/dev middleware, dispatching unmatched requests to the host framework via `toFetchHandler` from `srvx/node`.
+An optional host server file (`server.ts` for Fetch-native hosts or `server.node.ts` for Node HTTP frameworks like Express or Fastify) detected and assembled by `@taserjs/plugin` into the production entry/dev middleware, dispatching unmatched requests to the host framework via `mountNodeHost` / `mountFetchHost` from `@taserjs/runtime`.
 _Avoid_: server wrapper, legacy entry, express host, server.js
 
 **Response Contract**:

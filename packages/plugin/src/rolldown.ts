@@ -1,4 +1,4 @@
-import { taserPlugin, type TaserPluginOptions } from "./index.js";
+import { taserPlugin, type TaserPluginOptions } from "./plugin.js";
 
 export const taser = taserPlugin.rolldown;
 export default taser;

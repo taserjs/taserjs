@@ -1,25 +1,10 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
+import { ZeroTraceError } from "./errors.js";
+
 export type ValidationFacet = "params" | "query" | "body";
 
-class BaseZeroTraceError extends Error {
-  constructor(message?: string) {
-    const errorConstructor = Error as unknown as { stackTraceLimit?: number };
-    const prevLimit = errorConstructor.stackTraceLimit;
-    if (typeof prevLimit === "number") {
-      errorConstructor.stackTraceLimit = 0;
-    }
-    try {
-      super(message);
-    } finally {
-      if (typeof prevLimit === "number") {
-        errorConstructor.stackTraceLimit = prevLimit;
-      }
-    }
-  }
-}
-
-export class ValidationError extends BaseZeroTraceError {
+export class ValidationError extends ZeroTraceError {
   readonly issues: readonly StandardSchemaV1.Issue[];
   readonly facet: ValidationFacet;
 
@@ -32,7 +17,7 @@ export class ValidationError extends BaseZeroTraceError {
   }
 }
 
-export class ResponseValidationError extends BaseZeroTraceError {
+export class ResponseValidationError extends ZeroTraceError {
   readonly status: number;
   readonly data: unknown;
   readonly issues: readonly StandardSchemaV1.Issue[];
@@ -59,25 +44,14 @@ export function executeSchema<TOutput = unknown>(
   return schema["~standard"].validate(value);
 }
 
-export function validateStandardSchema<TOutput = unknown>(
-  schema: StandardSchemaV1<unknown, TOutput>,
+function unwrapResponseResult<TOutput>(
+  result: StandardSchemaV1.Result<TOutput>,
+  status: number,
   value: unknown,
-  facet: ValidationFacet,
-): TOutput | Promise<TOutput> {
-  const result = executeSchema(schema, value);
-  if (result instanceof Promise) {
-    return result.then((res) => {
-      if (res.issues) {
-        throw new ValidationError(res.issues, facet);
-      }
-      return res.value;
-    });
-  }
-
+): TOutput {
   if (result.issues) {
-    throw new ValidationError(result.issues, facet);
+    throw new ResponseValidationError(status, value, result.issues);
   }
-
   return result.value;
 }
 
@@ -87,18 +61,7 @@ export function validateResponseSchema<TOutput = unknown>(
   status: number,
 ): TOutput | Promise<TOutput> {
   const result = executeSchema(schema, value);
-  if (result instanceof Promise) {
-    return result.then((res) => {
-      if (res.issues) {
-        throw new ResponseValidationError(status, value, res.issues);
-      }
-      return res.value;
-    });
-  }
-
-  if (result.issues) {
-    throw new ResponseValidationError(status, value, result.issues);
-  }
-
-  return result.value;
+  return result instanceof Promise
+    ? result.then((settled) => unwrapResponseResult(settled, status, value))
+    : unwrapResponseResult(result, status, value);
 }

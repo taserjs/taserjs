@@ -1,31 +1,36 @@
-import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 
 import { parseSync } from "oxc-parser";
-import { basename, join, resolve } from "pathe";
+import { join, relative, resolve } from "pathe";
 
-import type { TaserFormattingConfig } from "./config.js";
 import {
   deriveCanonicalUrl,
   deriveLayoutInfo,
   isIgnoredPath,
   parseFilePath,
-  ROUTE_EXTENSIONS,
-  type ParsedLayoutFileInfo,
-  type ParsedRouteFileInfo,
+  type ParsedFilePath,
 } from "./paths.js";
-import { generateLayoutStub, generateRouteStub } from "./scaffold.js";
+import { layoutStub, routeStub } from "./scaffold.js";
 
 export interface ScanDiagnostic {
   filePath: string;
   message: string;
 }
 
-export interface DiscoveredRoute extends ParsedRouteFileInfo {
+export interface DiscoveredRoute {
+  filePath: string;
   absolutePath: string;
+  /** Uppercase HTTP verb, e.g. `GET`. */
+  method: string;
+  canonicalPath: string;
+  segmentHierarchy: string[];
 }
 
-export interface DiscoveredLayout extends ParsedLayoutFileInfo {
+export interface DiscoveredLayout {
+  filePath: string;
   absolutePath: string;
+  layoutId: string;
+  targetSegment: string;
 }
 
 export interface ScanResult {
@@ -37,380 +42,239 @@ export interface ScanResult {
 export interface ScanOptions {
   routesDir: string;
   cwd?: string | undefined;
-  extensions?: readonly string[] | undefined;
+  /** Fill empty route and layout files with starter stubs. */
   scaffold?: boolean | undefined;
-  formatting?: TaserFormattingConfig | undefined;
 }
 
-function findRootCall(node: any): { rootMethod: string | null; rootArgs: any[] } | null {
-  let curr = node;
-  while (curr) {
-    if (curr.type === "CallExpression") {
-      const callee = curr.callee;
-      if (callee.type === "MemberExpression") {
-        if (
-          callee.object.type === "Identifier" &&
-          (callee.object.name === "t" || callee.object.name === "router")
-        ) {
-          return {
-            rootMethod: callee.property.name,
-            rootArgs: curr.arguments,
-          };
-        }
-        curr = callee.object;
-      } else if (callee.type === "Identifier") {
-        return {
-          rootMethod: callee.name,
-          rootArgs: curr.arguments,
-        };
-      } else {
-        break;
-      }
-    } else {
-      break;
+export type ExpectedExport =
+  | { kind: "route"; verb: string; canonicalPath: string }
+  | { kind: "layout"; layoutId: string };
+
+const NOT_A_LAYOUT_HINT =
+  'Non-verb files that are not layouts must be prefixed with "-" to be ignored.';
+
+const layoutUnderscoreDiagnostic = (filePath: string): ScanDiagnostic => ({
+  filePath,
+  message: `Invalid layout file "${filePath}": Layout files cannot have trailing underscores. Layout breakout syntax ("segment_") is strictly reserved for routes. For parallel layout chains, use pathless layout groups (e.g. "_auth.ts", "_public.ts").`,
+});
+
+/** Walks `t.get("/x").use(...).handler(...)` down to the root `t.get("/x")` call. */
+function findRootCall(node: any): { method: string; args: any[] } | null {
+  for (let current = node; current?.type === "CallExpression"; current = current.callee.object) {
+    const { callee } = current;
+    if (callee.type === "Identifier") return { method: callee.name, args: current.arguments };
+    if (callee.type !== "MemberExpression") return null;
+    if (callee.object.type === "Identifier" && callee.object.name === "t") {
+      return { method: callee.property.name, args: current.arguments };
     }
   }
   return null;
 }
 
-function extractStringLiteralValue(arg: any): string | null {
-  if (!arg) return null;
-  if (arg.type === "Literal" && typeof arg.value === "string") {
-    return arg.value;
-  }
-  if (arg.type === "TemplateLiteral" && arg.expressions.length === 0 && arg.quasis.length === 1) {
+function staticString(arg: any): string | null {
+  if (arg?.type === "Literal" && typeof arg.value === "string") return arg.value;
+  if (arg?.type === "TemplateLiteral" && arg.expressions.length === 0)
     return arg.quasis[0].value.raw;
-  }
   return null;
 }
 
-function getVariableInit(programBody: any[], name: string): any | null {
-  for (const stmt of programBody) {
-    if (stmt.type === "VariableDeclaration") {
-      for (const decl of stmt.declarations) {
-        if (decl.id.type === "Identifier" && decl.id.name === name) {
-          return decl.init;
-        }
-      }
-    }
-  }
-  return null;
-}
-
-function createInvalidLayoutUnderscoreDiagnostic(filePath: string): ScanDiagnostic {
-  return {
-    filePath,
-    message: `Invalid layout file "${filePath}": Layout files cannot have trailing underscores. Layout breakout syntax ("segment_") is strictly reserved for routes. For parallel layout chains, use pathless layout groups (e.g. "_auth.ts", "_public.ts").`,
-  };
-}
-
+/** Checks that the file's default export is the builder call its filename promises. */
 export function validateAst(
   filePath: string,
   content: string,
-  expectedKind: "route" | "layout",
-  expectedVerb: string | null,
-  canonicalPath: string,
-  layoutId?: string,
+  expected: ExpectedExport,
 ): ScanDiagnostic[] {
-  const diagnostics: ScanDiagnostic[] = [];
+  const fail = (message: string): ScanDiagnostic[] => [{ filePath, message }];
 
-  const parseResult = parseSync(filePath, content);
-  if (parseResult.errors && parseResult.errors.length > 0) {
-    for (const err of parseResult.errors) {
-      diagnostics.push({
-        filePath,
-        message: `Parse error: ${err.message}`,
-      });
-    }
-    return diagnostics;
+  const { program, errors } = parseSync(filePath, content);
+  if (errors.length > 0) {
+    return errors.map((err) => ({ filePath, message: `Parse error: ${err.message}` }));
   }
 
-  const defaultExport = parseResult.program.body.find(
+  const isRoute = expected.kind === "route";
+  const noun = isRoute ? "route" : "layout";
+  const expectedPath = isRoute ? expected.canonicalPath : expected.layoutId;
+  const verb = isRoute ? expected.verb : "layout";
+  const example = isRoute ? `t.${verb}("${expectedPath}")` : "t.layout(...)";
+  const hint = isRoute ? "" : ` ${NOT_A_LAYOUT_HINT}`;
+
+  const exported = program.body.find(
     (node: any) => node.type === "ExportDefaultDeclaration",
   ) as any;
-
-  if (!defaultExport) {
-    diagnostics.push({
-      filePath,
-      message:
-        expectedKind === "route"
-          ? `Missing default export in route file "${filePath}". Route files must export default a route definition (e.g. "export default t.${expectedVerb?.toLowerCase()}("${canonicalPath}").handler(...)").`
-          : `Missing default export in layout file "${filePath}". Layout files must export default a layout definition (e.g. "export default t.layout(...)"). Non-verb files that are not layouts must be prefixed with "-" to be ignored.`,
-    });
-    return diagnostics;
+  if (!exported) {
+    return fail(
+      `Missing default export in ${noun} file "${filePath}". ${isRoute ? "Route files must export default a route definition" : "Layout files must export default a layout definition"} (e.g. "export default ${example}${isRoute ? ".handler(...)" : ""}").${hint}`,
+    );
   }
 
-  let decl = defaultExport.declaration;
-  if (decl.type === "Identifier") {
-    const init = getVariableInit(parseResult.program.body, decl.name);
-    if (init) {
-      decl = init;
-    }
+  let declaration = exported.declaration;
+  if (declaration.type === "Identifier") {
+    const variable = program.body
+      .flatMap((node: any) => (node.type === "VariableDeclaration" ? node.declarations : []))
+      .find((d: any) => d.id.type === "Identifier" && d.id.name === declaration.name);
+    declaration = variable?.init ?? declaration;
   }
 
-  const rootCall = findRootCall(decl);
-  if (!rootCall || !rootCall.rootMethod) {
-    diagnostics.push({
-      filePath,
-      message:
-        expectedKind === "route"
-          ? `Invalid default export in route file "${filePath}". Expected "export default t.${expectedVerb?.toLowerCase()}("${canonicalPath}")..."`
-          : `Invalid default export in layout file "${filePath}". Expected "export default t.layout(...)". Non-verb files that are not layouts must be prefixed with "-" to be ignored.`,
-    });
-    return diagnostics;
+  const root = findRootCall(declaration);
+  if (!root) {
+    return fail(
+      `Invalid default export in ${noun} file "${filePath}". Expected "export default ${example}${isRoute ? "..." : ""}".${hint}`,
+    );
   }
 
-  const actualMethod = rootCall.rootMethod.toLowerCase();
-
-  if (expectedKind === "route") {
-    const exp = expectedVerb?.toLowerCase();
-    if (actualMethod !== exp && actualMethod !== "any") {
-      diagnostics.push({
-        filePath,
-        message: `Mismatched HTTP method in "${filePath}": File name specifies verb ".${exp}", but default export defines "t.${actualMethod}(...)". Expected "export default t.${exp}("${canonicalPath}")...".`,
-      });
-      return diagnostics;
-    }
-
-    const firstArg = rootCall.rootArgs[0];
-    const passedPath = extractStringLiteralValue(firstArg);
-
-    if (passedPath === null) {
-      diagnostics.push({
-        filePath,
-        message: `Route definition in "${filePath}" must provide a static string path argument matching canonical URL "${canonicalPath}" (e.g. "t.${exp}("${canonicalPath}")").`,
-      });
-      return diagnostics;
-    }
-
-    if (passedPath.includes("$")) {
-      diagnostics.push({
-        filePath,
-        message: `Route definition in "${filePath}" contains filesystem tokens like "$param" ("${passedPath}"). Route builders strictly accept Canonical URL Patterns (e.g. "${canonicalPath}").`,
-      });
-      return diagnostics;
-    }
-
-    if (passedPath !== canonicalPath) {
-      diagnostics.push({
-        filePath,
-        message: `Mismatched route path in "${filePath}": Expected path "${canonicalPath}" derived from filesystem, but received "${passedPath}".`,
-      });
-      return diagnostics;
-    }
-
-    if (actualMethod === "any" && rootCall.rootArgs.length < 2) {
-      diagnostics.push({
-        filePath,
-        message: `Route definition for "t.any" in "${filePath}" must provide an array of HTTP methods as the second argument (e.g. 't.any("${canonicalPath}", ["GET", "POST"])').`,
-      });
-      return diagnostics;
-    }
-  } else {
-    // Layout file
-    const filename = basename(filePath);
-    const parsedName = parseFilePath(filename);
-    const stem = parsedName ? parsedName.stem : filename.replace(/\.(ts|tsx)$/, "");
-    if (stem.endsWith("_")) {
-      diagnostics.push(createInvalidLayoutUnderscoreDiagnostic(filePath));
-      return diagnostics;
-    }
-
-    if (actualMethod !== "layout") {
-      diagnostics.push({
-        filePath,
-        message: `Invalid default export in layout file "${filePath}": Layout files must export default "t.layout(...)". Found "t.${actualMethod}(...)". Non-verb files that are not layouts must be prefixed with "-" to be ignored.`,
-      });
-      return diagnostics;
-    }
-
-    const firstArg = rootCall.rootArgs[0];
-    const passedPath = extractStringLiteralValue(firstArg);
-
-    if (passedPath === null) {
-      diagnostics.push({
-        filePath,
-        message: `Layout definition in "${filePath}" must provide a static string path argument matching canonical layout pattern "${layoutId}" (e.g. "t.layout("${layoutId}")").`,
-      });
-      return diagnostics;
-    }
-
-    if (passedPath.includes("$")) {
-      diagnostics.push({
-        filePath,
-        message: `Layout definition in "${filePath}" contains filesystem tokens like "$param" ("${passedPath}"). Layouts accept Canonical URL Patterns.`,
-      });
-      return diagnostics;
-    }
-
-    if (layoutId && passedPath !== layoutId) {
-      diagnostics.push({
-        filePath,
-        message: `Mismatched layout path in "${filePath}": Expected path pattern "${layoutId}" derived from filesystem, but received "${passedPath}".`,
-      });
-      return diagnostics;
-    }
+  const actual = root.method.toLowerCase();
+  const verbMatches = isRoute ? actual === verb || actual === "any" : actual === "layout";
+  if (!verbMatches) {
+    return fail(
+      isRoute
+        ? `Mismatched HTTP method in "${filePath}": File name specifies verb ".${verb}", but default export defines "t.${actual}(...)". Expected "export default ${example}...".`
+        : `Invalid default export in layout file "${filePath}": Layout files must export default "t.layout(...)". Found "t.${actual}(...)".${hint}`,
+    );
   }
 
+  const passedPath = staticString(root.args[0]);
+  const Noun = isRoute ? "Route" : "Layout";
+  if (passedPath === null) {
+    return fail(
+      `${Noun} definition in "${filePath}" must provide a static string path argument matching canonical ${isRoute ? "URL" : "layout pattern"} "${expectedPath}" (e.g. "${isRoute ? example : `t.layout("${expectedPath}")`}").`,
+    );
+  }
+  if (passedPath.includes("$")) {
+    return fail(
+      `${Noun} definition in "${filePath}" contains filesystem tokens like "$param" ("${passedPath}"). Expected canonical URL pattern (e.g. "${expectedPath}").`,
+    );
+  }
+  if (passedPath !== expectedPath) {
+    return fail(
+      `Mismatched ${noun} path in "${filePath}": Expected path pattern "${expectedPath}" derived from filesystem, but received "${passedPath}".`,
+    );
+  }
+  if (isRoute && actual === "any" && root.args.length < 2) {
+    return fail(
+      `Route definition for "t.any" in "${filePath}" must provide an array of HTTP methods as the second argument (e.g. 't.any("${expectedPath}", ["GET", "POST"])').`,
+    );
+  }
+
+  return [];
+}
+
+interface SourceFile {
+  filePath: string;
+  absolutePath: string;
+  parsed: ParsedFilePath;
+}
+
+const compareBySegments = (a: string, b: string): number => {
+  const left = a.split("/");
+  const right = b.split("/");
+  for (let i = 0; i < Math.min(left.length, right.length); i++) {
+    if (left[i] !== right[i]) return left[i]! < right[i]! ? -1 : 1;
+  }
+  return left.length - right.length;
+};
+
+/** Lists route and layout candidates in a stable, directory-first order. */
+function discoverFiles(routesDir: string): SourceFile[] {
+  let entries;
+  try {
+    entries = readdirSync(routesDir, { recursive: true, withFileTypes: true });
+  } catch {
+    return []; // routes directory may not exist yet
+  }
+
+  return entries
+    .filter((entry) => entry.isFile())
+    .map((entry) => join(entry.parentPath, entry.name))
+    .map((absolutePath) => ({ absolutePath, filePath: relative(routesDir, absolutePath) }))
+    .filter(({ filePath }) => !isIgnoredPath(filePath))
+    .flatMap((file) => {
+      const parsed = parseFilePath(file.filePath);
+      return parsed ? [{ ...file, parsed }] : [];
+    })
+    .sort((a, b) => compareBySegments(a.filePath, b.filePath));
+}
+
+function readSource(file: SourceFile, scaffold: boolean, stub: () => string): string {
+  const content = readFileSync(file.absolutePath, "utf-8");
+  if (!scaffold || content.trim().length > 0) return content;
+  const generated = stub();
+  writeFileSync(file.absolutePath, generated, "utf-8");
+  return generated;
+}
+
+function findDuplicates<T extends { filePath: string }>(
+  items: T[],
+  keyOf: (item: T) => string,
+  describe: (key: string, first: T, duplicate: T) => string,
+): ScanDiagnostic[] {
+  const seen = new Map<string, T>();
+  const diagnostics: ScanDiagnostic[] = [];
+  for (const item of items) {
+    const key = keyOf(item);
+    const first = seen.get(key);
+    if (first) diagnostics.push({ filePath: item.filePath, message: describe(key, first, item) });
+    else seen.set(key, item);
+  }
   return diagnostics;
 }
 
 export function scanRoutes(options: ScanOptions): ScanResult {
-  const cwd = options.cwd ?? process.cwd();
-  const fullRoutesDir = resolve(cwd, options.routesDir);
-  const extensions = options.extensions ?? ROUTE_EXTENSIONS;
+  const routesDir = resolve(options.cwd ?? process.cwd(), options.routesDir);
+  const scaffold = Boolean(options.scaffold);
 
   const routes: DiscoveredRoute[] = [];
   const layouts: DiscoveredLayout[] = [];
   const diagnostics: ScanDiagnostic[] = [];
 
-  function walk(currentDir: string, relativeDir: string) {
-    let entries: string[] = [];
+  for (const file of discoverFiles(routesDir)) {
+    const { filePath, absolutePath, parsed } = file;
+
+    if (parsed.verb === null && parsed.stem.endsWith("_")) {
+      diagnostics.push(layoutUnderscoreDiagnostic(filePath));
+      continue;
+    }
+
     try {
-      entries = readdirSync(currentDir);
-    } catch {
-      // Directory may not exist yet
-      return;
-    }
-
-    for (const entry of entries) {
-      const entryRelPath = relativeDir ? join(relativeDir, entry) : entry;
-      const entryFullPath = resolve(currentDir, entry);
-
-      if (isIgnoredPath(entryRelPath)) {
-        continue;
+      if (parsed.verb !== null) {
+        const { canonicalPath, hierarchySegments } = deriveCanonicalUrl(parsed.dir, parsed.stem);
+        const content = readSource(file, scaffold, () => routeStub(parsed.verb!, canonicalPath));
+        diagnostics.push(
+          ...validateAst(filePath, content, { kind: "route", verb: parsed.verb, canonicalPath }),
+        );
+        routes.push({
+          filePath,
+          absolutePath,
+          method: parsed.verb.toUpperCase(),
+          canonicalPath,
+          segmentHierarchy: hierarchySegments,
+        });
+      } else {
+        const layout = deriveLayoutInfo(parsed.dir, parsed.stem);
+        const content = readSource(file, scaffold, () => layoutStub(layout.layoutId));
+        diagnostics.push(
+          ...validateAst(filePath, content, { kind: "layout", layoutId: layout.layoutId }),
+        );
+        layouts.push({ filePath, absolutePath, ...layout });
       }
-
-      const stat = statSync(entryFullPath);
-      if (stat.isDirectory()) {
-        walk(entryFullPath, entryRelPath);
-      } else if (stat.isFile()) {
-        const parsed = parseFilePath(entryRelPath, extensions);
-        if (!parsed) {
-          // File does not match extensions
-          continue;
-        }
-
-        if (parsed.verb === null && parsed.stem.endsWith("_")) {
-          diagnostics.push(createInvalidLayoutUnderscoreDiagnostic(entryRelPath));
-          continue;
-        }
-
-        let content = readFileSync(entryFullPath, "utf-8");
-
-        try {
-          if (options.scaffold && content.trim().length === 0) {
-            let stub: string | null = null;
-            if (parsed.verb !== null) {
-              const { canonicalPath } = deriveCanonicalUrl(parsed.dir, parsed.stem);
-              stub = generateRouteStub({
-                method: parsed.verb,
-                canonicalPath,
-                formatting: options.formatting,
-              });
-            } else {
-              const layoutInfo = deriveLayoutInfo(parsed.dir, parsed.stem, entryRelPath);
-              stub = generateLayoutStub({
-                layoutId: layoutInfo.layoutId,
-                formatting: options.formatting,
-              });
-            }
-
-            if (stub) {
-              writeFileSync(entryFullPath, stub, "utf-8");
-              content = stub;
-            }
-          }
-
-          if (parsed.verb !== null) {
-            // Route file
-            const { canonicalPath, hierarchySegments } = deriveCanonicalUrl(
-              parsed.dir,
-              parsed.stem,
-            );
-            const method = parsed.verb.toUpperCase();
-
-            const astDiags = validateAst(
-              entryRelPath,
-              content,
-              "route",
-              parsed.verb,
-              canonicalPath,
-            );
-            diagnostics.push(...astDiags);
-
-            routes.push({
-              kind: "route",
-              filePath: entryRelPath,
-              absolutePath: entryFullPath,
-              method,
-              canonicalPath,
-              segmentHierarchy: hierarchySegments,
-            });
-          } else {
-            // Layout file
-            const layoutInfo = deriveLayoutInfo(parsed.dir, parsed.stem, entryRelPath);
-            const astDiags = validateAst(
-              entryRelPath,
-              content,
-              "layout",
-              null,
-              "",
-              layoutInfo.layoutId,
-            );
-            diagnostics.push(...astDiags);
-
-            layouts.push({
-              ...layoutInfo,
-              absolutePath: entryFullPath,
-            });
-          }
-        } catch (err: any) {
-          diagnostics.push({
-            filePath: entryRelPath,
-            message: err.message,
-          });
-        }
-      }
+    } catch (err) {
+      diagnostics.push({ filePath, message: (err as Error).message });
     }
   }
 
-  walk(fullRoutesDir, "");
+  diagnostics.push(
+    ...findDuplicates(
+      layouts,
+      (layout) => layout.targetSegment,
+      (segment, first, duplicate) =>
+        `Layout collision detected: Multiple layouts defined for segment "${segment || "/"}": "${first.filePath}" and "${duplicate.filePath}". Sibling layouts (e.g. admin.ts) and nested layouts (e.g. admin/$.ts) are mutually exclusive.`,
+    ),
+    ...findDuplicates(
+      routes,
+      (route) => `${route.method} ${route.canonicalPath}`,
+      (key, first, duplicate) =>
+        `Route collision detected: Method and path "${key}" is defined in multiple files: "${first.filePath}" and "${duplicate.filePath}". Conflicting route patterns must be resolved.`,
+    ),
+  );
 
-  // Collision detection:
-  // 1. Sibling layout vs Nested layout collision
-  const layoutSegments = new Map<string, DiscoveredLayout>();
-  for (const layout of layouts) {
-    const key = layout.targetSegment;
-    const existing = layoutSegments.get(key);
-    if (existing) {
-      diagnostics.push({
-        filePath: layout.filePath,
-        message: `Layout collision detected: Multiple layouts defined for segment "${key || "/"}": "${existing.filePath}" and "${layout.filePath}". Sibling layouts (e.g. admin.ts) and nested layouts (e.g. admin/$.ts) are mutually exclusive.`,
-      });
-    } else {
-      layoutSegments.set(key, layout);
-    }
-  }
-
-  // 2. Route collisions (same canonicalPath + same HTTP method)
-  const routeMap = new Map<string, DiscoveredRoute>();
-  for (const route of routes) {
-    const key = `${route.method} ${route.canonicalPath}`;
-    const existing = routeMap.get(key);
-    if (existing) {
-      diagnostics.push({
-        filePath: route.filePath,
-        message: `Route collision detected: Method and path "${key}" is defined in multiple files: "${existing.filePath}" and "${route.filePath}". Conflicting route patterns must be resolved.`,
-      });
-    } else {
-      routeMap.set(key, route);
-    }
-  }
-
-  return {
-    routes,
-    layouts,
-    diagnostics,
-  };
+  return { routes, layouts, diagnostics };
 }

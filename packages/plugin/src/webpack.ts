@@ -1,5 +1,5 @@
-import { taserPlugin, type TaserPluginOptions } from "./index.js";
+import { taserPlugin, type TaserPluginOptions } from "./plugin.js";
 
 export const taser = taserPlugin.webpack;
-export default taserPlugin.webpack;
+export default taser;
 export type { TaserPluginOptions };

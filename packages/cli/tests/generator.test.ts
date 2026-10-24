@@ -1,23 +1,17 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 import { join } from "pathe";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { DEFAULT_CONFIG } from "../src/config.js";
-import {
-  generateManifest,
-  generateManifestCode,
-  resolveLayoutsForRoute,
-} from "../src/generator.js";
-import {
-  scanRoutes,
-  type DiscoveredLayout,
-  type DiscoveredRoute,
-  type ScanResult,
-} from "../src/scanner.js";
+import { resolveConfig } from "../src/config.js";
+import { executeGenerate, generateManifest, renderManifest } from "../src/generator.js";
+import { scanRoutes, type ScanResult } from "../src/scanner.js";
 
-describe("manifest codegen and content-hash caching", () => {
+const expectCompact = (code: string, fragment: string) =>
+  expect(code.replace(/\s+/g, "")).toContain(fragment.replace(/\s+/g, ""));
+
+describe("manifest codegen", () => {
   let tempDir: string;
 
   beforeEach(() => {
@@ -65,7 +59,7 @@ describe("manifest codegen and content-hash caching", () => {
       'import { t } from "@taserjs/router";\nexport default t.get("/admin/users/:id").handler(() => new Response("admin-user"));',
     );
 
-    const config = { ...DEFAULT_CONFIG };
+    const config = resolveConfig();
 
     const scanResult = scanRoutes({ routesDir, cwd: tempDir });
     const genResult = generateManifest(scanResult, config, tempDir);
@@ -88,7 +82,7 @@ describe("manifest codegen and content-hash caching", () => {
       'import { t } from "@taserjs/router";\nexport default t.post("/login").handler(() => new Response("login"));',
     );
 
-    const config = { ...DEFAULT_CONFIG };
+    const config = resolveConfig();
 
     const scanResult = scanRoutes({ routesDir, cwd: tempDir });
     const genResult = generateManifest(scanResult, config, tempDir);
@@ -96,7 +90,7 @@ describe("manifest codegen and content-hash caching", () => {
     expect(genResult.content).toMatchSnapshot();
   });
 
-  it("skips writing files when content hash is unchanged", () => {
+  it("skips writing the manifest when its content is unchanged", () => {
     const routesDir = join(tempDir, "src", "routes");
     mkdirSync(routesDir, { recursive: true });
 
@@ -105,7 +99,7 @@ describe("manifest codegen and content-hash caching", () => {
       'import { t } from "@taserjs/router";\nexport default t.get("/hello").handler(() => new Response("hello"));',
     );
 
-    const config = { ...DEFAULT_CONFIG };
+    const config = resolveConfig();
 
     const scan1 = scanRoutes({ routesDir, cwd: tempDir });
     const gen1 = generateManifest(scan1, config, tempDir);
@@ -114,26 +108,6 @@ describe("manifest codegen and content-hash caching", () => {
     const scan2 = scanRoutes({ routesDir, cwd: tempDir });
     const gen2 = generateManifest(scan2, config, tempDir);
     expect(gen2.manifestWritten).toBe(false);
-  });
-
-  it("supports single quote formatting option", () => {
-    const routesDir = join(tempDir, "src", "routes");
-    mkdirSync(routesDir, { recursive: true });
-
-    writeFileSync(
-      join(routesDir, "index.get.ts"),
-      'import { t } from "@taserjs/router";\nexport default t.get("/").handler(() => new Response("ok"));',
-    );
-
-    const config = {
-      ...DEFAULT_CONFIG,
-      formatting: { ...DEFAULT_CONFIG.formatting, quotes: "single" as const },
-    };
-
-    const scan = scanRoutes({ routesDir, cwd: tempDir });
-    const gen = generateManifest(scan, config, tempDir);
-
-    expect(gen.content).toMatchSnapshot();
   });
 
   it("emits unified routes.gen.ts extracting AppContext from src/taser.ts and compiles inverted app", () => {
@@ -164,30 +138,13 @@ export default defineTaser().context(createContext({
       'import { t } from "@taserjs/router";\nexport default t.get("/users").handler(() => new Response("users"));',
     );
 
-    const config = { ...DEFAULT_CONFIG };
+    const config = resolveConfig();
 
     const scan = scanRoutes({ routesDir, cwd: tempDir });
     const gen = generateManifest(scan, config, tempDir);
 
     expect(gen.manifestPath).toMatch(/routes\.gen\.ts$/);
     expect(gen.manifestWritten).toBe(true);
-    expect(gen.content).toMatchSnapshot();
-  });
-
-  it("defaults AppContext to {} when src/taser.ts does not exist", () => {
-    const routesDir = join(tempDir, "src", "routes");
-    mkdirSync(routesDir, { recursive: true });
-
-    writeFileSync(
-      join(routesDir, "index.get.ts"),
-      'import { t } from "@taserjs/router";\nexport default t.get("/").handler(() => new Response("ok"));',
-    );
-
-    const config = { ...DEFAULT_CONFIG };
-
-    const scan = scanRoutes({ routesDir, cwd: tempDir });
-    const gen = generateManifest(scan, config, tempDir);
-
     expect(gen.content).toMatchSnapshot();
   });
 
@@ -212,29 +169,25 @@ export default defineTaser().context(createContext({
     const scanResult = scanRoutes({ routesDir, cwd: tempDir });
 
     // 1. extension: true (default -> .js)
-    const genDefault = generateManifest(
-      scanResult,
-      { ...DEFAULT_CONFIG, extension: true },
-      tempDir,
-    );
+    const genDefault = generateManifest(scanResult, resolveConfig({ extension: true }), tempDir);
     expect(genDefault.content).toContain('import taser from "../taser.js";');
     expect(genDefault.content).toContain('import layout_0 from "../routes/$.js";');
     expect(genDefault.content).toContain('import route_0 from "../routes/hello.get.js";');
 
     // 2. extension: false (no extension)
-    const genNoExt = generateManifest(scanResult, { ...DEFAULT_CONFIG, extension: false }, tempDir);
+    const genNoExt = generateManifest(scanResult, resolveConfig({ extension: false }), tempDir);
     expect(genNoExt.content).toContain('import taser from "../taser";');
     expect(genNoExt.content).toContain('import layout_0 from "../routes/$";');
     expect(genNoExt.content).toContain('import route_0 from "../routes/hello.get";');
 
     // 3. extension: "mjs"
-    const genMjs = generateManifest(scanResult, { ...DEFAULT_CONFIG, extension: "mjs" }, tempDir);
+    const genMjs = generateManifest(scanResult, resolveConfig({ extension: "mjs" }), tempDir);
     expect(genMjs.content).toContain('import taser from "../taser.mjs";');
     expect(genMjs.content).toContain('import layout_0 from "../routes/$.mjs";');
     expect(genMjs.content).toContain('import route_0 from "../routes/hello.get.mjs";');
 
     // 4. extension: ".ts"
-    const genTs = generateManifest(scanResult, { ...DEFAULT_CONFIG, extension: ".ts" }, tempDir);
+    const genTs = generateManifest(scanResult, resolveConfig({ extension: ".ts" }), tempDir);
     expect(genTs.content).toContain('import taser from "../taser.ts";');
     expect(genTs.content).toContain('import layout_0 from "../routes/$.ts";');
     expect(genTs.content).toContain('import route_0 from "../routes/hello.get.ts";');
@@ -245,7 +198,6 @@ export default defineTaser().context(createContext({
     const scanResult: ScanResult = {
       routes: [
         {
-          kind: "route",
           filePath: "routes\\users.get.ts",
           absolutePath: "C:\\Users\\alice\\my-project\\src\\routes\\users.get.ts",
           method: "GET",
@@ -255,21 +207,19 @@ export default defineTaser().context(createContext({
       ],
       layouts: [
         {
-          kind: "layout",
           filePath: "routes\\$.tsx",
           absolutePath: "C:\\Users\\alice\\my-project\\src\\routes\\$.tsx",
           layoutId: "/*",
           targetSegment: "",
-          isSibling: false,
         },
       ],
       diagnostics: [],
     };
 
-    const { manifestCode } = generateManifestCode(scanResult, DEFAULT_CONFIG, cwd);
+    const manifestCode = renderManifest(scanResult, resolveConfig(), cwd);
 
-    expect(manifestCode).toContain('import layout_0 from "../routes/$.js";');
-    expect(manifestCode).toContain('import route_0 from "../routes/users.get.js";');
+    expectCompact(manifestCode, 'import layout_0 from "../routes/$.js";');
+    expectCompact(manifestCode, 'import route_0 from "../routes/users.get.js";');
     expect(manifestCode).not.toContain("\\");
   });
 
@@ -367,123 +317,92 @@ export default defineTaser().context(createContext({
     const scanResult = scanRoutes({ routesDir, cwd: tempDir });
     expect(scanResult.diagnostics).toHaveLength(0);
 
-    const { manifestCode } = generateManifestCode(scanResult, DEFAULT_CONFIG, tempDir);
+    const manifestCode = renderManifest(scanResult, resolveConfig(), tempDir);
     expect(manifestCode).toMatchSnapshot();
 
     // Check routeManifest.routes output
     // 1. health: layouts: []
-    expect(manifestCode).toContain('"/health": {\n      GET: {\n        layouts: [],');
+    expectCompact(manifestCode, '"/health": {\n      GET: {\n        layouts: [],');
 
     // 2. index: layouts: []
-    expect(manifestCode).toContain('"/": {\n      GET: {\n        layouts: [],');
+    expectCompact(manifestCode, '"/": {\n      GET: {\n        layouts: [],');
 
     // 3. /posts/:id/preview: layouts: ["/*"]
-    expect(manifestCode).toContain(
-      '"/posts/:id/preview": {\n      GET: {\n        layouts: ["/*"],',
-    );
+    expectCompact(manifestCode, '"/posts/:id/preview": {\n      GET: {\n        layouts: ["/*"],');
 
     // 4. /posts: layouts: ["/*"]
-    expect(manifestCode).toContain('"/posts": {\n      GET: {\n        layouts: ["/*"],');
+    expectCompact(manifestCode, '"/posts": {\n      GET: {\n        layouts: ["/*"],');
 
     // 5. /tasks/:id/complete: layouts: ["/*", "/tasks/*"]
-    expect(manifestCode).toContain(
+    expectCompact(
+      manifestCode,
       '"/tasks/:id/complete": {\n      PATCH: {\n        layouts: ["/*", "/tasks/*"],',
     );
 
     // 6. /posts/:id/sub: layouts: ["/*"]
-    expect(manifestCode).toContain('"/posts/:id/sub": {\n      GET: {\n        layouts: ["/*"],');
+    expectCompact(manifestCode, '"/posts/:id/sub": {\n      GET: {\n        layouts: ["/*"],');
 
     // 7. /posts/:id: layouts: ["/*", "/_auth/*"]
-    expect(manifestCode).toContain(
+    expectCompact(
+      manifestCode,
       '"/posts/:id": {\n      GET: {\n        layouts: ["/*", "/_auth/*"],',
     );
 
     // 8. /unknown/:id: layouts: ["/*"]
-    expect(manifestCode).toContain('"/unknown/:id": {\n      GET: {\n        layouts: ["/*"],');
+    expectCompact(manifestCode, '"/unknown/:id": {\n      GET: {\n        layouts: ["/*"],');
 
     // Check ambient RouteByPathMethod type output
-    expect(manifestCode).toContain('"/health": {\n      GET: {\n        layouts: readonly [];');
-    expect(manifestCode).toContain('"/": {\n      GET: {\n        layouts: readonly [];');
-    expect(manifestCode).toContain(
+    expectCompact(manifestCode, '"/health": {\n      GET: {\n        layouts: readonly [];');
+    expectCompact(manifestCode, '"/": {\n      GET: {\n        layouts: readonly [];');
+    expectCompact(
+      manifestCode,
       '"/posts/:id/preview": {\n      GET: {\n        layouts: readonly ["/*"];',
     );
-    expect(manifestCode).toContain(
+    expectCompact(
+      manifestCode,
       '"/tasks/:id/complete": {\n      PATCH: {\n        layouts: readonly ["/*", "/tasks/*"];',
     );
-    expect(manifestCode).toContain(
+    expectCompact(
+      manifestCode,
       '"/posts/:id": {\n      GET: {\n        layouts: readonly ["/*", "/_auth/*"];',
     );
-    expect(manifestCode).toContain(
+    expectCompact(
+      manifestCode,
       '"/unknown/:id": {\n      GET: {\n        layouts: readonly ["/*"];',
     );
   });
 
-  it("resolves layouts correctly for routes with breakout segment hierarchies via resolveLayoutsForRoute", () => {
-    const rootLayout: DiscoveredLayout = {
-      kind: "layout",
-      filePath: "$.ts",
-      absolutePath: "/app/src/routes/$.ts",
-      layoutId: "/*",
-      targetSegment: "",
-      isSibling: false,
-    };
-    const postsLayout: DiscoveredLayout = {
-      kind: "layout",
-      filePath: "posts.ts",
-      absolutePath: "/app/src/routes/posts.ts",
-      layoutId: "/posts/*",
-      targetSegment: "posts",
-      isSibling: true,
-    };
-    const tasksLayout: DiscoveredLayout = {
-      kind: "layout",
-      filePath: "tasks/$.ts",
-      absolutePath: "/app/src/routes/tasks/$.ts",
-      layoutId: "/tasks/*",
-      targetSegment: "tasks",
-      isSibling: false,
-    };
+  it("scaffolds a minimal taser.ts when the app file is missing and imports it", () => {
+    const routesDir = join(tempDir, "src", "routes");
+    mkdirSync(routesDir, { recursive: true });
+    writeFileSync(
+      join(routesDir, "hello.get.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.get("/hello").handler(() => new Response("hello"));',
+    );
 
-    const layoutsBySegment = new Map<string, DiscoveredLayout>([
-      ["", rootLayout],
-      ["posts", postsLayout],
-      ["tasks", tasksLayout],
-    ]);
+    const result = executeGenerate({ cwd: tempDir, config: resolveConfig() });
 
-    // Breakout route with empty hierarchy (root-level breakout)
-    const rootBreakoutRoute: DiscoveredRoute = {
-      kind: "route",
-      filePath: "health_.get.ts",
-      absolutePath: "/app/src/routes/health_.get.ts",
-      method: "GET",
-      canonicalPath: "/health",
-      segmentHierarchy: [],
-    };
-    expect(resolveLayoutsForRoute(rootBreakoutRoute, layoutsBySegment)).toEqual([]);
+    const appFile = join(tempDir, "src", "taser.ts");
+    expect(readFileSync(appFile, "utf-8")).toContain("defineTaser()");
+    expect(result?.generateResult.content).toContain('import taser from "../taser.js";');
 
-    // Breakout route retaining only root (posts breakout)
-    const postsBreakoutRoute: DiscoveredRoute = {
-      kind: "route",
-      filePath: "posts_.$id.get.ts",
-      absolutePath: "/app/src/routes/posts_.$id.get.ts",
-      method: "GET",
-      canonicalPath: "/posts/:id",
-      segmentHierarchy: [""],
-    };
-    expect(resolveLayoutsForRoute(postsBreakoutRoute, layoutsBySegment)).toEqual(["/*"]);
+    writeFileSync(appFile, "export default 'custom';");
+    executeGenerate({ cwd: tempDir, config: resolveConfig() });
+    expect(readFileSync(appFile, "utf-8")).toBe("export default 'custom';");
+  });
 
-    // Breakout route retaining root and tasks
-    const tasksBreakoutRoute: DiscoveredRoute = {
-      kind: "route",
-      filePath: "tasks/$id_.complete.patch.ts",
-      absolutePath: "/app/src/routes/tasks/$id_.complete.patch.ts",
-      method: "PATCH",
-      canonicalPath: "/tasks/:id/complete",
-      segmentHierarchy: ["", "tasks"],
-    };
-    expect(resolveLayoutsForRoute(tasksBreakoutRoute, layoutsBySegment)).toEqual([
-      "/*",
-      "/tasks/*",
-    ]);
+  it("warns and leaves the manifest alone when the routes directory is missing", () => {
+    expect(executeGenerate({ cwd: tempDir, config: resolveConfig() })).toBeNull();
+    expect(existsSync(join(tempDir, "src", ".taserjs"))).toBe(false);
+  });
+
+  it("throws a combined error when the scan has diagnostics", () => {
+    const routesDir = join(tempDir, "src", "routes");
+    mkdirSync(routesDir, { recursive: true });
+    writeFileSync(join(routesDir, "broken.get.ts"), "export const nope = 1;");
+
+    expect(() => executeGenerate({ cwd: tempDir, config: resolveConfig() })).toThrow(
+      /Build failed with 1 diagnostic error.*Missing default export/s,
+    );
   });
 });

@@ -25,7 +25,6 @@ export {
   ValidationError,
   ResponseValidationError,
   executeSchema,
-  validateStandardSchema,
   validateResponseSchema,
 } from "./validation.js";
 export { isPlainObject } from "./object.js";

@@ -1,6 +1,6 @@
 import { basename, dirname, isAbsolute, normalize, relative } from "pathe";
 
-export const HTTP_METHODS = [
+const HTTP_VERBS = new Set([
   "get",
   "post",
   "put",
@@ -10,68 +10,17 @@ export const HTTP_METHODS = [
   "query",
   "all",
   "any",
-] as const;
-export type HttpMethodLower = (typeof HTTP_METHODS)[number];
+]);
 
-export const ROUTE_EXTENSIONS = ["ts", "tsx"] as const;
-export type RouteExtension = (typeof ROUTE_EXTENSIONS)[number];
+const ROUTE_FILE_PATTERN = /\.(ts|tsx)$/;
+const SOURCE_EXTENSION_PATTERN = /\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
 
-export interface ParsedRouteFileInfo {
-  kind: "route";
-  filePath: string; // Relative path, e.g. "admin/users.get.ts"
-  method: string; // "GET", "POST", etc.
-  canonicalPath: string; // "/admin/users"
-  segmentHierarchy: string[]; // Hierarchy keys for layout resolution, e.g. ["", "admin", "admin/users"]
-}
-
-export interface ParsedLayoutFileInfo {
-  kind: "layout";
-  filePath: string; // Relative path, e.g. "admin.ts" or "admin/$.ts"
-  layoutId: string; // "/*", "/admin/*", "/_auth/*", etc.
-  targetSegment: string; // Segment it represents: "", "admin", "_auth", "admin/users"
-  isSibling: boolean; // true if admin.ts, false if admin/$.ts
-}
-
-export type ParsedFileInfo = ParsedRouteFileInfo | ParsedLayoutFileInfo;
-
-/**
- * Splits a filename stem by unescaped dots, while preserving bracketed literal escapes.
- * E.g. "sitemap[.]xml" -> ["sitemap[.]xml"]
- * E.g. "posts.$id" -> ["posts", "$id"]
- */
+/** Splits on dots that are not inside `[...]` escapes: `sitemap[.]xml.get` -> `sitemap[.]xml`, `get`. */
 export function splitUnescapedDots(stem: string): string[] {
-  const parts: string[] = [];
-  let current = "";
-  let inBracket = false;
-
-  for (let i = 0; i < stem.length; i++) {
-    const char = stem[i]!;
-    if (char === "[") {
-      inBracket = true;
-      current += char;
-    } else if (char === "]") {
-      inBracket = false;
-      current += char;
-    } else if (char === "." && !inBracket) {
-      if (current) {
-        parts.push(current);
-        current = "";
-      }
-    } else {
-      current += char;
-    }
-  }
-  if (current) {
-    parts.push(current);
-  }
-  return parts;
+  return stem.match(/(?:\[[^\]]*\]?|[^.])+/g) ?? [];
 }
 
-/**
- * Unescapes brackets `[...]` into their literal character content.
- * Checks for invalid `[...slug]` syntax and raises an error.
- */
-export function unescapeBrackets(segment: string): string {
+function unescapeBrackets(segment: string): string {
   if (/\[\.\.\.[^\]]+\]/.test(segment)) {
     throw new Error(
       `Invalid route segment "${segment}": Catch-all splats strictly use "$" (e.g. "$.get.ts" -> "/*"). ` +
@@ -81,293 +30,161 @@ export function unescapeBrackets(segment: string): string {
   return segment.replace(/\[([^\]]+)\]/g, "$1");
 }
 
-export function isPathlessSegment(rawSegment: string): boolean {
-  return rawSegment.startsWith("_") && !rawSegment.startsWith("[_]");
-}
+const isPathless = (segment: string) => segment.startsWith("_") && !segment.startsWith("[_]");
 
-/**
- * Identifies if a route segment has an unbracketed trailing underscore (layout breakout).
- * Respects bracket escaping such that `task[_]` is NOT a breakout, but `task[_]_` IS.
- */
-export function isBreakoutSegment(rawSegment: string): boolean {
-  return Boolean(rawSegment && rawSegment.endsWith("_") && rawSegment !== "_");
-}
+/** A trailing `_` outside brackets marks a layout breakout (`task[_]` is not one, `task[_]_` is). */
+const isBreakout = (segment: string) => segment.endsWith("_") && segment !== "_";
 
-/**
- * Normalizes a raw segment to canonical URL segment.
- */
-export function normalizeSegmentToUrl(rawSegment: string): {
-  urlSegment: string | null;
-  isPathless: boolean;
-} {
-  if (isPathlessSegment(rawSegment)) {
-    return { urlSegment: null, isPathless: true };
-  }
+/** Converts one filesystem segment to a canonical URL segment, or `null` when it adds no URL part. */
+function toUrlSegment(raw: string): string | null {
+  if (isPathless(raw)) return null;
 
-  const segment = isBreakoutSegment(rawSegment) ? rawSegment.slice(0, -1) : rawSegment;
+  const segment = isBreakout(raw) ? raw.slice(0, -1) : raw;
   const unescaped = unescapeBrackets(segment);
 
-  if (unescaped === "index" && segment === "index") {
-    return { urlSegment: null, isPathless: false };
-  }
-
-  if (unescaped === "$" && segment === "$") {
-    return { urlSegment: "*", isPathless: false };
-  }
-
-  if (segment.startsWith("{-$") && segment.endsWith("}")) {
-    return { urlSegment: `:${segment.slice(3, -1)}?`, isPathless: false };
-  }
-
-  if (segment.startsWith("$") && segment.length > 1) {
-    return { urlSegment: `:${segment.slice(1)}`, isPathless: false };
-  }
-
-  return { urlSegment: unescaped, isPathless: false };
+  if (segment === "index") return null;
+  if (segment === "$") return "*";
+  if (segment.startsWith("{-$") && segment.endsWith("}")) return `:${segment.slice(3, -1)}?`;
+  if (segment.startsWith("$") && segment.length > 1) return `:${segment.slice(1)}`;
+  return unescaped;
 }
 
-/**
- * Checks if a relative file path is ignored (starts with '-' in any segment).
- */
+/** Ignored when any path segment starts with `-`. */
 export function isIgnoredPath(relativePath: string): boolean {
-  const normalized = normalize(relativePath);
-  const segments = normalized.split("/");
-  return segments.some((segment) => segment.startsWith("-"));
+  return normalize(relativePath)
+    .split("/")
+    .some((segment) => segment.startsWith("-"));
 }
 
-/**
- * Parses file extension and verb from a relative file path.
- */
-export function parseFilePath(
-  relativePath: string,
-  allowedExtensions: readonly string[] = ROUTE_EXTENSIONS,
-): {
+export interface ParsedFilePath {
   dir: string;
-  name: string;
-  ext: string;
-  verb: HttpMethodLower | null;
+  /** Lowercase HTTP verb from `name.<verb>.ts`; `null` for layout files. */
+  verb: string | null;
   stem: string;
-} | null {
-  const normalized = normalize(relativePath);
-  const extMatch = normalized.match(new RegExp(`\\.(${allowedExtensions.join("|")})$`));
-  if (!extMatch) {
-    return null;
-  }
-
-  const ext = extMatch[1]!;
-  const withoutExt = normalized.slice(0, -ext.length - 1);
-  const dir = dirname(withoutExt) === "." ? "" : dirname(withoutExt);
-  const filenameWithoutExt = basename(withoutExt);
-
-  // Check if filename ends with .<verb>
-  const parts = splitUnescapedDots(filenameWithoutExt);
-  if (parts.length >= 2) {
-    const lastPart = parts[parts.length - 1]!.toLowerCase();
-    if (HTTP_METHODS.includes(lastPart as HttpMethodLower)) {
-      const verb = lastPart as HttpMethodLower;
-      const stem = parts.slice(0, -1).join(".");
-      return {
-        dir,
-        name: filenameWithoutExt,
-        ext,
-        verb,
-        stem,
-      };
-    }
-  }
-
-  return {
-    dir,
-    name: filenameWithoutExt,
-    ext,
-    verb: null,
-    stem: filenameWithoutExt,
-  };
 }
 
-/**
- * Derives the canonical URL pattern for a route file.
- */
-export function deriveCanonicalUrl(
-  dir: string,
-  stem: string,
-): {
-  canonicalPath: string;
-  hierarchySegments: string[];
-} {
-  const dirSegments: string[] = [];
-  if (dir) {
-    for (const d of dir.split("/")) {
-      if (d) dirSegments.push(d);
-    }
+export function parseFilePath(relativePath: string): ParsedFilePath | null {
+  const normalized = normalize(relativePath);
+  if (!ROUTE_FILE_PATTERN.test(normalized)) return null;
+
+  const withoutExt = normalized.replace(ROUTE_FILE_PATTERN, "");
+  const dir = dirname(withoutExt) === "." ? "" : dirname(withoutExt);
+  const name = basename(withoutExt);
+
+  const parts = splitUnescapedDots(name);
+  const lastPart = parts.at(-1)?.toLowerCase();
+  if (parts.length >= 2 && lastPart && HTTP_VERBS.has(lastPart)) {
+    return { dir, verb: lastPart, stem: parts.slice(0, -1).join(".") };
   }
+  return { dir, verb: null, stem: name };
+}
 
-  const dotParts = splitUnescapedDots(stem);
-  const stemSegments = dotParts.filter(Boolean);
+interface Token {
+  /** Segment as written on disk (a breakout `_` suffix on directories is kept). */
+  raw: string;
+  /** Segment without the stem-level breakout `_` suffix; used for layout lookup keys. */
+  clean: string;
+  pathless: boolean;
+  breakout: boolean;
+}
 
-  interface RouteSegmentToken {
-    raw: string;
-    clean: string;
-    isBreakout: boolean;
-  }
-
-  const allSegments: RouteSegmentToken[] = [
-    ...dirSegments.map((s) => ({
-      raw: s,
-      clean: s,
-      isBreakout: false,
-    })),
-    ...stemSegments.map((s) => ({
-      raw: s,
-      clean: isBreakoutSegment(s) ? s.slice(0, -1) : s,
-      isBreakout: isBreakoutSegment(s),
-    })),
+function tokenize(dir: string, stem: string): Token[] {
+  const token = (raw: string, breakout: boolean): Token => {
+    const clean = breakout ? raw.slice(0, -1) : raw;
+    return { raw, clean, breakout, pathless: isPathless(clean) };
+  };
+  return [
+    ...dir
+      .split("/")
+      .filter(Boolean)
+      .map((raw) => token(raw, false)),
+    ...splitUnescapedDots(stem).map((raw) => token(raw, isBreakout(raw))),
   ];
+}
 
-  const urlParts: string[] = [];
-  for (const seg of allSegments) {
-    const { urlSegment } = normalizeSegmentToUrl(seg.raw);
-    if (urlSegment !== null) {
-      urlParts.push(urlSegment);
-    }
-  }
+const keyOf = (tokens: Token[], skipPathless = false) =>
+  tokens
+    .filter((token) => !skipPathless || !token.pathless)
+    .map((token) => token.clean)
+    .join("/");
 
-  let canonicalPath = "/" + urlParts.join("/");
-  canonicalPath = canonicalPath.replace(/\/+/g, "/");
-  if (canonicalPath.length > 1 && canonicalPath.endsWith("/")) {
-    canonicalPath = canonicalPath.slice(0, -1);
-  }
+export interface CanonicalUrlInfo {
+  canonicalPath: string;
+  /** Layout lookup keys from root down to the leaf, minus layouts bypassed by breakout segments. */
+  hierarchySegments: string[];
+}
 
-  // Build candidate hierarchy keys from root down to leaf
-  const candidateKeys: string[] = [""];
-  for (let i = 0; i < allSegments.length; i++) {
-    const fullPath = allSegments
-      .slice(0, i + 1)
-      .map((s) => s.clean)
-      .join("/");
-    const withoutPathless = allSegments
-      .slice(0, i + 1)
-      .filter((s) => !isPathlessSegment(s.clean))
-      .map((s) => s.clean)
-      .join("/");
+export function deriveCanonicalUrl(dir: string, stem: string): CanonicalUrlInfo {
+  const tokens = tokenize(dir, stem);
 
-    if (fullPath && !candidateKeys.includes(fullPath)) {
-      candidateKeys.push(fullPath);
-    }
-    if (withoutPathless && !candidateKeys.includes(withoutPathless)) {
-      candidateKeys.push(withoutPathless);
-    }
-  }
+  const urlParts = tokens.map((token) => toUrlSegment(token.raw)).filter((part) => part !== null);
+  const canonicalPath = `/${urlParts.join("/")}`.replace(/\/+/g, "/").replace(/(.)\/$/, "$1");
 
-  // Determine excluded layout keys from breakout segments
-  const excludedPrefixes: string[] = [];
+  const candidateKeys = new Set([
+    "",
+    ...tokens.flatMap((_, i) => {
+      const upToHere = tokens.slice(0, i + 1);
+      return [keyOf(upToHere), keyOf(upToHere, true)];
+    }),
+  ]);
+  candidateKeys.delete("");
+
   let excludeRoot = false;
+  const excludedPrefixes: string[] = [];
+  tokens.forEach((token, i) => {
+    if (!token.breakout) return;
 
-  for (let i = 0; i < allSegments.length; i++) {
-    const seg = allSegments[i]!;
-    if (!seg.isBreakout) continue;
+    const before = tokens.slice(0, i);
+    const isFirstVisible = before.every((t) => t.pathless);
 
-    const precedingNonPathless = allSegments.slice(0, i).filter((s) => !isPathlessSegment(s.clean));
-    const followingSegments = allSegments.slice(i + 1);
-
-    if (seg.clean === "index") {
-      // index_ breakout
-      if (precedingNonPathless.length === 0) {
-        // Root index breakout (e.g. index_.get.ts)
-        excludeRoot = true;
-        excludedPrefixes.push("index");
-      } else {
-        // Resource root index breakout (e.g. posts/index_.get.ts)
-        const parentFullPath = allSegments
-          .slice(0, i)
-          .map((s) => s.clean)
-          .join("/");
-        const parentWithoutPathless = precedingNonPathless.map((s) => s.clean).join("/");
-        if (parentFullPath) excludedPrefixes.push(parentFullPath);
-        if (parentWithoutPathless) excludedPrefixes.push(parentWithoutPathless);
-      }
+    if (token.clean === "index" && isFirstVisible) {
+      excludeRoot = true;
+      excludedPrefixes.push("index");
+    } else if (token.clean === "index") {
+      excludedPrefixes.push(keyOf(before), keyOf(before, true));
     } else {
-      // Named segment breakout (e.g. posts_, $id_, health_, $_)
-      const targetFullPath = allSegments
-        .slice(0, i + 1)
-        .map((s) => s.clean)
-        .join("/");
-      const targetWithoutPathless = allSegments
-        .slice(0, i + 1)
-        .filter((s) => !isPathlessSegment(s.clean))
-        .map((s) => s.clean)
-        .join("/");
-
-      if (precedingNonPathless.length === 0 && followingSegments.length === 0) {
-        // Root-level route breakout (e.g. health_.get.ts, $_.all.ts)
-        excludeRoot = true;
-      }
-
-      if (targetFullPath) excludedPrefixes.push(targetFullPath);
-      if (targetWithoutPathless) excludedPrefixes.push(targetWithoutPathless);
+      const upToHere = tokens.slice(0, i + 1);
+      if (isFirstVisible && i === tokens.length - 1) excludeRoot = true;
+      excludedPrefixes.push(keyOf(upToHere), keyOf(upToHere, true));
     }
-  }
-
-  const hierarchySegments = candidateKeys.filter((k) => {
-    if (k === "") {
-      return !excludeRoot;
-    }
-    return !excludedPrefixes.some((prefix) => k === prefix || k.startsWith(`${prefix}/`));
   });
 
-  return {
-    canonicalPath,
-    hierarchySegments,
-  };
+  const prefixes = excludedPrefixes.filter(Boolean);
+  const hierarchySegments = [
+    ...(excludeRoot ? [] : [""]),
+    ...[...candidateKeys].filter(
+      (key) => !prefixes.some((prefix) => key === prefix || key.startsWith(`${prefix}/`)),
+    ),
+  ];
+
+  return { canonicalPath, hierarchySegments };
 }
 
-/**
- * Derives layout details from a layout file path.
- */
-export function deriveLayoutInfo(
-  dir: string,
-  stem: string,
-  filePath: string,
-): ParsedLayoutFileInfo {
-  const isNested = stem === "$";
-  const targetSegment = isNested ? dir : dir ? `${dir}/${stem}` : stem;
-  const isSibling = !isNested;
-
-  let layoutId: string;
-  if (targetSegment === "" || targetSegment === "$") {
-    layoutId = "/*";
-  } else {
-    // Convert targetSegment filesystem tokens to canonical URL
-    const segments = targetSegment.split("/").map((s) => {
-      const { urlSegment } = normalizeSegmentToUrl(s);
-      return urlSegment !== null ? urlSegment : s;
-    });
-    const joined = "/" + segments.join("/").replace(/\/+/g, "/");
-    layoutId = `${joined}/*`.replace(/\/+/g, "/");
-  }
-
-  return {
-    kind: "layout",
-    filePath,
-    layoutId,
-    targetSegment,
-    isSibling,
-  };
+export interface LayoutInfo {
+  /** Pattern passed to `t.layout()`, e.g. `/admin/*`. */
+  layoutId: string;
+  /** Hierarchy key the layout attaches to: `""`, `admin`, `_auth`. */
+  targetSegment: string;
 }
 
-export function normalizeImportPath(pathStr: string): string {
-  let normalized = normalize(pathStr);
-  if (!isAbsolute(normalized) && !normalized.startsWith("./") && !normalized.startsWith("../")) {
-    normalized = `./${normalized}`;
-  }
-  return normalized;
+/** `admin.ts` and `admin/$.ts` both target `admin`. */
+export function deriveLayoutInfo(dir: string, stem: string): LayoutInfo {
+  const targetSegment = stem === "$" ? dir : dir ? `${dir}/${stem}` : stem;
+  const urlPath = targetSegment
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => toUrlSegment(segment) ?? segment)
+    .join("/");
+  return { layoutId: `/${urlPath}/*`.replace(/\/+/g, "/"), targetSegment };
 }
 
+/** Relative module specifier from `fromDir` to `targetPath` with the source extension swapped for `ext`. */
 export function formatRelativeImport(
   fromDir: string,
   targetPath: string,
   ext: string = "",
 ): string {
-  const relPath = normalizeImportPath(relative(fromDir, targetPath));
-  return relPath.replace(/\.(ts|tsx|mts|cts|js|mjs|cjs)$/, "") + ext;
+  const relPath = normalize(relative(fromDir, targetPath));
+  const specifier = isAbsolute(relPath) || /^\.\.?\//.test(relPath) ? relPath : `./${relPath}`;
+  return specifier.replace(SOURCE_EXTENSION_PATTERN, "") + ext;
 }

@@ -170,6 +170,23 @@ describe("@taserjs/utils stream helpers", () => {
       expect(output).toBe("");
     });
 
+    it("ends the body when the signal is already aborted at construction", async () => {
+      const controller = new AbortController();
+      controller.abort();
+      let callbackRan = false;
+
+      const res = sse(
+        async (stream) => {
+          callbackRan = true;
+          await stream.write("ignored");
+        },
+        { signal: controller.signal },
+      );
+
+      expect(await readStream(res.body!)).toBe("");
+      expect(callbackRan).toBe(true);
+    });
+
     it("supports unsubscribe on onAbort and immediately invokes listener if already aborted", async () => {
       const controller = new AbortController();
       let streamRef: any = null;

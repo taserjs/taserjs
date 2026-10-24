@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { FastResponse, serve } from "@taserjs/runtime/serve";
-globalThis.Response = FastResponse;
-import { app } from "./routes.gen";
+import { app as taserApp } from "./routes.gen";
 
-serve(app);
+globalThis.Response = FastResponse;
+
+export { taserApp as app };
+serve(taserApp);

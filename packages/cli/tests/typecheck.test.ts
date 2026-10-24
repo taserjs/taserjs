@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -7,15 +7,23 @@ import { promisify } from "node:util";
 
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_CONFIG } from "../src/config.js";
+import { resolveConfig } from "../src/config.js";
 import { generateManifest } from "../src/generator.js";
-import { scanRoutes } from "../src/scanner.js";
+import { APP_STUB } from "../src/scaffold.js";
+import { scanRoutes, type ScanResult } from "../src/scanner.js";
 
 const execFileAsync = promisify(execFile);
 
 // Invoking tsc through node directly avoids the ~1s `pnpm exec` startup cost on every run.
 const TSC_BIN = createRequire(import.meta.url).resolve("typescript/bin/tsc");
 const TSC_TEST_TIMEOUT_MS = 120_000;
+
+// The manifest always imports the app file, so projects without a custom one get the stub.
+function generateInto(scan: ScanResult, cwd: string) {
+  const appFile = join(cwd, "src", "taser.ts");
+  if (!existsSync(appFile)) writeFileSync(appFile, APP_STUB);
+  return generateManifest(scan, resolveConfig(), cwd);
+}
 
 // Each test owns an isolated temp project, so tests can safely run concurrently.
 const test = it.extend<{ tempDir: string }>({
@@ -122,12 +130,10 @@ export default t.get("/admin/users/:id").handler(async ({ req, ctx, state, cooki
 });
 `,
       );
-
-      const config = { ...DEFAULT_CONFIG };
       const scan = scanRoutes({ routesDir, cwd: tempDir });
       expect(scan.diagnostics).toHaveLength(0);
 
-      const gen = generateManifest(scan, config, tempDir);
+      const gen = generateInto(scan, tempDir);
       expect(gen.manifestWritten).toBe(true);
 
       const result = await runTsc(tempDir);
@@ -149,10 +155,8 @@ export default t.get("/admin/users/:id").handler(async ({ req, ctx, state, cooki
 export default t.get("/valid").handler(() => new Response("ok"));
 `,
       );
-
-      const config = { ...DEFAULT_CONFIG };
       const scan = scanRoutes({ routesDir, cwd: tempDir });
-      generateManifest(scan, config, tempDir);
+      generateInto(scan, tempDir);
 
       // Add a file with an invalid/misspelled route path
       writeFileSync(
@@ -205,10 +209,8 @@ export default t.get("/public/about").handler(async ({ req, ctx, state }) => {
 });
 `,
       );
-
-      const config = { ...DEFAULT_CONFIG };
       const scan = scanRoutes({ routesDir, cwd: tempDir });
-      generateManifest(scan, config, tempDir);
+      generateInto(scan, tempDir);
 
       // Base configuration compiles cleanly
       const baseResult = await runTsc(tempDir);
@@ -248,10 +250,8 @@ export default t.get("/items/:id").handler(async ({ req }) => {
 });
 `,
       );
-
-      const config = { ...DEFAULT_CONFIG };
       const scan = scanRoutes({ routesDir, cwd: tempDir });
-      generateManifest(scan, config, tempDir);
+      generateInto(scan, tempDir);
 
       // Correct string param compiles cleanly
       expect((await runTsc(tempDir)).success).toBe(true);
@@ -302,12 +302,10 @@ export default t.get("/posts/:category?/:slug?").handler(async ({ req }) => {
 });
 `,
       );
-
-      const config = { ...DEFAULT_CONFIG };
       const scan = scanRoutes({ routesDir, cwd: tempDir });
       expect(scan.diagnostics).toHaveLength(0);
 
-      generateManifest(scan, config, tempDir);
+      generateInto(scan, tempDir);
 
       const validResult = await runTsc(tempDir);
       if (!validResult.success) {
@@ -418,10 +416,8 @@ export default t.get("/items/:id").handler(async ({ req, state }) => {
 });
 `,
       );
-
-      const config = { ...DEFAULT_CONFIG };
       const scan = scanRoutes({ routesDir, cwd: tempDir });
-      generateManifest(scan, config, tempDir);
+      generateInto(scan, tempDir);
 
       const validResult = await runTsc(tempDir);
       if (!validResult.success) {
@@ -497,10 +493,8 @@ export default t
   .handler(() => new Response("ok"));
 `,
       );
-
-      const config = { ...DEFAULT_CONFIG };
       const scan = scanRoutes({ routesDir, cwd: tempDir });
-      generateManifest(scan, config, tempDir);
+      generateInto(scan, tempDir);
 
       const validResult = await runTsc(tempDir);
       expect(validResult.success).toBe(true);
@@ -518,7 +512,7 @@ export default t
 `,
       );
       const scanInvalid = scanRoutes({ routesDir, cwd: tempDir });
-      generateManifest(scanInvalid, config, tempDir);
+      generateInto(scanInvalid, tempDir);
 
       const paramsError = await runTsc(tempDir);
       expect(paramsError.success).toBe(false);
@@ -674,12 +668,10 @@ export default t.get("/health").handler(async (args) => {
 });
 `,
       );
-
-      const config = { ...DEFAULT_CONFIG };
       const scan = scanRoutes({ routesDir, cwd: tempDir });
       expect(scan.diagnostics).toHaveLength(0);
 
-      generateManifest(scan, config, tempDir);
+      generateInto(scan, tempDir);
 
       const validResult = await runTsc(tempDir);
       if (!validResult.success) {
