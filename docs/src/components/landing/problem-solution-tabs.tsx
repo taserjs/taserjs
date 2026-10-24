@@ -58,13 +58,14 @@ export default t.layout("/admin/*").use(async ({ req, ctx }, next) => {
 });
 
 // Handler receives fully-inferred facets automatically
-const POST = t.post("/admin/reports").body(ReportInputSchema);
-
-export default POST.handler(async ({ req, state }) => {
-  const user = state.user; // ✓ Inferred User from next({ user })
-  const body = req.body;   // ✓ Inferred ReportInput
-  return json({ created: true, by: user.id });
-});`,
+export default t
+  .post("/admin/reports")
+  .body(ReportInputSchema)
+  .handler(async ({ req, state }) => {
+    const user = state.user; // ✓ Inferred User from next({ user })
+    const body = req.body;   // ✓ Inferred ReportInput
+    return json({ created: true, by: user.id });
+  });`,
     takeaway:
       "In Taser.js, middleware return state flows into the state facet with zero typecasting or Express global interface hacks.",
   },

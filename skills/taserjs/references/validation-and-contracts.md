@@ -27,7 +27,7 @@ import { json, notFound } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 import { z } from "zod";
 
-const PUT = t
+export default t
   .put("/users/:id")
   .params(z.object({ id: z.string().uuid() }))
   .query(z.object({ notify: z.coerce.boolean().default(false) }))
@@ -35,18 +35,17 @@ const PUT = t
   .returns({
     200: z.object({ id: z.string(), name: z.string(), email: z.string() }),
     404: z.object({ message: z.string() }),
+  })
+  .handler(async ({ req, ctx }) => {
+    const { id } = req.params;
+    const { notify } = req.query;
+    const { name, email } = req.body;
+
+    const updated = await ctx.db.updateUser(id, { name, email }, { notify });
+    if (!updated) return notFound({ message: "User not found" });
+
+    return json(updated);
   });
-
-export default PUT.handler(async ({ req, ctx }) => {
-  const { id } = req.params;
-  const { notify } = req.query;
-  const { name, email } = req.body;
-
-  const updated = await ctx.db.updateUser(id, { name, email }, { notify });
-  if (!updated) return notFound({ message: "User not found" });
-
-  return json(updated);
-});
 ```
 
 ### Contract Methods

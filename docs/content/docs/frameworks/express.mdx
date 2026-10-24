@@ -91,9 +91,7 @@ Taser.js integrates with Express applications using the **Host Pass-Through Arch
     import { json } from "@taserjs/router/reply";
     import { t } from "@taserjs/router";
 
-    const GET = t.get("/users");
-
-    export default GET.handler(() => {
+    export default t.get("/users").handler(() => {
       return json({ users: [{ id: "1", name: "Alice" }] });
     });
     ```

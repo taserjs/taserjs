@@ -120,10 +120,7 @@ Empty route files (for example after `touch src/routes/admin/users.get.ts`) are 
 import { json } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-const GET = t.get("/admin/users");
-
-export type RouteContext = Parameters<typeof GET.handler>[0];
-export default GET.handler(() => {
+export default t.get("/admin/users").handler(async () => {
   return json({ ok: true });
 });
 ```

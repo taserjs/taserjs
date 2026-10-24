@@ -76,9 +76,7 @@ Taser.js integrates with Fastify applications using the **Host Pass-Through Arch
     import { json } from "@taserjs/router/reply";
     import { t } from "@taserjs/router";
 
-    const GET = t.get("/health");
-
-    export default GET.handler(() => {
+    export default t.get("/health").handler(() => {
       return json({ ok: true, timestamp: Date.now() });
     });
     ```

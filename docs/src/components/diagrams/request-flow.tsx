@@ -126,7 +126,7 @@ const FLOW_STEPS: FlowStep[] = [
     ],
     codeSnippet: {
       filename: "src/routes/users/$id.get.ts",
-      code: `const GET = t.get("/users/:id")\n  .params(z.object({ id: z.string().uuid() }))\n  .query(z.object({ details: z.coerce.boolean().default(false) }))`,
+      code: `export default t\n  .get("/users/:id")\n  .params(z.object({ id: z.string().uuid() }))\n  .query(z.object({ details: z.coerce.boolean().default(false) }))\n  .handler(async ({ req }) => {\n    // ...\n  })`,
     },
   },
   {
@@ -151,7 +151,7 @@ const FLOW_STEPS: FlowStep[] = [
     ],
     codeSnippet: {
       filename: "src/routes/users/$id.get.ts",
-      code: `export default GET.handler(async ({ req, ctx, state }) => {\n  // req.params.id — UUID\n  // state.user — from /users layout\n  const user = await ctx.db.findUser(req.params.id)\n  return json(user)\n})`,
+      code: `export default t.get("/users/:id").handler(async ({ req, ctx, state }) => {\n  // req.params.id — UUID\n  // state.user — from /users layout\n  const user = await ctx.db.findUser(req.params.id)\n  return json(user)\n})`,
     },
   },
   {
@@ -176,7 +176,7 @@ const FLOW_STEPS: FlowStep[] = [
     ],
     codeSnippet: {
       filename: "src/routes/users/$id.get.ts",
-      code: `const GET = t.get("/users/:id").returns({\n  200: z.object({ id: z.string(), name: z.string() }),\n  404: z.object({ message: z.string() }),\n})`,
+      code: `export default t\n  .get("/users/:id")\n  .returns({\n    200: z.object({ id: z.string(), name: z.string() }),\n    404: z.object({ message: z.string() }),\n  })\n  .handler(async ({ req }) => {\n    // ...\n  })`,
     },
   },
   {

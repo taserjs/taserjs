@@ -174,7 +174,7 @@ yarn add -D @taserjs/plugin
     import { z } from "zod";
     import { t } from "@taserjs/router";
 
-    const GET = t
+    export default t
       .get("/users")
       .query(
         z.object({
@@ -192,18 +192,16 @@ yarn add -D @taserjs/plugin
           ),
           total: z.number(),
         }),
+      })
+      .handler(async ({ ctx }) => {
+        return json({
+          users: [
+            { id: "usr_1", name: "Alice", email: "alice@example.com" },
+            { id: "usr_2", name: "Bob", email: "bob@example.com" },
+          ],
+          total: 2,
+        });
       });
-
-    export type RouteContext = Parameters<typeof GET.handler>[0];
-    export default GET.handler(async ({ ctx }) => {
-      return json({
-        users: [
-          { id: "usr_1", name: "Alice", email: "alice@example.com" },
-          { id: "usr_2", name: "Bob", email: "bob@example.com" },
-        ],
-        total: 2,
-      });
-    });
     ```
 
   </Step>

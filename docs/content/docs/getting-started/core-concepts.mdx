@@ -113,29 +113,28 @@ import { json } from "@taserjs/router/reply";
 import { z } from "zod";
 import { t } from "@taserjs/router";
 
-const GET = t
+export default t
   .get("/admin/users/:id")
   .params(z.object({ id: z.string() }))
-  .query(z.object({ detailed: z.coerce.boolean().default(false) }));
+  .query(z.object({ detailed: z.coerce.boolean().default(false) }))
+  .handler(async ({ req, ctx, state }) => {
+    // Application context (boot + request hooks from createContext)
+    const db = ctx.db;
+    const requestId = ctx.requestId;
 
-export default GET.handler(async ({ req, ctx, state }) => {
-  // Application context (boot + request hooks from createContext)
-  const db = ctx.db;
-  const requestId = ctx.requestId;
+    // Cascaded layout middleware state
+    const adminUser = state.currentUser;
 
-  // Cascaded layout middleware state
-  const adminUser = state.currentUser;
+    // Validated HTTP inputs on req
+    const userId = req.params.id;
+    const isDetailed = req.query.detailed;
 
-  // Validated HTTP inputs on req
-  const userId = req.params.id;
-  const isDetailed = req.query.detailed;
+    // Raw Web Standard request surface
+    const method = req.method;
+    const authHeader = req.headers.get("authorization");
 
-  // Raw Web Standard request surface
-  const method = req.method;
-  const authHeader = req.headers.get("authorization");
-
-  return json({ userId, adminUser, requestId, isDetailed, method, authHeader });
-});
+    return json({ userId, adminUser, requestId, isDetailed, method, authHeader });
+  });
 ```
 
 ### Facet reference

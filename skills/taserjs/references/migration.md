@@ -85,13 +85,14 @@ import { json, notFound } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 import { z } from "zod";
 
-const GET = t.get("/users/:id").params(z.object({ id: z.string().uuid() }));
-
-export default GET.handler(async ({ req, ctx }) => {
-  const user = await ctx.db.findUser(req.params.id);
-  if (!user) return notFound({ message: "Not found" });
-  return json(user);
-});
+export default t
+  .get("/users/:id")
+  .params(z.object({ id: z.string().uuid() }))
+  .handler(async ({ req, ctx }) => {
+    const user = await ctx.db.findUser(req.params.id);
+    if (!user) return notFound({ message: "Not found" });
+    return json(user);
+  });
 ```
 
 ---

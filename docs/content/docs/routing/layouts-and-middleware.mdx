@@ -348,7 +348,8 @@ import { json } from "@taserjs/router/reply";
 t.get("/unprotected").use(requireAdmin);
 
 // Allowed: Upstream auth middleware provides { user: ... }
-t.get("/protected")
+export default t
+  .get("/protected")
   .use(authMiddleware)
   .use(requireAdmin)
   .handler(() => json({ ok: true }));

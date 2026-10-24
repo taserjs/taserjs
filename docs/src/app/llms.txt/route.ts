@@ -30,22 +30,21 @@ import { json, notFound } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 import { z } from "zod";
 
-const GET = t
+export default t
   .get("/users/:id")
   .params(z.object({ id: z.string().uuid() }))
   .query(z.object({ limit: z.coerce.number().default(10) }))
   .returns({
     200: z.object({ id: z.string(), name: z.string() }),
     404: z.object({ message: z.string() }),
+  })
+  .handler(async ({ req, ctx }) => {
+    const user = await ctx.db.findUser(req.params.id);
+    if (!user) {
+      return notFound({ message: "User not found" });
+    }
+    return json(user);
   });
-
-export default GET.handler(async ({ req, ctx }) => {
-  const user = await ctx.db.findUser(req.params.id);
-  if (!user) {
-    return notFound({ message: "User not found" });
-  }
-  return json(user);
-});
 \`\`\`
 
 ## Middleware & Layout Pattern

@@ -36,27 +36,26 @@ import { json, notFound, forbidden } from "@taserjs/router/reply";
 import { z } from "zod";
 import { t } from "@taserjs/router";
 
-const GET = t
+export default t
   .get("/users/:id")
   .params(z.object({ id: z.string().uuid() }))
-  .query(z.object({ includeProfile: z.coerce.boolean().default(false) }));
+  .query(z.object({ includeProfile: z.coerce.boolean().default(false) }))
+  .handler(async ({ req, ctx, state }) => {
+    // req.params.id is typed as string (UUID)
+    // req.query.includeProfile is typed as boolean
+    // state contains data injected by layout middlewares
+    const isAdmin = await ctx.db.isUserAdmin(state.user.id);
+    if (!isAdmin) {
+      return forbidden({ message: "Forbidden" });
+    }
 
-export default GET.handler(async ({ req, ctx, state }) => {
-  // req.params.id is typed as string (UUID)
-  // req.query.includeProfile is typed as boolean
-  // state contains data injected by layout middlewares
-  const isAdmin = await ctx.db.isUserAdmin(state.user.id);
-  if (!isAdmin) {
-    return forbidden({ message: "Forbidden" });
-  }
+    const user = await ctx.db.findUserById(req.params.id);
+    if (!user) {
+      return notFound({ message: "User not found" });
+    }
 
-  const user = await ctx.db.findUserById(req.params.id);
-  if (!user) {
-    return notFound({ message: "User not found" });
-  }
-
-  return json(user);
-});
+    return json(user);
+  });
 ```
 
 <Callout type="info" title="Route Path Strings Are Generated Automatically">

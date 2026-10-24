@@ -64,9 +64,7 @@ import { t } from "@taserjs/router";
 
 // ❌ TypeScript error: Type '"/artikles"' is not assignable to type 'RoutePath'.
 // ⚠️ Even if ignored, runtime endpoint remains /articles, while type inference breaks.
-const GET = t.get("/artikles");
-
-export default GET.handler(({ req, ctx }) => {
+export default t.get("/artikles").handler(({ req, ctx }) => {
   return json({ ok: true });
 });
 ```
@@ -76,9 +74,7 @@ import { json } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
 // ✅ Correct: Path string matches the filesystem-derived endpoint /articles
-const GET = t.get("/articles");
-
-export default GET.handler(({ req, ctx }) => {
+export default t.get("/articles").handler(({ req, ctx }) => {
   return json({ ok: true });
 });
 ```
@@ -108,22 +104,23 @@ import { json } from "@taserjs/router/reply";
 import { z } from "zod";
 import { t } from "@taserjs/router";
 
-const GET = t.get("/articles").query(
-  z.object({
-    category: z.string().optional(),
-    page: z.coerce.number().int().min(1).default(1),
-    limit: z.coerce.number().int().min(1).max(50).default(20),
-  }),
-);
-
-export default GET.handler(async ({ ctx, req }) => {
-  const articles = await ctx.db.getArticles(req.query);
-  return json({
-    articles,
-    page: req.query.page,
-    total: 100,
+export default t
+  .get("/articles")
+  .query(
+    z.object({
+      category: z.string().optional(),
+      page: z.coerce.number().int().min(1).default(1),
+      limit: z.coerce.number().int().min(1).max(50).default(20),
+    }),
+  )
+  .handler(async ({ ctx, req }) => {
+    const articles = await ctx.db.getArticles(req.query);
+    return json({
+      articles,
+      page: req.query.page,
+      total: 100,
+    });
   });
-});
 ```
 
 ### Path Parameters & Type Precedence
@@ -177,17 +174,19 @@ import { created } from "@taserjs/router/reply";
 import { z } from "zod";
 import { t } from "@taserjs/router";
 
-const POST = t.post("/articles").body(
-  z.object({
-    title: z.string().min(3).max(120),
-    content: z.string().min(10),
-    tags: z.array(z.string()).default([]),
-  }),
-);
-export default POST.handler(async ({ ctx, req }) => {
-  const article = await ctx.db.createArticle(req.body);
-  return created(article);
-});
+export default t
+  .post("/articles")
+  .body(
+    z.object({
+      title: z.string().min(3).max(120),
+      content: z.string().min(10),
+      tags: z.array(z.string()).default([]),
+    }),
+  )
+  .handler(async ({ ctx, req }) => {
+    const article = await ctx.db.createArticle(req.body);
+    return created(article);
+  });
 ```
 
 <Callout type="info" title="JSON & Multipart / File Uploads">
