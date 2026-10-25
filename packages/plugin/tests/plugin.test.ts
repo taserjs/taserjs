@@ -173,6 +173,17 @@ describe("@taserjs/plugin core", () => {
       },
     );
 
+    it("detects a framework whose plugins are still a promise when the config hook runs", async () => {
+      // `sveltekit()` returns `Promise<Plugin[]>`, so its plugin names are not visible synchronously.
+      const plugin = createPlugin({}, "vite");
+      const plugins = [Promise.resolve([{ name: "vite-plugin-sveltekit-compile" }])];
+
+      expect(await viteConfig(plugin, { plugins })).toBeUndefined();
+      await buildStart(plugin);
+
+      expect(existsSync(join(outputDir, "serve.ts"))).toBe(false);
+    });
+
     it("lets server: true override full-stack detection", async () => {
       const plugin = createPlugin({ server: true }, "vite");
 

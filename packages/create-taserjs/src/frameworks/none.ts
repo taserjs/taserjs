@@ -6,7 +6,6 @@ export const none: FrameworkDefinition = {
   group: "api",
   serverDir: "src",
   ownsDeployment: false,
-  requiresNitro: false,
   extensionlessImports: false,
   addsStartScript: true,
   dependencies: ["@taserjs/router", "@taserjs/runtime"],

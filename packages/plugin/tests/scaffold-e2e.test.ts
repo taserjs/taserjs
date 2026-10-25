@@ -68,6 +68,21 @@ describe(
       }
     }
 
+    // The scaffolder always adds Nitro, which these tests do not install. They exercise the plugin's
+    // standalone serve shim, so the generated Vite config is replaced by a plugin-only one.
+    function useStandaloneViteConfig(projectDir: string): void {
+      writeFileSync(
+        join(projectDir, "vite.config.ts"),
+        [
+          'import { defineConfig } from "vite";',
+          'import { taser } from "@taserjs/plugin/vite";',
+          "",
+          "export default defineConfig({ plugins: [taser()] });",
+          "",
+        ].join("\n"),
+      );
+    }
+
     it("scaffolds a complete project structure, runs Vite build, and serves requests cleanly", async () => {
       const projectDir = join(tempDir, "sample-app");
 
@@ -130,6 +145,7 @@ describe(
       });
 
       setupLocalWorkspaceLinks(projectDir);
+      useStandaloneViteConfig(projectDir);
 
       // pnpm requires dependencies to be declared in package.json to link them or run scripts
       const pkgJsonPath = join(projectDir, "package.json");
@@ -182,6 +198,7 @@ describe(
       });
 
       setupLocalWorkspaceLinks(projectDir);
+      useStandaloneViteConfig(projectDir);
 
       const pkgJsonPath = join(projectDir, "package.json");
       const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf-8"));

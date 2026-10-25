@@ -1,0 +1,158 @@
+---
+title: Nuxt
+description: "Mount a file-based Taser.js REST API under /api in a Nuxt 4 app, with a typed client for pages and components."
+icon: Layers
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Callout } from "fumadocs-ui/components/callout";
+
+**Nuxt** owns the server, so Taser.js runs as a Nitro server route that forwards `/api` requests to the compiled Taser.js app. The Vite plugin keeps the route manifest in sync while `nuxt dev` runs.
+
+<Callout type="info">
+  Nuxt 4 is built on Nitro 2, while `@taserjs/plugin/nitro` targets Nitro 3. Nuxt therefore uses a
+  plain server route instead of the Nitro module, and Nuxt keeps control of deployment through
+  `nitro.preset`.
+</Callout>
+
+---
+
+## Scaffold
+
+```bash
+npm create taserjs@latest my-app -- --framework nuxt
+```
+
+`create-taserjs` runs `create-nuxt`, adds Taser.js, and skips the deployment question.
+
+---
+
+## Manual Setup
+
+<Steps>
+  <Step>
+    ### 1. Install
+
+    ```bash
+    pnpm add @taserjs/router @taserjs/client
+    pnpm add -D @taserjs/plugin @taserjs/cli
+    ```
+
+  </Step>
+
+  <Step>
+    ### 2. Register the Vite plugin
+
+    Nuxt runs Vite from the `app/` directory, so pin Taser.js to the project root with `cwd`:
+
+    ```ts title="nuxt.config.ts"
+    import { taser } from "@taserjs/plugin/vite";
+
+    export default defineNuxtConfig({
+      vite: {
+        plugins: [taser({ cwd: process.cwd() })],
+      },
+    });
+    ```
+
+  </Step>
+
+  <Step>
+    ### 3. Keep Taser.js outside `server/`
+
+    Nuxt registers every file under `server/` as a handler, so Taser.js lives in a root `api/` folder:
+
+    ```ts title="taserjs.config.ts"
+    import { defineConfig } from "@taserjs/cli";
+
+    export default defineConfig({
+      serverDir: "api",
+      routesDir: "routes",
+      outputDir: ".taserjs",
+      app: "taser.ts",
+    });
+    ```
+
+    Create `api/taser.ts` with `defineTaser().basePath("/api")` and your endpoints in `api/routes/`, exactly as in the [Next.js guide](/docs/fullstack/nextjs).
+
+  </Step>
+
+  <Step>
+    ### 4. Mount the API
+
+    Nuxt prefixes `server/api` with `/api`. A catch-all route does not match its own prefix, so a second file covers the bare `/api`:
+
+    ```ts title="server/api/[...slug].ts"
+    import { app } from "../../api/.taserjs/routes.gen";
+
+    export default defineEventHandler((event) => app.fetch(toWebRequest(event)));
+    ```
+
+    ```ts title="server/api/index.ts"
+    export { default } from "./[...slug]";
+    ```
+
+  </Step>
+
+  <Step>
+    ### 5. Create the typed client
+
+    ```ts title="app/api.ts"
+    import { createClient } from "@taserjs/client";
+    import type { AppManifest } from "../api/.taserjs/routes.gen";
+
+    export const api = createClient<AppManifest>({
+      baseUrl: "http://localhost:3000/api",
+    });
+    ```
+
+    Server-side rendering runs `fetch` in Node, which cannot resolve a relative URL, so the base URL is absolute. Point it at your deployed origin in production.
+
+  </Step>
+</Steps>
+
+---
+
+## Project Structure
+
+```
+my-nuxt-app/
+├── nuxt.config.ts            # vite.plugins: [taser({ cwd: process.cwd() })]
+├── taserjs.config.ts         # serverDir: "api"
+├── app/
+│   ├── app.vue
+│   └── api.ts                # createClient<AppManifest>(...)
+├── server/
+│   └── api/
+│       ├── [...slug].ts      # forwards /api/** to Taser.js
+│       └── index.ts          # forwards /api
+└── api/                      # Taser.js REST API subsystem
+    ├── taser.ts
+    ├── context.ts
+    ├── routes/
+    │   └── index.get.ts      # GET /api
+    └── .taserjs/
+        └── routes.gen.ts     # generated
+```
+
+---
+
+## Using the Client
+
+```vue title="app/app.vue"
+<script setup lang="ts">
+import { api } from "~/api";
+
+const { data } = await useAsyncData("welcome", async () => (await api.$get()).json());
+</script>
+
+<template>
+  <p>{{ data?.message }}</p>
+</template>
+```
+
+---
+
+## Deployment
+
+Nuxt deploys through Nitro, so choose a target with Nuxt's own `nitro.preset` option. Taser.js needs no extra configuration.

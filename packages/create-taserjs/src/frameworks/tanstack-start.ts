@@ -29,7 +29,6 @@ export const tanstackStart: FrameworkDefinition = {
   group: "fullstack",
   serverDir: "src/server",
   ownsDeployment: false,
-  requiresNitro: false,
   extensionlessImports: false,
   addsStartScript: true,
   dependencies: UI_TASER_DEPENDENCIES,

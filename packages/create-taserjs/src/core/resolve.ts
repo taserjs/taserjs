@@ -1,35 +1,47 @@
 import { getFramework } from "../frameworks/registry.js";
 import type { FrameworkDefinition } from "../frameworks/types.js";
 import { getHost } from "../hosts/registry.js";
-import { DEFAULT_NITRO_PRESET, isBare, isNodeRuntimePreset } from "./presets.js";
-import { BARE_PRESET, type HostId, type ResolvedScaffold, type ScaffoldContext } from "./types.js";
+import { DEFAULT_NITRO_PRESET, isNodeRuntimePreset } from "./presets.js";
+import type { HostId, ResolvedScaffold, ScaffoldContext } from "./types.js";
 
-function resolvePreset(framework: FrameworkDefinition, requested: string | undefined): string {
-  if (framework.ownsDeployment) {
-    if (requested && !isBare(requested)) {
+function resolvePreset(
+  framework: FrameworkDefinition,
+  requested: string | undefined,
+): string | undefined {
+  if (!framework.ownsDeployment) return requested ?? DEFAULT_NITRO_PRESET;
+  if (requested) {
+    throw new Error(
+      `${framework.label} deploys through its own adapter, so --preset "${requested}" does not apply.`,
+    );
+  }
+  return undefined;
+}
+
+function resolveTemplate(
+  framework: FrameworkDefinition,
+  requested: string | undefined,
+): string | undefined {
+  const { templates } = framework;
+  if (!templates) {
+    if (requested) {
       throw new Error(
-        `${framework.label} deploys through its own adapter, so --preset "${requested}" does not apply.`,
+        `${framework.label} has no templates, so --template "${requested}" does not apply.`,
       );
     }
-    return BARE_PRESET;
+    return undefined;
   }
 
-  if (framework.requiresNitro) {
-    const preset = requested ?? DEFAULT_NITRO_PRESET;
-    if (isBare(preset)) {
-      throw new Error(
-        `${framework.label} needs Nitro to serve the built UI next to the API. Pick a preset such as "${DEFAULT_NITRO_PRESET}".`,
-      );
-    }
-    return preset;
+  const template = requested ?? templates[0]?.id;
+  if (!templates.some(({ id }) => id === template)) {
+    const available = templates.map(({ id }) => id).join(", ");
+    throw new Error(`Unknown ${framework.label} template "${template}". Available: ${available}.`);
   }
-
-  return requested ?? BARE_PRESET;
+  return template;
 }
 
 function resolveHost(
   framework: FrameworkDefinition,
-  preset: string,
+  preset: string | undefined,
   requested: HostId | undefined,
 ): HostId {
   const host = getHost(requested ?? "none");
@@ -38,7 +50,7 @@ function resolveHost(
   if (framework.group === "fullstack") {
     throw new Error(`${framework.label} owns its server, so --host "${host.id}" does not apply.`);
   }
-  if (host.runtime === "node" && !isNodeRuntimePreset(preset)) {
+  if (host.runtime === "node" && preset && !isNodeRuntimePreset(preset)) {
     throw new Error(
       `${host.label} needs Node.js APIs and cannot run on the "${preset}" preset. Pick a fetch-based host such as Hono.`,
     );
@@ -58,6 +70,7 @@ export function resolveScaffold(context: ScaffoldContext): {
     scaffold: {
       ...context,
       framework: framework.id,
+      template: resolveTemplate(framework, context.template),
       preset,
       host: resolveHost(framework, preset, context.host),
       serverDir: framework.serverDir,

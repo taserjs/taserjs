@@ -26,13 +26,12 @@ import {
   resolveUserAgent,
   runGenerator,
 } from "./package-manager.js";
-import { isBare, startScriptFor } from "./presets.js";
+import { startScriptFor } from "./presets.js";
 import { resolveScaffold } from "./resolve.js";
-import type { ResolvedScaffold, ScaffoldOptions, ScaffoldResult } from "./types.js";
+import type { ScaffoldOptions, ScaffoldResult } from "./types.js";
 
 const UI_API_BASE_PATH = "/api";
-const UI_CLIENT_FILE = "src/api.ts";
-const NEXT_BROWSER_API_URL = "http://localhost:3000/api";
+const DEFAULT_UI_CLIENT_FILE = "src/api.ts";
 
 const RELATIVE_JS_IMPORT = /(from\s+"\.{1,2}\/[^"]*)\.js"/g;
 
@@ -86,15 +85,17 @@ async function patchConfig(
   }
 }
 
-function clientBaseUrl(scaffold: ResolvedScaffold): string {
-  return scaffold.framework === "nextjs" ? NEXT_BROWSER_API_URL : UI_API_BASE_PATH;
+/** An import specifier from one project file to another, always starting with `./` or `../`. */
+function relativeImport(fromFile: string, toModule: string): string {
+  const relative = posix.relative(posix.dirname(fromFile), toModule);
+  return relative.startsWith(".") ? relative : `./${relative}`;
 }
 
 export async function scaffoldProject(options: ScaffoldOptions): Promise<ScaffoldResult> {
   const { scaffold, framework } = resolveScaffold(options);
   const root = options.targetDir;
   const isApiOnly = framework.group === "api";
-  const nitro = !isBare(scaffold.preset);
+  const { preset } = scaffold;
   const agent = options.agent ?? resolveUserAgent();
 
   const writtenFiles: string[] = [];
@@ -110,6 +111,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
     const generate = framework.generator({
       projectName: basename(root),
       packageManager: packageManagerName(agent),
+      template: scaffold.template,
     });
     const { command, args } = resolveGeneratorCommand(agent, generate);
     await (options.generator ?? runGenerator)({ command, args, cwd: dirname(root) });
@@ -121,7 +123,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
   const dependencies = [...framework.dependencies, ...(host?.dependencies ?? [])];
   const devDependencies = [
     ...framework.devDependencies,
-    ...(nitro ? ["nitro"] : []),
+    ...(preset ? ["nitro"] : []),
     ...(host?.devDependencies ?? []),
   ];
 
@@ -131,8 +133,7 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
     Object.assign(scripts, addon.scripts?.(scaffold));
   }
 
-  // A bare UI project is run by its framework, which knows its own server entry.
-  const startScript = isApiOnly || nitro ? startScriptFor(scaffold.preset) : undefined;
+  const startScript = startScriptFor(preset);
   if (startScript && framework.addsStartScript) scripts.start = startScript;
 
   const formatDep = (pkg: string): string => {
@@ -144,13 +145,13 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
     await trackedWrite("package.json", packageJsonTemplate(options.projectName, scripts));
     await trackedWrite("tsconfig.json", tsconfigTemplate());
     await trackedWrite(".gitignore", gitignoreTemplate());
-    await trackedWrite("vite.config.ts", viteConfigTemplate(scaffold.preset));
+    await trackedWrite("vite.config.ts", viteConfigTemplate());
   } else {
     await mergeScripts(root, scripts);
   }
 
-  if (nitro) {
-    await trackedWrite("nitro.config.ts", nitroConfigTemplate(scaffold.preset));
+  if (preset) {
+    await trackedWrite("nitro.config.ts", nitroConfigTemplate(preset));
     if (!isApiOnly) await ignoreNitroOutput(root);
   }
 
@@ -158,7 +159,11 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
   await Promise.all(
     Object.entries(layer.files).map(([relPath, contents]) => trackedWrite(relPath, contents)),
   );
-  if (layer.config) await patchConfig(root, layer.config, manualSteps);
+  for (const config of [layer.config ?? []].flat()) {
+    // Sequential on purpose: each codemod may rewrite a file the next one reads.
+    // oxlint-disable-next-line no-await-in-loop
+    await patchConfig(root, config, manualSteps);
+  }
 
   const { serverDir } = scaffold;
   await trackedWrite(
@@ -175,12 +180,13 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
   if (host) await trackedWrite(`${serverDir}/${HOST_FILE_NAMES[host.runtime]}`, host.template);
 
   if (!isApiOnly) {
+    const clientFile = framework.clientFile ?? DEFAULT_UI_CLIENT_FILE;
     await trackedWrite(
-      UI_CLIENT_FILE,
+      clientFile,
       apiClientTemplate({
         serverDir,
-        manifestImport: `./${posix.relative(posix.dirname(UI_CLIENT_FILE), serverDir)}/.taserjs/routes.gen`,
-        baseUrl: clientBaseUrl(scaffold),
+        manifestImport: relativeImport(clientFile, `${serverDir}/.taserjs/routes.gen`),
+        baseUrl: framework.clientBaseUrl ?? UI_API_BASE_PATH,
       }),
     );
   }
@@ -196,7 +202,8 @@ export async function scaffoldProject(options: ScaffoldOptions): Promise<Scaffol
   return {
     ...options,
     framework: scaffold.framework,
-    preset: scaffold.preset,
+    template: scaffold.template,
+    preset,
     host: scaffold.host,
     files: writtenFiles,
     manualSteps,

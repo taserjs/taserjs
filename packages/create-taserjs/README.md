@@ -16,24 +16,25 @@ Non-interactive examples:
 # API only, deployed with Nitro's node-server preset
 pnpm create taserjs@latest my-api --framework none --preset node-server -y
 
-# Vue web app (served together with the API by Nitro)
-pnpm create taserjs@latest my-app --framework vue --db drizzle --driver sqlite -y
+# Vite web app with a Vue template (served together with the API by Nitro)
+pnpm create taserjs@latest my-app --framework vite --template vue --db drizzle --driver sqlite -y
 ```
 
 ## Options
 
-| Flag                | Values                                                                                                            |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `--framework`, `-f` | `none` (API only), `tanstack-router`, `vue`, `tanstack-start`, `nextjs`                                           |
-| `--preset`, `-p`    | `bare` (no Nitro) or a Nitro preset such as `node-server`, `cloudflare-module`, `vercel`, `netlify`, `aws-lambda` |
-| `--host`            | `none`, `express`, `fastify`, `hono`, `elysia`: an existing server that Taser.js falls through to                 |
-| `--db` / `--driver` | `drizzle`, `prisma`, `kysely` / `sqlite`, `postgres`, `mysql`                                                     |
-| `--validator`, `-v` | `zod`, `valibot`, `arktype`                                                                                       |
-| `--logger`, `-l`    | `pino`, `winston`                                                                                                 |
-| `--skip-install`    | Skip installing dependencies                                                                                      |
-| `--yes`, `-y`       | Skip prompts and use defaults                                                                                     |
+| Flag                | Values                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `--framework`, `-f` | `none` (API only), `tanstack-router`, `react-router`, `tanstack-start`, `nextjs`, `nuxt`, `sveltekit`, `vite` |
+| `--template`, `-t`  | `react` (default), `vue`, `svelte`, `solid`, `preact`: the create-vite template for `--framework vite`        |
+| `--preset`, `-p`    | a Nitro preset such as `node-server` (default), `cloudflare-module`, `vercel`, `netlify`, `aws-lambda`        |
+| `--host`            | `none`, `express`, `fastify`, `hono`, `elysia`: an existing server that Taser.js falls through to             |
+| `--db` / `--driver` | `drizzle`, `prisma`, `kysely` / `sqlite`, `postgres`, `mysql`                                                 |
+| `--validator`, `-v` | `zod`, `valibot`, `arktype`                                                                                   |
+| `--logger`, `-l`    | `pino`, `winston`                                                                                             |
+| `--skip-install`    | Skip installing dependencies                                                                                  |
+| `--yes`, `-y`       | Skip prompts and use defaults                                                                                 |
 
-`--host` applies to API-only, `tanstack-router` and `vue` projects; Express and Fastify cannot run on Cloudflare presets. UI projects are created with the framework's official generator, then Taser.js is added on top. Web apps on Vite need a Nitro preset; `bare` is available for API only and TanStack Start. Next.js deploys through its own adapter, so no preset applies.
+`--host` applies to API-only, `tanstack-router` and `vite` projects; Express and Fastify cannot run on Cloudflare presets. UI projects are created with the framework's official generator, then Taser.js is added on top. API-only, Vite and TanStack Start projects deploy through a Nitro preset, `node-server` by default. Next.js, Nuxt, SvelteKit and React Router deploy through their own adapter or Nitro preset, so no preset applies.
 
 ## Documentation
 

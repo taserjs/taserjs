@@ -4,7 +4,6 @@ export { scaffoldProject } from "./core/scaffold-engine.js";
 export { FRAMEWORK_IDS } from "./frameworks/registry.js";
 export { HOST_IDS } from "./hosts/registry.js";
 export {
-  BARE_PRESET,
   type DeployPreset,
   type FrameworkId,
   type HostId,

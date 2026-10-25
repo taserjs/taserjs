@@ -7,125 +7,194 @@ import { cn } from "@/lib/cn";
 
 import { SectionAccent, SectionHeader } from "./section-header";
 import { SectionSeparator } from "./section-separator";
+import {
+  DATABASES,
+  DRIVERS,
+  FRAMEWORKS,
+  HOSTS,
+  LOGGERS,
+  PACKAGE_MANAGERS,
+  PRESETS,
+  TEMPLATES,
+  VALIDATORS,
+  buildCommand,
+  resolveStarter,
+  type Database,
+  type Driver,
+  type FrameworkId,
+  type HostId,
+  type Logger,
+  type Option,
+  type PackageManager,
+  type PresetId,
+  type TemplateId,
+  type Validator,
+} from "./try-it-config";
 import { WindowFrame } from "./window-frame";
 
-type Framework = "none" | "hono" | "express" | "fastify";
-type DeployPreset =
-  | "node-server"
-  | "node-cluster"
-  | "none"
-  | "bun"
-  | "deno-server"
-  | "deno-deploy"
-  | "cloudflare-module"
-  | "vercel"
-  | "aws-lambda"
-  | "netlify";
+type Tone = "orange" | "amber" | "cyan" | "sky" | "purple" | "emerald" | "neutral";
 
-type Database = "drizzle" | "prisma" | "kysely" | "none";
-type Driver = "sqlite" | "postgres" | "mysql";
-type Validator = "zod" | "arktype" | "valibot";
-type Logger = "pino" | "winston" | "none";
-type PackageManager = "pnpm" | "npm" | "bun" | "yarn";
+// Full class names are required so Tailwind can detect them.
+const TONES: Record<Tone, { terminal: string; chip: string }> = {
+  orange: {
+    terminal: "text-orange-500 font-bold",
+    chip: "border-orange-500/40 bg-orange-500/15 text-orange-600 dark:text-orange-400 ring-1 ring-orange-500/30 font-semibold",
+  },
+  amber: {
+    terminal: "text-amber-500 font-bold",
+    chip: "border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30 font-semibold",
+  },
+  cyan: {
+    terminal: "text-cyan-500 font-bold",
+    chip: "border-cyan-500/40 bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 ring-1 ring-cyan-500/30 font-semibold",
+  },
+  sky: {
+    terminal: "text-sky-500 font-bold",
+    chip: "border-sky-500/40 bg-sky-500/15 text-sky-600 dark:text-sky-400 ring-1 ring-sky-500/30 font-semibold",
+  },
+  purple: {
+    terminal: "text-purple-500 font-bold",
+    chip: "border-purple-500/40 bg-purple-500/15 text-purple-600 dark:text-purple-400 ring-1 ring-purple-500/30 font-semibold",
+  },
+  emerald: {
+    terminal: "text-emerald-500 font-bold",
+    chip: "border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30 font-semibold",
+  },
+  neutral: {
+    terminal: "text-fd-foreground font-bold",
+    chip: "border-fd-border bg-fd-accent text-fd-foreground font-semibold shadow-xs",
+  },
+};
 
-const frameworks: { id: Framework; label: string }[] = [
-  { id: "none", label: "None (Standalone)" },
-  { id: "hono", label: "Hono / Fetch-Native" },
-  { id: "express", label: "Express" },
-  { id: "fastify", label: "Fastify" },
-];
+const CHIP_IDLE =
+  "border-fd-border bg-fd-muted/30 text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground";
+const CHIP_DISABLED = "border-fd-border/60 bg-fd-muted/10 text-fd-muted-foreground/40";
 
-const deployPresets: { id: DeployPreset; label: string }[] = [
-  { id: "node-server", label: "Node Server" },
-  { id: "node-cluster", label: "Node Cluster" },
-  { id: "none", label: "Standalone Vite" },
-  { id: "bun", label: "Bun" },
-  { id: "deno-server", label: "Deno Server" },
-  { id: "deno-deploy", label: "Deno Deploy" },
-  { id: "cloudflare-module", label: "Cloudflare" },
-  { id: "vercel", label: "Vercel" },
-  { id: "aws-lambda", label: "AWS Lambda" },
-  { id: "netlify", label: "Netlify" },
-];
+const labelOf = <T extends string>(options: Option<T>[], id: T): string =>
+  options.find((option) => option.id === id)?.label ?? id;
 
-const databases: { id: Database; label: string }[] = [
-  { id: "drizzle", label: "Drizzle" },
-  { id: "prisma", label: "Prisma" },
-  { id: "kysely", label: "Kysely" },
-  { id: "none", label: "None" },
-];
+function TerminalStep<T extends string>({
+  label,
+  options,
+  value,
+  tone,
+}: {
+  label: string;
+  options: Option<T>[];
+  value: T;
+  tone: Tone;
+}) {
+  return (
+    <div className="space-y-0.5 mt-2">
+      <div className="flex items-center gap-2 text-fd-muted-foreground">
+        <span className="text-cyan-500">◇</span>
+        <span>{label}</span>
+      </div>
+      <div className="border-l-2 border-fd-border/70 pl-4 flex flex-wrap gap-x-2.5 gap-y-1">
+        {options.map((option) => (
+          <span
+            key={option.id}
+            className={cn(
+              "transition-colors text-[11px]",
+              option.id === value ? TONES[tone].terminal : "text-fd-muted-foreground/60",
+            )}
+          >
+            {option.id === value ? "● " : "○ "}
+            {option.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-const drivers: { id: Driver; label: string }[] = [
-  { id: "postgres", label: "PostgreSQL" },
-  { id: "sqlite", label: "SQLite" },
-  { id: "mysql", label: "MySQL" },
-];
-
-const validators: { id: Validator; label: string }[] = [
-  { id: "zod", label: "Zod" },
-  { id: "arktype", label: "ArkType" },
-  { id: "valibot", label: "Valibot" },
-];
-
-const loggers: { id: Logger; label: string }[] = [
-  { id: "pino", label: "Pino" },
-  { id: "winston", label: "Winston" },
-  { id: "none", label: "None" },
-];
-
-const packageManagers: { id: PackageManager; prefix: string }[] = [
-  { id: "pnpm", prefix: "pnpm create taserjs@latest" },
-  { id: "npm", prefix: "npm create taserjs@latest" },
-  { id: "bun", prefix: "bun create taserjs@latest" },
-  { id: "yarn", prefix: "yarn create taserjs" },
-];
+function ChipGroup<T extends string>({
+  label,
+  options,
+  value,
+  tone,
+  onChange,
+  disabled = [],
+  small = false,
+}: {
+  label: string;
+  options: Option<T>[];
+  value: T;
+  tone: Tone;
+  onChange: (id: T) => void;
+  disabled?: T[];
+  small?: boolean;
+}) {
+  return (
+    <div>
+      <label
+        className={cn(
+          "block font-semibold text-fd-muted-foreground uppercase tracking-wider",
+          small ? "mb-1.5 text-[10px]" : "mb-2 text-[11px]",
+        )}
+      >
+        {label}
+      </label>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            disabled={disabled.includes(option.id)}
+            onClick={() => onChange(option.id)}
+            className={cn(
+              "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all",
+              disabled.includes(option.id)
+                ? CHIP_DISABLED
+                : cn("cursor-pointer", option.id === value ? TONES[tone].chip : CHIP_IDLE),
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function TryItSection() {
-  const [framework, setFramework] = useState<Framework>("none");
-  const [preset, setPreset] = useState<DeployPreset>("node-server");
+  const [framework, setFramework] = useState<FrameworkId>("none");
+  const [template, setTemplate] = useState<TemplateId>("react");
+  const [host, setHost] = useState<HostId>("none");
+  const [preset, setPreset] = useState<PresetId>("node-server");
   const [db, setDb] = useState<Database>("drizzle");
   const [driver, setDriver] = useState<Driver>("sqlite");
   const [validator, setValidator] = useState<Validator>("zod");
   const [logger, setLogger] = useState<Logger>("pino");
-  const [pm, setPm] = useState<PackageManager>("pnpm");
+  const [packageManager, setPackageManager] = useState<PackageManager>("pnpm");
   const [copied, setCopied] = useState(false);
 
-  // Generate the reactive command string
-  const getCommand = () => {
-    const pmConfig = packageManagers.find((p) => p.id === pm) ?? packageManagers[0];
-    const parts = [pmConfig.prefix, "my-api", `--framework ${framework}`, `--preset ${preset}`];
-
-    if (db !== "none") {
-      parts.push(`--db ${db}:${driver}`);
-    }
-    if (logger !== "none") {
-      parts.push(`--logger ${logger}`);
-    }
-    if (validator) {
-      parts.push(`--validator ${validator}`);
-    }
-    parts.push("-y");
-
-    return parts.join(" ");
+  const choices = {
+    framework,
+    template,
+    host,
+    preset,
+    db,
+    driver,
+    validator,
+    logger,
+    packageManager,
   };
+  const resolved = resolveStarter(choices);
+  const command = buildCommand(choices);
+
+  const cloudflareSelected = resolved.preset?.startsWith("cloudflare") ?? false;
+  const nodeOnlyHosts = HOSTS.filter((option) => option.needsNode).map((option) => option.id);
 
   const copyCommand = async () => {
     try {
-      await navigator.clipboard.writeText(getCommand());
+      await navigator.clipboard.writeText(command);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // ignore
+      // Clipboard access can be denied; the command stays selectable.
     }
   };
-
-  const currentFrameworkLabel =
-    frameworks.find((f) => f.id === framework)?.label ?? "None (Standalone)";
-  const currentPresetLabel = deployPresets.find((p) => p.id === preset)?.label ?? "Node Server";
-  const currentDbLabel = databases.find((d) => d.id === db)?.label ?? "None";
-  const currentDriverLabel = drivers.find((d) => d.id === driver)?.label ?? "SQLite";
-  const currentValidatorLabel = validators.find((v) => v.id === validator)?.label ?? "Zod";
-  const currentLoggerLabel = loggers.find((l) => l.id === logger)?.label ?? "None";
 
   return (
     <section id="try-it" className="relative scroll-mt-14">
@@ -140,12 +209,10 @@ export function TryItSection() {
               Scaffold your stack <SectionAccent>in seconds</SectionAccent>
             </>
           }
-          description="Interactive CLI with batteries included: pick your framework, Nitro preset, database ORM, Standard Schema validator, and logger."
+          description="Interactive CLI with batteries included: pick an API-only project, a Vite web app or a fullstack framework, then add a host server, deployment target, database, validator, and logger."
         />
 
-        {/* Top 2 Cards: Height-Aligned Grid */}
         <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
-          {/* Left Column: Terminal Window */}
           <div className="h-full flex flex-col">
             <WindowFrame
               title={
@@ -158,7 +225,6 @@ export function TryItSection() {
             >
               <div className="overflow-x-auto p-5 text-xs font-mono leading-relaxed select-text scrollbar-thin flex-1 flex flex-col justify-between">
                 <div>
-                  {/* Banner */}
                   <div className="mb-3">
                     <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[11px] font-bold text-cyan-600 dark:text-cyan-300">
                       create-taserjs
@@ -166,186 +232,107 @@ export function TryItSection() {
                     <span className="ml-2 text-fd-muted-foreground text-[11px]">v0.0.1</span>
                   </div>
 
-                  {/* Step 1: Project Name */}
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2 text-fd-muted-foreground">
                       <span className="text-cyan-500">◇</span>
                       <span>Project name</span>
                     </div>
                     <div className="border-l-2 border-fd-border/70 pl-4 text-fd-foreground font-semibold">
-                      my-api
+                      my-app
                     </div>
                   </div>
 
-                  {/* Step 2: Framework */}
-                  <div className="space-y-0.5 mt-2">
-                    <div className="flex items-center gap-2 text-fd-muted-foreground">
-                      <span className="text-cyan-500">◇</span>
-                      <span>Host framework</span>
-                    </div>
-                    <div className="border-l-2 border-fd-border/70 pl-4 flex flex-wrap gap-x-2.5 gap-y-1">
-                      {frameworks.map((f) => (
-                        <span
-                          key={f.id}
-                          className={cn(
-                            "transition-colors text-[11px]",
-                            f.id === framework
-                              ? "text-orange-500 font-bold"
-                              : "text-fd-muted-foreground/60",
-                          )}
-                        >
-                          {f.id === framework ? "● " : "○ "}
-                          {f.label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Step 3: Preset */}
-                  <div className="space-y-0.5 mt-2">
-                    <div className="flex items-center gap-2 text-fd-muted-foreground">
-                      <span className="text-cyan-500">◇</span>
-                      <span>Deployment target (preset)</span>
-                    </div>
-                    <div className="border-l-2 border-fd-border/70 pl-4 flex flex-wrap gap-x-2.5 gap-y-1">
-                      {deployPresets.map((p) => (
-                        <span
-                          key={p.id}
-                          className={cn(
-                            "transition-colors text-[11px]",
-                            p.id === preset
-                              ? "text-amber-500 font-bold"
-                              : "text-fd-muted-foreground/60",
-                          )}
-                        >
-                          {p.id === preset ? "● " : "○ "}
-                          {p.label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Step 4: Database Selection (Blue tint) */}
-                  <div className="space-y-0.5 mt-2">
-                    <div className="flex items-center gap-2 text-fd-muted-foreground">
-                      <span className="text-cyan-500">◇</span>
-                      <span>Database</span>
-                    </div>
-                    <div className="border-l-2 border-fd-border/70 pl-4 flex flex-wrap gap-x-3 gap-y-1">
-                      {databases.map((d) => (
-                        <span
-                          key={d.id}
-                          className={cn(
-                            "transition-colors",
-                            d.id === db ? "text-sky-500 font-bold" : "text-fd-muted-foreground/60",
-                          )}
-                        >
-                          {d.id === db ? "● " : "○ "}
-                          {d.label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Step 4b: Driver Selection (if DB selected) */}
-                  {db !== "none" && (
-                    <div className="space-y-0.5 mt-2">
-                      <div className="flex items-center gap-2 text-fd-muted-foreground">
-                        <span className="text-cyan-500">◇</span>
-                        <span>Database driver</span>
-                      </div>
-                      <div className="border-l-2 border-fd-border/70 pl-4 flex flex-wrap gap-x-3 gap-y-1">
-                        {drivers.map((drv) => (
-                          <span
-                            key={drv.id}
-                            className={cn(
-                              "transition-colors",
-                              drv.id === driver
-                                ? "text-fd-foreground font-bold"
-                                : "text-fd-muted-foreground/60",
-                            )}
-                          >
-                            {drv.id === driver ? "● " : "○ "}
-                            {drv.label}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                  <TerminalStep
+                    label="Base framework"
+                    options={FRAMEWORKS}
+                    value={framework}
+                    tone="orange"
+                  />
+                  {resolved.template && (
+                    <TerminalStep
+                      label="Vite template"
+                      options={TEMPLATES}
+                      value={resolved.template}
+                      tone="orange"
+                    />
                   )}
-
-                  {/* Step 5: Logger Selection (Purple tint) */}
-                  <div className="space-y-0.5 mt-2">
-                    <div className="flex items-center gap-2 text-fd-muted-foreground">
-                      <span className="text-cyan-500">◇</span>
-                      <span>Logger</span>
-                    </div>
-                    <div className="border-l-2 border-fd-border/70 pl-4 flex flex-wrap gap-x-3 gap-y-1">
-                      {loggers.map((l) => (
-                        <span
-                          key={l.id}
-                          className={cn(
-                            "transition-colors",
-                            l.id === logger
-                              ? "text-purple-500 font-bold"
-                              : "text-fd-muted-foreground/60",
-                          )}
-                        >
-                          {l.id === logger ? "● " : "○ "}
-                          {l.label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Step 6: Validator Selection (Green tint) */}
-                  <div className="space-y-0.5 mt-2">
-                    <div className="flex items-center gap-2 text-fd-muted-foreground">
-                      <span className="text-cyan-500">◇</span>
-                      <span>Validator</span>
-                    </div>
-                    <div className="border-l-2 border-fd-border/70 pl-4 flex flex-wrap gap-x-3 gap-y-1">
-                      {validators.map((v) => (
-                        <span
-                          key={v.id}
-                          className={cn(
-                            "transition-colors",
-                            v.id === validator
-                              ? "text-emerald-500 font-bold"
-                              : "text-fd-muted-foreground/60",
-                          )}
-                        >
-                          {v.id === validator ? "● " : "○ "}
-                          {v.label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                  {resolved.framework.supportsHost && (
+                    <TerminalStep
+                      label="Existing server"
+                      options={HOSTS}
+                      value={resolved.host ?? "none"}
+                      tone="cyan"
+                    />
+                  )}
+                  {resolved.preset && (
+                    <TerminalStep
+                      label="Deployment"
+                      options={PRESETS}
+                      value={resolved.preset}
+                      tone="amber"
+                    />
+                  )}
+                  <TerminalStep label="Database" options={DATABASES} value={db} tone="sky" />
+                  {db !== "none" && (
+                    <TerminalStep
+                      label="Database driver"
+                      options={DRIVERS}
+                      value={driver}
+                      tone="neutral"
+                    />
+                  )}
+                  <TerminalStep label="Logger" options={LOGGERS} value={logger} tone="purple" />
+                  <TerminalStep
+                    label="Validator"
+                    options={VALIDATORS}
+                    value={validator}
+                    tone="emerald"
+                  />
                 </div>
 
-                {/* Completion Result */}
                 <div className="mt-4 pt-3 border-t border-fd-border/60 space-y-1">
                   <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold">
                     <span>✔</span>
-                    <span>Scaffolded ./my-api successfully!</span>
+                    <span>Scaffolded ./my-app successfully!</span>
                   </div>
                   <div className="text-fd-muted-foreground pl-4 text-[11px]">
                     Created{" "}
-                    <span className="text-fd-foreground font-medium">{currentFrameworkLabel}</span>{" "}
-                    app targeted for{" "}
-                    <span className="text-fd-foreground font-medium">{currentPresetLabel}</span>{" "}
+                    <span className="text-fd-foreground font-medium">
+                      {resolved.framework.label}
+                    </span>{" "}
+                    project
+                    {resolved.host && (
+                      <>
+                        {" "}
+                        on{" "}
+                        <span className="text-fd-foreground font-medium">
+                          {labelOf(HOSTS, resolved.host)}
+                        </span>
+                      </>
+                    )}
+                    , deploying{" "}
+                    <span className="text-fd-foreground font-medium">
+                      {resolved.preset
+                        ? labelOf(PRESETS, resolved.preset)
+                        : "through its own adapter"}
+                    </span>{" "}
                     with{" "}
                     {db !== "none" ? (
                       <span className="text-fd-foreground font-medium">
-                        {currentDbLabel} ({currentDriverLabel})
+                        {labelOf(DATABASES, db)} ({labelOf(DRIVERS, driver)})
                       </span>
                     ) : (
                       "no database"
                     )}
                     ,{" "}
-                    <span className="text-fd-foreground font-medium">{currentValidatorLabel}</span>{" "}
+                    <span className="text-fd-foreground font-medium">
+                      {labelOf(VALIDATORS, validator)}
+                    </span>{" "}
                     validation, and{" "}
                     {logger !== "none" ? (
-                      <span className="text-fd-foreground font-medium">{currentLoggerLabel}</span>
+                      <span className="text-fd-foreground font-medium">
+                        {labelOf(LOGGERS, logger)}
+                      </span>
                     ) : (
                       "console"
                     )}{" "}
@@ -356,7 +343,6 @@ export function TryItSection() {
             </WindowFrame>
           </div>
 
-          {/* Right Column: Stack Configurator */}
           <div className="h-full flex flex-col">
             <div className="rounded-2xl border border-fd-border bg-fd-card p-6 shadow-sm flex flex-col justify-between h-full space-y-6">
               <div className="space-y-6">
@@ -369,182 +355,113 @@ export function TryItSection() {
                   </h3>
                 </div>
 
-                {/* 1. Host Framework */}
-                <div>
-                  <label className="block mb-2 text-[11px] font-semibold text-fd-muted-foreground uppercase tracking-wider">
-                    Host Framework
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {frameworks.map((f) => (
-                      <button
-                        key={f.id}
-                        type="button"
-                        onClick={() => setFramework(f.id)}
-                        className={cn(
-                          "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all cursor-pointer",
-                          framework === f.id
-                            ? "border-orange-500/40 bg-orange-500/15 text-orange-600 dark:text-orange-400 ring-1 ring-orange-500/30 font-semibold"
-                            : "border-fd-border bg-fd-muted/30 text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground",
-                        )}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <ChipGroup
+                  label="Base Framework"
+                  options={FRAMEWORKS}
+                  value={framework}
+                  tone="orange"
+                  onChange={setFramework}
+                />
 
-                {/* 2. Deployment Preset */}
-                <div>
-                  <label className="block mb-2 text-[11px] font-semibold text-fd-muted-foreground uppercase tracking-wider">
-                    Deployment Preset
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {deployPresets.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => setPreset(p.id)}
-                        className={cn(
-                          "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all cursor-pointer",
-                          preset === p.id
-                            ? "border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30 font-semibold"
-                            : "border-fd-border bg-fd-muted/30 text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground",
-                        )}
-                      >
-                        {p.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {resolved.template && (
+                  <ChipGroup
+                    label="Vite Template"
+                    options={TEMPLATES}
+                    value={resolved.template}
+                    tone="orange"
+                    onChange={setTemplate}
+                  />
+                )}
 
-                {/* 3. Database & Driver */}
-                <div>
-                  <label className="block mb-2 text-[11px] font-semibold text-fd-muted-foreground uppercase tracking-wider">
-                    Database ORM
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {databases.map((d) => (
-                      <button
-                        key={d.id}
-                        type="button"
-                        onClick={() => setDb(d.id)}
-                        className={cn(
-                          "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all cursor-pointer",
-                          db === d.id
-                            ? "border-sky-500/40 bg-sky-500/15 text-sky-600 dark:text-sky-400 ring-1 ring-sky-500/30 font-semibold"
-                            : "border-fd-border bg-fd-muted/30 text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground",
-                        )}
-                      >
-                        {d.label}
-                      </button>
-                    ))}
-                  </div>
+                {resolved.framework.supportsHost && (
+                  <ChipGroup
+                    label="Host Server"
+                    options={HOSTS}
+                    value={resolved.host ?? "none"}
+                    tone="cyan"
+                    onChange={setHost}
+                    disabled={cloudflareSelected ? nodeOnlyHosts : []}
+                  />
+                )}
 
+                {resolved.preset && (
+                  <ChipGroup
+                    label="Deployment"
+                    options={PRESETS}
+                    value={resolved.preset}
+                    tone="amber"
+                    onChange={setPreset}
+                  />
+                )}
+
+                <div>
+                  <ChipGroup
+                    label="Database ORM"
+                    options={DATABASES}
+                    value={db}
+                    tone="sky"
+                    onChange={setDb}
+                  />
                   {db !== "none" && (
                     <div className="mt-3 pl-3 border-l-2 border-fd-border/70">
-                      <label className="block mb-1.5 text-[10px] font-semibold text-fd-muted-foreground uppercase tracking-wider">
-                        Driver
-                      </label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {drivers.map((drv) => (
-                          <button
-                            key={drv.id}
-                            type="button"
-                            onClick={() => setDriver(drv.id)}
-                            className={cn(
-                              "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all cursor-pointer",
-                              driver === drv.id
-                                ? "border-fd-border bg-fd-accent text-fd-foreground font-semibold shadow-xs"
-                                : "border-fd-border/80 bg-fd-muted/20 text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground",
-                            )}
-                          >
-                            {drv.label}
-                          </button>
-                        ))}
-                      </div>
+                      <ChipGroup
+                        label="Driver"
+                        options={DRIVERS}
+                        value={driver}
+                        tone="neutral"
+                        onChange={setDriver}
+                        small
+                      />
                     </div>
                   )}
                 </div>
 
-                {/* 4. Logger */}
-                <div>
-                  <label className="block mb-2 text-[11px] font-semibold text-fd-muted-foreground uppercase tracking-wider">
-                    Logger
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {loggers.map((l) => (
-                      <button
-                        key={l.id}
-                        type="button"
-                        onClick={() => setLogger(l.id)}
-                        className={cn(
-                          "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all cursor-pointer",
-                          logger === l.id
-                            ? "border-purple-500/40 bg-purple-500/15 text-purple-600 dark:text-purple-400 ring-1 ring-purple-500/30 font-semibold"
-                            : "border-fd-border bg-fd-muted/30 text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground",
-                        )}
-                      >
-                        {l.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <ChipGroup
+                  label="Logger"
+                  options={LOGGERS}
+                  value={logger}
+                  tone="purple"
+                  onChange={setLogger}
+                />
 
-                {/* 5. Validator */}
-                <div>
-                  <label className="block mb-2 text-[11px] font-semibold text-fd-muted-foreground uppercase tracking-wider">
-                    Validator
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {validators.map((v) => (
-                      <button
-                        key={v.id}
-                        type="button"
-                        onClick={() => setValidator(v.id)}
-                        className={cn(
-                          "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all cursor-pointer",
-                          validator === v.id
-                            ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30 font-semibold"
-                            : "border-fd-border bg-fd-muted/30 text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground",
-                        )}
-                      >
-                        {v.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <ChipGroup
+                  label="Validator"
+                  options={VALIDATORS}
+                  value={validator}
+                  tone="emerald"
+                  onChange={setValidator}
+                />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Full-Width One-Liner Command Box Spanning the Entire Bottom */}
         <div className="mt-6 rounded-2xl border border-fd-border bg-fd-card p-4 sm:p-5 shadow-sm space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-fd-foreground uppercase tracking-wider">
               One-Liner Command
             </span>
             <div className="flex items-center gap-1">
-              {packageManagers.map((p) => (
+              {PACKAGE_MANAGERS.map((manager) => (
                 <button
-                  key={p.id}
+                  key={manager.id}
                   type="button"
-                  onClick={() => setPm(p.id)}
+                  onClick={() => setPackageManager(manager.id)}
                   className={cn(
                     "rounded px-2.5 py-0.5 font-mono text-[11px] font-medium transition-colors cursor-pointer",
-                    pm === p.id
+                    packageManager === manager.id
                       ? "bg-fd-primary text-fd-primary-foreground font-semibold"
                       : "text-fd-muted-foreground hover:text-fd-foreground hover:bg-fd-muted",
                   )}
                 >
-                  {p.id}
+                  {manager.id}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="relative flex items-center justify-between rounded-xl border border-fd-border bg-fd-muted/40 p-3 font-mono text-xs text-fd-foreground">
-            <span className="truncate pr-8 select-all">{getCommand()}</span>
+            <span className="truncate pr-8 select-all">{command}</span>
             <button
               type="button"
               onClick={copyCommand}

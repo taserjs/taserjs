@@ -41,7 +41,7 @@ describe("create-taserjs framework scaffolds", () => {
   };
 
   describe.each<[UiFramework, string]>([
-    ["vue", "create-vue@latest"],
+    ["vite", "create-vite@latest"],
     ["tanstack-router", "@tanstack/cli@latest"],
   ])("%s (Vite SPA)", (framework, generatorPackage) => {
     it("runs the official generator, then layers Taser with Nitro", async () => {
@@ -84,10 +84,6 @@ describe("create-taserjs framework scaffolds", () => {
       expect(result.devDependencies).not.toContain("vite");
     });
 
-    it("requires a Nitro preset because bare has nothing to serve the built UI", async () => {
-      await expect(scaffold(framework, { preset: "bare" })).rejects.toThrow(/needs Nitro/);
-    });
-
     it("accepts another Nitro preset", async () => {
       const { read } = await scaffold(framework, { preset: "cloudflare-module" });
 
@@ -96,16 +92,49 @@ describe("create-taserjs framework scaffolds", () => {
     });
   });
 
+  describe("vite templates", () => {
+    it.each(["react", "vue", "svelte", "solid", "preact"])(
+      "runs create-vite non-interactively with the %s TypeScript template",
+      async (template) => {
+        const { calls } = await scaffold("vite", { template });
+
+        expect(calls[0]?.args).toEqual(
+          expect.arrayContaining([
+            "create-vite@latest",
+            "--template",
+            `${template}-ts`,
+            "--no-interactive",
+            "--no-immediate",
+          ]),
+        );
+      },
+    );
+
+    it("defaults to the React template", async () => {
+      const { result, calls } = await scaffold("vite");
+
+      expect(result.template).toBe("react");
+      expect(calls[0]?.args).toContain("react-ts");
+    });
+
+    it("rejects unknown templates and templates for frameworks without any", async () => {
+      await expect(scaffold("vite", { template: "qwik" })).rejects.toThrow(
+        /Unknown Vite template "qwik"/,
+      );
+      await expect(scaffold("nextjs", { template: "react" })).rejects.toThrow(/has no templates/);
+    });
+  });
+
   describe("tanstack-start", () => {
-    it("scaffolds bare without Nitro and mounts the API through a splat route", async () => {
+    it("deploys through the Node.js Nitro preset and mounts the API through a splat route", async () => {
       const { result, read, targetDir } = await scaffold("tanstack-start");
 
-      expect(result.preset).toBe("bare");
+      expect(result.preset).toBe("node-server");
       expect(read("vite.config.ts")).toContain("taser()");
-      expect(read("vite.config.ts")).not.toContain("nitro");
-      expect(existsSync(join(targetDir, "nitro.config.ts"))).toBe(false);
-      expect(result.devDependencies).not.toContain("nitro");
-      expect(JSON.parse(read("package.json")).scripts.start).toBeUndefined();
+      expect(read("vite.config.ts")).toContain("nitro()");
+      expect(existsSync(join(targetDir, "nitro.config.ts"))).toBe(true);
+      expect(result.devDependencies).toContain("nitro");
+      expect(JSON.parse(read("package.json")).scripts.start).toBe("node .output/server/index.mjs");
 
       expect(read("src/routes/api/$.tsx")).toContain('createFileRoute("/api/$")');
       expect(read("src/routes/api/$.tsx")).toContain("POST: handle");
@@ -146,15 +175,103 @@ describe("create-taserjs framework scaffolds", () => {
 
     it("skips the deploy question and rejects Nitro presets", async () => {
       const { result } = await scaffold("nextjs");
-      expect(result.preset).toBe("bare");
+      expect(result.preset).toBeUndefined();
       expect(result.devDependencies).not.toContain("nitro");
 
       await expect(scaffold("nextjs", { preset: "vercel" })).rejects.toThrow(/own adapter/);
     });
   });
 
+  describe("sveltekit", () => {
+    it("runs sv, mounts the API as a fallback route, and keeps the generator's adapter", async () => {
+      const { calls, read, result } = await scaffold("sveltekit");
+
+      expect(calls[0]?.args).toEqual(
+        expect.arrayContaining(["dlx", "sv@latest", "create", "--no-install", "--no-add-ons"]),
+      );
+      expect(result.preset).toBeUndefined();
+      expect(read("vite.config.ts")).toMatch(/plugins: \[\s*taser\(\),\s*sveltekit\(/);
+      expect(read("src/routes/api/[...path]/+server.ts")).toContain(
+        "export const fallback: RequestHandler",
+      );
+      expect(read("src/routes/api/[...path]/+server.ts")).toContain(
+        'from "../../../server/.taserjs/routes.gen"',
+      );
+      expect(read("src/api.ts")).toContain('baseUrl: "/api"');
+      expect(read("taserjs.config.ts")).toContain('serverDir: "src/server"');
+      expect(result.devDependencies).not.toContain("nitro");
+      expect(JSON.parse(read("package.json")).scripts.start).toBeUndefined();
+    });
+
+    it("skips the deploy question and rejects presets and hosts", async () => {
+      await expect(scaffold("sveltekit", { preset: "vercel" })).rejects.toThrow(/own adapter/);
+      await expect(scaffold("sveltekit", { host: "hono" })).rejects.toThrow(/owns its server/);
+    });
+  });
+
+  describe("react-router", () => {
+    it("runs create-react-router, registers a resource route, and keeps the generator's server", async () => {
+      const { calls, read, result } = await scaffold("react-router");
+
+      expect(calls[0]?.args).toEqual(
+        expect.arrayContaining(["create-react-router@latest", "--no-install", "--yes"]),
+      );
+      expect(result.preset).toBeUndefined();
+      expect(read("vite.config.ts")).toMatch(
+        /plugins: \[taser\(\), tailwindcss\(\), reactRouter\(\)\]/,
+      );
+      expect(read("app/routes.ts")).toContain('route("api/*", "routes/api.ts")');
+      expect(read("app/routes/api.ts")).toContain("export const action = handle;");
+      expect(read("app/routes/api.ts")).toContain('from "../server/.taserjs/routes.gen"');
+      expect(read("taserjs.config.ts")).toContain('serverDir: "app/server"');
+      expect(read("app/api.ts")).toContain(
+        'import type { AppManifest } from "./server/.taserjs/routes.gen"',
+      );
+      expect(result.devDependencies).not.toContain("nitro");
+      expect(JSON.parse(read("package.json")).scripts.start).toContain("react-router-serve");
+    });
+
+    it("skips the deploy question and rejects presets and hosts", async () => {
+      await expect(scaffold("react-router", { preset: "vercel" })).rejects.toThrow(/own adapter/);
+      await expect(scaffold("react-router", { host: "hono" })).rejects.toThrow(/owns its server/);
+    });
+  });
+
+  describe("nuxt", () => {
+    it("runs create-nuxt, mounts the API as a server route, and keeps Taser out of scanned folders", async () => {
+      const { calls, read, result, targetDir } = await scaffold("nuxt");
+
+      expect(calls[0]?.args).toEqual(
+        expect.arrayContaining(["dlx", "create-nuxt@latest", "--no-install", "--no-modules"]),
+      );
+      expect(result.preset).toBeUndefined();
+      expect(read("nuxt.config.ts")).toMatch(/plugins: \[taser\(\{\s*cwd: process\.cwd\(\)/);
+      expect(read("server/api/[...slug].ts")).toContain("app.fetch(toWebRequest(event))");
+      expect(read("server/api/index.ts")).toContain('from "./[...slug]"');
+      expect(read("server/api/[...slug].ts")).toContain('from "../../api/.taserjs/routes.gen"');
+      expect(read("taserjs.config.ts")).toContain('serverDir: "api"');
+      expect(existsSync(join(targetDir, "api/routes/index.get.ts"))).toBe(true);
+      expect(existsSync(join(targetDir, "server/routes"))).toBe(false);
+      expect(result.devDependencies).not.toContain("nitro");
+    });
+
+    it("writes the typed client into the app directory with an absolute base URL", async () => {
+      const { read } = await scaffold("nuxt");
+
+      expect(read("app/api.ts")).toContain(
+        'import type { AppManifest } from "../api/.taserjs/routes.gen"',
+      );
+      expect(read("app/api.ts")).toContain('baseUrl: "http://localhost:3000/api"');
+    });
+
+    it("skips the deploy question and rejects presets and hosts", async () => {
+      await expect(scaffold("nuxt", { preset: "vercel" })).rejects.toThrow(/own adapter/);
+      await expect(scaffold("nuxt", { host: "express" })).rejects.toThrow(/owns its server/);
+    });
+  });
+
   it("puts database, logger and validator files under the server directory", async () => {
-    const { read, targetDir } = await scaffold("vue", {
+    const { read, targetDir } = await scaffold("vite", {
       db: "drizzle",
       driver: "postgres",
       logger: "pino",
@@ -176,7 +293,7 @@ describe("create-taserjs framework scaffolds", () => {
   });
 
   it("reports a manual step when the generated config is missing", async () => {
-    const { result } = await scaffold("vue", {
+    const { result } = await scaffold("vite", {
       generator: async () => {
         const { mkdir, writeFile } = await import("node:fs/promises");
         const dir = join(tempDir, "ui-app");

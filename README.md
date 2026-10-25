@@ -62,7 +62,7 @@ Traditional Node.js routers force painful trade-offs between clean folder struct
 - **Deterministic File-Based Routing** — Verb files (`.get.ts`, `.post.ts`, …); non-verb files are layouts. Zero manual route tables.
 - **Facet-Split Handlers** — `{ req, ctx, state, ...services }`: HTTP inputs on `req`, boot/request services on `ctx`, cascaded middleware values on `state`.
 - **Compiler-Enforced Return Contracts** — `.returns({ 200: schema })` catches payload drift before deploy.
-- **Framework Agnostic** — Standalone Vite/Nitro, Next.js App Router, TanStack Start, or host pass-through (Express, Hono, Fastify).
+- **Framework Agnostic** — Standalone Vite/Nitro, Next.js App Router, TanStack Start, Nuxt, SvelteKit, React Router, or host pass-through (Express, Hono, Fastify).
 - **Standard Schema First** — Zod, ArkType, Valibot, or any Standard Schema library.
 - **Zero-Drift Typed Client** — `createClient<AppManifest>()` from `@taserjs/client` and `routes.gen.ts`.
 

@@ -63,19 +63,19 @@ Before creating a project, make sure your development environment meets these re
     The interactive wizard guides you through:
 
     1. **Project Name**: Enter a directory name (for example, `my-taser-app`).
-    2. **What are you building?**
+    2. **Base framework**:
        - **API only**: A standalone Taser.js server with no UI.
-       - **Web app on Vite**: A single-page UI served together with your API. TanStack Router or Vue (Vue Router).
-       - **Fullstack framework**: A framework that owns the server, with Taser.js mounted under `/api`. TanStack Start or Next.js.
-    3. **Deployment** (skipped for frameworks that deploy through their own adapter, such as Next.js):
-       - **Bare**: No Nitro. API-only projects build with `vite build` and run with `node dist/serve.mjs`; TanStack Start runs through its own build output.
-       - **Nitro preset**: Node.js, Cloudflare Workers, Vercel, Netlify, or AWS Lambda. Choosing a preset installs `nitro`.
-       - Web apps on Vite always use a Nitro preset, because Nitro serves the built UI next to the API.
+       - **TanStack Router** or **Vite**: A single-page UI on Vite, served together with your API. Vite asks for a template: **React**, **Vue**, **Svelte**, **Solid** or **Preact**.
+       - **React Router**, **TanStack Start**, **Next.js**, **Nuxt** or **SvelteKit**: A fullstack framework that owns the server, with Taser.js mounted under `/api`.
+    3. **Deployment** (skipped for frameworks that deploy through their own adapter, such as Next.js, Nuxt, SvelteKit and React Router):
+       - **None**: Runs on Node.js. Build with `vite build` and start with `node .output/server/index.mjs`.
+       - **Cloudflare Workers**, **Vercel**, **Netlify** or **AWS Lambda**: Deploy through the matching Nitro preset.
+       - Every project that picks a deployment installs `nitro`, which also serves the built UI next to the API for Vite web apps.
     4. **Schema Validator** (Optional): **Zod**, **Valibot**, or **ArkType**.
     5. **Database / ORM** (Optional): **Drizzle**, **Prisma**, or **Kysely** with a `sqlite`, `postgres`, or `mysql` driver.
     6. **Logger** (Optional): **Pino** or **Winston**.
 
-    UI projects are created by running the framework's official generator (`create-vue`, `create-next-app`, `@tanstack/cli`) at `@latest`, then adding Taser.js on top. Taser.js adds its packages, wires `taser()` into your Vite config (or `createTaser()` into `next.config.ts`), and creates `src/server/` for your API and `src/api.ts` with a typed client. It does not change your components. If a config file has an unexpected shape, the wizard prints the lines to add by hand.
+    UI projects are created by running the framework's official generator (`create-vite`, `create-next-app`, `@tanstack/cli`) at `@latest`, then adding Taser.js on top. Taser.js adds its packages, wires `taser()` into your Vite config (or `createTaser()` into `next.config.ts`), and creates `src/server/` for your API and `src/api.ts` with a typed client. It does not change your components. If a config file has an unexpected shape, the wizard prints the lines to add by hand.
 
     <Callout type="info" title="Runtime is not a scaffold choice">
       Taser.js runs on Node.js, Bun, and Deno. The scaffolder does not configure a runtime; run the generated build with the runtime you prefer.
@@ -99,8 +99,9 @@ Before creating a project, make sure your development environment meets these re
 
     | Flag | Description | Values | Default |
     | :--- | :--- | :--- | :--- |
-    | `--framework`, `-f` | UI or fullstack framework | `none` (API only), `tanstack-router`, `vue`, `tanstack-start`, `nextjs` | `none` |
-    | `--preset`, `-p` | Deployment: `bare` (no Nitro) or any [Nitro preset](https://nitro.build/deploy) | `bare`, `node-server`, `cloudflare-module`, `vercel`, `netlify`, `aws-lambda`, or another Nitro preset | `bare` (`node-server` for `tanstack-router` and `vue`) |
+    | `--framework`, `-f` | UI or fullstack framework | `none` (API only), `tanstack-router`, `react-router`, `tanstack-start`, `nextjs`, `nuxt`, `sveltekit`, `vite` | `none` |
+    | `--template`, `-t` | Template for `vite` projects, passed to `create-vite` as the TypeScript variant | `react`, `vue`, `svelte`, `solid`, `preact` | `react` |
+    | `--preset`, `-p` | Nitro preset to deploy with, see [Nitro presets](https://nitro.build/deploy) | `node-server`, `cloudflare-module`, `vercel`, `netlify`, `aws-lambda`, or another Nitro preset | `node-server` |
     | `--host` | Existing server framework that receives requests no Taser.js route matches | `none`, `express`, `fastify`, `hono`, `elysia` | `none` |
     | `--db` | Database ORM / query builder | `drizzle`, `prisma`, `kysely`, `none` | `none` |
     | `--driver` | Database driver (with `--db`) | `sqlite`, `postgres`, `mysql` | `sqlite` |
@@ -109,9 +110,9 @@ Before creating a project, make sure your development environment meets these re
     | `--skip-install` | Skip automatic package installation | `boolean` | `false` |
     | `-y`, `--yes` | Non-interactive mode using defaults for omitted flags | `boolean` | `false` |
 
-    `--preset` does not apply to `nextjs`, which deploys through its own adapter. `tanstack-router` and `vue` reject `--preset bare`.
+    `--preset` does not apply to `nextjs`, `nuxt`, `sveltekit` or `react-router`, which deploy through their own adapter or Nitro preset.
 
-    `--host` applies to API-only, `tanstack-router` and `vue` projects. It writes `server.node.ts` (Express, Fastify) or `server.ts` (Hono, Elysia) into the server directory. Express and Fastify need Node.js APIs, so they cannot be combined with the Cloudflare presets. `nextjs` and `tanstack-start` own their server and reject `--host`.
+    `--host` applies to API-only, `tanstack-router` and `vite` projects. It writes `server.node.ts` (Express, Fastify) or `server.ts` (Hono, Elysia) into the server directory. Express and Fastify need Node.js APIs, so they cannot be combined with the Cloudflare presets. `nextjs`, `tanstack-start`, `nuxt`, `sveltekit` and `react-router` own their server and reject `--host`.
 
     #### Where Files Go
 

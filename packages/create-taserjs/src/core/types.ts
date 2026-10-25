@@ -1,13 +1,20 @@
 import type { Agent } from "package-manager-detector";
 
-export type FrameworkId = "none" | "tanstack-router" | "tanstack-start" | "nextjs" | "vue";
+export type FrameworkId =
+  | "none"
+  | "tanstack-router"
+  | "tanstack-start"
+  | "nextjs"
+  | "vite"
+  | "nuxt"
+  | "sveltekit"
+  | "react-router";
 
 /** What the project is: just an API, a Vite SPA served next to the API, or a framework that owns the server. */
 export type FrameworkGroup = "api" | "spa" | "fullstack";
 
-/** `bare` installs no Nitro; any other value is a Nitro preset name. */
+/** A Nitro preset name such as `node-server`. */
 export type DeployPreset = string;
-export const BARE_PRESET = "bare";
 
 /** An existing server framework that runs next to Taser.js and receives requests no route matches. */
 export type HostId = "none" | "express" | "fastify" | "hono" | "elysia";
@@ -29,6 +36,8 @@ export interface ScaffoldContext {
   projectName: string;
   targetDir: string;
   framework?: FrameworkId | undefined;
+  /** The generator template for frameworks that offer several, such as `react` for Vite. */
+  template?: string | undefined;
   preset?: DeployPreset | undefined;
   host?: HostId | undefined;
   db?: DbOdm | undefined;
@@ -54,7 +63,10 @@ export interface ScaffoldOptions extends ScaffoldContext {
 /** A scaffold request after the framework, preset and server directory have been decided. */
 export interface ResolvedScaffold extends ScaffoldContext {
   framework: FrameworkId;
-  preset: DeployPreset;
+  /** Absent when the framework has a single generator. */
+  template: string | undefined;
+  /** Absent when the framework deploys through its own adapter, so no Nitro is installed. */
+  preset: DeployPreset | undefined;
   host: HostId;
   /** Project-relative directory that holds `taser.ts`, `routes/`, and add-on files. */
   serverDir: string;

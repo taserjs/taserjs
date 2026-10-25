@@ -17,19 +17,27 @@ const WORKSPACE_PACKAGES = new Set([
 
 const CASES = [
   { framework: "none" },
-  { framework: "none", preset: "node-server" },
-  { framework: "vue", preset: "node-server" },
-  { framework: "tanstack-router", preset: "node-server" },
+  { framework: "vite", template: "react" },
+  { framework: "vite", template: "vue" },
+  { framework: "vite", template: "svelte" },
+  { framework: "vite", template: "solid" },
+  { framework: "vite", template: "preact" },
+  { framework: "tanstack-router" },
   { framework: "tanstack-start" },
-  { framework: "tanstack-start", preset: "node-server" },
   { framework: "nextjs" },
+  { framework: "nuxt" },
+  { framework: "sveltekit" },
+  { framework: "react-router" },
   { framework: "none", host: "express" },
-  { framework: "none", host: "fastify", preset: "node-server" },
+  { framework: "none", host: "fastify" },
   { framework: "none", host: "hono" },
   { framework: "none", host: "elysia" },
-  { framework: "vue", host: "hono", preset: "node-server" },
+  { framework: "vite", template: "vue", host: "hono" },
+  { framework: "vite", template: "react", host: "express" },
 ];
 
+// Full-stack frameworks render a page for unknown URLs, so a 200 alone does not prove Taser.js answered.
+const TASER_WELCOME = "Welcome to Taser.js!";
 const SMOKE_PORT = 4173;
 const SMOKE_TIMEOUT_MS = 20_000;
 const SMOKE_POLL_MS = 250;
@@ -38,8 +46,8 @@ const { scaffoldProject } = await import(
   pathToFileURL(join(import.meta.dirname, "../dist/index.js")).href
 );
 
-const caseName = ({ framework, preset, host }) =>
-  [framework, host, preset ?? "default"].filter(Boolean).join("-");
+const caseName = ({ framework, template, preset, host }) =>
+  [framework, template, host, preset ?? "default"].filter(Boolean).join("-");
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
@@ -56,29 +64,58 @@ async function waitForServer(url, deadline) {
   throw new Error(`Server did not answer at ${url}`);
 }
 
-/** Runs the production server and checks that Taser.js, the host and (for SPAs) the UI all answer. */
-async function smokeTest(projectDir, testCase) {
+// Frameworks whose build output isn't started through the scaffolded `start` script.
+const FRAMEWORK_SERVERS = {
+  nuxt: { command: "node", args: [".output/server/index.mjs"] },
+  "react-router": {
+    command: "pnpm",
+    args: ["exec", "react-router-serve", "./build/server/index.js"],
+  },
+  sveltekit: {
+    command: "pnpm",
+    args: ["exec", "vite", "preview", "--port", String(SMOKE_PORT), "--strictPort"],
+  },
+};
+
+/** What a case's production server must answer: the first path doubles as the readiness probe. */
+function smokeExpectations({ framework, host }) {
+  if (FRAMEWORK_SERVERS[framework]) return [["/api", "Taser.js", TASER_WELCOME]];
+  const isSpa = framework !== "none";
+  return [
+    ...(host ? [["/host-info", "host"]] : []),
+    [isSpa ? "/api" : "/", "Taser.js"],
+    ...(isSpa ? [["/", "UI"]] : []),
+  ];
+}
+
+function serverCommand(projectDir, framework) {
+  if (FRAMEWORK_SERVERS[framework]) return FRAMEWORK_SERVERS[framework];
   const { scripts } = JSON.parse(readFileSync(join(projectDir, "package.json"), "utf-8"));
   const [, ...args] = scripts.start.split(" ");
-  const server = spawn("node", args, {
+  return { command: "node", args };
+}
+
+/** Runs the production server and checks that every owner of a route (Taser.js, host, UI) answers. */
+async function smokeTest(projectDir, testCase) {
+  const { command, args } = serverCommand(projectDir, testCase.framework);
+  const server = spawn(command, args, {
     cwd: projectDir,
     env: { ...process.env, PORT: String(SMOKE_PORT) },
     stdio: ["ignore", "inherit", "inherit"],
   });
   const origin = `http://localhost:${SMOKE_PORT}`;
-  const isSpa = testCase.framework !== "none";
+  const expectations = smokeExpectations(testCase);
 
   try {
-    await waitForServer(`${origin}/host-info`, Date.now() + SMOKE_TIMEOUT_MS);
-    const expectations = [
-      ["/host-info", "host"],
-      [isSpa ? "/api" : "/", "Taser.js"],
-      ...(isSpa ? [["/", "UI"]] : []),
-    ];
-    for (const [path, owner] of expectations) {
+    await waitForServer(`${origin}${expectations[0][0]}`, Date.now() + SMOKE_TIMEOUT_MS);
+    for (const [path, owner, expectedBody] of expectations) {
       // oxlint-disable-next-line no-await-in-loop
       const response = await fetch(`${origin}${path}`);
       if (!response.ok) throw new Error(`${owner} route ${path} answered ${response.status}`);
+      // oxlint-disable-next-line no-await-in-loop
+      if (expectedBody && !(await response.text()).includes(expectedBody)) {
+        throw new Error(`${owner} route ${path} did not return "${expectedBody}"`);
+      }
     }
   } finally {
     server.kill();
@@ -134,7 +171,9 @@ function runCase(testCase, workDir) {
     if (testCase.framework === "nextjs") widenTurbopackRoot(projectDir);
     run("pnpm", ["install", "--ignore-workspace"], projectDir);
     run("pnpm", ["run", "build"], projectDir);
-    return testCase.host ? smokeTest(projectDir, testCase) : undefined;
+    return testCase.host || testCase.framework === "vite" || FRAMEWORK_SERVERS[testCase.framework]
+      ? smokeTest(projectDir, testCase)
+      : undefined;
   });
 }
 

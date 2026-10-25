@@ -74,9 +74,9 @@ describe("create-taserjs host frameworks", () => {
   it("places the host entry in the server directory of a Vite SPA", async () => {
     const targetDir = join(tempDir, "host-app");
     const { read, result } = await scaffold({
-      framework: "vue",
+      framework: "vite",
       host: "hono",
-      generator: fixtureGenerator("vue", targetDir, []),
+      generator: fixtureGenerator("vite", targetDir, []),
     });
 
     expect(read("src/server/server.ts")).toContain("new Hono()");

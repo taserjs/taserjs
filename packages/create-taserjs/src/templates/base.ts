@@ -1,6 +1,4 @@
 import type { BootBinding } from "../addons/types.js";
-import { isBare } from "../core/presets.js";
-import { BARE_PRESET } from "../core/types.js";
 
 export function packageJsonTemplate(
   projectName: string,
@@ -71,17 +69,7 @@ export default defineConfig({
 `;
 }
 
-export function viteConfigTemplate(preset: string = BARE_PRESET): string {
-  if (isBare(preset)) {
-    return `import { defineConfig } from "vite";
-import { taser } from "@taserjs/plugin/vite";
-
-export default defineConfig({
-  plugins: [taser()],
-});
-`;
-  }
-
+export function viteConfigTemplate(): string {
   return `import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
 import { taser } from "@taserjs/plugin/vite";

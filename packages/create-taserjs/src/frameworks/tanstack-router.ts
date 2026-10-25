@@ -7,7 +7,6 @@ export const tanstackRouter: FrameworkDefinition = {
   group: "spa",
   serverDir: "src/server",
   ownsDeployment: false,
-  requiresNitro: true,
   extensionlessImports: false,
   addsStartScript: true,
   dependencies: UI_TASER_DEPENDENCIES,

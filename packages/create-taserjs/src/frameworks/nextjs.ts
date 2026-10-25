@@ -21,9 +21,9 @@ export const nextjs: FrameworkDefinition = {
   group: "fullstack",
   serverDir: "src/server",
   ownsDeployment: true,
-  requiresNitro: false,
   extensionlessImports: true,
   addsStartScript: false,
+  clientBaseUrl: "http://localhost:3000/api",
   dependencies: UI_TASER_DEPENDENCIES,
   devDependencies: UI_TASER_DEV_DEPENDENCIES,
   generator: ({ projectName, packageManager }) => ({

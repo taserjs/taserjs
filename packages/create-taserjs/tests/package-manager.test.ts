@@ -79,12 +79,12 @@ describe("installPackages", () => {
 });
 
 describe("resolveGeneratorCommand", () => {
-  const generator = { pkg: "create-vue@latest", args: ["my-app", "--ts"] };
+  const generator = { pkg: "create-vite@latest", args: ["my-app", "--template", "react-ts"] };
 
   it("runs generators through dlx for pnpm", () => {
     expect(resolveGeneratorCommand("pnpm", generator)).toEqual({
       command: "pnpm",
-      args: ["dlx", "create-vue@latest", "my-app", "--ts"],
+      args: ["dlx", "create-vite@latest", "my-app", "--template", "react-ts"],
     });
   });
 
@@ -92,7 +92,7 @@ describe("resolveGeneratorCommand", () => {
     const { command, args } = resolveGeneratorCommand("npm", generator);
 
     expect(command).toBe("npx");
-    expect(args).toEqual(["--yes", "create-vue@latest", "my-app", "--ts"]);
+    expect(args).toEqual(["--yes", "create-vite@latest", "my-app", "--template", "react-ts"]);
   });
 
   it("strips version flavours from the manager name", () => {

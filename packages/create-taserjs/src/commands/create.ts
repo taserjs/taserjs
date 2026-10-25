@@ -9,15 +9,9 @@ import {
   resolveUserAgent,
   runScript,
 } from "../core/package-manager.js";
-import {
-  BARE_CHOICE,
-  DEFAULT_NITRO_PRESET,
-  isNodeRuntimePreset,
-  PRESET_CHOICES,
-} from "../core/presets.js";
+import { DEFAULT_NITRO_PRESET, isNodeRuntimePreset, PRESET_CHOICES } from "../core/presets.js";
 import { scaffoldProject } from "../core/scaffold-engine.js";
 import {
-  BARE_PRESET,
   type DbDriver,
   type DbOdm,
   type DeployPreset,
@@ -35,15 +29,16 @@ import { HOSTS } from "../hosts/registry.js";
 
 const DEFAULT_PROJECT_NAME = "my-taser-app";
 
-const GROUP_LABELS: Record<FrameworkGroup, { label: string; hint: string }> = {
-  api: { label: "API only", hint: "no UI" },
-  spa: { label: "Web app on Vite", hint: "a UI served together with your API" },
-  fullstack: { label: "Fullstack framework", hint: "the framework owns the server" },
+const GROUP_HINTS: Record<FrameworkGroup, string> = {
+  api: "no UI",
+  spa: "Vite web app",
+  fullstack: "the framework owns the server",
 };
 
 export interface RunCreateCommandOptions {
   projectName?: string | undefined;
   framework?: FrameworkId | undefined;
+  template?: string | undefined;
   preset?: DeployPreset | undefined;
   host?: HostId | undefined;
   db?: DbOdm | undefined;
@@ -87,25 +82,32 @@ async function selectOptional<T extends string>(
 async function promptFramework(preset: FrameworkId | undefined): Promise<FrameworkId> {
   if (preset) return preset;
 
-  const group = answer(
-    await p.select<FrameworkGroup>({
-      message: "What are you building?",
-      options: (Object.keys(GROUP_LABELS) as FrameworkGroup[]).map((value) => ({
-        value,
-        label: GROUP_LABELS[value].label,
-        hint: GROUP_LABELS[value].hint,
-      })),
-      initialValue: "api",
-    }),
-  );
-  if (group === "api") return "none";
-
   return answer(
     await p.select<FrameworkId>({
-      message: "Framework",
-      options: Object.values(FRAMEWORKS)
-        .filter((framework) => framework.group === group)
-        .map((framework) => ({ value: framework.id, label: framework.label })),
+      message: "Base framework",
+      options: Object.values(FRAMEWORKS).map((framework) => ({
+        value: framework.id,
+        label: framework.label,
+        hint: GROUP_HINTS[framework.group],
+      })),
+      initialValue: "none",
+    }),
+  );
+}
+
+async function promptTemplate(
+  framework: FrameworkId,
+  template: string | undefined,
+): Promise<string | undefined> {
+  const { label, templates } = getFramework(framework);
+  const [defaultTemplate] = templates ?? [];
+  if (!templates || !defaultTemplate || template !== undefined) return template;
+
+  return answer(
+    await p.select<string>({
+      message: `${label} template`,
+      options: templates.map((option) => ({ value: option.id, label: option.label })),
+      initialValue: defaultTemplate.id,
     }),
   );
 }
@@ -120,8 +122,8 @@ async function promptPreset(
   return answer(
     await p.select<DeployPreset>({
       message: "Deployment",
-      options: [...(definition.requiresNitro ? [] : [BARE_CHOICE]), ...PRESET_CHOICES],
-      initialValue: definition.requiresNitro ? DEFAULT_NITRO_PRESET : BARE_PRESET,
+      options: [...PRESET_CHOICES],
+      initialValue: DEFAULT_NITRO_PRESET,
     }),
   );
 }
@@ -134,7 +136,7 @@ async function promptHost(
 ): Promise<HostId | undefined> {
   if (host !== undefined || getFramework(framework).group === "fullstack") return host;
 
-  const runsOnNode = isNodeRuntimePreset(preset ?? BARE_PRESET);
+  const runsOnNode = isNodeRuntimePreset(preset ?? DEFAULT_NITRO_PRESET);
   const choice = answer(
     await p.select<HostId>({
       message: "Run alongside an existing server framework?",
@@ -169,6 +171,7 @@ export async function promptInteractiveOptions(
     );
 
   const framework = await promptFramework(defaults.framework);
+  const template = await promptTemplate(framework, defaults.template);
   const preset = await promptPreset(framework, defaults.preset);
   const host = await promptHost(framework, preset, defaults.host);
 
@@ -216,6 +219,7 @@ export async function promptInteractiveOptions(
   return {
     projectName: String(projectName).trim(),
     framework,
+    ...(template ? { template } : {}),
     ...(preset ? { preset } : {}),
     ...(host ? { host } : {}),
     ...(validator ? { validator } : {}),
@@ -239,6 +243,7 @@ function toScaffoldOptions(
     projectName: path.basename(targetDir),
     targetDir,
     ...(resolved.framework !== undefined ? { framework: resolved.framework } : {}),
+    ...(resolved.template !== undefined ? { template: resolved.template } : {}),
     ...(resolved.preset !== undefined ? { preset: resolved.preset } : {}),
     ...(resolved.host !== undefined ? { host: resolved.host } : {}),
     ...(resolved.validator !== undefined ? { validator: resolved.validator } : {}),

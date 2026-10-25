@@ -13,6 +13,14 @@ export interface VitePatch {
 
 type Module = ReturnType<typeof parseModule>;
 
+const TAB_INDENTED_LINE = /^\t/m;
+
+// magicast detects a tab-indented file as `tabWidth: 1`, which makes recast multiply the indentation.
+function printModule(mod: Module, source: string): string {
+  const format = TAB_INDENTED_LINE.test(source) ? { useTabs: true, tabWidth: 4 } : undefined;
+  return generateCode(mod, format ? { format } : undefined).code;
+}
+
 const isImported = (mod: Module, local: string) => Object.keys(mod.imports).includes(local);
 
 /**
@@ -38,12 +46,14 @@ function inlineDefaultExportVariable(mod: Module): void {
   body.splice(index, 1);
 }
 
-function findViteConfigObject(mod: Module): any {
+function findConfigObject(mod: Module, label: string): any {
   inlineDefaultExportVariable(mod);
   try {
     return getDefaultExportOptions(mod);
   } catch (error) {
-    throw new ConfigPatchError(`Cannot find the Vite config object: ${(error as Error).message}`);
+    throw new ConfigPatchError(
+      `Cannot find the ${label} config object: ${(error as Error).message}`,
+    );
   }
 }
 
@@ -51,23 +61,34 @@ function findViteConfigObject(mod: Module): any {
 const hasPluginCall = (plugins: unknown[], callee: string) =>
   [...plugins].some((plugin: any) => plugin?.$callee === callee);
 
-/** Adds `taser()` (first) and optionally `nitro()` (last) to a Vite config's `plugins` array. */
-export function patchViteConfig(source: string, { taserOptions, nitro }: VitePatch): string {
-  const mod = parseModule(source);
-  const config = findViteConfigObject(mod);
-
+function requirePluginsArray(config: any): any[] {
   config.plugins ??= [];
-  const plugins = config.plugins;
-  if (!Array.isArray(plugins)) {
+  if (!Array.isArray(config.plugins)) {
     throw new ConfigPatchError("The Vite config `plugins` option is not an array literal.");
   }
+  return config.plugins;
+}
 
+/** Imports `taser` and puts `taser()` first in a Vite `plugins` array, once. */
+function addTaserPlugin(
+  mod: Module,
+  plugins: any[],
+  taserOptions: Record<string, unknown> | undefined,
+): void {
   if (!isImported(mod, "taser")) {
     mod.imports.$prepend({ from: "@taserjs/plugin/vite", imported: "taser" });
   }
   if (!hasPluginCall(plugins, "taser")) {
     plugins.unshift(builders.functionCall("taser", ...(taserOptions ? [taserOptions] : [])));
   }
+}
+
+/** Adds `taser()` (first) and optionally `nitro()` (last) to a Vite config's `plugins` array. */
+export function patchViteConfig(source: string, { taserOptions, nitro }: VitePatch): string {
+  const mod = parseModule(source);
+  const plugins = requirePluginsArray(findConfigObject(mod, "Vite"));
+
+  addTaserPlugin(mod, plugins, taserOptions);
 
   if (nitro) {
     if (!isImported(mod, "nitro")) mod.imports.$prepend({ from: "nitro/vite", imported: "nitro" });
@@ -76,7 +97,46 @@ export function patchViteConfig(source: string, { taserOptions, nitro }: VitePat
     }
   }
 
-  return generateCode(mod).code;
+  return printModule(mod, source);
+}
+
+/**
+ * Adds `taser()` to the `vite.plugins` option of a `nuxt.config`, which Nuxt hands to its own Vite.
+ * Nuxt 4 runs Vite with the `app/` directory as its root, so Taser.js is pinned to the project root, as `createTaser()` is for Next.js.
+ */
+export function patchNuxtConfig(source: string): string {
+  const mod = parseModule(source);
+  const config = findConfigObject(mod, "Nuxt");
+
+  config.vite ??= {};
+  addTaserPlugin(mod, requirePluginsArray(config.vite), {
+    cwd: builders.raw("process.cwd()"),
+  });
+
+  return printModule(mod, source);
+}
+
+const REACT_ROUTER_API_PATH = "api/*";
+const REACT_ROUTER_API_FILE = "routes/api.ts";
+
+/** Registers the `api/*` resource route in a React Router `app/routes.ts`. */
+export function patchReactRouterRoutes(source: string): string {
+  const mod = parseModule(source);
+  const routes = mod.exports.default;
+  if (!Array.isArray(routes)) {
+    throw new ConfigPatchError("The React Router routes file does not export a route array.");
+  }
+
+  const isApiRoute = (entry: any) =>
+    entry?.$callee === "route" && entry.$args?.[0] === REACT_ROUTER_API_PATH;
+  if ([...routes].some(isApiRoute)) return source;
+
+  if (!isImported(mod, "route")) {
+    mod.imports.$prepend({ from: "@react-router/dev/routes", imported: "route" });
+  }
+  routes.push(builders.functionCall("route", REACT_ROUTER_API_PATH, REACT_ROUTER_API_FILE));
+
+  return printModule(mod, source);
 }
 
 /** Wraps the default export of a `next.config` with `createTaser()(...)`. */
@@ -102,5 +162,5 @@ export function patchNextConfig(source: string): string {
     arguments: [exportDefault.declaration],
   };
 
-  return generateCode(mod).code;
+  return printModule(mod, source);
 }

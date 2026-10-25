@@ -48,6 +48,27 @@ const integrations: {
     href: "/docs/fullstack/nextjs",
   },
   {
+    name: "Nuxt",
+    description: "Mount under /api as a Nitro server route in Nuxt 4.",
+    icon: <Layers />,
+    iconTone: "emerald",
+    href: "/docs/fullstack/nuxt",
+  },
+  {
+    name: "SvelteKit",
+    description: "Forward /api to Taser.js from a +server.ts endpoint.",
+    icon: <Layers />,
+    iconTone: "rose",
+    href: "/docs/fullstack/sveltekit",
+  },
+  {
+    name: "React Router",
+    description: "Serve the API from a resource route in framework mode.",
+    icon: <Layers />,
+    iconTone: "cyan",
+    href: "/docs/fullstack/react-router",
+  },
+  {
     name: "Nitro Module",
     description: "Universal server engine for edge, serverless, and cloud.",
     icon: <Workflow />,
@@ -137,7 +158,7 @@ export function AdaptersSection() {
               Framework Agnostic. <SectionAccent>Runtime Universal</SectionAccent>.
             </>
           }
-          description="Build standalone APIs with Vite and Nitro, embed inside Next.js or TanStack Start, or layer onto Express, Fastify, and Web Standard hosts without rewriting a single handler."
+          description="Build standalone APIs with Vite and Nitro, embed inside Next.js, Nuxt, SvelteKit, React Router or TanStack Start, or layer onto Express, Fastify, and Web Standard hosts without rewriting a single handler."
         />
 
         <div className="landing-animate-in landing-delay-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -37,10 +37,16 @@ export async function run(argv: string[] = hideBin(process.argv)): Promise<void>
             choices: FRAMEWORK_IDS,
             description: "UI or fullstack framework (none = API only)",
           })
+          .option("template", {
+            alias: "t",
+            type: "string",
+            description:
+              "Template for frameworks that offer several (Vite: react, vue, svelte, solid, preact)",
+          })
           .option("preset", {
             alias: "p",
             type: "string",
-            description: "Deployment: bare (no Nitro) or any Nitro preset such as node-server",
+            description: "Nitro preset to deploy with, such as node-server or cloudflare-module",
           })
           .option("host", {
             type: "string",
@@ -86,6 +92,7 @@ export async function run(argv: string[] = hideBin(process.argv)): Promise<void>
           targetDir: args.dir as string | undefined,
           projectName: args.dir as string | undefined,
           framework: args.framework as FrameworkId | undefined,
+          template: args.template as string | undefined,
           preset: args.preset as DeployPreset | undefined,
           host: orUndefined<HostId>(args.host),
           validator: orUndefined<ValidatorId>(args.validator),

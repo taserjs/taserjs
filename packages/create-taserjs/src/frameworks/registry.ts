@@ -1,17 +1,23 @@
 import type { FrameworkId } from "../core/types.js";
 import { nextjs } from "./nextjs.js";
 import { none } from "./none.js";
+import { nuxt } from "./nuxt.js";
+import { reactRouter } from "./react-router.js";
+import { sveltekit } from "./sveltekit.js";
 import { tanstackRouter } from "./tanstack-router.js";
 import { tanstackStart } from "./tanstack-start.js";
 import type { FrameworkDefinition } from "./types.js";
-import { vue } from "./vue.js";
+import { viteApp } from "./vite-app.js";
 
 export const FRAMEWORKS: Record<FrameworkId, FrameworkDefinition> = {
   none,
   "tanstack-router": tanstackRouter,
-  vue,
+  "react-router": reactRouter,
   "tanstack-start": tanstackStart,
   nextjs,
+  nuxt,
+  sveltekit,
+  vite: viteApp,
 };
 
 export const FRAMEWORK_IDS = Object.keys(FRAMEWORKS) as FrameworkId[];

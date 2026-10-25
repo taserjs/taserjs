@@ -27,7 +27,7 @@ describe("create-taserjs API-only scaffolds", () => {
     expect(typeof scaffoldProject).toBe("function");
   });
 
-  it("scaffolds a bare project without Nitro", async () => {
+  it("scaffolds an API-only project on the Node.js Nitro preset", async () => {
     const targetDir = join(tempDir, "default-app");
     const result = await scaffoldProject({
       projectName: "default-app",
@@ -41,6 +41,7 @@ describe("create-taserjs API-only scaffolds", () => {
         "tsconfig.json",
         "taserjs.config.ts",
         "vite.config.ts",
+        "nitro.config.ts",
         "src/context.ts",
         "src/taser.ts",
         "src/routes/index.get.ts",
@@ -48,12 +49,13 @@ describe("create-taserjs API-only scaffolds", () => {
         "src/.taserjs/routes.gen.ts",
       ]),
     );
-    expect(result.files).not.toContain("nitro.config.ts");
-    expect(result.preset).toBe("bare");
-    expect(result.devDependencies).not.toContain("nitro");
+    expect(result.preset).toBe("node-server");
+    expect(result.devDependencies).toContain("nitro");
 
-    expect(readJson(join(targetDir, "package.json")).scripts.start).toBe("node dist/serve.mjs");
-    expect(readFileSync(join(targetDir, "vite.config.ts"), "utf-8")).not.toContain("nitro");
+    expect(readJson(join(targetDir, "package.json")).scripts.start).toBe(
+      "node .output/server/index.mjs",
+    );
+    expect(readFileSync(join(targetDir, "vite.config.ts"), "utf-8")).toContain("nitro()");
 
     const taserTs = readFileSync(join(targetDir, "src", "taser.ts"), "utf-8");
     expect(taserTs).toContain('import { context } from "./context.js"');

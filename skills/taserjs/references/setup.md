@@ -26,9 +26,10 @@ pnpm create taserjs@latest my-api \
 
 Available flags for `create-taserjs`:
 
-- `--framework`, `-f`: Project type (`none` for API only, `tanstack-router`, `vue`, `tanstack-start`, `nextjs`). Default: `none`.
-- `--host`: Existing server framework that Taser.js falls through to (`none`, `express`, `fastify`, `hono`, `elysia`). API only, `tanstack-router` and `vue`. Default: `none`.
-- `--preset`, `-p`: `bare` (no Nitro) or any Nitro preset (`node-server`, `cloudflare-module`, `vercel`, `netlify`, `aws-lambda`, ...). Default: `bare`.
+- `--framework`, `-f`: Project type (`none` for API only, `tanstack-router`, `react-router`, `tanstack-start`, `nextjs`, `nuxt`, `sveltekit`, `vite`). Default: `none`.
+- `--template`, `-t`: Template for `vite` projects (`react`, `vue`, `svelte`, `solid`, `preact`). Default: `react`.
+- `--host`: Existing server framework that Taser.js falls through to (`none`, `express`, `fastify`, `hono`, `elysia`). API only, `tanstack-router` and `vite`. Default: `none`.
+- `--preset`, `-p`: any Nitro preset (`node-server`, `cloudflare-module`, `vercel`, `netlify`, `aws-lambda`, ...). Default: `node-server`.
 - `--db`: Database ODM and driver using `odm:driver` syntax (ODMs: `drizzle`, `prisma`, `kysely`; drivers: `sqlite`, `postgres`, `mysql`, e.g. `drizzle:postgres`).
 - `--validator`: Schema validation library (`zod`, `arktype`, `valibot`).
 - `--logger`: Structured logger integration (`pino`, `winston`). Omit to scaffold without a logger addon.
