@@ -48,6 +48,54 @@ describe("@taserjs/plugin next adapter", () => {
     expect(webpackConfig.plugins).toHaveLength(2);
   });
 
+  describe("function configs", () => {
+    const phase = "phase-development-server";
+
+    it("keeps the settings a sync function config returns", async () => {
+      const userWebpack = vi.fn((config: any) => ({ ...config, touched: true }));
+      const enhanced = createTaser({ cwd: tempDir })((receivedPhase: string) => ({
+        reactStrictMode: receivedPhase === phase,
+        webpack: userWebpack,
+      }));
+
+      expect(typeof enhanced).toBe("function");
+      const config: any = await enhanced(phase, { defaultConfig: {} as any });
+
+      expect(config.reactStrictMode).toBe(true);
+      expect(config.turbopack).toEqual({});
+      expect(config.webpack({ plugins: [] }, {}).touched).toBe(true);
+      expect(userWebpack).toHaveBeenCalledOnce();
+    });
+
+    it("keeps the settings an async function config resolves to", async () => {
+      const enhanced = createTaser({ cwd: tempDir })(async () => ({
+        reactStrictMode: true,
+        turbopack: { root: "/" },
+      }));
+
+      const config: any = await enhanced(phase, { defaultConfig: {} as any });
+
+      expect(config.reactStrictMode).toBe(true);
+      expect(config.turbopack).toEqual({ root: "/" });
+      expect(config.webpack({}, {}).plugins).toHaveLength(1);
+    });
+
+    it("passes Next's phase and default config through to the user's function", async () => {
+      const userConfig = vi.fn(() => ({}));
+      const defaultConfig = { reactStrictMode: false };
+
+      await createTaser({ cwd: tempDir })(userConfig)(phase, { defaultConfig });
+
+      expect(userConfig).toHaveBeenCalledWith(phase, { defaultConfig });
+    });
+
+    it("still generates the manifest on config load", async () => {
+      createTaser({ cwd: tempDir })(() => ({}));
+
+      await vi.waitFor(() => expect(existsSync(manifestFile)).toBe(true));
+    });
+  });
+
   it("keeps watching after a failed first generation so fixing the route regenerates", async () => {
     const brokenRoute = join(tempDir, "src", "server", "routes", "ping.get.ts");
     const validSource = readFileSync(brokenRoute, "utf-8");

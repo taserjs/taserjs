@@ -49,9 +49,22 @@ export async function closeTaserWatcher(): Promise<void> {
  * which the asynchronous generation at config load cannot promise.
  */
 export function createTaser(options: NextTaserOptions = {}) {
-  return function withTaser<TNextConfig extends Record<string, any>>(
-    nextConfig: TNextConfig = {} as TNextConfig,
-  ): TNextConfig {
+  /** Next also accepts `(phase, { defaultConfig }) => config`, sync or async. */
+  type NextConfigFunction<TNextConfig> = (
+    phase: string,
+    context: { defaultConfig: TNextConfig },
+  ) => TNextConfig | Promise<TNextConfig>;
+
+  // The function overload comes first: a function is also assignable to `Record<string, any>`.
+  function withTaser<TNextConfig extends Record<string, any>>(
+    nextConfig: NextConfigFunction<TNextConfig>,
+  ): NextConfigFunction<TNextConfig>;
+  function withTaser<TNextConfig extends Record<string, any>>(
+    nextConfig?: TNextConfig,
+  ): TNextConfig;
+  function withTaser<TNextConfig extends Record<string, any>>(
+    nextConfig: TNextConfig | NextConfigFunction<TNextConfig> = {} as TNextConfig,
+  ): TNextConfig | NextConfigFunction<TNextConfig> {
     const cwd = options.cwd ? resolve(options.cwd) : process.cwd();
     const pluginOptions = { cwd, ...(options.config ? { config: options.config } : {}) };
 
@@ -59,15 +72,21 @@ export function createTaser(options: NextTaserOptions = {}) {
       console.error(`[taserjs/next] Route generation error: ${error.message}`);
     });
 
-    return {
-      ...nextConfig,
-      turbopack: nextConfig.turbopack ?? {},
+    const enhance = (userConfig: TNextConfig): TNextConfig => ({
+      ...userConfig,
+      turbopack: userConfig.turbopack ?? {},
       webpack(config: any, webpackOptions: any) {
         config.plugins = [...(config.plugins ?? []), taserPlugin.webpack(pluginOptions)];
-        return nextConfig.webpack?.(config, webpackOptions) ?? config;
+        return userConfig.webpack?.(config, webpackOptions) ?? config;
       },
-    };
-  };
+    });
+
+    return typeof nextConfig === "function"
+      ? async (phase, context) => enhance(await nextConfig(phase, context))
+      : enhance(nextConfig);
+  }
+
+  return withTaser;
 }
 
 export default createTaser;

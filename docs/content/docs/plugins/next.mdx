@@ -75,6 +75,19 @@ export default withTaser({
 });
 ```
 
+`createTaser` also wraps Next.js function configs, sync or async. Your function receives the same `phase` and `defaultConfig` arguments, and the result keeps everything it returns:
+
+```ts title="next.config.ts"
+import type { NextConfig } from "next";
+import { createTaser } from "@taserjs/plugin/next";
+
+const withTaser = createTaser();
+
+export default withTaser(async (phase): Promise<NextConfig> => {
+  return { reactStrictMode: true };
+});
+```
+
 Set the HTTP mount with `defineTaser().basePath("/api")` in `src/server/taser.ts`, and point the client `baseUrl` at the same prefix (for example `"/api"`).
 
 ---
