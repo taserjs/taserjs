@@ -101,7 +101,7 @@ const FLOW_STEPS: FlowStep[] = [
     ],
     codeSnippet: {
       filename: "src/routes/dashboard.ts",
-      code: `export default t.layout("/dashboard").use(async (ctx, next) => {\n  const user = await getSessionUser(ctx.headers.get("cookie"))\n  if (!user) return unauthorized({ message: "Sign in required" })\n  return next({ user })\n})`,
+      code: `export default t.layout("/dashboard/*").use(async ({ req }, next) => {\n  const user = await getSessionUser(req.headers.get("cookie"))\n  if (!user) return unauthorized({ message: "Sign in required" })\n  return next({ user })\n})`,
     },
   },
   {

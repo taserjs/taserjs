@@ -8,7 +8,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
-Taser.js provides standalone reply helper functions and a unified `reply` object imported from `@taserjs/router/reply` to construct standardized, type-safe HTTP responses. Every helper returns a standard Web `Response` with its HTTP status code embedded into the TypeScript return type (`ReplyOf<Status, Body>`). Because each helper is an independent standalone function, only the helpers you use are bundled into your application.
+Taser.js provides standalone reply helper functions imported from `@taserjs/router/reply` to construct standardized, type-safe HTTP responses. Every helper returns a standard Web `Response` with its HTTP status code embedded into the TypeScript return type (`TypedResponse<T, Status>`). Because each helper is an independent standalone function, only the helpers you use are bundled into your application.
 
 ---
 
@@ -104,37 +104,29 @@ export default t.get("/old-docs").handler(() => {
 });
 ```
 
-<Callout type="warn" title="External Redirect Protection">
-  By default, `redirect()` prevents unintended external open redirects. If you need to redirect to external URLs, pass `{ allowExternal: true }`:
-  ```ts
-  return redirect("https://github.com/taserjs/taserjs", { allowExternal: true });
-  ```
-</Callout>
-
 ---
 
 ## Status Code Helpers Reference
 
 All reply helpers are exported from `@taserjs/router/reply`:
 
-| Helper Function                      | HTTP Status                  | Typical Usage                            |
-| :----------------------------------- | :--------------------------- | :--------------------------------------- |
-| `ok(data?, init?)`                   | `200 OK`                     | Generic success response                 |
-| `created(data?, init?)`              | `201 Created`                | Resource created successfully            |
-| `accepted(data?, init?)`             | `202 Accepted`               | Async job accepted for processing        |
-| `noContent(init?)`                   | `204 No Content`             | Success with empty payload               |
-| `redirect(location, init?)`          | `302 Found`                  | Temporary redirection                    |
-| `badRequest(data?, init?)`           | `400 Bad Request`            | Client query or payload error            |
-| `unauthorized(data?, init?)`         | `401 Unauthorized`           | Missing or invalid authentication token  |
-| `forbidden(data?, init?)`            | `403 Forbidden`              | Authenticated user lacks permission      |
-| `notFound(data?, init?)`             | `404 Not Found`              | Resource or route does not exist         |
-| `methodNotAllowed(data?, init?)`     | `405 Method Not Allowed`     | HTTP method not supported for this route |
-| `conflict(data?, init?)`             | `409 Conflict`               | Duplicate key or concurrency conflict    |
-| `payloadTooLarge(data?, init?)`      | `413 Payload Too Large`      | Request body exceeds maximum size limit  |
-| `unsupportedMediaType(data?, init?)` | `415 Unsupported Media Type` | Request `Content-Type` not accepted      |
-| `unprocessable(data?, init?)`        | `422 Unprocessable Entity`   | Schema validation error                  |
-| `tooManyRequests(data?, init?)`      | `429 Too Many Requests`      | Rate limit or quota exceeded             |
-| `internalServerError(data?, init?)`  | `500 Internal Server Error`  | Unhandled exception                      |
+| Helper Function                     | HTTP Status                 | Typical Usage                            |
+| :---------------------------------- | :-------------------------- | :--------------------------------------- |
+| `ok(data?, init?)`                  | `200 OK`                    | Generic success response                 |
+| `created(data?, init?)`             | `201 Created`               | Resource created successfully            |
+| `accepted(data?, init?)`            | `202 Accepted`              | Async job accepted for processing        |
+| `noContent(init?)`                  | `204 No Content`            | Success with empty payload               |
+| `redirect(location, init?)`         | `302 Found`                 | Temporary redirection                    |
+| `badRequest(data?, init?)`          | `400 Bad Request`           | Client query or payload error            |
+| `unauthorized(data?, init?)`        | `401 Unauthorized`          | Missing or invalid authentication token  |
+| `forbidden(data?, init?)`           | `403 Forbidden`             | Authenticated user lacks permission      |
+| `notFound(data?, init?)`            | `404 Not Found`             | Resource or route does not exist         |
+| `methodNotAllowed(data?, init?)`    | `405 Method Not Allowed`    | HTTP method not supported for this route |
+| `conflict(data?, init?)`            | `409 Conflict`              | Duplicate key or concurrency conflict    |
+| `payloadTooLarge(data?, init?)`     | `413 Payload Too Large`     | Request body exceeds maximum size limit  |
+| `unprocessable(data?, init?)`       | `422 Unprocessable Content` | Schema validation error                  |
+| `tooManyRequests(data?, init?)`     | `429 Too Many Requests`     | Rate limit or quota exceeded             |
+| `internalServerError(data?, init?)` | `500 Internal Server Error` | Unhandled exception                      |
 
 ### Example Usage of Error Helpers
 

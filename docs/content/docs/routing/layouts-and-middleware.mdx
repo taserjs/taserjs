@@ -23,7 +23,7 @@ A layout file is any TypeScript file inside `src/routes/` that does not end with
 import { forbidden, unauthorized } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-export default t.layout("/admin").use(async ({ ctx, req }, next) => {
+export default t.layout("/admin/*").use(async ({ ctx, req }, next) => {
   const authHeader = req.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return unauthorized({ message: "Admin authorization required" });
@@ -70,18 +70,18 @@ export default t
 
 ## Root Index Layout (`src/routes/index.ts`)
 
-While `src/routes/$.ts` applies globally to every route in your application, `src/routes/index.ts` is scoped specifically to root index endpoints (such as `src/routes/index.get.ts`). It mounts with `t.layout('/index')`:
+While `src/routes/$.ts` applies globally to every route in your application, `src/routes/index.ts` is scoped specifically to root index endpoints (such as `src/routes/index.get.ts`). It mounts with `t.layout('/index/*')`:
 
 ```ts title="src/routes/index.ts"
 import { t } from "@taserjs/router";
 
-export default t.layout("/index").use(async ({ ctx, req }, next) => {
+export default t.layout("/index/*").use(async ({ ctx, req }, next) => {
   // Only runs for the root '/' endpoint
   return next();
 });
 ```
 
-Nested directory index files (e.g. `src/routes/admin/index.ts`) similarly mount with `t.layout('/admin/index')` and execute only for `GET /admin` (`src/routes/admin/index.get.ts`).
+Nested directory index files (e.g. `src/routes/admin/index.ts`) similarly mount with `t.layout('/admin/index/*')` and execute only for `GET /admin` (`src/routes/admin/index.get.ts`).
 
 ---
 
@@ -155,7 +155,7 @@ When middleware calls `next({ session })`, the properties merge into the **`stat
     import { unauthorized } from "@taserjs/router/reply";
     import { t } from "@taserjs/router";
 
-    export default t.layout("/dashboard").use(async ({ ctx, req }, next) => {
+    export default t.layout("/dashboard/*").use(async ({ ctx, req }, next) => {
       const session = await getSession(req.headers.get("cookie"));
       if (!session) {
         return unauthorized({ message: "Invalid session" });

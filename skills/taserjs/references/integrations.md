@@ -1,80 +1,42 @@
-# Taser.js Fullstack & Framework Integrations
+# Framework & Host Integrations
 
-This guide details how to integrate Taser.js into fullstack frameworks (Next.js, TanStack Start) and host servers (Express, Hono, Fastify).
+Read when mounting Taser.js inside fullstack frameworks (Next.js, TanStack Start, React Router, Nuxt, SvelteKit, Vite SPA) or host servers (Express, Fastify, Hono, Elysia).
 
-> For migration assessments, see [references/migration.md](migration.md).
+## Overview
+
+Taser.js integrates into fullstack frameworks by exporting a catch-all route handler that delegates requests to the compiled `app` (`routes.gen.ts`). When deployed with host servers, Taser mounts ahead of the host, allowing unmatched requests to fall through.
 
 ---
 
-## 1. Next.js App Router Integration
+## Fullstack Frameworks
 
-Embed a type-safe file-based REST API under `/api` in Next.js 15+.
+### 1. Next.js (App Router)
 
-### 1. Install Dependencies
-
-```bash
-pnpm add @taserjs/router @taserjs/client zod
-pnpm add -D @taserjs/plugin @taserjs/cli
-```
-
-### 2. Configure `taserjs.config.ts` and `next.config.ts`
+Install `@taserjs/plugin` and wrap `next.config.ts`:
 
 ```ts
-// taserjs.config.ts
+// next.config.ts
+import { createTaser } from "@taserjs/plugin/next";
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  // your next config options
+};
+
+export default createTaser()(nextConfig);
+```
+
+Configure `taserjs.config.ts`:
+
+```ts
 import { defineConfig } from "@taserjs/cli";
 
 export default defineConfig({
   serverDir: "src/server",
-  routesDir: "routes",
-  outputDir: ".taserjs",
-  app: "taser.ts",
 });
 ```
 
-```ts
-// next.config.ts
-import type { NextConfig } from "next";
-import { createTaser } from "@taserjs/plugin/next";
-
-const nextConfig: NextConfig = {
-  reactStrictMode: true,
-};
-
-const withTaser = createTaser(); // options: cwd?, config? only
-
-export default withTaser(nextConfig);
-```
-
-### 3. Update `tsconfig.json`
-
-```json
-{
-  "compilerOptions": {
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  },
-  "include": ["next-env.d.ts", "src/**/*", "**/*.ts", "**/*.tsx"]
-}
-```
-
-`src/**/*` covers `src/server/.taserjs/routes.gen.ts`.
-
-### 4. App Definition
-
-```ts
-// src/server/taser.ts
-import { defineTaser } from "@taserjs/router";
-import { notFound } from "@taserjs/router/reply";
-
-export default defineTaser({
-  response: { validate: true },
-})
-  .basePath("/api")
-  .notFound(() => notFound({ message: "Not Found" }));
-```
-
-### 5. Catch-All Route Handler
+Mount the catch-all Route Handler in Next.js:
 
 ```ts
 // src/app/api/[[...slug]]/route.ts
@@ -85,95 +47,38 @@ const handle = (request: Request) => app.fetch(request);
 export const GET = handle;
 export const POST = handle;
 export const PUT = handle;
-export const DELETE = handle;
 export const PATCH = handle;
+export const DELETE = handle;
 export const OPTIONS = handle;
+export const HEAD = handle;
 ```
-
-### 6. API Routes
-
-- `src/server/routes/$.ts` (root layout; mount `cookie()` here if needed)
-- `src/server/routes/users.get.ts` → `GET /api/users`
-- `src/server/routes/users/$id.get.ts` → `GET /api/users/:id`
 
 ---
 
-## 2. TanStack Start Integration
+### 2. TanStack Start
 
-### 1. Install Dependencies
-
-```bash
-pnpm add @taserjs/router @taserjs/client zod
-pnpm add -D @taserjs/plugin @taserjs/cli
-```
-
-### 2. Configure Vite + config
-
-```ts
-// taserjs.config.ts
-import { defineConfig } from "@taserjs/cli";
-
-export default defineConfig({
-  serverDir: "src/server",
-  routesDir: "routes",
-  outputDir: ".taserjs",
-  app: "taser.ts",
-});
-```
+Taser.js automatically detects TanStack Start in `vite.config.ts` (`plugins: [taser()]`):
 
 ```ts
 // vite.config.ts
 import { defineConfig } from "vite";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import viteReact from "@vitejs/plugin-react";
+import { tanstackStart } from "@tanstack/start/vite";
 import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
-  plugins: [
-    taser({
-      server: false,
-      config: "./taserjs.config.ts",
-    }),
-    tanstackStart(),
-    viteReact(),
-  ],
+  plugins: [taser(), tanstackStart()],
 });
 ```
 
-### 3. `tsconfig.json`
-
-```json
-{
-  "compilerOptions": {
-    "strict": true,
-    "skipLibCheck": true
-  },
-  "include": ["src/**/*", "vite.config.ts", "taserjs.config.ts"]
-}
-```
-
-### 4. App Definition
-
-```ts
-// src/server/taser.ts
-import { defineTaser } from "@taserjs/router";
-import { notFound } from "@taserjs/router/reply";
-
-export default defineTaser({
-  response: { validate: true },
-})
-  .basePath("/api")
-  .notFound(() => notFound({ message: "Not Found" }));
-```
-
-### 5. TanStack Start Catch-All
+Mount the API route in TanStack Start:
 
 ```tsx
 // src/routes/api/$.tsx
+// @ts-nocheck
 import { createFileRoute } from "@tanstack/react-router";
 import { app } from "../../server/.taserjs/routes.gen";
 
-const handle = async ({ request }: { request: Request }) => app.fetch(request);
+const handle = ({ request }: { request: Request }) => app.fetch(request);
 
 export const Route = createFileRoute("/api/$")({
   server: {
@@ -181,52 +86,230 @@ export const Route = createFileRoute("/api/$")({
       GET: handle,
       POST: handle,
       PUT: handle,
-      DELETE: handle,
       PATCH: handle,
+      DELETE: handle,
       OPTIONS: handle,
+      HEAD: handle,
     },
   },
 });
 ```
 
-### 6. API Routes
+---
 
-Add routes under `src/server/routes/` (e.g. `products.get.ts` → `GET /api/products`).
+### 3. React Router
+
+Add `taser()` to `vite.config.ts`:
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+import { reactRouter } from "@react-router/dev/vite";
+import { taser } from "@taserjs/plugin/vite";
+
+export default defineConfig({
+  plugins: [reactRouter(), taser()],
+});
+```
+
+Mount a resource route:
+
+```ts
+// app/routes/api.ts
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { app } from "../server/.taserjs/routes.gen";
+
+const handle = ({ request }: LoaderFunctionArgs | ActionFunctionArgs) => app.fetch(request);
+
+export const loader = handle;
+export const action = handle;
+```
+
+Register the resource route in `app/routes.ts`:
+
+```ts
+// app/routes.ts
+import { type RouteConfig, route } from "@react-router/dev/routes";
+
+export default [
+  // ...other routes
+  route("api/*", "routes/api.ts"),
+] satisfies RouteConfig;
+```
 
 ---
 
-## 3. Host Pass-Through Architecture
+### 4. Nuxt
 
-```text
-[Incoming Request] -> [Taser.js Routes Check] -> [Host App Fallback] -> [404 Finalizer]
-```
-
-### Web Standard Hosts (Hono, Elysia)
+Nuxt scans `server/` and `app/`, so Taser.js sets `serverDir: "api"` in `taserjs.config.ts` to prevent collisions:
 
 ```ts
-// src/server.ts
-import { Hono } from "hono";
+// taserjs.config.ts
+import { defineConfig } from "@taserjs/cli";
 
-const app = new Hono();
-app.get("/legacy-hono", (c) => c.text("Handled by Hono"));
-
-export default app;
+export default defineConfig({
+  serverDir: "api",
+});
 ```
 
-### Node.js Hosts (Express, Fastify)
+Add `taser()` in `nuxt.config.ts`:
 
 ```ts
-// src/server.node.ts
+// nuxt.config.ts
+import { taser } from "@taserjs/plugin/vite";
+
+export default defineNuxtConfig({
+  vite: {
+    plugins: [taser()],
+  },
+});
+```
+
+Mount Nitro event handlers in Nuxt:
+
+```ts
+// server/api/[...slug].ts
+import { app } from "../../api/.taserjs/routes.gen";
+
+export default defineEventHandler((event) => app.fetch(toWebRequest(event)));
+```
+
+```ts
+// server/api/index.ts
+export { default } from "./[...slug]";
+```
+
+---
+
+### 5. SvelteKit
+
+Add `taser()` to `vite.config.ts`:
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+import { sveltekit } from "@sveltejs/kit/vite";
+import { taser } from "@taserjs/plugin/vite";
+
+export default defineConfig({
+  plugins: [sveltekit(), taser()],
+});
+```
+
+Mount the fallback handler:
+
+```ts
+// src/routes/api/[...path]/+server.ts
+import type { RequestHandler } from "./$types";
+import { app } from "../../../server/.taserjs/routes.gen";
+
+export const fallback: RequestHandler = ({ request }) => app.fetch(request);
+```
+
+---
+
+### 6. Vite SPA (`--framework vite`)
+
+In a Vite Single Page App (React, Vue, Svelte, Solid, Preact), Vite serves client assets while Taser runs alongside Vite's dev server:
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { taser } from "@taserjs/plugin/vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({
+  plugins: [taser({ standalone: false }), react(), nitro()],
+});
+```
+
+---
+
+## Host Server Pass-Through
+
+When hosting Taser inside an existing backend server, place the host entry file in `${serverDir}`:
+
+- `server.node.ts` (or `.js`) for Node runtime hosts (Express, Fastify).
+- `server.ts` (or `.js`) for Fetch runtime hosts (Hono, Elysia).
+
+Taser mounts ahead of the host server. Requests matched by Taser endpoints are answered immediately; unmatched requests fall through to the host.
+
+### Express (`src/server.node.ts`)
+
+```ts
 import express from "express";
 
 const app = express();
 app.use(express.json());
 
-app.get("/legacy-express", (req, res) => {
-  res.json({ message: "Handled by legacy Express controller" });
+// Existing legacy routes
+app.get("/legacy/info", (_req, res) => {
+  res.json({ system: "Express", status: "online" });
 });
 
 export default app;
 ```
 
-Matching `src/routes/*` run through Taser.js; unmatched requests fall through to the host.
+### Fastify (`src/server.node.ts`)
+
+Fastify requires awaiting `app.ready()` and exporting `app.routing`:
+
+```ts
+import Fastify from "fastify";
+
+const app = Fastify();
+
+app.get("/legacy/info", async () => ({
+  system: "Fastify",
+  status: "online",
+}));
+
+await app.ready();
+
+export default app.routing;
+```
+
+### Hono (`src/server.ts`)
+
+```ts
+import { Hono } from "hono";
+
+const app = new Hono();
+
+app.get("/legacy/info", (c) =>
+  c.json({
+    system: "Hono",
+    status: "online",
+  }),
+);
+
+export default app;
+```
+
+### Elysia (`src/server.ts`)
+
+```ts
+import { Elysia } from "elysia";
+
+const app = new Elysia().get("/legacy/info", () => ({
+  system: "Elysia",
+  status: "online",
+}));
+
+export default app;
+```
+
+---
+
+## Verify
+
+1. Run `pnpm dev` to start the development server.
+2. Verify that Taser routes respond:
+   ```bash
+   curl -i http://localhost:3000/api/users
+   ```
+3. For host pass-through, verify that legacy routes respond:
+   ```bash
+   curl -i http://localhost:3000/legacy/info
+   ```

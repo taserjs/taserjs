@@ -34,7 +34,7 @@ All guides, routing patterns, middleware architecture, adapter tutorials, and AP
 
 ### 👉 [**Explore the Full Documentation & Guides →**](https://taserjs.dev)
 
-LLM-oriented references: [`/llms.txt`](https://taserjs.dev/llms.txt) · [`/llms-full.txt`](https://taserjs.dev/llms-full.txt)
+LLM-oriented references: [`/llms.txt`](https://taserjs.dev/llms.txt) · [`/llms-full.txt`](https://taserjs.dev/llms-full.txt) · AI Agent Skill: `npx skills add taserjs/taserjs`
 
 <hr />
 

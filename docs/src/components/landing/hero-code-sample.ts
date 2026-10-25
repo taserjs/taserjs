@@ -28,8 +28,8 @@ export default defineTaser({ response: { validate: true }})
   auth: `import { unauthorized } from '@taserjs/router/reply'
 import { t } from '@taserjs/router'
 
-export default t.layout('/dashboard/*').use(async (ctx, next) => {
-  const user = await getUserSession(ctx.headers.get('Authorization'))
+export default t.layout('/dashboard/*').use(async ({ req }, next) => {
+  const user = await getUserSession(req.headers.get('Authorization'))
   if (!user) {
     return unauthorized({ message: 'Sign in required' })
   }
