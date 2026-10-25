@@ -6,7 +6,12 @@ const { spawnMock } = vi.hoisted(() => ({ spawnMock: vi.fn() }));
 
 vi.mock("node:child_process", () => ({ spawn: spawnMock }));
 
-import { installPackages } from "../src/core/package-manager.js";
+import {
+  addPackageCommands,
+  installPackages,
+  packageManagerName,
+  resolveGeneratorCommand,
+} from "../src/core/package-manager.js";
 
 const WORKING_DIR = "/fake/project";
 
@@ -70,5 +75,46 @@ describe("installPackages", () => {
     ).rejects.toThrow();
 
     expect(spawnMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("resolveGeneratorCommand", () => {
+  const generator = { pkg: "create-vue@latest", args: ["my-app", "--ts"] };
+
+  it("runs generators through dlx for pnpm", () => {
+    expect(resolveGeneratorCommand("pnpm", generator)).toEqual({
+      command: "pnpm",
+      args: ["dlx", "create-vue@latest", "my-app", "--ts"],
+    });
+  });
+
+  it("skips npx's install confirmation", () => {
+    const { command, args } = resolveGeneratorCommand("npm", generator);
+
+    expect(command).toBe("npx");
+    expect(args).toEqual(["--yes", "create-vue@latest", "my-app", "--ts"]);
+  });
+
+  it("strips version flavours from the manager name", () => {
+    expect(packageManagerName("yarn@berry")).toBe("yarn");
+    expect(packageManagerName("pnpm")).toBe("pnpm");
+  });
+});
+
+describe("addPackageCommands", () => {
+  it("adds dependencies and dev dependencies with separate commands", () => {
+    const commands = addPackageCommands("pnpm", {
+      dependencies: ["zod"],
+      devDependencies: ["vite"],
+    });
+
+    expect(commands.map(({ args }) => args)).toEqual([
+      ["add", "zod"],
+      ["add", "-D", "vite"],
+    ]);
+  });
+
+  it("returns nothing when there is nothing to add", () => {
+    expect(addPackageCommands("npm", { dependencies: [], devDependencies: [] })).toEqual([]);
   });
 });

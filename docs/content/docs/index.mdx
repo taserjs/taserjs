@@ -113,12 +113,11 @@ Taser.js operates around a deterministic, fully type-safe request lifecycle:
 
 ## Scaffold with create-taserjs
 
-Get up and running in seconds using the official scaffolding CLI. Customize your stack across five modular dimensions:
+Get up and running in seconds using the official scaffolding CLI. Customize your stack across four dimensions:
 
-- **Host Framework**: Standalone Taser.js (`none`), `hono`, `express`, or `fastify`.
-- **Deployment Preset**: `node-server`, `node-cluster`, `bun`, `deno-server`, `deno-deploy`, `cloudflare-module`, `vercel`, `aws-lambda`, `netlify`, or standalone Vite (`none`).
-- **Runtime Override**: Explicit `node` or `bun` execution target for self-hosted presets.
-- **Database & Driver**: Drizzle, Prisma, or Kysely with SQLite, PostgreSQL, or MySQL drivers (`--db <odm>:<driver>`).
+- **Project type**: API only (`none`), a Vite web app (`tanstack-router`, `vue`), or a fullstack framework (`tanstack-start`, `nextjs`).
+- **Deployment**: `bare` (no Nitro) or a Nitro preset: `node-server`, `cloudflare-module`, `vercel`, `netlify`, `aws-lambda`.
+- **Database & Driver**: Drizzle, Prisma, or Kysely with SQLite, PostgreSQL, or MySQL (`--db <odm> --driver <driver>`).
 - **Standard Add-ons**: Zod, ArkType, or Valibot for schema validation; Pino or Winston for structured logging.
 
 <Tabs items={["Interactive", "Non-Interactive"]} groupId="scaffold-mode" persist>
@@ -133,7 +132,8 @@ Get up and running in seconds using the official scaffolding CLI. Customize your
     pnpm create taserjs@latest my-api \
       --framework none \
       --preset node-server \
-      --db drizzle:postgres \
+      --db drizzle \
+      --driver postgres \
       --validator zod \
       --logger pino \
       -y

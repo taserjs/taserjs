@@ -6,11 +6,17 @@ import { runCreateCommand, type RunCreateCommandOptions } from "./commands/creat
 import type {
   DbDriver,
   DbOdm,
-  DeployTarget,
+  DeployPreset,
+  FrameworkId,
+  HostId,
   LoggerId,
-  Runtime,
   ValidatorId,
 } from "./core/types.js";
+import { FRAMEWORK_IDS } from "./frameworks/registry.js";
+import { HOST_IDS } from "./hosts/registry.js";
+
+const orUndefined = <T extends string>(value: string | undefined): T | undefined =>
+  value === "none" || value === undefined ? undefined : (value as T);
 
 export async function run(argv: string[] = hideBin(process.argv)): Promise<void> {
   const parser = yargs(argv)
@@ -25,14 +31,22 @@ export async function run(argv: string[] = hideBin(process.argv)): Promise<void>
             type: "string",
             description: "Directory or project name",
           })
+          .option("framework", {
+            alias: "f",
+            type: "string",
+            choices: FRAMEWORK_IDS,
+            description: "UI or fullstack framework (none = API only)",
+          })
           .option("preset", {
             alias: "p",
             type: "string",
-            description: "Deployment preset",
+            description: "Deployment: bare (no Nitro) or any Nitro preset such as node-server",
           })
-          .option("runtime", {
+          .option("host", {
             type: "string",
-            description: "Runtime override (node, bun, deno)",
+            choices: HOST_IDS,
+            description:
+              "Existing server framework to run next to Taser.js (API only and Vite apps)",
           })
           .option("validator", {
             alias: "v",
@@ -71,14 +85,13 @@ export async function run(argv: string[] = hideBin(process.argv)): Promise<void>
         const createOpts: RunCreateCommandOptions = {
           targetDir: args.dir as string | undefined,
           projectName: args.dir as string | undefined,
-          preset: args.preset as DeployTarget | undefined,
-          runtime: args.runtime as Runtime | undefined,
-          validator: (args.validator === "none" ? undefined : args.validator) as
-            | ValidatorId
-            | undefined,
-          db: (args.db === "none" ? undefined : args.db) as DbOdm | undefined,
+          framework: args.framework as FrameworkId | undefined,
+          preset: args.preset as DeployPreset | undefined,
+          host: orUndefined<HostId>(args.host),
+          validator: orUndefined<ValidatorId>(args.validator),
+          db: orUndefined<DbOdm>(args.db),
           driver: args.driver as DbDriver | undefined,
-          logger: (args.logger === "none" ? undefined : args.logger) as LoggerId | undefined,
+          logger: orUndefined<LoggerId>(args.logger),
           skipInstall: Boolean(args.skipInstall),
           interactive: !args.yes,
         };

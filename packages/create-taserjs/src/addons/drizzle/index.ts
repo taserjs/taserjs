@@ -70,12 +70,12 @@ export function createDb() {
   }
 }
 
-function drizzleConfigSource(driver: DbDriver): string {
+function drizzleConfigSource(driver: DbDriver, serverDir: string): string {
   const dialect = driver === "postgres" ? "postgresql" : driver === "mysql" ? "mysql" : "sqlite";
   return `import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
-  schema: "./src/db/schema.ts",
+  schema: "./${serverDir}/db/schema.ts",
   out: "./drizzle",
   dialect: "${dialect}",
   dbCredentials: {
@@ -147,9 +147,9 @@ export const drizzleAddon: AddonDefinition = {
   },
   async apply(ctx, write) {
     const driver = ctx.driver ?? "sqlite";
-    await write("src/db/schema.ts", schemaSource(driver));
-    await write("src/db/index.ts", dbIndexSource(driver));
-    await write("drizzle.config.ts", drizzleConfigSource(driver));
+    await write(`${ctx.serverDir}/db/schema.ts`, schemaSource(driver));
+    await write(`${ctx.serverDir}/db/index.ts`, dbIndexSource(driver));
+    await write("drizzle.config.ts", drizzleConfigSource(driver, ctx.serverDir));
     await write(".env.example", envExample(driver));
   },
 };

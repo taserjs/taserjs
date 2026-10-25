@@ -105,11 +105,11 @@ export default defineConfig({
 `;
 }
 
-function schemaSource(driver: DbDriver): string {
+function schemaSource(driver: DbDriver, serverDir: string): string {
   const provider = prismaProvider(driver);
   return `generator client {
   provider = "prisma-client"
-  output   = "../src/db/prisma"
+  output   = "../${serverDir}/db/prisma"
 }
 
 datasource db {
@@ -150,8 +150,8 @@ export const prismaAddon: AddonDefinition = {
   async apply(ctx, write) {
     const driver = ctx.driver ?? "sqlite";
     await write("prisma.config.ts", prismaConfigSource());
-    await write("prisma/schema.prisma", schemaSource(driver));
-    await write("src/db/index.ts", dbIndexSource(driver));
+    await write("prisma/schema.prisma", schemaSource(driver, ctx.serverDir));
+    await write(`${ctx.serverDir}/db/index.ts`, dbIndexSource(driver));
     await write(".env.example", envExample(driver));
   },
 };

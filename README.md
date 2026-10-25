@@ -87,9 +87,10 @@ Or pass flags directly for non-interactive / CI setup:
 
 ```bash
 pnpm create taserjs@latest my-api \
-  --framework express \
+  --framework none \
   --preset node-server \
-  --db drizzle:postgres \
+  --db drizzle \
+  --driver postgres \
   --validator zod \
   --logger pino \
   -y

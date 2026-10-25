@@ -26,9 +26,9 @@ pnpm create taserjs@latest my-api \
 
 Available flags for `create-taserjs`:
 
-- `--framework`: Host framework (`none`, `hono`, `express`, `fastify`). Default: `none`.
-- `--preset`, `-p`: Deployment target / Nitro preset (`none`, `node-server`, `node-cluster`, `bun`, `deno-server`, `deno-deploy`, `cloudflare-module`, `vercel`, `aws-lambda`, `netlify`). Default: `node-server`.
-- `--runtime`: Runtime override for self-hosted targets (`node`, `bun`, `deno`).
+- `--framework`, `-f`: Project type (`none` for API only, `tanstack-router`, `vue`, `tanstack-start`, `nextjs`). Default: `none`.
+- `--host`: Existing server framework that Taser.js falls through to (`none`, `express`, `fastify`, `hono`, `elysia`). API only, `tanstack-router` and `vue`. Default: `none`.
+- `--preset`, `-p`: `bare` (no Nitro) or any Nitro preset (`node-server`, `cloudflare-module`, `vercel`, `netlify`, `aws-lambda`, ...). Default: `bare`.
 - `--db`: Database ODM and driver using `odm:driver` syntax (ODMs: `drizzle`, `prisma`, `kysely`; drivers: `sqlite`, `postgres`, `mysql`, e.g. `drizzle:postgres`).
 - `--validator`: Schema validation library (`zod`, `arktype`, `valibot`).
 - `--logger`: Structured logger integration (`pino`, `winston`). Omit to scaffold without a logger addon.

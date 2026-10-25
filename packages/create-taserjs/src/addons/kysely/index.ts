@@ -114,8 +114,8 @@ export const kyselyAddon: AddonDefinition = {
   },
   async apply(ctx, write) {
     const driver = ctx.driver ?? "sqlite";
-    await write("src/db/schema.ts", schemaTypesSource());
-    await write("src/db/index.ts", dbIndexSource(driver));
+    await write(`${ctx.serverDir}/db/schema.ts`, schemaTypesSource());
+    await write(`${ctx.serverDir}/db/index.ts`, dbIndexSource(driver));
     await write(".env.example", envExample(driver));
   },
 };

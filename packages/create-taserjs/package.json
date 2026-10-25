@@ -29,19 +29,11 @@
   ],
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
-      }
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
   },
@@ -54,11 +46,13 @@
     "build": "tsdown",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
+    "e2e": "pnpm run build && node scripts/scaffold-e2e.mjs",
     "lint": "oxlint .",
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "@clack/prompts": "^0.11.0",
+    "magicast": "^0.5.5",
     "package-manager-detector": "^1.8.0",
     "picocolors": "^1.1.1",
     "yargs": "^18.1.0"

@@ -1,32 +1,16 @@
 import type { Agent } from "package-manager-detector";
 
-export type Runtime = "node" | "bun" | "deno";
-export const RUNTIMES: readonly Runtime[] = ["node", "bun", "deno"];
+export type FrameworkId = "none" | "tanstack-router" | "tanstack-start" | "nextjs" | "vue";
 
-export type DeployTarget =
-  | "none"
-  | "node-server"
-  | "node-cluster"
-  | "bun"
-  | "deno-server"
-  | "deno-deploy"
-  | "cloudflare-module"
-  | "vercel"
-  | "aws-lambda"
-  | "netlify";
+/** What the project is: just an API, a Vite SPA served next to the API, or a framework that owns the server. */
+export type FrameworkGroup = "api" | "spa" | "fullstack";
 
-export const DEPLOY_TARGETS: readonly DeployTarget[] = [
-  "none",
-  "node-server",
-  "node-cluster",
-  "bun",
-  "deno-server",
-  "deno-deploy",
-  "cloudflare-module",
-  "vercel",
-  "aws-lambda",
-  "netlify",
-];
+/** `bare` installs no Nitro; any other value is a Nitro preset name. */
+export type DeployPreset = string;
+export const BARE_PRESET = "bare";
+
+/** An existing server framework that runs next to Taser.js and receives requests no route matches. */
+export type HostId = "none" | "express" | "fastify" | "hono" | "elysia";
 
 export type DbOdm = "drizzle" | "prisma" | "kysely";
 export const DB_ODMS: readonly DbOdm[] = ["drizzle", "prisma", "kysely"];
@@ -44,8 +28,9 @@ export const VALIDATORS: readonly ValidatorId[] = ["zod", "arktype", "valibot"];
 export interface ScaffoldContext {
   projectName: string;
   targetDir: string;
-  preset?: DeployTarget | undefined;
-  runtime?: Runtime | undefined;
+  framework?: FrameworkId | undefined;
+  preset?: DeployPreset | undefined;
+  host?: HostId | undefined;
   db?: DbOdm | undefined;
   driver?: DbDriver | undefined;
   logger?: LoggerId | undefined;
@@ -53,13 +38,32 @@ export interface ScaffoldContext {
   packageVersions?: Record<string, string> | undefined;
 }
 
+/** Runs a framework's official generator; replaceable so tests never touch the network. */
+export type GeneratorRunner = (command: {
+  command: string;
+  args: string[];
+  cwd: string;
+}) => Promise<void>;
+
 export interface ScaffoldOptions extends ScaffoldContext {
   skipInstall?: boolean | undefined;
   agent?: Agent | undefined;
+  generator?: GeneratorRunner | undefined;
+}
+
+/** A scaffold request after the framework, preset and server directory have been decided. */
+export interface ResolvedScaffold extends ScaffoldContext {
+  framework: FrameworkId;
+  preset: DeployPreset;
+  host: HostId;
+  /** Project-relative directory that holds `taser.ts`, `routes/`, and add-on files. */
+  serverDir: string;
 }
 
 export interface ScaffoldResult extends ScaffoldOptions {
   files: string[];
+  /** Config files the codemods could not patch, with the lines to add by hand. */
+  manualSteps: string[];
   dependencies?: string[] | undefined;
   devDependencies?: string[] | undefined;
 }
