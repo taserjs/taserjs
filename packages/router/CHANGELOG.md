@@ -1,5 +1,11 @@
 # @taserjs/router
 
+## 0.3.0
+
+### Patch Changes
+
+- @taserjs/utils@0.3.0
+
 ## 0.2.8
 
 ### Patch Changes

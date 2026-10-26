@@ -1,5 +1,14 @@
 # @taserjs/plugin
 
+## 0.3.0
+
+### Patch Changes
+
+- fa1f828: fix: `createTaser` from `@taserjs/plugin/next` now supports function-style `next.config` (sync or async). Previously the wrapper spread the function and silently dropped every setting it returned.
+- 82a5bcb: fix(vite): recognise frameworks whose plugins are returned as a promise (SvelteKit's `sveltekit()`), so Taser.js no longer switches to server mode and replaces the framework's server build, and watch routes that live outside the Vite root (Nuxt runs Vite from `app/`).
+- @taserjs/cli@0.3.0
+  - @taserjs/runtime@0.3.0
+
 ## 0.2.8
 
 ### Patch Changes
