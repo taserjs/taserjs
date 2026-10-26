@@ -80,7 +80,7 @@ yarn add -D @taserjs/plugin
   <Step>
     ### 1. Configure Vite Plugin
 
-    In `vite.config.ts`, add `taser()` before `tanstackStart()`. Set `server: false` to allow TanStack Start to manage the outer HTTP host lifecycle:
+    In `vite.config.ts`, add `taser()` alongside `tanstackStart()`. Taser.js automatically detects fullstack frameworks and delegates HTTP serving to TanStack Start:
 
     ```ts title="vite.config.ts"
     import { defineConfig } from "vite";
@@ -90,10 +90,7 @@ yarn add -D @taserjs/plugin
 
     export default defineConfig({
       plugins: [
-        taser({
-          server: false, // Host pass-through mode
-          config: "./taserjs.config.ts",
-        }),
+        taser(),
         tanstackStart(),
         viteReact(),
       ],
@@ -253,10 +250,7 @@ import { taser } from "@taserjs/plugin/vite";
 
 export default defineConfig({
   plugins: [
-    taser({
-      server: false,
-      config: "./taserjs.config.ts",
-    }),
+    taser(),
     tanstackStart(),
     viteReact(),
     nitro(),

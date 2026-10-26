@@ -25,10 +25,10 @@ Taser.js integrates with Fastify applications using the **Host Pass-Through Arch
 
 <Steps>
   <Step>
-    ### 1. Scaffold with Fastify Host
+    ### 1. Scaffold an API project
 
     ```bash
-    pnpm create taserjs@latest my-fastify-app --framework fastify -y
+    pnpm create taserjs@latest my-fastify-app --host fastify -y
     ```
 
   </Step>
@@ -36,7 +36,7 @@ Taser.js integrates with Fastify applications using the **Host Pass-Through Arch
   <Step>
     ### 2. Configure `src/server.node.ts`
 
-    Create `src/server.node.ts` exporting Fastify's routing handler:
+    The scaffold creates `src/server.node.ts` exporting Fastify's routing handler. Taser.js detects it by name and falls through to it for unmatched requests:
 
     ```ts title="src/server.node.ts"
     import Fastify from "fastify";

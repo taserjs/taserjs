@@ -1,4 +1,4 @@
-import type { ScaffoldContext } from "../core/types.js";
+import type { ResolvedScaffold } from "../core/types.js";
 import { drizzleAddon } from "./drizzle/index.js";
 import { kyselyAddon } from "./kysely/index.js";
 import { pinoAddon } from "./pino/index.js";
@@ -18,7 +18,7 @@ export const ADDONS: Record<string, AddonDefinition> = {
   valibot: ValidatorAddon("valibot"),
 };
 
-export function resolveAddons(ctx: ScaffoldContext): AddonDefinition[] {
+export function resolveAddons(ctx: ResolvedScaffold): AddonDefinition[] {
   const result: AddonDefinition[] = [];
   if (ctx.db && ADDONS[ctx.db]) {
     const addon = ADDONS[ctx.db];
@@ -35,7 +35,7 @@ export function resolveAddons(ctx: ScaffoldContext): AddonDefinition[] {
   return result;
 }
 
-export function collectBootBindings(ctx: ScaffoldContext): BootBinding[] {
+export function collectBootBindings(ctx: ResolvedScaffold): BootBinding[] {
   const addons = resolveAddons(ctx);
   const bindings: BootBinding[] = [];
   for (const addon of addons) {

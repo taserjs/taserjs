@@ -3,46 +3,156 @@ import path from "node:path";
 import * as p from "@clack/prompts";
 import pc from "picocolors";
 
-import { installPackages, resolveUserAgent, runScript } from "../core/package-manager.js";
+import {
+  addPackageCommands,
+  installPackages,
+  resolveUserAgent,
+  runAgentSkill,
+  runScript,
+} from "../core/package-manager.js";
+import { DEFAULT_NITRO_PRESET, isNodeRuntimePreset, PRESET_CHOICES } from "../core/presets.js";
 import { scaffoldProject } from "../core/scaffold-engine.js";
-import { allowedRuntimeOverrides, DEFAULT_DEPLOY } from "../core/targets.js";
-import type {
-  DbDriver,
-  DbOdm,
-  DeployTarget,
-  LoggerId,
-  Runtime,
-  ScaffoldOptions,
-  ScaffoldResult,
-  ValidatorId,
+import {
+  type DbDriver,
+  type DbOdm,
+  type DeployPreset,
+  type FrameworkGroup,
+  type FrameworkId,
+  type GeneratorRunner,
+  type HostId,
+  type LoggerId,
+  type ScaffoldOptions,
+  type ScaffoldResult,
+  type ValidatorId,
 } from "../core/types.js";
-import { DEPLOY_TARGETS } from "../core/types.js";
+import { FRAMEWORKS, getFramework } from "../frameworks/registry.js";
+import { HOSTS } from "../hosts/registry.js";
 
-const DEPLOY_LABELS: Record<DeployTarget, string> = {
-  none: "None (Standalone Vite SSR)",
-  "node-server": "Node.js server (Nitro)",
-  "node-cluster": "Node.js cluster (Nitro)",
-  bun: "Bun (Nitro)",
-  "deno-server": "Deno (Nitro)",
-  "deno-deploy": "Deno Deploy (Nitro)",
-  "cloudflare-module": "Cloudflare Workers (Nitro)",
-  vercel: "Vercel (Nitro)",
-  "aws-lambda": "AWS Lambda (Nitro)",
-  netlify: "Netlify (Nitro)",
+const DEFAULT_PROJECT_NAME = "my-taser-app";
+
+const GROUP_HINTS: Record<FrameworkGroup, string> = {
+  api: "no UI",
+  spa: "Vite web app",
+  fullstack: "the framework owns the server",
 };
 
 export interface RunCreateCommandOptions {
   projectName?: string | undefined;
-  preset?: DeployTarget | undefined;
-  runtime?: Runtime | undefined;
-  db?: DbOdm | undefined;
+  framework?: FrameworkId | undefined;
+  template?: string | undefined;
+  preset?: DeployPreset | undefined;
+  host?: HostId | undefined;
+  db?: DbOdm | "none" | undefined;
   driver?: DbDriver | undefined;
-  logger?: LoggerId | undefined;
-  validator?: ValidatorId | undefined;
+  logger?: LoggerId | "none" | undefined;
+  validator?: ValidatorId | "none" | undefined;
   skipInstall?: boolean | undefined;
+  installSkill?: boolean | undefined;
   interactive?: boolean | undefined;
   targetDir?: string | undefined;
   packageVersions?: Record<string, string> | undefined;
+  generator?: GeneratorRunner | undefined;
+  skillInstaller?: ((targetDir: string) => Promise<void>) | undefined;
+}
+
+/** Unwraps a prompt answer, exiting cleanly when the user cancels. */
+function answer<T>(value: T | symbol): T {
+  if (p.isCancel(value)) {
+    p.cancel("Scaffold cancelled.");
+    process.exit(0);
+  }
+  return value as T;
+}
+
+const NONE = "none";
+
+async function selectOptional<T extends string>(
+  message: string,
+  preset: T | "none" | undefined,
+  options: { value: T; label: string }[],
+): Promise<T | undefined> {
+  if (preset !== undefined) return preset === "none" ? undefined : preset;
+  const choice = answer(
+    await p.select<string>({
+      message,
+      options: [{ value: NONE, label: "None", hint: "default" }, ...options],
+      initialValue: NONE,
+    }),
+  );
+  return choice === NONE ? undefined : (choice as T);
+}
+
+async function promptFramework(preset: FrameworkId | undefined): Promise<FrameworkId> {
+  if (preset) return preset;
+
+  return answer(
+    await p.select<FrameworkId>({
+      message: "Base framework",
+      options: Object.values(FRAMEWORKS).map((framework) => ({
+        value: framework.id,
+        label: framework.label,
+        hint: GROUP_HINTS[framework.group],
+      })),
+      initialValue: "none",
+    }),
+  );
+}
+
+async function promptTemplate(
+  framework: FrameworkId,
+  template: string | undefined,
+): Promise<string | undefined> {
+  const { label, templates } = getFramework(framework);
+  const [defaultTemplate] = templates ?? [];
+  if (!templates || !defaultTemplate || template !== undefined) return template;
+
+  return answer(
+    await p.select<string>({
+      message: `${label} template`,
+      options: templates.map((option) => ({ value: option.id, label: option.label })),
+      initialValue: defaultTemplate.id,
+    }),
+  );
+}
+
+async function promptPreset(
+  framework: FrameworkId,
+  preset: DeployPreset | undefined,
+): Promise<DeployPreset | undefined> {
+  const definition = getFramework(framework);
+  if (definition.ownsDeployment || preset !== undefined) return preset;
+
+  return answer(
+    await p.select<DeployPreset>({
+      message: "Deployment",
+      options: [...PRESET_CHOICES],
+      initialValue: DEFAULT_NITRO_PRESET,
+    }),
+  );
+}
+
+/** Only API and Vite projects load a host; fullstack frameworks mount Taser.js directly. */
+async function promptHost(
+  framework: FrameworkId,
+  preset: DeployPreset | undefined,
+  host: HostId | undefined,
+): Promise<HostId | undefined> {
+  if (host !== undefined || getFramework(framework).group === "fullstack") return host;
+
+  const runsOnNode = isNodeRuntimePreset(preset ?? DEFAULT_NITRO_PRESET);
+  const choice = answer(
+    await p.select<HostId>({
+      message: "Run alongside an existing server framework?",
+      options: [
+        { value: "none", label: "None", hint: "Taser.js only" },
+        ...Object.values(HOSTS)
+          .filter((definition) => runsOnNode || definition.runtime === "fetch")
+          .map((definition) => ({ value: definition.id, label: definition.label })),
+      ],
+      initialValue: "none",
+    }),
+  );
+  return choice === "none" ? undefined : choice;
 }
 
 export async function promptInteractiveOptions(
@@ -50,162 +160,147 @@ export async function promptInteractiveOptions(
 ): Promise<RunCreateCommandOptions> {
   const projectName =
     defaults.projectName ??
-    (await p.text({
-      message: "Project name",
-      placeholder: "my-taser-app",
-      defaultValue: "my-taser-app",
-      validate(value) {
-        if (!value || value.trim().length === 0) return "Project name cannot be empty";
-        if (/[^a-zA-Z0-9_-]/.test(value)) return "Project name contains invalid characters";
-        return undefined;
-      },
-    }));
+    answer(
+      await p.text({
+        message: "Project name",
+        placeholder: DEFAULT_PROJECT_NAME,
+        defaultValue: DEFAULT_PROJECT_NAME,
+        validate(value) {
+          if (!value || value.trim().length === 0) return "Project name cannot be empty";
+          if (/[^a-zA-Z0-9_-]/.test(value)) return "Project name contains invalid characters";
+          return undefined;
+        },
+      }),
+    );
 
-  if (p.isCancel(projectName)) {
-    p.cancel("Scaffold cancelled.");
-    process.exit(0);
-  }
+  const framework = await promptFramework(defaults.framework);
+  const template = await promptTemplate(framework, defaults.template);
+  const preset = await promptPreset(framework, defaults.preset);
+  const host = await promptHost(framework, preset, defaults.host);
 
-  const preset =
-    defaults.preset ??
-    (await p.select({
-      message: "Deployment target",
-      options: DEPLOY_TARGETS.map((id) => ({
-        value: id,
-        label: DEPLOY_LABELS[id],
-      })),
-      initialValue: "none",
-    }));
+  const validator = await selectOptional<ValidatorId>(
+    "Standard Schema Validator",
+    defaults.validator,
+    [
+      { value: "zod", label: "Zod" },
+      { value: "valibot", label: "Valibot" },
+      { value: "arktype", label: "Arktype" },
+    ],
+  );
 
-  if (p.isCancel(preset)) {
-    p.cancel("Scaffold cancelled.");
-    process.exit(0);
-  }
+  const db = await selectOptional<DbOdm>("Database ORM / Query Builder", defaults.db, [
+    { value: "drizzle", label: "Drizzle" },
+    { value: "prisma", label: "Prisma" },
+    { value: "kysely", label: "Kysely" },
+  ]);
 
-  let runtime: Runtime | undefined;
-  const runtimeOverrides = allowedRuntimeOverrides(preset as DeployTarget);
-  if (runtimeOverrides.length > 0) {
-    const runtimeChoice =
-      defaults.runtime ??
-      (await p.select({
-        message: "Runtime override",
-        options: [
-          ...runtimeOverrides.map((rt) => ({ value: rt, label: rt })),
-          { value: "default", label: "Preset default", hint: "no override" },
-        ],
-        initialValue: "default",
-      }));
+  const driver = db
+    ? (defaults.driver ??
+      answer(
+        await p.select<DbDriver>({
+          message: "Database driver",
+          options: [
+            { value: "sqlite", label: "SQLite", hint: "default" },
+            { value: "postgres", label: "PostgreSQL" },
+            { value: "mysql", label: "MySQL" },
+          ],
+          initialValue: "sqlite",
+        }),
+      ))
+    : undefined;
 
-    if (p.isCancel(runtimeChoice)) {
-      p.cancel("Scaffold cancelled.");
-      process.exit(0);
-    }
-    runtime = runtimeChoice === "default" ? undefined : (runtimeChoice as Runtime);
-  }
-
-  const validatorChoice =
-    defaults.validator ??
-    (await p.select({
-      message: "Standard Schema Validator",
-      options: [
-        { value: "none", label: "None", hint: "default" },
-        { value: "zod", label: "Zod" },
-        { value: "valibot", label: "Valibot" },
-        { value: "arktype", label: "Arktype" },
-      ],
-      initialValue: "none",
-    }));
-
-  if (p.isCancel(validatorChoice)) {
-    p.cancel("Scaffold cancelled.");
-    process.exit(0);
-  }
-
-  const validator = validatorChoice === "none" ? undefined : (validatorChoice as ValidatorId);
-
-  const dbChoice =
-    defaults.db ??
-    (await p.select({
-      message: "Database ORM / Query Builder",
-      options: [
-        { value: "none", label: "None", hint: "default" },
-        { value: "drizzle", label: "Drizzle" },
-        { value: "prisma", label: "Prisma" },
-        { value: "kysely", label: "Kysely" },
-      ],
-      initialValue: "none",
-    }));
-
-  if (p.isCancel(dbChoice)) {
-    p.cancel("Scaffold cancelled.");
-    process.exit(0);
-  }
-
-  let db: DbOdm | undefined;
-  let driver: DbDriver | undefined;
-
-  if (dbChoice !== "none") {
-    db = dbChoice as DbOdm;
-    const driverChoice =
-      defaults.driver ??
-      (await p.select({
-        message: "Database driver",
-        options: [
-          { value: "sqlite", label: "SQLite", hint: "default" },
-          { value: "postgres", label: "PostgreSQL" },
-          { value: "mysql", label: "MySQL" },
-        ],
-        initialValue: "sqlite",
-      }));
-
-    if (p.isCancel(driverChoice)) {
-      p.cancel("Scaffold cancelled.");
-      process.exit(0);
-    }
-    driver = driverChoice as DbDriver;
-  }
-
-  const loggerChoice =
-    defaults.logger ??
-    (await p.select({
-      message: "Logger",
-      options: [
-        { value: "none", label: "None", hint: "default" },
-        { value: "pino", label: "Pino" },
-        { value: "winston", label: "Winston" },
-      ],
-      initialValue: "none",
-    }));
-
-  if (p.isCancel(loggerChoice)) {
-    p.cancel("Scaffold cancelled.");
-    process.exit(0);
-  }
-
-  const logger = loggerChoice === "none" ? undefined : (loggerChoice as LoggerId);
+  const logger = await selectOptional<LoggerId>("Logger", defaults.logger, [
+    { value: "pino", label: "Pino" },
+    { value: "winston", label: "Winston" },
+  ]);
 
   const shouldInstall =
     defaults.skipInstall !== undefined
       ? !defaults.skipInstall
-      : await p.confirm({
-          message: "Install dependencies?",
-          initialValue: true,
-        });
-
-  if (p.isCancel(shouldInstall)) {
-    p.cancel("Scaffold cancelled.");
-    process.exit(0);
-  }
+      : answer(await p.confirm({ message: "Install dependencies?", initialValue: true }));
 
   return {
     projectName: String(projectName).trim(),
-    preset: preset as DeployTarget,
-    ...(runtime ? { runtime } : {}),
+    framework,
+    ...(template ? { template } : {}),
+    ...(preset ? { preset } : {}),
+    ...(host ? { host } : {}),
     ...(validator ? { validator } : {}),
     ...(db ? { db, driver } : {}),
     ...(logger ? { logger } : {}),
     skipInstall: !shouldInstall,
   };
+}
+
+function toScaffoldOptions(
+  args: RunCreateCommandOptions,
+  resolved: RunCreateCommandOptions,
+): ScaffoldOptions {
+  const cwd = process.cwd();
+  const targetDir = path.resolve(
+    cwd,
+    args.targetDir ?? resolved.projectName ?? DEFAULT_PROJECT_NAME,
+  );
+
+  return {
+    projectName: path.basename(targetDir),
+    targetDir,
+    ...(resolved.framework !== undefined ? { framework: resolved.framework } : {}),
+    ...(resolved.template !== undefined ? { template: resolved.template } : {}),
+    ...(resolved.preset !== undefined ? { preset: resolved.preset } : {}),
+    ...(resolved.host !== undefined ? { host: resolved.host } : {}),
+    ...(resolved.validator !== undefined && resolved.validator !== "none"
+      ? { validator: resolved.validator }
+      : {}),
+    ...(resolved.db !== undefined && resolved.db !== "none" ? { db: resolved.db } : {}),
+    ...(resolved.driver !== undefined ? { driver: resolved.driver } : {}),
+    ...(resolved.logger !== undefined && resolved.logger !== "none"
+      ? { logger: resolved.logger }
+      : {}),
+    ...(args.packageVersions !== undefined ? { packageVersions: args.packageVersions } : {}),
+    ...(args.generator !== undefined ? { generator: args.generator } : {}),
+    skipInstall: resolved.skipInstall ?? process.env.NODE_ENV === "test",
+  };
+}
+
+async function installDependencies(
+  agent: ReturnType<typeof resolveUserAgent>,
+  targetDir: string,
+  result: ScaffoldResult,
+): Promise<void> {
+  await installPackages(agent, targetDir, {
+    dependencies: result.dependencies ?? [],
+    devDependencies: result.devDependencies ?? [],
+  });
+}
+
+async function installAgentSkillStep(
+  args: RunCreateCommandOptions,
+  targetDir: string,
+  agent: ReturnType<typeof resolveUserAgent>,
+  interactive: boolean,
+): Promise<void> {
+  const shouldInstall =
+    args.installSkill ??
+    (interactive
+      ? answer(
+          await p.confirm({
+            message: "Install the Taser.js agent skill? (requires Node.js >= 22)",
+            initialValue: true,
+          }),
+        )
+      : true);
+
+  if (!shouldInstall) return;
+
+  const installer =
+    args.skillInstaller ?? ((dir: string) => runAgentSkill(agent, dir, interactive));
+
+  try {
+    await installer(targetDir);
+  } catch (err) {
+    console.warn(pc.dim(err instanceof Error ? err.message : String(err)));
+  }
 }
 
 export async function runCreateCommand(
@@ -216,69 +311,54 @@ export async function runCreateCommand(
 
   const resolved = isInteractive
     ? await promptInteractiveOptions(args)
-    : {
-        ...args,
-        projectName: args.projectName ?? "my-taser-app",
-        preset: args.preset ?? DEFAULT_DEPLOY,
-      };
+    : { ...args, projectName: args.projectName ?? DEFAULT_PROJECT_NAME };
 
   const cwd = process.cwd();
-  const projectName = resolved.projectName || "my-taser-app";
-  const targetDir = args.targetDir
-    ? path.resolve(cwd, args.targetDir)
-    : path.resolve(cwd, projectName);
-
-  const scaffoldOpts: ScaffoldOptions = {
-    projectName,
-    targetDir,
-    ...(resolved.preset !== undefined ? { preset: resolved.preset } : {}),
-    ...(resolved.runtime !== undefined ? { runtime: resolved.runtime } : {}),
-    ...(resolved.validator !== undefined ? { validator: resolved.validator } : {}),
-    ...(resolved.db !== undefined ? { db: resolved.db } : {}),
-    ...(resolved.driver !== undefined ? { driver: resolved.driver } : {}),
-    ...(resolved.logger !== undefined ? { logger: resolved.logger } : {}),
-    ...(args.packageVersions !== undefined ? { packageVersions: args.packageVersions } : {}),
-    skipInstall: resolved.skipInstall ?? process.env.NODE_ENV === "test",
-  };
-
+  const scaffoldOpts = toScaffoldOptions(args, resolved);
+  const { targetDir } = scaffoldOpts;
   const agent = resolveUserAgent();
 
-  if (isInteractive) {
-    const s = p.spinner();
-    s.start("Scaffolding project");
+  if (!isInteractive) {
     const result = await scaffoldProject(scaffoldOpts);
-    s.stop("Project scaffolded");
-
-    if (!scaffoldOpts.skipInstall) {
-      s.start(`Installing dependencies with ${agent}`);
-      try {
-        await installPackages(agent, targetDir, {
-          dependencies: result.dependencies ?? [],
-          devDependencies: result.devDependencies ?? [],
-        });
-        s.stop("Dependencies installed");
-      } catch (err) {
-        s.stop(pc.yellow("Failed to install dependencies"));
-        console.warn(pc.dim(err instanceof Error ? err.message : String(err)));
-      }
-    }
-
-    p.outro(pc.green("Done!"));
-    console.log(`\nNext steps:`);
-    console.log(`  cd ${path.relative(cwd, targetDir) || "."}`);
-    if (scaffoldOpts.skipInstall) {
-      console.log(`  ${runScript(agent, "install")}`);
-    }
-    console.log(`  ${runScript(agent, "dev")}\n`);
+    if (!scaffoldOpts.skipInstall) await installDependencies(agent, targetDir, result);
+    await installAgentSkillStep(args, targetDir, agent, false);
     return result;
   }
 
+  const spinner = p.spinner();
+  spinner.start("Scaffolding project");
   const result = await scaffoldProject(scaffoldOpts);
+  spinner.stop("Project scaffolded");
+
   if (!scaffoldOpts.skipInstall) {
-    await installPackages(agent, targetDir, {
+    spinner.start(`Installing dependencies with ${agent}`);
+    try {
+      await installDependencies(agent, targetDir, result);
+      spinner.stop("Dependencies installed");
+    } catch (err) {
+      spinner.stop(pc.yellow("Failed to install dependencies"));
+      console.warn(pc.dim(err instanceof Error ? err.message : String(err)));
+    }
+  }
+
+  p.outro(pc.green("Done!"));
+
+  for (const step of result.manualSteps) {
+    console.log(pc.yellow(`\nManual step: ${step}`));
+  }
+
+  console.log(`\nNext steps:`);
+  console.log(`  cd ${path.relative(cwd, targetDir) || "."}`);
+  if (scaffoldOpts.skipInstall) {
+    const addCommands = addPackageCommands(agent, {
       dependencies: result.dependencies ?? [],
       devDependencies: result.devDependencies ?? [],
     });
+    for (const { command, args } of addCommands) console.log(`  ${command} ${args.join(" ")}`);
   }
+  console.log(`  ${runScript(agent, "dev")}\n`);
+
+  await installAgentSkillStep(args, targetDir, agent, true);
+
   return result;
 }

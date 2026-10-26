@@ -102,6 +102,12 @@ export const docsOpenGraphDescriptions: Record<string, string> = {
     "Build fullstack React applications with TanStack Start and Taser.js. Type-safe data fetching in TanStack Router loaders and React Query.",
   "fullstack/nextjs":
     "Build fullstack Next.js 15+ App Router applications with a dedicated Taser.js REST API subsystem. Type-safe data fetching in RSC, Server Actions, and client hooks.",
+  "fullstack/nuxt":
+    "Mount a file-based Taser.js REST API under /api in a Nuxt 4 app, with a typed client for pages and components.",
+  "fullstack/sveltekit":
+    "Mount a file-based Taser.js REST API under /api in a SvelteKit app, with a typed client for load functions and components.",
+  "fullstack/react-router":
+    "Mount a file-based Taser.js REST API under /api in a React Router framework-mode app, with a typed client for loaders and components.",
   "frameworks/standalone":
     "Build standalone, zero-host HTTP APIs with pure Taser.js, Vite, and Nitro. Maximum throughput with web standards.",
   "frameworks/fetch-native":
@@ -168,6 +174,9 @@ export const docsImageAlts: Record<string, string> = {
   "plugins/bundlers": "Taser.js Docs: Bundler Adapters",
   "fullstack/tanstack-start": "Taser.js Docs: TanStack Start Fullstack Integration",
   "fullstack/nextjs": "Taser.js Docs: Next.js App Router Fullstack Integration",
+  "fullstack/nuxt": "Taser.js Docs: Nuxt Fullstack Integration",
+  "fullstack/sveltekit": "Taser.js Docs: SvelteKit Fullstack Integration",
+  "fullstack/react-router": "Taser.js Docs: React Router Fullstack Integration",
   "frameworks/standalone": "Taser.js Docs: Standalone API Architecture",
   "frameworks/fetch-native": "Taser.js Docs: Web Standard & Fetch Frameworks Host Pass-Through",
   "frameworks/express": "Taser.js Docs: Express Host Pass-Through",

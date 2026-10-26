@@ -42,6 +42,11 @@ export function detectFullStack(viteConfig: any, excludeNitro = false): boolean 
   });
 }
 
+/** Plugin arrays may hold promises (`sveltekit()` returns `Promise<Plugin[]>`), which hide plugin names. */
+async function settlePlugins(plugins: unknown): Promise<unknown[]> {
+  return (await Promise.all([plugins].flat(Infinity))).flat(Infinity);
+}
+
 /** Precedence: plugin option, then `taserjs.config`, then "serve unless a framework owns the server". */
 export function isServerMode({
   options,
@@ -192,8 +197,8 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
 
       async config(userConfig: any, env?: { command: string }) {
         if (!options.cwd && userConfig.root) setRoot(resolve(userConfig.root));
-        viteConfig = userConfig;
-        frameworkDetected ||= detectFullStack(userConfig, true);
+        viteConfig = { ...userConfig, plugins: await settlePlugins(userConfig.plugins) };
+        frameworkDetected ||= detectFullStack(viteConfig, true);
 
         if (env?.command !== "build") return;
         const { config } = await loadProject();
@@ -226,7 +231,9 @@ export const taserPlugin = createUnplugin((options: TaserPluginOptions | undefin
           server.watcher.on(event, onFileEvent);
         }
 
-        const { config } = await loadProject();
+        const { config, paths } = await loadProject();
+        // Vite only watches its own root, but frameworks like Nuxt run it in a subdirectory.
+        server.watcher.add([paths.routesDir, paths.appFile]);
         if (!isServerMode({ options, config, viteConfig: server.config })) return;
 
         server.middlewares.use(async (req, res, next) => {

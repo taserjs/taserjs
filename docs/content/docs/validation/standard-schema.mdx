@@ -170,13 +170,13 @@ Taser.js gives you fine-grained control over request body parsing and performanc
 
 - **Zero Overhead**: If a route does not call `.body()`, incoming body parsing is **completely skipped**.
 - **Default JSON Parsing**: Calling `.body(schema)` parses the body as JSON by default.
-- **Explicit Body Modes**: To parse file uploads, URL-encoded forms, raw text, or binary buffers, provide the mode as the first argument (`.body(mode, schema)`):
+- **Explicit Body Modes**: To parse file uploads, URL-encoded forms, raw text, or binary buffers, provide the mode as the second argument (`.body(schema, mode)`):
 
 | Body Mode              | Method Signature                           | Use Case                          | Content Types                       |
 | :--------------------- | :----------------------------------------- | :-------------------------------- | :---------------------------------- |
-| **`json`** _(default)_ | `.body(schema)` or `.body("json", schema)` | REST JSON payloads                | `application/json`                  |
-| **`form`**             | `.body("form", schema)`                    | File uploads and form submissions | `multipart/form-data`               |
-| **`urlencoded`**       | `.body("urlencoded", schema)`              | URL-encoded form data             | `application/x-www-form-urlencoded` |
+| **`json`** _(default)_ | `.body(schema)` or `.body(schema, "json")` | REST JSON payloads                | `application/json`                  |
+| **`form`**             | `.body(schema, "form")`                    | File uploads and form submissions | `multipart/form-data`               |
+| **`urlencoded`**       | `.body(schema, "urlencoded")`              | URL-encoded form data             | `application/x-www-form-urlencoded` |
 
 ### JSON Body Example
 
@@ -210,7 +210,7 @@ export default t
 
 ## Validating Multipart Form Data & File Uploads
 
-When handling file uploads or form data, pass `"form"` as the first argument to `.body()`. Taser.js automatically parses form fields and converts binary file uploads into standard JavaScript `File` objects.
+When handling file uploads or form data, pass `"form"` as the mode argument to `.body(schema, "form")`. Taser.js automatically parses form fields and converts binary file uploads into standard JavaScript `File` objects.
 
 You can validate file presence, file size, and permitted MIME types using your schema validator:
 
@@ -238,7 +238,7 @@ You can validate file presence, file size, and permitted MIME types using your s
     export default t
       .post("/users/:id/avatar")
       .params(z.object({ id: z.string() }))
-      .body("form", AvatarUploadSchema) // [!code highlight]
+      .body(AvatarUploadSchema, "form") // [!code highlight]
       .handler(async ({ ctx, req }) => {
         const { avatar, caption } = req.body;
 
@@ -276,7 +276,7 @@ You can validate file presence, file size, and permitted MIME types using your s
 
     export default t
       .post("/users/:id/avatar")
-      .body("form", AvatarUploadSchema) // [!code highlight]
+      .body(AvatarUploadSchema, "form") // [!code highlight]
       .handler(async ({ ctx, req }) => {
         const { avatar } = req.body;
         const fileBuffer = await avatar.arrayBuffer();
@@ -301,7 +301,7 @@ You can validate file presence, file size, and permitted MIME types using your s
 
     export default t
       .post("/users/:id/avatar")
-      .body("form", AvatarUploadSchema) // [!code highlight]
+      .body(AvatarUploadSchema, "form") // [!code highlight]
       .handler(async ({ ctx, req }) => {
         const { avatar } = req.body;
         const buffer = await avatar.arrayBuffer();
@@ -316,7 +316,7 @@ You can validate file presence, file size, and permitted MIME types using your s
 
 ## Multiple File Uploads
 
-When clients upload multiple files under the same form field name, validate them with `.body("form", schema)` as an array of `File` objects:
+When clients upload multiple files under the same form field name, validate them with `.body(schema, "form")` as an array of `File` objects:
 
 ```ts title="src/routes/documents/upload.post.ts"
 import { json } from "@taserjs/router/reply";
@@ -333,7 +333,7 @@ const MultiDocSchema = z.object({
 
 export default t
   .post("/documents/upload")
-  .body("form", MultiDocSchema) // [!code highlight]
+  .body(MultiDocSchema, "form") // [!code highlight]
   .handler(async ({ ctx, req }) => {
     // req.body.files is typed as File[]:
     for (const file of req.body.files) {

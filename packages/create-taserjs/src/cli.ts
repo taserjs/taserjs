@@ -6,11 +6,14 @@ import { runCreateCommand, type RunCreateCommandOptions } from "./commands/creat
 import type {
   DbDriver,
   DbOdm,
-  DeployTarget,
+  DeployPreset,
+  FrameworkId,
+  HostId,
   LoggerId,
-  Runtime,
   ValidatorId,
 } from "./core/types.js";
+import { FRAMEWORK_IDS } from "./frameworks/registry.js";
+import { HOST_IDS } from "./hosts/registry.js";
 
 export async function run(argv: string[] = hideBin(process.argv)): Promise<void> {
   const parser = yargs(argv)
@@ -25,14 +28,28 @@ export async function run(argv: string[] = hideBin(process.argv)): Promise<void>
             type: "string",
             description: "Directory or project name",
           })
+          .option("framework", {
+            alias: "f",
+            type: "string",
+            choices: FRAMEWORK_IDS,
+            description: "UI or fullstack framework (none = API only)",
+          })
+          .option("template", {
+            alias: "t",
+            type: "string",
+            description:
+              "Template for frameworks that offer several (Vite: react, vue, svelte, solid, preact)",
+          })
           .option("preset", {
             alias: "p",
             type: "string",
-            description: "Deployment preset",
+            description: "Nitro preset to deploy with, such as node-server or cloudflare-module",
           })
-          .option("runtime", {
+          .option("host", {
             type: "string",
-            description: "Runtime override (node, bun, deno)",
+            choices: HOST_IDS,
+            description:
+              "Existing server framework to run next to Taser.js (API only and Vite apps)",
           })
           .option("validator", {
             alias: "v",
@@ -58,8 +75,15 @@ export async function run(argv: string[] = hideBin(process.argv)): Promise<void>
           })
           .option("skip-install", {
             type: "boolean",
-            description: "Skip dependency installation",
+            description: "Skip dependency installation (does not skip the agent skill)",
             default: false,
+          })
+          .option("skill", {
+            alias: "install-skill",
+            type: "boolean",
+            description:
+              "Install the Taser.js agent skill via the skills CLI (default: true; --no-skill to skip)",
+            defaultDescription: "true",
           })
           .option("yes", {
             alias: "y",
@@ -71,15 +95,16 @@ export async function run(argv: string[] = hideBin(process.argv)): Promise<void>
         const createOpts: RunCreateCommandOptions = {
           targetDir: args.dir as string | undefined,
           projectName: args.dir as string | undefined,
-          preset: args.preset as DeployTarget | undefined,
-          runtime: args.runtime as Runtime | undefined,
-          validator: (args.validator === "none" ? undefined : args.validator) as
-            | ValidatorId
-            | undefined,
-          db: (args.db === "none" ? undefined : args.db) as DbOdm | undefined,
+          framework: args.framework as FrameworkId | undefined,
+          template: args.template as string | undefined,
+          preset: args.preset as DeployPreset | undefined,
+          host: args.host as HostId | undefined,
+          validator: args.validator as ValidatorId | "none" | undefined,
+          db: args.db as DbOdm | "none" | undefined,
           driver: args.driver as DbDriver | undefined,
-          logger: (args.logger === "none" ? undefined : args.logger) as LoggerId | undefined,
+          logger: args.logger as LoggerId | "none" | undefined,
           skipInstall: Boolean(args.skipInstall),
+          installSkill: args.skill as boolean | undefined,
           interactive: !args.yes,
         };
         await runCreateCommand(createOpts);

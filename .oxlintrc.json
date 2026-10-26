@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "unicorn", "react", "oxc", "import"],
-  "ignorePatterns": ["examples/**/*", "docs/**/*"],
+  "ignorePatterns": ["examples/**/*", "docs/**/*", "packages/create-taserjs/tests/fixtures/**/*"],
   "categories": {
     "correctness": "error",
     "perf": "error"

@@ -2,11 +2,13 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { DEPLOY_TARGETS, run, runCreateCommand, scaffoldProject } from "../src/index.js";
+import { run, runCreateCommand, scaffoldProject } from "../src/index.js";
 
-describe("create-taserjs unit and integration tests", () => {
+const readJson = (file: string) => JSON.parse(readFileSync(file, "utf-8"));
+
+describe("create-taserjs API-only scaffolds", () => {
   let tempDir: string;
 
   beforeEach(() => {
@@ -25,36 +27,80 @@ describe("create-taserjs unit and integration tests", () => {
     expect(typeof scaffoldProject).toBe("function");
   });
 
-  it("scaffolds a default project (preset: none) cleanly", async () => {
+  it("scaffolds an API-only project on the Node.js Nitro preset", async () => {
     const targetDir = join(tempDir, "default-app");
     const result = await scaffoldProject({
       projectName: "default-app",
       targetDir,
-      preset: "none",
       skipInstall: true,
     });
 
-    expect(result.files).toContain("package.json");
-    expect(result.files).toContain("tsconfig.json");
-    expect(result.files).toContain("taserjs.config.ts");
-    expect(result.files).toContain("vite.config.ts");
-    expect(result.files).toContain("src/context.ts");
-    expect(result.files).toContain("src/taser.ts");
-    expect(result.files).not.toContain("src/server.ts");
-    expect(result.files).toContain("src/routes/index.get.ts");
-    expect(result.files).toContain("src/routes/$.ts");
-    expect(result.files).toContain("src/.taserjs/routes.gen.ts");
+    expect(result.files).toEqual(
+      expect.arrayContaining([
+        "package.json",
+        "tsconfig.json",
+        "taserjs.config.ts",
+        "vite.config.ts",
+        "nitro.config.ts",
+        "src/context.ts",
+        "src/taser.ts",
+        "src/routes/index.get.ts",
+        "src/routes/$.ts",
+        "src/.taserjs/routes.gen.ts",
+      ]),
+    );
+    expect(result.preset).toBe("node-server");
+    expect(result.devDependencies).toContain("nitro");
+
+    expect(readJson(join(targetDir, "package.json")).scripts.start).toBe(
+      "node .output/server/index.mjs",
+    );
+    expect(readFileSync(join(targetDir, "vite.config.ts"), "utf-8")).toContain("nitro()");
 
     const taserTs = readFileSync(join(targetDir, "src", "taser.ts"), "utf-8");
     expect(taserTs).toContain('import { context } from "./context.js"');
     expect(taserTs).toContain("defineTaser().context(context)");
-
-    const contextTs = readFileSync(join(targetDir, "src", "context.ts"), "utf-8");
-    expect(contextTs).toContain("export const context = createContext");
-
-    const indexRoute = readFileSync(join(targetDir, "src", "routes", "index.get.ts"), "utf-8");
-    expect(indexRoute).toContain('t.get("/").handler');
+    expect(taserTs).not.toContain("basePath");
   });
+
+  it("installs Nitro and writes its config when a preset is chosen", async () => {
+    const targetDir = join(tempDir, "node-app");
+    const result = await scaffoldProject({
+      projectName: "node-app",
+      targetDir,
+      preset: "node-server",
+      skipInstall: true,
+    });
+
+    expect(result.devDependencies).toContain("nitro");
+    expect(readFileSync(join(targetDir, "nitro.config.ts"), "utf-8")).toContain(
+      'preset: "node-server"',
+    );
+    expect(readFileSync(join(targetDir, "vite.config.ts"), "utf-8")).toContain("nitro()");
+    expect(readJson(join(targetDir, "package.json")).scripts.start).toBe(
+      "node .output/server/index.mjs",
+    );
+  });
+
+  it.each(["cloudflare-module", "vercel", "netlify", "aws-lambda", "bun"])(
+    "passes the %s preset to Nitro without platform extras",
+    async (preset) => {
+      const targetDir = join(tempDir, `preset-${preset}`);
+      const result = await scaffoldProject({
+        projectName: `preset-${preset}`,
+        targetDir,
+        preset,
+        skipInstall: true,
+      });
+
+      expect(readFileSync(join(targetDir, "nitro.config.ts"), "utf-8")).toContain(
+        `preset: "${preset}"`,
+      );
+      expect(result.devDependencies).toContain("nitro");
+      expect(result.files).not.toContain("wrangler.jsonc");
+      expect(readJson(join(targetDir, "package.json")).scripts.start).toBeUndefined();
+    },
+  );
 
   it("scaffolds with a validator addon (zod) and generates fluent query schema", async () => {
     const targetDir = join(tempDir, "zod-app");
@@ -93,74 +139,215 @@ describe("create-taserjs unit and integration tests", () => {
     expect(existsSync(join(targetDir, "src", "logger.ts"))).toBe(true);
   });
 
-  it("supports all 10 presets and generates appropriate nitro configs and platform files", async () => {
-    await Promise.all(
-      DEPLOY_TARGETS.map(async (preset) => {
-        const targetDir = join(tempDir, `preset-${preset}`);
-        await scaffoldProject({
-          projectName: `preset-${preset}`,
-          targetDir,
-          preset,
-          skipInstall: true,
-        });
-
-        expect(existsSync(join(targetDir, "package.json"))).toBe(true);
-        expect(existsSync(join(targetDir, "vite.config.ts"))).toBe(true);
-
-        if (preset !== "none") {
-          expect(existsSync(join(targetDir, "nitro.config.ts"))).toBe(true);
-          const nitroConfig = readFileSync(join(targetDir, "nitro.config.ts"), "utf-8");
-          expect(nitroConfig).toContain(`preset: "${preset}"`);
-        }
-
-        if (preset === "cloudflare-module") {
-          expect(existsSync(join(targetDir, "wrangler.jsonc"))).toBe(true);
-        }
-      }),
-    );
-  });
-
-  it("executes CLI command runner via run() with argv and --yes flag", async () => {
-    const targetDir = join(tempDir, "cli-app");
-    await run([
-      targetDir,
-      "--preset",
-      "node-server",
-      "--validator",
-      "valibot",
-      "--yes",
-      "--skip-install",
-    ]);
-
-    expect(existsSync(join(targetDir, "package.json"))).toBe(true);
-    expect(existsSync(join(targetDir, "nitro.config.ts"))).toBe(true);
-    const indexRoute = readFileSync(join(targetDir, "src", "routes", "index.get.ts"), "utf-8");
-    expect(indexRoute).toContain("valibot");
-  });
-
   it("returns dependencies and devDependencies in ScaffoldResult", async () => {
-    const targetDir = join(tempDir, "deps-result-app");
     const result = await scaffoldProject({
       projectName: "deps-result-app",
-      targetDir,
-      preset: "none",
+      targetDir: join(tempDir, "deps-result-app"),
       validator: "zod",
       db: "drizzle",
       driver: "sqlite",
       skipInstall: true,
     });
 
-    expect(result.dependencies).toBeDefined();
-    expect(result.dependencies).toContain("@taserjs/router");
-    expect(result.dependencies).toContain("@taserjs/runtime");
-    expect(result.dependencies).toContain("zod");
-    expect(result.dependencies).toContain("drizzle-orm");
+    expect(result.dependencies).toEqual(
+      expect.arrayContaining(["@taserjs/router", "@taserjs/runtime", "zod", "drizzle-orm"]),
+    );
+    expect(result.devDependencies).toEqual(
+      expect.arrayContaining([
+        "@taserjs/cli",
+        "@taserjs/plugin",
+        "vite",
+        "typescript",
+        "drizzle-kit",
+      ]),
+    );
+  });
 
-    expect(result.devDependencies).toBeDefined();
-    expect(result.devDependencies).toContain("@taserjs/cli");
-    expect(result.devDependencies).toContain("@taserjs/plugin");
-    expect(result.devDependencies).toContain("vite");
-    expect(result.devDependencies).toContain("typescript");
-    expect(result.devDependencies).toContain("drizzle-kit");
+  it("executes the CLI runner via run() with argv and --yes flag", async () => {
+    const targetDir = join(tempDir, "cli-app");
+    await run([
+      targetDir,
+      "--framework",
+      "none",
+      "--preset",
+      "node-server",
+      "--validator",
+      "valibot",
+      "--yes",
+      "--skip-install",
+      "--no-skill",
+    ]);
+
+    expect(existsSync(join(targetDir, "package.json"))).toBe(true);
+    expect(existsSync(join(targetDir, "nitro.config.ts"))).toBe(true);
+    expect(readJson(join(targetDir, "package.json")).name).toBe("cli-app");
+    const indexRoute = readFileSync(join(targetDir, "src", "routes", "index.get.ts"), "utf-8");
+    expect(indexRoute).toContain("valibot");
+  });
+
+  it("defaults installSkill to true when not specified in headless mode", async () => {
+    const targetDir = join(tempDir, "default-skill-app");
+    let installedInDir: string | undefined;
+
+    await runCreateCommand({
+      projectName: "default-skill-app",
+      targetDir,
+      framework: "none",
+      preset: "node-server",
+      skipInstall: true,
+      interactive: false,
+      skillInstaller: async (dir) => {
+        installedInDir = dir;
+      },
+    });
+
+    expect(installedInDir).toBe(targetDir);
+  });
+
+  it("invokes skillInstaller when installSkill is true", async () => {
+    const targetDir = join(tempDir, "skill-app");
+    let installedInDir: string | undefined;
+
+    await runCreateCommand({
+      projectName: "skill-app",
+      targetDir,
+      framework: "none",
+      preset: "node-server",
+      skipInstall: true,
+      interactive: false,
+      installSkill: true,
+      skillInstaller: async (dir) => {
+        installedInDir = dir;
+      },
+    });
+
+    expect(installedInDir).toBe(targetDir);
+  });
+
+  it("does not invoke skillInstaller when installSkill is false", async () => {
+    const targetDir = join(tempDir, "no-skill-app");
+    let called = false;
+
+    await runCreateCommand({
+      projectName: "no-skill-app",
+      targetDir,
+      framework: "none",
+      preset: "node-server",
+      skipInstall: true,
+      interactive: false,
+      installSkill: false,
+      skillInstaller: async () => {
+        called = true;
+      },
+    });
+
+    expect(called).toBe(false);
+  });
+
+  it("invokes skillInstaller in interactive mode when installSkill is true", async () => {
+    const targetDir = join(tempDir, "interactive-skill-app");
+    let installedInDir: string | undefined;
+
+    await runCreateCommand({
+      projectName: "interactive-skill-app",
+      targetDir,
+      framework: "none",
+      preset: "node-server",
+      host: "none",
+      validator: "none",
+      db: "none",
+      logger: "none",
+      skipInstall: true,
+      interactive: true,
+      installSkill: true,
+      skillInstaller: async (dir) => {
+        installedInDir = dir;
+      },
+    });
+
+    expect(installedInDir).toBe(targetDir);
+  });
+
+  it("does not invoke skillInstaller in interactive mode when installSkill is false", async () => {
+    const targetDir = join(tempDir, "interactive-no-skill-app");
+    let called = false;
+
+    await runCreateCommand({
+      projectName: "interactive-no-skill-app",
+      targetDir,
+      framework: "none",
+      preset: "node-server",
+      host: "none",
+      validator: "none",
+      db: "none",
+      logger: "none",
+      skipInstall: true,
+      interactive: true,
+      installSkill: false,
+      skillInstaller: async () => {
+        called = true;
+      },
+    });
+
+    expect(called).toBe(false);
+  });
+
+  it("warns and continues when the headless skill install fails", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    try {
+      await expect(
+        runCreateCommand({
+          projectName: "failed-skill-app",
+          targetDir: join(tempDir, "failed-skill-app"),
+          framework: "none",
+          preset: "node-server",
+          skipInstall: true,
+          interactive: false,
+          skillInstaller: async () => {
+            throw new Error("boom");
+          },
+        }),
+      ).resolves.toBeDefined();
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("boom"));
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("warns and continues when the interactive skill install fails", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    try {
+      await expect(
+        runCreateCommand({
+          projectName: "interactive-failed-skill-app",
+          targetDir: join(tempDir, "interactive-failed-skill-app"),
+          framework: "none",
+          preset: "node-server",
+          host: "none",
+          validator: "none",
+          db: "none",
+          logger: "none",
+          skipInstall: true,
+          interactive: true,
+          installSkill: true,
+          skillInstaller: async () => {
+            throw new Error("boom");
+          },
+        }),
+      ).resolves.toBeDefined();
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("boom"));
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("rejects the removed --runtime flag", async () => {
+    await expect(
+      run([join(tempDir, "runtime-app"), "--runtime", "bun", "--yes", "--skip-install"]),
+    ).rejects.toThrow();
   });
 });

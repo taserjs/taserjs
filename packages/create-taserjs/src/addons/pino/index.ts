@@ -16,9 +16,9 @@ export const pinoAddon: AddonDefinition = {
       factoryName: "createLogger",
     };
   },
-  async apply(_ctx, write) {
+  async apply(ctx, write) {
     await write(
-      "src/logger.ts",
+      `${ctx.serverDir}/logger.ts`,
       `import pino from "pino";
 
 export function createLogger() {

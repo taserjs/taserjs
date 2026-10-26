@@ -12,7 +12,6 @@ export function packageJsonTemplate(
     scripts: {
       dev: "vite",
       build: "vite build",
-      start: "node dist/serve.mjs",
       ...scripts,
     },
   };
@@ -57,29 +56,20 @@ drizzle/
 `;
 }
 
-export function taserConfigTemplate(): string {
+export function taserConfigTemplate(serverDir: string, extensionless = false): string {
+  const extension = extensionless ? "\n  extension: false," : "";
   return `import { defineConfig } from "@taserjs/cli";
 
 export default defineConfig({
-  serverDir: "src",
+  serverDir: "${serverDir}",
   routesDir: "routes",
   outputDir: ".taserjs",
-  app: "taser.ts",
+  app: "taser.ts",${extension}
 });
 `;
 }
 
-export function viteConfigTemplate(preset: string = "none"): string {
-  if (preset === "none") {
-    return `import { defineConfig } from "vite";
-import { taser } from "@taserjs/plugin/vite";
-
-export default defineConfig({
-  plugins: [taser()],
-});
-`;
-  }
-
+export function viteConfigTemplate(): string {
   return `import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
 import { taser } from "@taserjs/plugin/vite";
@@ -118,11 +108,13 @@ ${bootBlock}  request: () => ({
 `;
 }
 
-export function taserTsTemplate(): string {
+/** `basePath` is set when the API shares an origin with a UI, so unmatched URLs fall through to the UI. */
+export function taserTsTemplate(basePath?: string): string {
+  const base = basePath ? `.basePath("${basePath}")` : "";
   return `import { defineTaser } from "@taserjs/router";
 import { context } from "./context.js";
 
-export default defineTaser().context(context);
+export default defineTaser()${base}.context(context);
 `;
 }
 
@@ -205,5 +197,30 @@ declare module "@taserjs/router" {
     AppContext: AppContext;
   }
 }
+`;
+}
+
+/** Typed client starter for UI projects; routes come from the generated manifest. */
+export function apiClientTemplate({
+  serverDir,
+  manifestImport,
+  baseUrl,
+}: {
+  serverDir: string;
+  manifestImport: string;
+  baseUrl: string;
+}): string {
+  return `import { createClient } from "@taserjs/client";
+
+import type { AppManifest } from "${manifestImport}";
+
+export const api = createClient<AppManifest>({
+  baseUrl: "${baseUrl}",
+});
+
+// Call routes with the same shape as the files under ${serverDir}/routes:
+//
+//   const response = await api.$get(); // GET /api
+//   if (response.ok) console.log(await response.json());
 `;
 }

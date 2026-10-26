@@ -1,0 +1,171 @@
+---
+title: React Router
+description: "Mount a file-based Taser.js REST API under /api in a React Router framework-mode app, with a typed client for loaders and components."
+icon: Layers
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Callout } from "fumadocs-ui/components/callout";
+
+**React Router** in framework mode owns the server, so Taser.js is mounted as a resource route that forwards every `/api` request to the compiled Taser.js app. The Vite plugin keeps the route manifest in sync while `react-router dev` runs.
+
+<Callout type="info">
+  React Router deploys through its own server build and adapters, so Taser.js adds no deployment
+  configuration.
+</Callout>
+
+---
+
+## Scaffold
+
+```bash
+npm create taserjs@latest my-app -- --framework react-router
+```
+
+`create-taserjs` runs `create-react-router`, adds Taser.js, and skips the deployment question.
+
+---
+
+## Manual Setup
+
+<Steps>
+  <Step>
+    ### 1. Install
+
+    ```bash
+    pnpm add @taserjs/router @taserjs/client
+    pnpm add -D @taserjs/plugin @taserjs/cli
+    ```
+
+  </Step>
+
+  <Step>
+    ### 2. Register the Vite plugin
+
+    Add `taser()` before `reactRouter()` in `vite.config.ts`:
+
+    ```ts title="vite.config.ts"
+    import { reactRouter } from "@react-router/dev/vite";
+    import { taser } from "@taserjs/plugin/vite";
+    import { defineConfig } from "vite";
+
+    export default defineConfig({
+      plugins: [taser(), reactRouter()],
+    });
+    ```
+
+    The plugin detects React Router and leaves request handling to it.
+
+  </Step>
+
+  <Step>
+    ### 3. Create the app definition
+
+    Point Taser.js at a folder inside `app/`:
+
+    ```ts title="taserjs.config.ts"
+    import { defineConfig } from "@taserjs/cli";
+
+    export default defineConfig({
+      serverDir: "app/server",
+      routesDir: "routes",
+      outputDir: ".taserjs",
+      app: "taser.ts",
+    });
+    ```
+
+    Create `app/server/taser.ts` with `defineTaser().basePath("/api")` and your endpoints in `app/server/routes/`, exactly as in the [Next.js guide](/docs/fullstack/nextjs).
+
+  </Step>
+
+  <Step>
+    ### 4. Mount the API
+
+    A route module without a default export is a resource route. React Router calls `loader` for `GET` and `HEAD` and `action` for every other method, so one handler serves them all:
+
+    ```ts title="app/routes/api.ts"
+    import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+
+    import { app } from "../server/.taserjs/routes.gen";
+
+    const handle = ({ request }: LoaderFunctionArgs | ActionFunctionArgs) => app.fetch(request);
+
+    export const loader = handle;
+    export const action = handle;
+    ```
+
+    Register it with a splat route, which also matches the bare `/api`:
+
+    ```ts title="app/routes.ts"
+    import { type RouteConfig, index, route } from "@react-router/dev/routes";
+
+    export default [
+      index("routes/home.tsx"),
+      route("api/*", "routes/api.ts"),
+    ] satisfies RouteConfig;
+    ```
+
+  </Step>
+
+  <Step>
+    ### 5. Create the typed client
+
+    ```ts title="app/api.ts"
+    import { createClient } from "@taserjs/client";
+    import type { AppManifest } from "./server/.taserjs/routes.gen";
+
+    export const api = createClient<AppManifest>({ baseUrl: "/api" });
+    ```
+
+    A relative base URL works in the browser. Server-side loaders run `fetch` in Node, which cannot resolve it, so create a client with an absolute `baseUrl` there or call `app.fetch` directly.
+
+  </Step>
+</Steps>
+
+---
+
+## Project Structure
+
+```
+my-react-router-app/
+├── vite.config.ts            # plugins: [taser(), ..., reactRouter()]
+├── taserjs.config.ts         # serverDir: "app/server"
+└── app/
+    ├── routes.ts             # route("api/*", "routes/api.ts")
+    ├── api.ts                # createClient<AppManifest>({ baseUrl: "/api" })
+    ├── routes/
+    │   ├── home.tsx
+    │   └── api.ts            # forwards /api/** to Taser.js
+    └── server/               # Taser.js REST API subsystem
+        ├── taser.ts
+        ├── context.ts
+        ├── routes/
+        │   └── index.get.ts  # GET /api
+        └── .taserjs/
+            └── routes.gen.ts # generated
+```
+
+---
+
+## Using the Client
+
+Call the API from a client-side effect or a `clientLoader`, where the relative base URL resolves:
+
+```tsx title="app/routes/home.tsx"
+import { useEffect, useState } from "react";
+
+import { api } from "../api";
+
+export default function Home() {
+  const [message, setMessage] = useState<string>();
+
+  useEffect(() => {
+    api
+      .$get()
+      .then((res) => res.json())
+      .then((data) => setMessage(data.message));
+  }, []);
+
+  return <p>{message}</p>;
+}
+```

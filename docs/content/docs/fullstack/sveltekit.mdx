@@ -1,0 +1,135 @@
+---
+title: SvelteKit
+description: "Mount a file-based Taser.js REST API under /api in a SvelteKit app, with a typed client for load functions and components."
+icon: Layers
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Callout } from "fumadocs-ui/components/callout";
+
+**SvelteKit** owns the server, so Taser.js is mounted as a `+server.ts` endpoint that forwards every `/api` request to the compiled Taser.js app. The Vite plugin keeps the route manifest in sync while `vite dev` runs.
+
+<Callout type="info">
+  SvelteKit deploys through its own adapter, so Taser.js adds no deployment configuration.
+</Callout>
+
+---
+
+## Scaffold
+
+```bash
+npm create taserjs@latest my-app -- --framework sveltekit
+```
+
+`create-taserjs` runs `sv create`, adds Taser.js, and skips the deployment question.
+
+---
+
+## Manual Setup
+
+<Steps>
+  <Step>
+    ### 1. Install
+
+    ```bash
+    pnpm add @taserjs/router @taserjs/client
+    pnpm add -D @taserjs/plugin @taserjs/cli
+    ```
+
+  </Step>
+
+  <Step>
+    ### 2. Register the Vite plugin
+
+    Add `taser()` before `sveltekit()` in `vite.config.ts`:
+
+    ```ts title="vite.config.ts"
+    import { sveltekit } from "@sveltejs/kit/vite";
+    import { taser } from "@taserjs/plugin/vite";
+    import { defineConfig } from "vite";
+
+    export default defineConfig({
+      plugins: [taser(), sveltekit()],
+    });
+    ```
+
+    The plugin detects SvelteKit and leaves request handling to it.
+
+  </Step>
+
+  <Step>
+    ### 3. Create the app definition
+
+    Create `src/server/taser.ts` with `defineTaser().basePath("/api")` and your endpoints in `src/server/routes/`, exactly as in the [Next.js guide](/docs/fullstack/nextjs).
+
+  </Step>
+
+  <Step>
+    ### 4. Mount the API
+
+    The `fallback` export answers every HTTP method that has no dedicated export, and the rest parameter also matches the bare `/api`:
+
+    ```ts title="src/routes/api/[...path]/+server.ts"
+    import type { RequestHandler } from "./$types";
+
+    import { app } from "../../../server/.taserjs/routes.gen";
+
+    export const fallback: RequestHandler = ({ request }) => app.fetch(request);
+    ```
+
+  </Step>
+
+  <Step>
+    ### 5. Create the typed client
+
+    ```ts title="src/api.ts"
+    import { createClient } from "@taserjs/client";
+    import type { AppManifest } from "./server/.taserjs/routes.gen";
+
+    export const api = createClient<AppManifest>({ baseUrl: "/api" });
+    ```
+
+  </Step>
+</Steps>
+
+---
+
+## Project Structure
+
+```
+my-sveltekit-app/
+├── vite.config.ts            # plugins: [taser(), sveltekit()]
+├── taserjs.config.ts         # serverDir: "src/server"
+└── src/
+    ├── api.ts                # createClient<AppManifest>({ baseUrl: "/api" })
+    ├── routes/
+    │   ├── +page.svelte
+    │   └── api/
+    │       └── [...path]/
+    │           └── +server.ts    # forwards /api/** to Taser.js
+    └── server/               # Taser.js REST API subsystem
+        ├── taser.ts
+        ├── context.ts
+        ├── routes/
+        │   └── index.get.ts  # GET /api
+        └── .taserjs/
+            └── routes.gen.ts # generated
+```
+
+---
+
+## Using the Client
+
+Pass SvelteKit's `fetch` through `load` so server-side calls resolve the relative `/api` base URL:
+
+```ts title="src/routes/+page.ts"
+import { createClient } from "@taserjs/client";
+import type { AppManifest } from "../server/.taserjs/routes.gen";
+import type { PageLoad } from "./$types";
+
+export const load: PageLoad = async ({ fetch }) => {
+  const api = createClient<AppManifest>({ baseUrl: "/api", fetch });
+  const res = await api.$get();
+  return { message: (await res.json()).message };
+};
+```

@@ -11,9 +11,11 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 import { build, createServer, type ViteDevServer } from "vite";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { taser } from "../src/vite.js";
+
+const WATCHER_SETTLE_MS = 500;
 
 describe("vite dev server integration with @taserjs/plugin/vite", () => {
   let tempDir: string;
@@ -71,6 +73,37 @@ export default t.get("/health").handler(() => Response.json({ status: "ok" }));
 
     const manifestCode = readFileSync(manifestPath, "utf-8");
     expect(manifestCode).toContain('"/health"');
+  });
+
+  it("watches routes that live outside the Vite root, as in Nuxt where Vite runs in app/", async () => {
+    const appRoot = join(tempDir, "app");
+    mkdirSync(appRoot, { recursive: true });
+    writeFileSync(
+      join(tempDir, "src", "routes", "one.get.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.get("/one").handler(() => Response.json(1));',
+      "utf-8",
+    );
+
+    server = await createServer({
+      root: appRoot,
+      server: { port: 0 },
+      plugins: [taser({ cwd: tempDir })],
+      logLevel: "silent",
+    });
+    await server.listen();
+    // Chokidar scans a newly added path asynchronously, so give it time before the file appears.
+    await new Promise((resolve) => setTimeout(resolve, WATCHER_SETTLE_MS));
+
+    writeFileSync(
+      join(tempDir, "src", "routes", "two.get.ts"),
+      'import { t } from "@taserjs/router";\nexport default t.get("/two").handler(() => Response.json(2));',
+      "utf-8",
+    );
+
+    const manifestPath = join(tempDir, "src", ".taserjs", "routes.gen.ts");
+    await vi.waitFor(() => expect(readFileSync(manifestPath, "utf-8")).toContain('"/two"'), {
+      timeout: 5000,
+    });
   });
 
   it("regenerates manifest when route files are added and removed in watcher", async () => {

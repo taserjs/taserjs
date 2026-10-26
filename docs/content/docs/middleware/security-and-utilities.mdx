@@ -47,7 +47,7 @@ import { bodyLimit } from "@taserjs/router/middleware/body-limit";
 import { payloadTooLarge } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-export default t.layout("/uploads").use(
+export default t.layout("/uploads/*").use(
   bodyLimit({
     maxSize: 10 * 1024 * 1024, // 10MB limit
     onError: () => {

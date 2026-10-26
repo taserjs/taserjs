@@ -6,7 +6,7 @@ export const revalidate = false;
 
 const LLM_SUMMARY_HEADER = `# Taser.js API Router Quick Reference
 
-> Taser.js is a type-safe, file-based REST API router for TypeScript. Packages: \`@taserjs/router\`, \`@taserjs/cli\`, \`@taserjs/plugin\`, \`@taserjs/client\`. Runs on Vite standalone, Nitro, Next.js App Router, TanStack Start, and host pass-through (Express, Fastify, Hono).
+> Taser.js is a type-safe, file-based REST API router for TypeScript. Packages: \`@taserjs/router\`, \`@taserjs/cli\`, \`@taserjs/plugin\`, \`@taserjs/client\`. Runs on Vite standalone, Nitro, Next.js App Router, TanStack Start, React Router, Nuxt, SvelteKit, Vite SPA, and host pass-through (Express, Fastify, Hono, Elysia).
 
 ## Canonical Architecture
 - App definition: \`export default defineTaser({ ... })\` from \`@taserjs/router\` (uninstantiated \`TaserDefinition\`).
@@ -21,8 +21,8 @@ const LLM_SUMMARY_HEADER = `# Taser.js API Router Quick Reference
 - Optional Param: \`src/routes/posts/{-$category}.get.ts\` -> GET /posts/:category? (matches /posts and /posts/:category; \`req.params.category: string | undefined\`)
 - Nested Flat Route: \`src/routes/users.$id.posts.get.ts\` -> GET /users/:id/posts
 - Catch-All Splat: \`src/routes/files.$.get.ts\` -> GET /files/* (\`req.params._splat\`)
-- Pathless Layout: \`src/routes/_auth.ts\` -> Scoped middleware for pathless group
-- Directory Layout: \`src/routes/api/$.ts\` -> Scoped middleware for /api/*
+- Pathless Layout: \`src/routes/_auth.ts\` -> Scoped middleware for pathless group (\`t.layout("/_auth/*")\`)
+- Directory Layout: \`src/routes/api/$.ts\` -> Scoped middleware for /api/* (\`t.layout("/api/*")\`)
 
 ## Route Handler Pattern
 \`\`\`ts
@@ -48,12 +48,12 @@ export default t
 \`\`\`
 
 ## Middleware & Layout Pattern
-Handler/middleware args are facet-split: \`{ req, ctx, state, ...services }\`.
+Handler/middleware args are facet-split: \`{ req, ctx, state, ...services }\`. Layout IDs must end in \`/*\`.
 \`\`\`ts
 import { unauthorized } from "@taserjs/router/reply";
 import { t } from "@taserjs/router";
 
-export default t.layout("/dashboard").use(async ({ req }, next) => {
+export default t.layout("/dashboard/*").use(async ({ req }, next) => {
   const authHeader = req.headers.get("authorization");
   if (!authHeader) {
     return unauthorized({ message: "Missing authorization" });
@@ -79,8 +79,8 @@ await api.users._id.$get({ param: { id: "..." } });
 
 ## Reply Helpers
 From \`@taserjs/router/reply\`:
-- \`json\`, \`text\`, \`html\`, \`noContent\`, \`redirect\`
-- \`badRequest\`, \`unauthorized\`, \`forbidden\`, \`notFound\`, \`unprocessableEntity\`, \`internalServerError\`, etc.
+- \`json\`, \`ok\`, \`created\`, \`accepted\`, \`noContent\`, \`text\`, \`html\`, \`redirect\`
+- \`badRequest\`, \`unauthorized\`, \`forbidden\`, \`notFound\`, \`methodNotAllowed\`, \`conflict\`, \`payloadTooLarge\`, \`unprocessable\`, \`tooManyRequests\`, \`internalServerError\`
 
 ## Generate
 - Dev/build: \`@taserjs/plugin\` regenerates \`routes.gen.ts\`

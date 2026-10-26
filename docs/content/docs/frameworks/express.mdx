@@ -38,10 +38,10 @@ Taser.js integrates with Express applications using the **Host Pass-Through Arch
 
 <Steps>
   <Step>
-    ### 1. Scaffold with Express Host
+    ### 1. Scaffold an API project
 
     ```bash
-    pnpm create taserjs@latest my-express-app --framework express -y
+    pnpm create taserjs@latest my-express-app --host express -y
     ```
 
   </Step>
@@ -49,7 +49,7 @@ Taser.js integrates with Express applications using the **Host Pass-Through Arch
   <Step>
     ### 2. Configure `src/server.node.ts`
 
-    Create `src/server.node.ts` exporting your Express application:
+    The scaffold creates `src/server.node.ts` exporting an Express application. Taser.js detects it by name and falls through to it for unmatched requests. Add your own middleware and routes:
 
     ```ts title="src/server.node.ts"
     import express from "express";

@@ -1,0 +1,39 @@
+name: Scaffold E2E
+
+# Runs create-taserjs against the real framework generators (@latest) to catch generator drift
+# that the fixture-based unit tests cannot see.
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scaffold-e2e:
+    name: Scaffold and build each framework
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js 24.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build-packages
+
+      - name: Scaffold and build
+        run: pnpm --filter create-taserjs e2e

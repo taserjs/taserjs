@@ -20,10 +20,10 @@ export default function HomePage() {
       <SoftwareApplicationJsonLd />
       <WebSiteJsonLd />
       <HeroSection />
-      <SkillsSection />
-      <ProblemSolutionTabs />
-      <MotivationSection />
       <TryItSection />
+      <MotivationSection />
+      <ProblemSolutionTabs />
+      <SkillsSection />
       <AdaptersSection />
       <RoadmapSection />
       <SponsorsSection />

@@ -52,9 +52,13 @@ When an incoming HTTP request reaches your server:
 
 <Steps>
   <Step>
-    ### 1. Configure `src/server.ts`
+    ### 1. Scaffold and configure `src/server.ts`
 
-    Create `src/server.ts` exporting your preferred Fetch-native application:
+    ```bash
+    pnpm create taserjs@latest my-app --host hono -y   # or --host elysia
+    ```
+
+    The scaffold creates `src/server.ts` exporting a Fetch-native application. For other hosts, create the file yourself:
 
     <Tabs items={["Hono", "Elysia", "Web Standard Fetch"]}>
       <Tab value="Hono">

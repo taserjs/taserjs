@@ -83,15 +83,15 @@ export default t.get("/articles").handler(({ req, ctx }) => {
 
 Each builder method returns a `RouteBuilder` that supports fluent method chaining:
 
-| Method                           | Description                                                           |
-| :------------------------------- | :-------------------------------------------------------------------- |
-| `.query(schema)`                 | Validates query string parameters                                     |
-| `.params(schema)`                | Validates and coerces path parameters                                 |
-| `.body(schema)`                  | Validates request payloads (JSON by default)                          |
-| `.body(mode, schema)`            | Validates payloads with explicit mode (`json`, `form`, `text`, `raw`) |
-| `.returns({ [status]: schema })` | Enforces compile-time and runtime response contracts                  |
-| `.use(middleware)`               | Attaches route-level middleware                                       |
-| `.handler(fn)`                   | Terminal method executing the route logic                             |
+| Method                           | Description                                                                         |
+| :------------------------------- | :---------------------------------------------------------------------------------- |
+| `.query(schema)`                 | Validates query string parameters                                                   |
+| `.params(schema)`                | Validates and coerces path parameters                                               |
+| `.body(schema)`                  | Validates request payloads (JSON by default)                                        |
+| `.body(schema, mode?)`           | Validates payloads with explicit mode (`json`, `form`, `urlencoded`, `text`, `raw`) |
+| `.returns({ [status]: schema })` | Enforces compile-time and runtime response contracts                                |
+| `.use(middleware)`               | Attaches route-level middleware                                                     |
+| `.handler(fn)`                   | Terminal method executing the route logic                                           |
 
 ---
 
@@ -190,10 +190,10 @@ export default t
 ```
 
 <Callout type="info" title="JSON & Multipart / File Uploads">
-  The `.body()` method validates `application/json` by default and also supports `form`, `text`, and
-  `raw` modes. See the [Standard Schema Validation
-  Guide](/docs/validation/standard-schema#validating-multipart-form-data--file-uploads) for examples
-  on validating `File` uploads, sizes, and MIME types.
+  The `.body()` method validates `application/json` by default and also supports `form`,
+  `urlencoded`, `text`, and `raw` modes via `.body(schema, mode)`. See the [Standard Schema
+  Validation Guide](/docs/validation/standard-schema#validating-multipart-form-data--file-uploads)
+  for examples on validating `File` uploads, sizes, and MIME types.
 </Callout>
 
 ---
