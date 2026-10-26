@@ -31,8 +31,11 @@ pnpm create taserjs@latest my-app --framework vite --template vue --db drizzle -
 | `--db` / `--driver` | `drizzle`, `prisma`, `kysely` / `sqlite`, `postgres`, `mysql`                                                 |
 | `--validator`, `-v` | `zod`, `valibot`, `arktype`                                                                                   |
 | `--logger`, `-l`    | `pino`, `winston`                                                                                             |
-| `--skip-install`    | Skip installing dependencies                                                                                  |
+| `--skip-install`    | Skip installing dependencies (the agent skill still installs)                                                 |
+| `--skill`           | Install the Taser.js agent skill via the `skills` CLI (enabled by default; use `--no-skill` to skip)          |
 | `--yes`, `-y`       | Skip prompts and use defaults                                                                                 |
+
+After the scaffold and its instructions are printed, interactive mode asks whether to install the agent skill and then hands the terminal to `skills add`. Headless mode runs the non-interactive equivalent of `skills add taserjs/taserjs --skill taserjs --yes`. The `skills` CLI requires Node.js 22.20 or later. A failed skill install never fails the scaffold.
 
 `--host` applies to API-only, `tanstack-router` and `vite` projects; Express and Fastify cannot run on Cloudflare presets. UI projects are created with the framework's official generator, then Taser.js is added on top. API-only, Vite and TanStack Start projects deploy through a Nitro preset, `node-server` by default. Next.js, Nuxt, SvelteKit and React Router deploy through their own adapter or Nitro preset, so no preset applies.
 

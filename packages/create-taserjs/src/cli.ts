@@ -15,9 +15,6 @@ import type {
 import { FRAMEWORK_IDS } from "./frameworks/registry.js";
 import { HOST_IDS } from "./hosts/registry.js";
 
-const orUndefined = <T extends string>(value: string | undefined): T | undefined =>
-  value === "none" || value === undefined ? undefined : (value as T);
-
 export async function run(argv: string[] = hideBin(process.argv)): Promise<void> {
   const parser = yargs(argv)
     .scriptName("create-taserjs")
@@ -78,8 +75,15 @@ export async function run(argv: string[] = hideBin(process.argv)): Promise<void>
           })
           .option("skip-install", {
             type: "boolean",
-            description: "Skip dependency installation",
+            description: "Skip dependency installation (does not skip the agent skill)",
             default: false,
+          })
+          .option("skill", {
+            alias: "install-skill",
+            type: "boolean",
+            description:
+              "Install the Taser.js agent skill via the skills CLI (default: true; --no-skill to skip)",
+            defaultDescription: "true",
           })
           .option("yes", {
             alias: "y",
@@ -94,12 +98,13 @@ export async function run(argv: string[] = hideBin(process.argv)): Promise<void>
           framework: args.framework as FrameworkId | undefined,
           template: args.template as string | undefined,
           preset: args.preset as DeployPreset | undefined,
-          host: orUndefined<HostId>(args.host),
-          validator: orUndefined<ValidatorId>(args.validator),
-          db: orUndefined<DbOdm>(args.db),
+          host: args.host as HostId | undefined,
+          validator: args.validator as ValidatorId | "none" | undefined,
+          db: args.db as DbOdm | "none" | undefined,
           driver: args.driver as DbDriver | undefined,
-          logger: orUndefined<LoggerId>(args.logger),
+          logger: args.logger as LoggerId | "none" | undefined,
           skipInstall: Boolean(args.skipInstall),
+          installSkill: args.skill as boolean | undefined,
           interactive: !args.yes,
         };
         await runCreateCommand(createOpts);

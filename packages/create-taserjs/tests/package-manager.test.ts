@@ -10,7 +10,9 @@ import {
   addPackageCommands,
   installPackages,
   packageManagerName,
+  resolveAgentSkillCommand,
   resolveGeneratorCommand,
+  runAgentSkill,
 } from "../src/core/package-manager.js";
 
 const WORKING_DIR = "/fake/project";
@@ -98,6 +100,94 @@ describe("resolveGeneratorCommand", () => {
   it("strips version flavours from the manager name", () => {
     expect(packageManagerName("yarn@berry")).toBe("yarn");
     expect(packageManagerName("pnpm")).toBe("pnpm");
+  });
+});
+
+describe("resolveAgentSkillCommand", () => {
+  it("pins the skill and skips prompts in headless mode for npm", () => {
+    expect(resolveAgentSkillCommand("npm", { interactive: false })).toEqual({
+      command: "npx",
+      args: ["--yes", "skills", "add", "taserjs/taserjs", "--skill", "taserjs", "--yes"],
+    });
+  });
+
+  it("runs through dlx for pnpm", () => {
+    expect(resolveAgentSkillCommand("pnpm", { interactive: false })).toEqual({
+      command: "pnpm",
+      args: ["dlx", "skills", "add", "taserjs/taserjs", "--skill", "taserjs", "--yes"],
+    });
+  });
+
+  it("runs through bun x for bun", () => {
+    expect(resolveAgentSkillCommand("bun", { interactive: false })).toEqual({
+      command: "bun",
+      args: ["x", "skills", "add", "taserjs/taserjs", "--skill", "taserjs", "--yes"],
+    });
+  });
+
+  it("omits the skill selection and --yes when interactive", () => {
+    expect(resolveAgentSkillCommand("npm", { interactive: true })).toEqual({
+      command: "npx",
+      args: ["--yes", "skills", "add", "taserjs/taserjs"],
+    });
+  });
+});
+
+describe("runAgentSkill (headless)", () => {
+  beforeEach(() => {
+    spawnMock.mockReset();
+  });
+
+  it("runs the skills CLI non-interactively and pipes stderr", async () => {
+    stubSpawn((child) => child.emit("close", 0));
+
+    await expect(runAgentSkill("npm", WORKING_DIR, false)).resolves.toBeUndefined();
+
+    expect(spawnMock.mock.calls[0]?.[0]).toBe("npx");
+    expect(spawnMock.mock.calls[0]?.[1]).toEqual([
+      "--yes",
+      "skills",
+      "add",
+      "taserjs/taserjs",
+      "--skill",
+      "taserjs",
+      "--yes",
+    ]);
+    expect(spawnMock.mock.calls[0]?.[2]).toMatchObject({
+      cwd: WORKING_DIR,
+      stdio: ["ignore", "ignore", "pipe"],
+    });
+  });
+
+  it("rejects with the captured stderr when it fails", async () => {
+    stubSpawn((child) => {
+      child.stderr.emit("data", Buffer.from("network unavailable"));
+      child.emit("close", 1);
+    });
+
+    await expect(runAgentSkill("npm", WORKING_DIR, false)).rejects.toThrow(
+      /exit code 1[\s\S]*network unavailable/,
+    );
+  });
+});
+
+describe("runAgentSkill (interactive)", () => {
+  beforeEach(() => {
+    spawnMock.mockReset();
+  });
+
+  it("inherits stdio so the skills CLI can prompt", async () => {
+    stubSpawn((child) => child.emit("close", 0));
+
+    await expect(runAgentSkill("npm", WORKING_DIR, true)).resolves.toBeUndefined();
+
+    expect(spawnMock.mock.calls[0]?.[2]).toMatchObject({ cwd: WORKING_DIR, stdio: "inherit" });
+  });
+
+  it("treats a SIGINT cancellation as success", async () => {
+    stubSpawn((child) => child.emit("close", 130));
+
+    await expect(runAgentSkill("npm", WORKING_DIR, true)).resolves.toBeUndefined();
   });
 });
 

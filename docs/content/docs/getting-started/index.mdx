@@ -74,6 +74,7 @@ Before creating a project, make sure your development environment meets these re
     4. **Schema Validator** (Optional): **Zod**, **Valibot**, or **ArkType**.
     5. **Database / ORM** (Optional): **Drizzle**, **Prisma**, or **Kysely** with a `sqlite`, `postgres`, or `mysql` driver.
     6. **Logger** (Optional): **Pino** or **Winston**.
+    7. **Dependencies & AI Agent Skill**: Confirm package installation, then install the Taser.js agent skill (enabled by default) into your project for AI coding assistants.
 
     UI projects are created by running the framework's official generator (`create-vite`, `create-next-app`, `@tanstack/cli`) at `@latest`, then adding Taser.js on top. Taser.js adds its packages, wires `taser()` into your Vite config (or `createTaser()` into `next.config.ts`), and creates `src/server/` for your API and `src/api.ts` with a typed client. It does not change your components. If a config file has an unexpected shape, the wizard prints the lines to add by hand.
 
@@ -107,8 +108,11 @@ Before creating a project, make sure your development environment meets these re
     | `--driver` | Database driver (with `--db`) | `sqlite`, `postgres`, `mysql` | `sqlite` |
     | `--validator`, `-v` | Schema validation library | `zod`, `valibot`, `arktype`, `none` | `none` |
     | `--logger`, `-l` | Structured logger | `pino`, `winston`, `none` | `none` |
-    | `--skip-install` | Skip automatic package installation | `boolean` | `false` |
+    | `--skip-install` | Skip automatic dependency installation (the agent skill still installs) | `boolean` | `false` |
+    | `--skill` | Install the Taser.js agent skill via the `skills` CLI | `boolean` (use `--no-skill` to skip) | `true` |
     | `-y`, `--yes` | Non-interactive mode using defaults for omitted flags | `boolean` | `false` |
+
+    After the scaffold prints its instructions, interactive mode asks whether to install the agent skill and then hands the terminal to `skills add`. In headless mode it runs the non-interactive equivalent. The `skills` package requires Node.js 22.20 or later. A failed skill install never fails the scaffold.
 
     `--preset` does not apply to `nextjs`, `nuxt`, `sveltekit` or `react-router`, which deploy through their own adapter or Nitro preset.
 

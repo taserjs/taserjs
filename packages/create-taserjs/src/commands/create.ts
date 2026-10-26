@@ -7,6 +7,7 @@ import {
   addPackageCommands,
   installPackages,
   resolveUserAgent,
+  runAgentSkill,
   runScript,
 } from "../core/package-manager.js";
 import { DEFAULT_NITRO_PRESET, isNodeRuntimePreset, PRESET_CHOICES } from "../core/presets.js";
@@ -41,15 +42,17 @@ export interface RunCreateCommandOptions {
   template?: string | undefined;
   preset?: DeployPreset | undefined;
   host?: HostId | undefined;
-  db?: DbOdm | undefined;
+  db?: DbOdm | "none" | undefined;
   driver?: DbDriver | undefined;
-  logger?: LoggerId | undefined;
-  validator?: ValidatorId | undefined;
+  logger?: LoggerId | "none" | undefined;
+  validator?: ValidatorId | "none" | undefined;
   skipInstall?: boolean | undefined;
+  installSkill?: boolean | undefined;
   interactive?: boolean | undefined;
   targetDir?: string | undefined;
   packageVersions?: Record<string, string> | undefined;
   generator?: GeneratorRunner | undefined;
+  skillInstaller?: ((targetDir: string) => Promise<void>) | undefined;
 }
 
 /** Unwraps a prompt answer, exiting cleanly when the user cancels. */
@@ -65,10 +68,10 @@ const NONE = "none";
 
 async function selectOptional<T extends string>(
   message: string,
-  preset: T | undefined,
+  preset: T | "none" | undefined,
   options: { value: T; label: string }[],
 ): Promise<T | undefined> {
-  if (preset !== undefined) return preset;
+  if (preset !== undefined) return preset === "none" ? undefined : preset;
   const choice = answer(
     await p.select<string>({
       message,
@@ -246,10 +249,14 @@ function toScaffoldOptions(
     ...(resolved.template !== undefined ? { template: resolved.template } : {}),
     ...(resolved.preset !== undefined ? { preset: resolved.preset } : {}),
     ...(resolved.host !== undefined ? { host: resolved.host } : {}),
-    ...(resolved.validator !== undefined ? { validator: resolved.validator } : {}),
-    ...(resolved.db !== undefined ? { db: resolved.db } : {}),
+    ...(resolved.validator !== undefined && resolved.validator !== "none"
+      ? { validator: resolved.validator }
+      : {}),
+    ...(resolved.db !== undefined && resolved.db !== "none" ? { db: resolved.db } : {}),
     ...(resolved.driver !== undefined ? { driver: resolved.driver } : {}),
-    ...(resolved.logger !== undefined ? { logger: resolved.logger } : {}),
+    ...(resolved.logger !== undefined && resolved.logger !== "none"
+      ? { logger: resolved.logger }
+      : {}),
     ...(args.packageVersions !== undefined ? { packageVersions: args.packageVersions } : {}),
     ...(args.generator !== undefined ? { generator: args.generator } : {}),
     skipInstall: resolved.skipInstall ?? process.env.NODE_ENV === "test",
@@ -265,6 +272,35 @@ async function installDependencies(
     dependencies: result.dependencies ?? [],
     devDependencies: result.devDependencies ?? [],
   });
+}
+
+async function installAgentSkillStep(
+  args: RunCreateCommandOptions,
+  targetDir: string,
+  agent: ReturnType<typeof resolveUserAgent>,
+  interactive: boolean,
+): Promise<void> {
+  const shouldInstall =
+    args.installSkill ??
+    (interactive
+      ? answer(
+          await p.confirm({
+            message: "Install the Taser.js agent skill? (requires Node.js >= 22)",
+            initialValue: true,
+          }),
+        )
+      : true);
+
+  if (!shouldInstall) return;
+
+  const installer =
+    args.skillInstaller ?? ((dir: string) => runAgentSkill(agent, dir, interactive));
+
+  try {
+    await installer(targetDir);
+  } catch (err) {
+    console.warn(pc.dim(err instanceof Error ? err.message : String(err)));
+  }
 }
 
 export async function runCreateCommand(
@@ -285,6 +321,7 @@ export async function runCreateCommand(
   if (!isInteractive) {
     const result = await scaffoldProject(scaffoldOpts);
     if (!scaffoldOpts.skipInstall) await installDependencies(agent, targetDir, result);
+    await installAgentSkillStep(args, targetDir, agent, false);
     return result;
   }
 
@@ -320,5 +357,8 @@ export async function runCreateCommand(
     for (const { command, args } of addCommands) console.log(`  ${command} ${args.join(" ")}`);
   }
   console.log(`  ${runScript(agent, "dev")}\n`);
+
+  await installAgentSkillStep(args, targetDir, agent, true);
+
   return result;
 }

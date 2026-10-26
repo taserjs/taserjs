@@ -110,7 +110,7 @@ describe("create-taserjs host frameworks", () => {
 
   it("accepts --host at the CLI", async () => {
     const targetDir = join(tempDir, "cli-app");
-    await run([targetDir, "--host", "fastify", "--yes", "--skip-install"]);
+    await run([targetDir, "--host", "fastify", "--yes", "--skip-install", "--no-skill"]);
 
     expect(existsSync(join(targetDir, "src/server.node.ts"))).toBe(true);
   });

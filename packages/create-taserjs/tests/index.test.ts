@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { run, runCreateCommand, scaffoldProject } from "../src/index.js";
 
@@ -175,6 +175,7 @@ describe("create-taserjs API-only scaffolds", () => {
       "valibot",
       "--yes",
       "--skip-install",
+      "--no-skill",
     ]);
 
     expect(existsSync(join(targetDir, "package.json"))).toBe(true);
@@ -182,6 +183,166 @@ describe("create-taserjs API-only scaffolds", () => {
     expect(readJson(join(targetDir, "package.json")).name).toBe("cli-app");
     const indexRoute = readFileSync(join(targetDir, "src", "routes", "index.get.ts"), "utf-8");
     expect(indexRoute).toContain("valibot");
+  });
+
+  it("defaults installSkill to true when not specified in headless mode", async () => {
+    const targetDir = join(tempDir, "default-skill-app");
+    let installedInDir: string | undefined;
+
+    await runCreateCommand({
+      projectName: "default-skill-app",
+      targetDir,
+      framework: "none",
+      preset: "node-server",
+      skipInstall: true,
+      interactive: false,
+      skillInstaller: async (dir) => {
+        installedInDir = dir;
+      },
+    });
+
+    expect(installedInDir).toBe(targetDir);
+  });
+
+  it("invokes skillInstaller when installSkill is true", async () => {
+    const targetDir = join(tempDir, "skill-app");
+    let installedInDir: string | undefined;
+
+    await runCreateCommand({
+      projectName: "skill-app",
+      targetDir,
+      framework: "none",
+      preset: "node-server",
+      skipInstall: true,
+      interactive: false,
+      installSkill: true,
+      skillInstaller: async (dir) => {
+        installedInDir = dir;
+      },
+    });
+
+    expect(installedInDir).toBe(targetDir);
+  });
+
+  it("does not invoke skillInstaller when installSkill is false", async () => {
+    const targetDir = join(tempDir, "no-skill-app");
+    let called = false;
+
+    await runCreateCommand({
+      projectName: "no-skill-app",
+      targetDir,
+      framework: "none",
+      preset: "node-server",
+      skipInstall: true,
+      interactive: false,
+      installSkill: false,
+      skillInstaller: async () => {
+        called = true;
+      },
+    });
+
+    expect(called).toBe(false);
+  });
+
+  it("invokes skillInstaller in interactive mode when installSkill is true", async () => {
+    const targetDir = join(tempDir, "interactive-skill-app");
+    let installedInDir: string | undefined;
+
+    await runCreateCommand({
+      projectName: "interactive-skill-app",
+      targetDir,
+      framework: "none",
+      preset: "node-server",
+      host: "none",
+      validator: "none",
+      db: "none",
+      logger: "none",
+      skipInstall: true,
+      interactive: true,
+      installSkill: true,
+      skillInstaller: async (dir) => {
+        installedInDir = dir;
+      },
+    });
+
+    expect(installedInDir).toBe(targetDir);
+  });
+
+  it("does not invoke skillInstaller in interactive mode when installSkill is false", async () => {
+    const targetDir = join(tempDir, "interactive-no-skill-app");
+    let called = false;
+
+    await runCreateCommand({
+      projectName: "interactive-no-skill-app",
+      targetDir,
+      framework: "none",
+      preset: "node-server",
+      host: "none",
+      validator: "none",
+      db: "none",
+      logger: "none",
+      skipInstall: true,
+      interactive: true,
+      installSkill: false,
+      skillInstaller: async () => {
+        called = true;
+      },
+    });
+
+    expect(called).toBe(false);
+  });
+
+  it("warns and continues when the headless skill install fails", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    try {
+      await expect(
+        runCreateCommand({
+          projectName: "failed-skill-app",
+          targetDir: join(tempDir, "failed-skill-app"),
+          framework: "none",
+          preset: "node-server",
+          skipInstall: true,
+          interactive: false,
+          skillInstaller: async () => {
+            throw new Error("boom");
+          },
+        }),
+      ).resolves.toBeDefined();
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("boom"));
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("warns and continues when the interactive skill install fails", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    try {
+      await expect(
+        runCreateCommand({
+          projectName: "interactive-failed-skill-app",
+          targetDir: join(tempDir, "interactive-failed-skill-app"),
+          framework: "none",
+          preset: "node-server",
+          host: "none",
+          validator: "none",
+          db: "none",
+          logger: "none",
+          skipInstall: true,
+          interactive: true,
+          installSkill: true,
+          skillInstaller: async () => {
+            throw new Error("boom");
+          },
+        }),
+      ).resolves.toBeDefined();
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("boom"));
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("rejects the removed --runtime flag", async () => {

@@ -12,21 +12,25 @@ pnpm create taserjs@latest my-api
 
 Non-interactive CI and agent flags (`create-taserjs --help`):
 
-| Flag              | Options                                                                                            | Default / Description                            |
-| :---------------- | :------------------------------------------------------------------------------------------------- | :----------------------------------------------- |
-| `-f, --framework` | `none`, `tanstack-router`, `react-router`, `tanstack-start`, `nextjs`, `nuxt`, `sveltekit`, `vite` | `none` (API-only)                                |
-| `-t, --template`  | `react`, `vue`, `svelte`, `solid`, `preact`                                                        | Template for `--framework vite`                  |
-| `-p, --preset`    | `node-server`, `cloudflare-module`, `vercel`, `netlify`, `aws-lambda`, or any Nitro preset         | `node-server`                                    |
-| `--host`          | `none`, `express`, `fastify`, `hono`, `elysia`                                                     | `none` (Host pass-through server)                |
-| `-v, --validator` | `zod`, `valibot`, `arktype`, `none`                                                                | Standard Schema library                          |
-| `--db`            | `drizzle`, `prisma`, `kysely`, `none`                                                              | Database ORM/query builder                       |
-| `--driver`        | `sqlite`, `postgres`, `mysql`                                                                      | Database driver                                  |
-| `-l, --logger`    | `pino`, `winston`, `none`                                                                          | Structured logger                                |
-| `--skip-install`  | boolean                                                                                            | Scaffold without running package manager install |
-| `-y, --yes`       | boolean                                                                                            | Accept default values for unprovided options     |
+| Flag              | Options                                                                                            | Default / Description                                                  |
+| :---------------- | :------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------- |
+| `-f, --framework` | `none`, `tanstack-router`, `react-router`, `tanstack-start`, `nextjs`, `nuxt`, `sveltekit`, `vite` | `none` (API-only)                                                      |
+| `-t, --template`  | `react`, `vue`, `svelte`, `solid`, `preact`                                                        | Template for `--framework vite`                                        |
+| `-p, --preset`    | `node-server`, `cloudflare-module`, `vercel`, `netlify`, `aws-lambda`, or any Nitro preset         | `node-server`                                                          |
+| `--host`          | `none`, `express`, `fastify`, `hono`, `elysia`                                                     | `none` (Host pass-through server)                                      |
+| `-v, --validator` | `zod`, `valibot`, `arktype`, `none`                                                                | Standard Schema library                                                |
+| `--db`            | `drizzle`, `prisma`, `kysely`, `none`                                                              | Database ORM/query builder                                             |
+| `--driver`        | `sqlite`, `postgres`, `mysql`                                                                      | Database driver                                                        |
+| `-l, --logger`    | `pino`, `winston`, `none`                                                                          | Structured logger                                                      |
+| `--skip-install`  | boolean                                                                                            | Skip dependency install (the agent skill still installs)               |
+| `--skill`         | boolean                                                                                            | Install the Taser.js agent skill (default: true; `--no-skill` to skip) |
+| `-y`, `--yes`     | boolean                                                                                            | Accept default values for unprovided options                           |
 
 > [!NOTE]
 > `--db` and `--driver` are separate flags (e.g. `--db drizzle --driver postgres`). There is no `--json` flag or combined `drizzle:postgres` syntax.
+
+> [!NOTE]
+> The agent skill installs from `taserjs/taserjs` via the `skills` CLI. It requires Node.js 22.20 or later. A failed skill install never fails the scaffold. Add `--no-skill` in CI when you do not want it.
 
 Example non-interactive scaffold:
 

@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, type StdioOptions } from "node:child_process";
 
 import { getUserAgent, resolveCommand, type Agent } from "package-manager-detector";
 
@@ -29,11 +29,25 @@ export function runScript(agent: Agent, script: string): string {
   }
 }
 
-function runCommandAsync(command: string, args: string[], cwd: string): Promise<void> {
+interface RunCommandOptions {
+  stdio?: StdioOptions;
+  allowInterrupt?: boolean;
+  shell?: boolean;
+}
+
+function runCommandAsync(
+  command: string,
+  args: string[],
+  cwd: string,
+  options: RunCommandOptions = {},
+): Promise<void> {
+  const { stdio = ["ignore", "ignore", "pipe"], allowInterrupt = false, shell = false } = options;
+
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd,
-      stdio: ["ignore", "ignore", "pipe"],
+      stdio,
+      shell,
       env: process.env,
     });
 
@@ -43,13 +57,14 @@ function runCommandAsync(command: string, args: string[], cwd: string): Promise<
     });
 
     child.on("error", (err) => reject(err));
-    child.on("close", (code) => {
-      if (code === 0) {
+    child.on("close", (code, signal) => {
+      if (code === 0 || (allowInterrupt && (code === 130 || signal === "SIGINT"))) {
         resolve();
       } else {
+        const status = code === null ? `signal ${signal}` : `exit code ${code}`;
         const errorMsg = stderr.trim()
-          ? `Command failed with exit code ${code}: ${command} ${args.join(" ")}\n${stderr.trim()}`
-          : `Command failed with exit code ${code}: ${command} ${args.join(" ")}`;
+          ? `Command failed with ${status}: ${command} ${args.join(" ")}\n${stderr.trim()}`
+          : `Command failed with ${status}: ${command} ${args.join(" ")}`;
         reject(new Error(errorMsg));
       }
     });
@@ -101,4 +116,27 @@ export async function installPackages(
     (previous, { command, args }) => previous.then(() => runCommandAsync(command, args, cwd)),
     Promise.resolve(),
   );
+}
+
+/** The `skills add` command for the Taser.js skill, run through the detected package manager. */
+export function resolveAgentSkillCommand(
+  agent: Agent,
+  { interactive }: { interactive: boolean },
+): { command: string; args: string[] } {
+  const args = ["add", "taserjs/taserjs"];
+  if (!interactive) args.push("--skill", "taserjs", "--yes");
+  return resolveGeneratorCommand(agent, { pkg: "skills", args });
+}
+
+export async function runAgentSkill(
+  agent: Agent,
+  cwd: string,
+  interactive: boolean,
+): Promise<void> {
+  const { command, args } = resolveAgentSkillCommand(agent, { interactive });
+  await runCommandAsync(command, args, cwd, {
+    stdio: interactive ? "inherit" : ["ignore", "ignore", "pipe"],
+    allowInterrupt: interactive,
+    shell: process.platform === "win32",
+  });
 }
