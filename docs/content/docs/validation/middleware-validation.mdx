@@ -52,7 +52,7 @@ import { middleware, t } from "@taserjs/router";
 import { unauthorized } from "@taserjs/router/reply";
 import { z } from "zod";
 
-const apiKeyGuard = middleware("/api_v2")
+const apiKeyGuard = middleware("/api_v2/*")
   .query(
     z.object({
       apiKey: z.string().min(32),

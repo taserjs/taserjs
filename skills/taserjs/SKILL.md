@@ -15,7 +15,7 @@ Follow these steps in sequence. Each step ends on a checkable completion criteri
 
 1. **Scaffold or detect project**:
    - New project: run `pnpm create taserjs@latest <name> -f <framework> -v <validator> --db <db> --driver <driver> -l <logger> -y`.
-   - Existing project: confirm `taserjs.config.ts`, `src/taser.ts`, and framework plugin integration exist.
+   - Existing project: confirm `taserjs.config.ts`, `${serverDir}/taser.ts`, and framework plugin integration exist.
    - _Criterion_: `taserjs.config.ts` exists and resolves `serverDir` and `routesDir`.
 
 2. **Generate route manifest**:

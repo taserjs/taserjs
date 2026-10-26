@@ -7,6 +7,9 @@ on:
     - cron: "0 5 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   scaffold-e2e:
     name: Scaffold and build each framework
@@ -15,6 +18,8 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js 24.x
         uses: actions/setup-node@v4

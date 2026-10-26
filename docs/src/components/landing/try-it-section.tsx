@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Copy, Terminal as TerminalIcon, SlidersHorizontal } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -125,21 +125,24 @@ function ChipGroup<T extends string>({
   disabled?: T[];
   small?: boolean;
 }) {
+  const labelId = useId();
   return (
-    <div>
-      <label
+    <div role="group" aria-labelledby={labelId}>
+      <span
+        id={labelId}
         className={cn(
           "block font-semibold text-fd-muted-foreground uppercase tracking-wider",
           small ? "mb-1.5 text-[10px]" : "mb-2 text-[11px]",
         )}
       >
         {label}
-      </label>
+      </span>
       <div className="flex flex-wrap gap-1.5">
         {options.map((option) => (
           <button
             key={option.id}
             type="button"
+            aria-pressed={option.id === value}
             disabled={disabled.includes(option.id)}
             onClick={() => onChange(option.id)}
             className={cn(

@@ -118,7 +118,13 @@ async function smokeTest(projectDir, testCase) {
       }
     }
   } finally {
-    server.kill();
+    if (server.exitCode === null && server.signalCode === null) {
+      const exited = new Promise((resolve) => server.once("exit", resolve));
+      server.kill();
+      const timer = setTimeout(() => server.kill("SIGKILL"), 5_000);
+      await exited;
+      clearTimeout(timer);
+    }
   }
 }
 

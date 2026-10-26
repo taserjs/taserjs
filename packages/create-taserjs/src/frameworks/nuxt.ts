@@ -49,7 +49,7 @@ export const nuxt: FrameworkDefinition = {
       candidates: ["nuxt.config.ts", "nuxt.config.mts", "nuxt.config.js", "nuxt.config.mjs"],
       patch: patchNuxtConfig,
       manualStep:
-        'Add Taser.js to your Nuxt config: import { taser } from "@taserjs/plugin/vite"; export default defineNuxtConfig({ vite: { plugins: [taser()] } });',
+        'Add Taser.js to your Nuxt config: import { taser } from "@taserjs/plugin/vite"; export default defineNuxtConfig({ vite: { plugins: [taser({ cwd: process.cwd() })] } });',
     },
   }),
 };
