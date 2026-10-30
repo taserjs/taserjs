@@ -5,7 +5,8 @@ import { join } from "pathe";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { resolveConfig } from "../src/config.js";
-import { executeGenerate, generateManifest, renderManifest } from "../src/generator.js";
+import { executeGenerate, generateManifest } from "../src/generator.js";
+import { renderManifest } from "../src/render.js";
 import { scanRoutes, type ScanResult } from "../src/scanner.js";
 
 const expectCompact = (code: string, fragment: string) =>

@@ -1,0 +1,38 @@
+{
+  "name": "playground",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Browser-only taserjs playground: edit files, see real types, run requests.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "oxlint src vite.config.ts",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@taserjs/cli": "workspace:*",
+    "@taserjs/runtime": "workspace:*",
+    "esbuild-wasm": "0.28.2",
+    "lz-string": "1.5.0",
+    "monaco-editor": "0.57.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@taserjs/client": "workspace:*",
+    "@taserjs/router": "workspace:*",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "6.1.2",
+    "rimraf": "^6.0.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.5",
+    "zod": "4.6.7"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

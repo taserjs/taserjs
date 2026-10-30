@@ -1,5 +1,5 @@
 import { definePackageBuild } from "../../tsdown.base.ts";
 
 export default definePackageBuild({
-  entry: ["src/index.ts", "src/bin.ts"],
+  entry: ["src/index.ts", "src/bin.ts", "src/codegen.ts"],
 });
