@@ -10,6 +10,42 @@ import { EditorPane } from "./components/EditorPane";
 import { FileTree } from "./components/FileTree";
 import "./global.css";
 
+const MIN_EDITOR = 120;
+const MIN_FILES = 150;
+const MAX_FILES = 480;
+const MIN_BROWSER = 280;
+const MAX_BROWSER = 760;
+const SPLITTERS = 10;
+
+interface Widths {
+  files: number;
+  browser: number;
+}
+
+const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+/**
+ * Clamps both side tracks so the row always fits the viewport: files + browser
+ * may never eat into the editor's minimum, otherwise the grid overflows and the
+ * right panel is clipped mid-pane. The panel being grown wins; the other one
+ * gives way down to its own minimum.
+ */
+function fitWidths(files: number, browser: number, grow: "files" | "browser"): Widths {
+  const available = Math.max(MIN_FILES + MIN_BROWSER, window.innerWidth - SPLITTERS - MIN_EDITOR);
+  let f = clamp(Math.round(files), MIN_FILES, MAX_FILES);
+  let b = clamp(Math.round(browser), MIN_BROWSER, MAX_BROWSER);
+  if (f + b > available) {
+    if (grow === "files") b = Math.max(MIN_BROWSER, available - f);
+    else f = Math.max(MIN_FILES, available - b);
+    // one clamp can still be over budget if the other panel is already at its min
+    if (f + b > available) {
+      if (grow === "files") f = Math.max(MIN_FILES, available - b);
+      else b = Math.max(MIN_BROWSER, available - f);
+    }
+  }
+  return { files: f, browser: b };
+}
+
 function useNarrowLayout(): boolean {
   const media = window.matchMedia("(max-width: 1099px)");
   return useSyncExternalStore(
@@ -181,10 +217,16 @@ export function App(): React.JSX.Element {
     [],
   );
 
-  const [filesWidth, setFilesWidth] = useState(232);
-  const [browserWidth, setBrowserWidth] = useState(() =>
-    Math.max(340, Math.min(560, Math.round(window.innerWidth * 0.4))),
+  const [widths, setWidths] = useState<Widths>(() =>
+    fitWidths(232, Math.max(340, Math.min(560, Math.round(window.innerWidth * 0.4))), "browser"),
   );
+
+  // Shrinking the window must not push panels past the right edge.
+  useEffect(() => {
+    const onResize = (): void => setWidths((prev) => fitWidths(prev.files, prev.browser, "browser"));
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const filePanel = <FileTree active={active} onOpen={openFile} />;
   const editorPanel = <EditorPane active={active} openFiles={openFiles} onOpen={openFile} onCloseTab={closeTab} />;
@@ -218,13 +260,13 @@ export function App(): React.JSX.Element {
       <div
         className="workspace"
         style={{
-          gridTemplateColumns: `${filesWidth}px 5px minmax(120px, 1fr) 5px ${browserWidth}px`,
+          gridTemplateColumns: `${widths.files}px 5px minmax(${MIN_EDITOR}px, 1fr) 5px ${widths.browser}px`,
         }}
       >
         <div className="side-host">{filePanel}</div>
-        <Splitter onResize={(dx) => setFilesWidth((width) => Math.min(480, Math.max(150, width + dx)))} />
+        <Splitter onResize={(dx) => setWidths((prev) => fitWidths(prev.files + dx, prev.browser, "files"))} />
         {editorPanel}
-        <Splitter onResize={(dx) => setBrowserWidth((width) => Math.min(760, Math.max(280, width - dx)))} />
+        <Splitter onResize={(dx) => setWidths((prev) => fitWidths(prev.files, prev.browser - dx, "browser"))} />
         <div className="side-host">{browserPanel}</div>
       </div>
     </div>

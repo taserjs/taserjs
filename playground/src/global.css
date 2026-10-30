@@ -72,12 +72,10 @@ body {
 }
 
 .panel.files {
-  flex: none;
   border-right: 1px solid var(--border);
 }
 
 .panel.browser {
-  flex: none;
   background: var(--bg);
 }
 
@@ -97,6 +95,18 @@ body {
 
 .side-host > * {
   flex: 1;
+  min-width: 0;
+}
+
+/* A side panel must always fill its grid track. `flex: 1` on the host's child
+   alone was not enough: `.panel.files`/`.panel.browser` used to set
+   `flex: none` (higher specificity), so panels sized to their *content*
+   instead of the track — the browser pane stopped short of the window edge
+   (Go button stranded mid-pane) and collapsing a folder resized the tree.
+   This rule wins by being a more specific, later match. */
+.side-host > .panel {
+  flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
 }
 
