@@ -11,7 +11,7 @@ import { FileTree } from "./components/FileTree";
 import "./global.css";
 
 function useNarrowLayout(): boolean {
-  const media = window.matchMedia("(max-width: 899px)");
+  const media = window.matchMedia("(max-width: 1099px)");
   return useSyncExternalStore(
     (callback) => {
       media.addEventListener("change", callback);
@@ -22,20 +22,28 @@ function useNarrowLayout(): boolean {
   );
 }
 
-/** Draggable 5px divider. */
-function Splitter(props: { onDrag: (dx: number) => void }): React.JSX.Element {
+/** Divider dragged by absolute pointer positions (movementX is unreliable in some webviews). */
+function Splitter(props: { onResize: (dx: number) => void }): React.JSX.Element {
   const [dragging, setDragging] = useState(false);
+  const lastX = useRef(0);
   return (
     <div
       className={`splitter${dragging ? " dragging" : ""}`}
       onPointerDown={(event) => {
         event.currentTarget.setPointerCapture(event.pointerId);
+        lastX.current = event.clientX;
         setDragging(true);
       }}
       onPointerMove={(event) => {
-        if (dragging) props.onDrag(event.movementX);
+        if (!dragging) return;
+        props.onResize(event.clientX - lastX.current);
+        lastX.current = event.clientX;
       }}
       onPointerUp={(event) => {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+        setDragging(false);
+      }}
+      onPointerCancel={(event) => {
         event.currentTarget.releasePointerCapture(event.pointerId);
         setDragging(false);
       }}
@@ -201,22 +209,20 @@ export function App(): React.JSX.Element {
     );
   }
 
+  // Grid chrome: fixed px tracks for the side panels, the editor track takes
+  // exactly the remaining space, so the panels always fill the window and
+  // content can never move a track.
   return (
-    <div className="app">
+    <div
+      className="app"
+      style={{ "--files-w": `${filesWidth}px`, "--browser-w": `${browserWidth}px` } as React.CSSProperties}
+    >
       <div className="workspace">
-        <div className="side-host" style={{ width: filesWidth }}>
-          {filePanel}
-        </div>
-        <Splitter
-          onDrag={(dx) => setFilesWidth((width) => Math.min(480, Math.max(150, width + dx)))}
-        />
+        <div className="side-host">{filePanel}</div>
+        <Splitter onResize={(dx) => setFilesWidth((width) => Math.min(480, Math.max(150, width + dx)))} />
         {editorPanel}
-        <Splitter
-          onDrag={(dx) => setBrowserWidth((width) => Math.max(280, Math.min(Math.round(window.innerWidth * 0.6), width - dx)))}
-        />
-        <div className="side-host" style={{ width: browserWidth }}>
-          {browserPanel}
-        </div>
+        <Splitter onResize={(dx) => setBrowserWidth((width) => Math.min(760, Math.max(280, width - dx)))} />
+        <div className="side-host">{browserPanel}</div>
       </div>
     </div>
   );

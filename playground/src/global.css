@@ -1,6 +1,7 @@
-/* taser playground — minimal clean theme, dark & light via prefers-color-scheme */
+/* taser playground — single dark theme */
 
 :root {
+  color-scheme: dark;
   --bg: #0b0e15;
   --panel: #111420;
   --panel-2: #171c2a;
@@ -16,20 +17,6 @@
   --radius: 7px;
   --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f5f7fb;
-    --panel: #ffffff;
-    --panel-2: #f0f3f9;
-    --hover: rgba(0, 0, 0, 0.04);
-    --border: #e2e6ef;
-    --text: #17203a;
-    --dim: #6b7590;
-    --accent: #3565e0;
-    --accent-ink: #ffffff;
-  }
 }
 
 * {
@@ -63,8 +50,15 @@ body {
 
 .workspace {
   flex: 1;
-  display: flex;
+  /* side panels on fixed px tracks (CSS vars from App), editor takes the rest.
+     Grid tracks ignore content: no panel can jump when files/collapses vary. */
+  display: grid;
+  grid-template-columns: var(--files-w, 232px) 5px minmax(120px, 1fr) 5px var(--browser-w, 560px);
   min-height: 0;
+}
+
+.app.narrow .workspace {
+  display: flex;
 }
 
 .panel {
@@ -72,6 +66,7 @@ body {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  overflow: hidden; /* content must never inflate a fixed-width track */
   background: var(--panel);
 }
 
@@ -88,26 +83,26 @@ body {
 .panel.editor {
   flex: 1;
   border-right: 1px solid var(--border);
+  border-left: none;
 }
 
 .side-host {
-  flex: none;
   display: flex;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .side-host > * {
   flex: 1;
+  min-width: 0;
 }
 
-/* splitters */
+/* splitters — pure grid tracks, no negative margins */
 .splitter {
-  flex: none;
-  width: 5px;
-  margin: 0 -2px;
-  z-index: 2;
   background: transparent;
   cursor: col-resize;
+  z-index: 2;
   transition: background 0.15s;
 }
 
@@ -133,6 +128,38 @@ body {
 .panel-head .title {
   font-weight: 600;
   text-transform: uppercase;
+}
+
+/* editor chrome: tab strip with its actions docked right (no header bar) */
+.chrome-row {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.chrome-row .tabs {
+  flex: 1;
+  min-width: 0;
+  border-bottom: none;
+}
+
+.chrome-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  border-left: 1px solid var(--border);
+}
+
+.chrome-actions .btn {
+  padding: 2px 7px;
+  font-size: 11px;
+  color: var(--dim);
 }
 
 .spacer {
@@ -189,7 +216,7 @@ button {
 .row {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   height: 25px;
   padding: 0 10px;
   cursor: pointer;
@@ -213,12 +240,35 @@ button {
   font-size: 12px;
 }
 
+/* file-type / chevron icons */
+.ficon {
+  flex: none;
+  width: 13px;
+  height: 13px;
+}
+
+.fchev {
+  color: var(--dim);
+  transition: transform 0.12s ease;
+}
+
+.fchev.open {
+  transform: rotate(90deg);
+}
+
 .row .caret {
   flex: none;
   width: 12px;
+  height: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--dim);
-  font-size: 10px;
-  text-align: center;
+}
+
+.row .caret .ficon {
+  width: 11px;
+  height: 11px;
 }
 
 .row .actions {
@@ -229,8 +279,13 @@ button {
 }
 
 .row:hover .actions,
-.row.renaming .actions {
+.row:hover .gen-badge {
+  visibility: hidden;
+}
+
+.row:hover .actions {
   opacity: 1;
+  visibility: visible;
 }
 
 .icon {
@@ -254,7 +309,6 @@ button {
 }
 
 .gen-badge {
-  margin-left: auto;
   padding: 1px 6px;
   font-size: 10px;
   color: var(--dim);
@@ -263,65 +317,34 @@ button {
 }
 
 .row:hover .gen-badge {
-  display: none;
+  /* actions replace the badge on hover */
+  opacity: 0;
 }
 
-/* new-entry dropdown */
-.menu {
-  position: relative;
+/* inline create/rename input (VS Code style: plain row with a text input) */
+.name-input {
+  cursor: text;
 }
 
-.menu-list {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 8px;
-  z-index: 30;
-  min-width: 150px;
+.name-input input {
+  flex: 1;
+  min-width: 0;
   background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-}
-
-.menu-list button {
-  text-align: left;
-  border: none;
-  background: none;
-  color: var(--text);
-  padding: 6px 10px;
-  border-radius: 5px;
-  cursor: pointer;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: var(--mono);
   font-size: 12px;
-}
-
-.menu-list button:hover {
-  background: var(--hover);
-}
-
-/* inline entry input */
-.inline-form {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 3px 10px 3px calc(10px + var(--depth, 0px));
-}
-
-.inline-form select {
-  background: var(--panel-2);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 3px 4px;
-  font-size: 11px;
-  width: 66px;
 }
 
-.inline-form-main {
-  display: flex;
-  gap: 4px;
+.name-input input::placeholder {
+  color: var(--dim);
+  opacity: 0.7;
+}
+
+.name-input input:focus {
+  outline: none;
 }
 
 input.text {
@@ -343,8 +366,11 @@ select:focus {
 }
 
 .form-error {
+  flex: none;
   color: var(--err);
   font-size: 11px;
+  padding: 4px 10px;
+  border-top: 1px solid var(--border);
 }
 
 .hint {
@@ -472,9 +498,45 @@ select:focus {
   font-size: 12px;
 }
 
-.urlbar {
+.urlbar-wrap {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 26px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0 8px;
+}
+
+.urlbar-wrap:focus-within {
+  border-color: var(--accent);
+}
+
+.urlbar-prefix {
+  flex: none;
+  padding-right: 1px;
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 12px;
+  user-select: none;
+}
+
+input.urlbar {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+input.urlbar:focus {
+  outline: none;
 }
 
 .run-btn {

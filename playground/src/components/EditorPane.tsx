@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as monaco from "monaco-editor";
 
 import { ensureModel, isGeneratedPath, markerCounts, watchMarkers } from "../monaco";
+import { FileIcon } from "./icons";
 
 interface EditorPaneProps {
   active: string | null;
@@ -19,6 +20,7 @@ export function EditorPane({ active, openFiles, onOpen, onCloseTab }: EditorPane
   useEffect(() => {
     if (!hostRef.current) return;
     const editor = monaco.editor.create(hostRef.current, {
+      theme: "pg-dark",
       automaticLayout: true,
       minimap: { enabled: false },
       fontSize: 14,
@@ -51,53 +53,54 @@ export function EditorPane({ active, openFiles, onOpen, onCloseTab }: EditorPane
 
   return (
     <section className="panel editor">
-      <div className="panel-head">
-        <span className="title">Editor</span>
-        <span className="spacer" />
-        <button
-          className={`btn${inlay ? " toggled" : ""}`}
-          title="Toggle inline type hints"
-          onClick={() => setInlay((value) => !value)}
-        >
-          Hints
-        </button>
-        <button
-          className="btn"
-          onClick={() => {
-            void navigator.clipboard.writeText(location.href).then(
-              () => window.alert("Project link copied"),
-              () => undefined,
-            );
-          }}
-        >
-          Copy link
-        </button>
-        <button
-          className="btn warning"
-          onClick={() => {
-            if (window.confirm("Reset the project to the default starter? Your changes will be lost.")) {
-              window.dispatchEvent(new CustomEvent("playground:reset"));
-            }
-          }}
-        >
-          Reset
-        </button>
-      </div>
-      <div className="tabs">
-        {openFiles.map((path) => (
-          <div key={path} className={`tab${path === active ? " active" : ""}`} onClick={() => onOpen(path)}>
-            <span>{path.replace(/^\//, "")}</span>
-            <button
-              className="icon close"
-              onClick={(event) => {
-                event.stopPropagation();
-                onCloseTab(path);
-              }}
-            >
-              ✕
-            </button>
-          </div>
-        ))}
+      <div className="chrome-row">
+        <div className="tabs">
+          {openFiles.map((path) => (
+            <div key={path} className={`tab${path === active ? " active" : ""}`} onClick={() => onOpen(path)}>
+              <FileIcon path={path} />
+              <span>{path.replace(/^\//, "")}</span>
+              <button
+                className="icon close"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onCloseTab(path);
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="chrome-actions">
+          <button
+            className={`btn${inlay ? " toggled" : ""}`}
+            title="Toggle inline type hints"
+            onClick={() => setInlay((value) => !value)}
+          >
+            Hints
+          </button>
+          <button
+            className="btn"
+            onClick={() => {
+              void navigator.clipboard.writeText(location.href).then(
+                () => window.alert("Project link copied"),
+                () => undefined,
+              );
+            }}
+          >
+            Copy link
+          </button>
+          <button
+            className="btn warning"
+            onClick={() => {
+              if (window.confirm("Reset the project to the default starter? Your changes will be lost.")) {
+                window.dispatchEvent(new CustomEvent("playground:reset"));
+              }
+            }}
+          >
+            Reset
+          </button>
+        </div>
       </div>
       <div ref={hostRef} className="editor-host" />
       <div className="statusbar">

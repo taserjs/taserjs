@@ -3,7 +3,16 @@ import { useEffect, useRef, useState } from "react";
 import { getBuildStatus, request, subscribeBuildStatus, type BuildStatus, type RunResult } from "../runner";
 
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"];
-const DEFAULT_URL = "http://localhost/";
+const HOST_PREFIX = "http://localhost";
+
+/**
+ * Accepts a typed path and tolerates a pasted absolute URL pointing at the
+ * local mock origin, returning the editable suffix for the input.
+ */
+function pathSuffixOf(text: string): string {
+  const pasted = text.match(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(?<rest>\/.*)?$/i);
+  return pasted?.groups?.rest ?? text;
+}
 
 function statusClass(status: number): string {
   if (status >= 200 && status < 300) return "s2";
@@ -15,7 +24,7 @@ function statusClass(status: number): string {
 export function BrowserPane(): React.JSX.Element {
   const [dial, setDial] = useState<BuildStatus>(getBuildStatus());
   const [method, setMethod] = useState("GET");
-  const [urlText, setUrlText] = useState(DEFAULT_URL);
+  const [pathText, setPathText] = useState("/");
   const [bodyText, setBodyText] = useState("");
   const [viewSource, setViewSource] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
@@ -27,13 +36,14 @@ export function BrowserPane(): React.JSX.Element {
   const submit = async (): Promise<void> => {
     setSending(true);
     try {
-      let href: string;
-      try {
-        href = new URL(urlText, DEFAULT_URL).href;
-      } catch {
-        setResult({ kind: "error", error: `Invalid URL: ${urlText}`, ms: 0 });
-        return;
+      // if a rebuild from a recent file change is still running, wait it out so
+      // a Go right after creating a route doesn't hit the stale worker (404)
+      for (let i = 0; i < 150 && getBuildStatus().phase !== "ready"; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 100)); // eslint-disable-line no-await-in-loop -- serial polling by design
       }
+      // the prefix is fixed chrome; the input holds only the path/query part
+      const suffix = pathSuffixOf(pathText);
+      const href = new URL(suffix.startsWith("/") ? suffix : `/${suffix}`, `${HOST_PREFIX}/`).href;
       const body = method !== "GET" && bodyText.trim() !== "" ? bodyText : undefined;
       const response = await request(body ? { method, url: href, body } : { method, url: href });
       if (response.kind === "timeout") {
@@ -83,13 +93,17 @@ export function BrowserPane(): React.JSX.Element {
             </option>
           ))}
         </select>
-        <input
-          className="text urlbar"
-          value={urlText}
-          placeholder="path e.g. /users/1"
-          onChange={(event) => setUrlText(event.target.value)}
-          onFocus={(event) => event.currentTarget.select()}
-        />
+        <div className="urlbar-wrap">
+          <span className="urlbar-prefix">{HOST_PREFIX}</span>
+          <input
+            className="text urlbar"
+            value={pathText}
+            placeholder="/users/1?full=true"
+            spellCheck={false}
+            onChange={(event) => setPathText(event.target.value)}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </div>
         <button className="btn primary run-btn" type="submit" disabled={sending}>
           {sending ? "…" : "Go"}
         </button>

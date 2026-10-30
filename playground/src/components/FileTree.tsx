@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   deriveCanonicalUrl,
   deriveLayoutInfo,
@@ -9,6 +9,7 @@ import {
 } from "@taserjs/cli/codegen";
 
 import { vfs } from "../vfs";
+import { Chevron, FileIcon, NewFileIcon, NewFolderIcon, PencilIcon, PlusIcon, TrashIcon } from "./icons";
 
 // --- tree model -------------------------------------------------------------
 
@@ -45,106 +46,118 @@ function buildTree(paths: string[]): TreeNode {
   return root;
 }
 
-// --- entry scaffolds --------------------------------------------------------
+// --- entry scaffolds ----------------------------------------------------------
 
-type NewKind = "file" | "folder" | "route" | "layout" | "middleware";
+type CreateKind = "file" | "folder";
 
-/** Builds content for scaffolded entries; returns null for plain files/folders. */
-function scaffoldEntry(kind: NewKind, name: string, verb: string): { path: string; content: string } | null {
-  const base = name.replace(/\.ts$/, "").replace(/[^A-Za-z0-9_./$[\]-]/g, "-");
-  if (kind === "route") {
-    const parsed = parseFilePath(`routes/${base}.${verb}.ts`);
-    if (!parsed) return null;
-    let canonicalPath = "/";
+/**
+ * VS Code-style creation: one inline name/path input, scaffolds inferred from
+ * the typed path. `routes/foo.get.ts` scaffolds a route handler, a direct
+ * `routes/<name>.ts` scaffolds a layout wrapper, `middlewares/<name>.ts`
+ * scaffolds a middleware; everything else is a plain file.
+ */
+function scaffoldFor(absPath: string, kind: CreateKind): { path: string; content: string } | null {
+  if (kind === "folder") return { path: `${absPath}/.gitkeep`, content: "" };
+  const rel = absPath.slice(1);
+  const route = rel.match(/^routes\/(.+)\.(get|post|put|patch|delete)\.ts$/);
+  if (route) {
+    let content = "";
     try {
-      canonicalPath = deriveCanonicalUrl(parsed.dir, parsed.stem).canonicalPath;
+      // the CLI discovers route files relative to the routes dir, so the
+      // canonical URL derives from the path *without* the routes/ prefix
+      const parsed = parseFilePath(`${route[1]}.${route[2]}.ts`);
+      if (parsed) {
+        let canonicalPath = "/";
+        try {
+          canonicalPath = deriveCanonicalUrl(parsed.dir, parsed.stem).canonicalPath;
+        } catch {
+          // scanner diagnostics will explain the fix; fall through with the stub
+        }
+        content = routeStub(route[2]!.toUpperCase(), canonicalPath);
+      }
     } catch {
-      // fall through with placeholder; scanner diagnostics will explain the fix
+      // invalid shape: create the file empty
     }
-    return { path: `/routes/${base}.${verb}.ts`, content: routeStub(verb.toUpperCase(), canonicalPath) };
+    return { path: absPath, content };
   }
-  if (kind === "layout") {
-    const parsed = parseFilePath(`routes/${base}.ts`);
-    if (!parsed) return null;
-    const layout = deriveLayoutInfo(parsed.dir, parsed.stem);
-    return { path: `/routes/${base}.ts`, content: layoutStub(layout.layoutId) };
-  }
-  if (kind === "middleware") {
+  const middleware = rel.match(/^middlewares\/([^/]+)\.ts$/);
+  if (middleware) {
+    const base = middleware[1]!;
     const camel = base
       .split(/[^A-Za-z0-9]+/)
       .filter(Boolean)
       .map((part, index) => (index === 0 ? part.toLowerCase() : part[0]!.toUpperCase() + part.slice(1).toLowerCase()))
       .join("");
-    return { path: `/middlewares/${base}.ts`, content: middlewareContentStub(camel || "middleware") };
+    return { path: absPath, content: middlewareContentStub(camel || "middleware") };
   }
-  if (kind === "folder") return { path: `/${base}/.gitkeep`, content: "" };
-  if (kind === "file") return { path: `/${base || "file"}.ts`, content: "" };
-  return null;
+  const layout = /^[^/]+\.ts$/.test(rel.slice("routes/".length)) && rel.startsWith("routes/");
+  if (layout) {
+    try {
+      const parsed = parseFilePath(rel.slice("routes/".length));
+      if (parsed) {
+        const info = deriveLayoutInfo(parsed.dir, parsed.stem);
+        return { path: absPath, content: layoutStub(info.layoutId) };
+      }
+    } catch {
+      // invalid shape: create the file empty
+    }
+  }
+  return { path: absPath, content: "" };
 }
 
-// --- inline input -----------------------------------------------------------
+// --- inline name input (VS Code style row) ------------------------------------
 
-interface InlineEntryInputProps {  depth: number;
-  kind: NewKind;
-  initialName?: string;
-  verb?: string;
-  submitLabel?: string;
-  onSubmit: (name: string, verb: string) => void;
+interface NameInputProps {
+  depth: number;
+  /** Pre-filled for rename; empty for creation. */
+  initial?: string;
+  placeholder: string;
+  isFolder: boolean;
+  onCommit: (name: string) => void;
   onCancel: () => void;
-  onError: (message: string | null) => void;
 }
 
-function InlineEntryInput(props: InlineEntryInputProps): React.JSX.Element {
-  const [name, setName] = useState(props.initialName ?? "");
-  const [verb, setVerb] = useState(props.verb ?? "get");
-  const { onSubmit } = props;
+function NameInput(props: NameInputProps): React.JSX.Element {
+  const [value, setValue] = useState(props.initial ?? "");
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const cancelled = useRef(false);
 
-  const commit = (): void => {
-    onSubmit(name, verb);
+  useEffect(() => {
+    inputRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  const finish = (name: string): void => {
+    const trimmed = name.trim();
+    if (trimmed) props.onCommit(trimmed);
+    else props.onCancel();
   };
 
   return (
-    <form
-      className="inline-form"
-      style={{ "--depth": `${props.depth}px` } as React.CSSProperties}
-      onSubmit={(event) => {
-        event.preventDefault();
-        commit();
-      }}
-    >
-      <div className="inline-form-main">
-        {props.kind === "route" && (
-          <select value={verb} onChange={(event) => setVerb(event.target.value)}>
-            {"get post put patch delete".split(" ").map((verbOption) => (
-              <option key={verbOption} value={verbOption}>
-                {verbOption.toUpperCase()}
-              </option>
-            ))}
-          </select>
-        )}
-        <input
-          className="text"
-          autoFocus
-          value={name}
-          placeholder={props.kind === "folder" ? "folder name" : "name (use /, $id for params)"}
-          onChange={(event) => {
-            setName(event.target.value);
-            props.onError(null);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") props.onCancel();
-          }}
-        />
-        <button className="btn primary" type="submit">
-          {props.submitLabel ?? "Create"}
-        </button>
-        <button className="btn" type="button" onClick={props.onCancel}>
-          ✕
-        </button>
-      </div>
-      {props.kind !== "file" && props.kind !== "folder" && <span className="hint">{HINT}</span>}
-      {props.kind === "route" && <span className={"inline-form hint"}>{`creates /routes/<name>.${verb}.ts`}</span>}
-    </form>
+    <div className="row name-input" style={{ paddingLeft: 10 + props.depth * 12 }}>
+      <span className="caret" />
+      <FileIcon path={props.isFolder ? "" : "x.ts"} className="ficon placeholder" />
+      <input
+        ref={inputRef}
+        value={value}
+        placeholder={props.placeholder}
+        spellCheck={false}
+        onChange={(event) => setValue(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            cancelled.current = true;
+            props.onCancel();
+          } else if (event.key === "Enter") {
+            event.preventDefault();
+            finish(value);
+          }
+        }}
+        onBlur={() => {
+          if (!cancelled.current) finish(value);
+          else cancelled.current = false;
+        }}
+      />
+    </div>
   );
 }
 
@@ -155,15 +168,12 @@ interface FileTreeProps {
   onOpen: (path: string) => void;
 }
 
-const HINT = "segment conventions: $id (param), {-$name} (optional param), $.ts (splat), _name (pathless group), trailing _ (layout breakout)";
+const HINT =
+  "$id (param), {-$name} (optional param), $.ts (splat), _name (pathless group), trailing _ (layout breakout)";
 
 export function FileTree({ active, onOpen }: FileTreeProps): React.JSX.Element {
-  const paths = vfs.list();
-  const tree = buildTree(paths);
-
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [creating, setCreating] = useState<{ kind: NewKind; parent: string } | null>(null);
+  const [creating, setCreating] = useState<{ kind: CreateKind; parent: string } | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -176,38 +186,24 @@ export function FileTree({ active, onOpen }: FileTreeProps): React.JSX.Element {
     });
   };
 
-  const commitNew = (kind: NewKind, parent: string) => (name: string, verb: string): void => {
+  const commitCreate = (kind: CreateKind, parent: string) => (name: string): void => {
     try {
-      const trimmed = name.trim().replace(/^\/|\/$/g, "");
-      if (!trimmed) {
-        setError("Enter a name");
+      const clean = name.replace(/[^A-Za-z0-9_./$[\]-]/g, "-");
+      let abs = `${parent}/${clean}`.replace(/\/{2,}/g, "/").replace(/\/+$/, "");
+      if (kind === "file" && !abs.includes(".", abs.lastIndexOf("/") + 1)) abs += ".ts";
+      if (vfs.has(abs)) {
+        setError(`"${abs}" already exists`);
         return;
       }
-      if (kind === "file") {
-        const clean = trimmed.includes(".") ? trimmed : `${trimmed}.ts`;
-        const path = `${parent}/${clean}`;
-        const bad = vfs.has(path) ? `A file already exists at "${path}"` : null;
-        if (bad) {
-          setError(bad);
-          return;
-        }
-        vfs.write(path, "", "ui");
-        onOpen(path);
-        setCreating(null);
+      const built = scaffoldFor(abs, kind);
+      if (!built) {
+        setError("Invalid path");
         return;
       }
-      const scaffolded = scaffoldEntry(kind, trimmed, verb);
-      if (!scaffolded) {
-        setError("Invalid name for this entry type");
-        return;
-      }
-      if (vfs.has(scaffolded.path)) {
-        setError(`A file already exists at "${scaffolded.path}"`);
-        return;
-      }
-      vfs.write(scaffolded.path, scaffolded.content, "ui");
-      onOpen(scaffolded.path);
+      vfs.write(built.path, built.content, "ui");
       setCreating(null);
+      setError(null);
+      if (kind === "file") onOpen(built.path);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -235,7 +231,6 @@ export function FileTree({ active, onOpen }: FileTreeProps): React.JSX.Element {
       setRenaming(null);
       setError(null);
       if (active === oldPath) onOpen(nextPath);
-      onOpen(nextPath);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -243,9 +238,7 @@ export function FileTree({ active, onOpen }: FileTreeProps): React.JSX.Element {
 
   const removeEntry = (path: string): void => {
     const isFolder = !vfs.has(path);
-    const targets = isFolder
-      ? vfs.list().filter((p) => p === path || p.startsWith(`${path}/`))
-      : [path];
+    const targets = isFolder ? vfs.list().filter((p) => p === path || p.startsWith(`${path}/`)) : [path];
     const nonEmpty = targets.some((target) => (vfs.read(target) ?? "").trim() !== "");
     const breakApp = targets.some(
       (target) => target === "/taser.ts" || (!isFolder && /^\/routes\/.*\.(get|post|put|patch|delete)\.ts$/.test(target)),
@@ -261,82 +254,90 @@ export function FileTree({ active, onOpen }: FileTreeProps): React.JSX.Element {
     const isCollapsed = collapsed.has(node.path);
     const showRename = renaming === node.path;
     const rows: React.JSX.Element[] = [];
-    const icon = node.isFolder ? (isCollapsed ? "▸" : "▾") : "";
-    rows.push(
-      <div
-        key={node.path}
-        className={`row${active === node.path ? " active" : ""}${showRename ? " renaming" : ""}`}
-        style={{ paddingLeft: 10 + depth * 12 }}
-        onClick={() => (node.isFolder ? toggleFolder(node.path) : onOpen(node.path))}
-      >
-        {node.isFolder && <span className="caret">{icon}</span>}
-        {showRename ? (
-          <InlineEntryInput
-            depth={depth * 12}
-            kind="file"
-            initialName={node.name}
-            submitLabel="Rename"
-            verb="get"
-            onSubmit={(name) => commitRename(node.path, name)}
-            onCancel={() => setRenaming(null)}
-            onError={setError}
-          />
-        ) : (
-          <>
-            {node.path === "/.taserjs/routes.gen.ts" && <span className="gen-badge">generated</span>}
-            <span className="name">{node.name}</span>
-            <span className="actions">
-              {node.isFolder && (
-                <button
-                  className="icon"
-                  title={`New child in ${node.path}`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setCreating({ kind: "file", parent: node.path });
-                  }}
-                >
-                  ＋
-                </button>
-              )}
-              {!node.isFolder && node.path !== "/.taserjs/routes.gen.ts" && (
-                <button
-                  className="icon"
-                  title="Rename"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setRenaming(node.path);
-                  }}
-                >
-                  ✎
-                </button>
-              )}
-              {node.path !== "/.taserjs/routes.gen.ts" && (
-                <button
-                  className="icon warn"
-                  title="Delete"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    removeEntry(node.path);
-                  }}
-                >
-                  🗑
-                </button>
-              )}
+    if (showRename) {
+      rows.push(
+        <NameInput
+          key={`${node.path}::rename`}
+          depth={depth}
+          isFolder={!vfs.has(node.path)}
+          initial={node.name}
+          placeholder="name"
+          onCommit={(name) => commitRename(node.path, name)}
+          onCancel={() => setRenaming(null)}
+        />,
+      );
+    } else {
+      rows.push(
+        <div
+          key={node.path}
+          className={`row${active === node.path ? " active" : ""}`}
+          style={{ paddingLeft: 10 + depth * 12 }}
+          onClick={() => (node.isFolder ? toggleFolder(node.path) : onOpen(node.path))}
+        >
+          {node.isFolder ? (
+            <span className="caret" onClick={(event) => event.stopPropagation()}>
+              <Chevron className={isCollapsed ? "" : "open"} />
             </span>
-          </>
-        )}
-      </div>,
-    );
+          ) : (
+            <FileIcon path={node.path} />
+          )}
+          {node.path === "/.taserjs/routes.gen.ts" && <span className="gen-badge">generated</span>}
+          <span className="name">{node.name}</span>
+          <span className="actions">
+            {node.isFolder && (
+              <button
+                className="icon"
+                title={`New file in ${node.path}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setCollapsed((prev) => {
+                    const next = new Set(prev);
+                    next.delete(node.path);
+                    return next;
+                  });
+                  setCreating({ kind: "file", parent: node.path });
+                }}
+              >
+                <PlusIcon size={12} />
+              </button>
+            )}
+            {!node.isFolder && node.path !== "/.taserjs/routes.gen.ts" && (
+              <button
+                className="icon"
+                title="Rename"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setRenaming(node.path);
+                }}
+              >
+                <PencilIcon size={12} />
+              </button>
+            )}
+            {node.path !== "/.taserjs/routes.gen.ts" && (
+              <button
+                className="icon warn"
+                title="Delete"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  removeEntry(node.path);
+                }}
+              >
+                <TrashIcon size={12} />
+              </button>
+            )}
+          </span>
+        </div>,
+      );
+    }
     if (creating?.parent === node.path && node.isFolder) {
       rows.push(
-        <InlineEntryInput
+        <NameInput
           key={`${node.path}::create`}
-          depth={depth * 12 + 12}
-          kind={creating.kind}
-          verb="get"
-          onSubmit={commitNew(creating.kind, node.path)}
+          depth={depth + 1}
+          isFolder={creating.kind === "folder"}
+          placeholder={creating.kind === "folder" ? "name" : "name or path, e.g. users/id.get.ts"}
+          onCommit={commitCreate(creating.kind, node.path)}
           onCancel={() => setCreating(null)}
-          onError={setError}
         />,
       );
     }
@@ -353,57 +354,33 @@ export function FileTree({ active, onOpen }: FileTreeProps): React.JSX.Element {
       <div className="panel-head">
         <span className="title">Files</span>
         <span className="spacer" />
-        <div className="menu">
-          <button
-            className="btn"
-            onClick={(event) => {
-              event.stopPropagation();
-              setMenuOpen((open) => !open);
-            }}
-          >
-            ＋ New
-          </button>
-          {menuOpen && (
-            <div className="menu-list" onMouseLeave={() => setMenuOpen(false)}>
-              {(
-                [
-                  ["file", "File"],
-                  ["folder", "Folder"],
-                  ["route", "Route"],
-                  ["layout", "Layout"],
-                  ["middleware", "Middleware"],
-                ] as const
-              ).map(([kind, label]) => (
-                <button
-                  key={kind}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setCreating({ kind, parent: "/" });
-                  }}
-                >
-                  {label === "Route" && "Route (.get.ts scaffolds a handler)"}
-                  {label === "Layout" && "Layout (middleware wrapper)"}
-                  {label === "Middleware" && "Middleware (custom, reusable)"}
-                  {label !== "Route" && label !== "Layout" && label !== "Middleware" && label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <button
+          className="icon"
+          title="New file (type a path, Enter to create)"
+          onClick={() => setCreating({ kind: "file", parent: "/" })}
+        >
+          <NewFileIcon />
+        </button>
+        <button
+          className="icon"
+          title="New folder"
+          onClick={() => setCreating({ kind: "folder", parent: "/" })}
+        >
+          <NewFolderIcon />
+        </button>
       </div>
       <div className="tree">
         {topCreate && (
-          <InlineEntryInput
+          <NameInput
             depth={0}
-            kind={topCreate.kind}
-            verb="get"
-            onSubmit={commitNew(topCreate.kind, "/")}
+            isFolder={topCreate.kind === "folder"}
+            placeholder={topCreate.kind === "folder" ? "name" : "name or path, e.g. routes/health.get.ts"}
+            onCommit={commitCreate(topCreate.kind, "/")}
             onCancel={() => setCreating(null)}
-            onError={setError}
           />
         )}
-        {vfs.list().length === 0 && <p className="hint">No files yet — create one with “＋ New”.</p>}
-        {tree.children.map((child) => renderNode(child, 0))}
+        {vfs.list().length === 0 && <p className="hint">No files yet — create one below.</p>}
+        {buildTree(vfs.list()).children.map((child) => renderNode(child, 0))}
       </div>
       {error && <div className="form-error">{error}</div>}
       <details className="hint" style={{ padding: "4px 10px", opacity: 0.7 }}>
