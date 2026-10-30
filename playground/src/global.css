@@ -50,11 +50,12 @@ body {
 
 .workspace {
   flex: 1;
-  /* side panels on fixed px tracks (CSS vars from App), editor takes the rest.
-     Grid tracks ignore content: no panel can jump when files/collapses vary. */
+  /* side panels on fixed px tracks (template set inline by App), editor takes
+     the rest. Grid tracks ignore content: no panel can jump when files or
+     collapses vary. */
   display: grid;
-  grid-template-columns: var(--files-w, 232px) 5px minmax(120px, 1fr) 5px var(--browser-w, 560px);
   min-height: 0;
+  min-width: 0;
 }
 
 .app.narrow .workspace {
@@ -88,6 +89,7 @@ body {
 
 .side-host {
   display: flex;
+  width: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;

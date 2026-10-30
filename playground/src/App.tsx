@@ -211,13 +211,16 @@ export function App(): React.JSX.Element {
 
   // Grid chrome: fixed px tracks for the side panels, the editor track takes
   // exactly the remaining space, so the panels always fill the window and
-  // content can never move a track.
+  // content can never move a track. The template is set inline from state so
+  // it can never desync from React.
   return (
-    <div
-      className="app"
-      style={{ "--files-w": `${filesWidth}px`, "--browser-w": `${browserWidth}px` } as React.CSSProperties}
-    >
-      <div className="workspace">
+    <div className="app">
+      <div
+        className="workspace"
+        style={{
+          gridTemplateColumns: `${filesWidth}px 5px minmax(120px, 1fr) 5px ${browserWidth}px`,
+        }}
+      >
         <div className="side-host">{filePanel}</div>
         <Splitter onResize={(dx) => setFilesWidth((width) => Math.min(480, Math.max(150, width + dx)))} />
         {editorPanel}

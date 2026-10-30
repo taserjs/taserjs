@@ -3,6 +3,11 @@ declare module "*?worker" {
   export default WorkerFactory;
 }
 
+/** Vite HMR handle (only the API the entry uses). */
+interface ImportMeta {
+  readonly hot?: { readonly decline: () => void };
+}
+
 declare module "virtual:taser-dts" {
   const dts: Record<string, string>;
   export default dts;
