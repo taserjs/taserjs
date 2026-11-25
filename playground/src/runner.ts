@@ -1,9 +1,8 @@
+import { renderManifest } from "@taserjs/cli/codegen";
 import { build, initialize, type Loader, type Plugin } from "esbuild-wasm";
 import wasmUrl from "esbuild-wasm/esbuild.wasm?url";
 
-import { renderManifest } from "@taserjs/cli/codegen";
-
-import { resolvePin } from "./pins";
+import { PIN_NAMES, resolvePin } from "./pins";
 import { MANIFEST_PATH, PLAYGROUND_CONFIG, scanProject } from "./scan";
 import { vfs } from "./vfs";
 
@@ -110,13 +109,16 @@ const vfsPlugin: Plugin = {
         return {
           errors: [
             {
-              text: `Bare import "${specifier}" is not available. Pinned packages: @taserjs/runtime, @taserjs/router, @taserjs/client, @taserjs/utils, zod.`,
+              text: `Bare import "${specifier}" is not available. Pinned packages: ${PIN_NAMES.join(", ")}.`,
               location: { file: args.importer || "playground-harness.ts" },
             },
           ],
         };
       }
-      const target = joinPath(specifier.startsWith("/") ? "" : dirname(args.importer || "/"), specifier);
+      const target = joinPath(
+        specifier.startsWith("/") ? "" : dirname(args.importer || "/"),
+        specifier,
+      );
       for (const candidate of resolveCandidates(target)) {
         if (vfs.has(candidate)) return { path: candidate, namespace: "vfs" };
       }
@@ -210,7 +212,8 @@ function spawnWorker(code: string): void {
     );
   };
   worker.onerror = (event) => {
-    for (const settle of pending.values()) settle.reject(new Error(event.message || "Worker crashed"));
+    for (const settle of pending.values())
+      settle.reject(new Error(event.message || "Worker crashed"));
     pending.clear();
   };
 }
@@ -219,7 +222,10 @@ function spawnWorker(code: string): void {
 export function rebuild(): Promise<void> {
   if (rebuildInFlight) return rebuildInFlight;
   rebuildInFlight = (async () => {
-    setStatus({ phase: status.phase === "booting" ? "booting" : "building", errors: status.errors });
+    setStatus({
+      phase: status.phase === "booting" ? "booting" : "building",
+      errors: status.errors,
+    });
     await ensureEsbuild();
 
     const scan = scanProject();
@@ -303,10 +309,14 @@ export async function request(input: RequestInput): Promise<RunResult> {
   const started = performance.now();
   if (!worker) await rebuild();
   if (!worker || status.phase === "error") {
-    return { kind: "error", error: "Build failed — fix the errors above and try again.", ms: performance.now() - started };
+    return {
+      kind: "error",
+      error: "Build failed — fix the errors above and try again.",
+      ms: performance.now() - started,
+    };
   }
 
-  const id = nextRequestId += 1;
+  const id = (nextRequestId += 1);
   return new Promise<RunResult>((resolve, reject) => {
     const timer = setTimeout(() => {
       pending.delete(id);

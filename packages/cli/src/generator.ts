@@ -1,13 +1,12 @@
-import type { ResolvedTaserConfig } from "./config-shared.js";
-import type { ScanResult } from "./scan-types.js";
-
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 import { dirname } from "pathe";
 
+import type { ResolvedTaserConfig } from "./config-shared.js";
 import { resolvePaths } from "./config-shared.js";
 import { renderManifest } from "./render.js";
 import { APP_STUB } from "./scaffold.js";
+import type { ScanResult } from "./scan-types.js";
 import { scanRoutes } from "./scanner.js";
 
 function writeIfChanged(filePath: string, content: string): boolean {

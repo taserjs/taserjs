@@ -22,7 +22,9 @@ function encode(files: Record<string, string>, active: string | null): string {
   return compressToEncodedURIComponent(JSON.stringify(serialize(files, active)));
 }
 
-export function decode(encoded: string): { files: Record<string, string>; active: string | null } | null {
+export function decode(
+  encoded: string,
+): { files: Record<string, string>; active: string | null } | null {
   if (!encoded) return null;
   let data: unknown;
   try {
@@ -40,7 +42,8 @@ export function decode(encoded: string): { files: Record<string, string>; active
     if (typeof content !== "string") return null;
     files[path] = content;
   }
-  const active = typeof state.active === "string" && files[state.active] !== undefined ? state.active : null;
+  const active =
+    typeof state.active === "string" && files[state.active] !== undefined ? state.active : null;
   return { files, active: active ?? Object.keys(files).sort()[0] ?? null };
 }
 
@@ -101,7 +104,9 @@ export function loadInitial(): { files: Record<string, string>; active: string |
  * Hash-driven rehydration. `null` means the hash is corrupt/foreign: the app
  * treats it as "keep the current project and rewrite the hash" (see App).
  */
-export function onExternalHash(callback: (state: { files: Record<string, string>; active: string | null } | null) => void): () => void {
+export function onExternalHash(
+  callback: (state: { files: Record<string, string>; active: string | null } | null) => void,
+): () => void {
   const listener = (): void => {
     if (location.hash === lastHash) return;
     callback(decode(location.hash.slice(1)));

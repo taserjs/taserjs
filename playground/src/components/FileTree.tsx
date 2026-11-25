@@ -1,15 +1,24 @@
-import { useEffect, useRef, useState } from "react";
 import {
   deriveCanonicalUrl,
   deriveLayoutInfo,
+  isIgnoredPath,
   layoutStub,
   middlewareContentStub,
   parseFilePath,
   routeStub,
 } from "@taserjs/cli/codegen";
+import { useEffect, useRef, useState } from "react";
 
 import { vfs } from "../vfs";
-import { Chevron, FileIcon, NewFileIcon, NewFolderIcon, PencilIcon, PlusIcon, TrashIcon } from "./icons";
+import {
+  Chevron,
+  FileIcon,
+  NewFileIcon,
+  NewFolderIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
+} from "./icons";
 
 // --- tree model -------------------------------------------------------------
 
@@ -28,7 +37,9 @@ function buildTree(paths: string[]): TreeNode {
     segments.forEach((segment, index) => {
       const isFolder = index < segments.length - 1;
       const childPath = `/${segments.slice(0, index + 1).join("/")}`;
-      let child = node.children.find((existing) => existing.name === segment && existing.isFolder === isFolder);
+      let child = node.children.find(
+        (existing) => existing.name === segment && existing.isFolder === isFolder,
+      );
       if (!child) {
         child = { name: segment, path: childPath, isFolder, children: [] };
         node.children.push(child);
@@ -38,7 +49,15 @@ function buildTree(paths: string[]): TreeNode {
   }
   const sort = (nodes: TreeNode[]): void => {
     nodes.sort((a, b) =>
-      a.isFolder !== b.isFolder ? (a.isFolder ? -1 : 1) : a.name < b.name ? -1 : a.name > b.name ? 1 : 0,
+      a.isFolder !== b.isFolder
+        ? a.isFolder
+          ? -1
+          : 1
+        : a.name < b.name
+          ? -1
+          : a.name > b.name
+            ? 1
+            : 0,
     );
     for (const node of nodes) if (node.isFolder) sort(node.children);
   };
@@ -58,50 +77,50 @@ type CreateKind = "file" | "folder";
  */
 function scaffoldFor(absPath: string, kind: CreateKind): { path: string; content: string } | null {
   if (kind === "folder") return { path: `${absPath}/.gitkeep`, content: "" };
-  const rel = absPath.slice(1);
-  const route = rel.match(/^routes\/(.+)\.(get|post|put|patch|delete)\.ts$/);
-  if (route) {
-    let content = "";
-    try {
-      // the CLI discovers route files relative to the routes dir, so the
-      // canonical URL derives from the path *without* the routes/ prefix
-      const parsed = parseFilePath(`${route[1]}.${route[2]}.ts`);
-      if (parsed) {
-        let canonicalPath = "/";
-        try {
-          canonicalPath = deriveCanonicalUrl(parsed.dir, parsed.stem).canonicalPath;
-        } catch {
-          // scanner diagnostics will explain the fix; fall through with the stub
-        }
-        content = routeStub(route[2]!.toUpperCase(), canonicalPath);
-      }
-    } catch {
-      // invalid shape: create the file empty
+  const rel = absPath.startsWith("/") ? absPath.slice(1) : absPath;
+
+  if (rel.startsWith("routes/")) {
+    const routesRel = rel.slice("routes/".length);
+    if (!routesRel || isIgnoredPath(routesRel)) {
+      return { path: absPath, content: "" };
     }
-    return { path: absPath, content };
-  }
-  const middleware = rel.match(/^middlewares\/([^/]+)\.ts$/);
-  if (middleware) {
-    const base = middleware[1]!;
-    const camel = base
-      .split(/[^A-Za-z0-9]+/)
-      .filter(Boolean)
-      .map((part, index) => (index === 0 ? part.toLowerCase() : part[0]!.toUpperCase() + part.slice(1).toLowerCase()))
-      .join("");
-    return { path: absPath, content: middlewareContentStub(camel || "middleware") };
-  }
-  const layout = /^[^/]+\.ts$/.test(rel.slice("routes/".length)) && rel.startsWith("routes/");
-  if (layout) {
-    try {
-      const parsed = parseFilePath(rel.slice("routes/".length));
-      if (parsed) {
-        const info = deriveLayoutInfo(parsed.dir, parsed.stem);
-        return { path: absPath, content: layoutStub(info.layoutId) };
+    const parsed = parseFilePath(routesRel);
+    if (!parsed) {
+      return { path: absPath, content: "" };
+    }
+    if (parsed.verb !== null) {
+      let canonicalPath = "/";
+      try {
+        canonicalPath = deriveCanonicalUrl(parsed.dir, parsed.stem).canonicalPath;
+      } catch {
+        // scanner diagnostics will explain the fix; fall through with the stub
       }
+      return { path: absPath, content: routeStub(parsed.verb.toUpperCase(), canonicalPath) };
+    }
+    try {
+      const info = deriveLayoutInfo(parsed.dir, parsed.stem);
+      return { path: absPath, content: layoutStub(info.layoutId) };
     } catch {
-      // invalid shape: create the file empty
+      return { path: absPath, content: "" };
     }
   }
+
+  if (rel.startsWith("middlewares/")) {
+    const midRel = rel.slice("middlewares/".length);
+    const match = midRel.match(/^([^/]+)\.(ts|tsx)$/);
+    if (match) {
+      const base = match[1]!;
+      const camel = base
+        .split(/[^A-Za-z0-9]+/)
+        .filter(Boolean)
+        .map((part, index) =>
+          index === 0 ? part.toLowerCase() : part[0]!.toUpperCase() + part.slice(1).toLowerCase(),
+        )
+        .join("");
+      return { path: absPath, content: middlewareContentStub(camel || "middleware") };
+    }
+  }
+
   return { path: absPath, content: "" };
 }
 
@@ -186,28 +205,30 @@ export function FileTree({ active, onOpen }: FileTreeProps): React.JSX.Element {
     });
   };
 
-  const commitCreate = (kind: CreateKind, parent: string) => (name: string): void => {
-    try {
-      const clean = name.replace(/[^A-Za-z0-9_./$[\]-]/g, "-");
-      let abs = `${parent}/${clean}`.replace(/\/{2,}/g, "/").replace(/\/+$/, "");
-      if (kind === "file" && !abs.includes(".", abs.lastIndexOf("/") + 1)) abs += ".ts";
-      if (vfs.has(abs)) {
-        setError(`"${abs}" already exists`);
-        return;
+  const commitCreate =
+    (kind: CreateKind, parent: string) =>
+    (name: string): void => {
+      try {
+        const clean = name.replace(/[^A-Za-z0-9_./$[\]{}-]/g, "-");
+        let abs = `${parent}/${clean}`.replace(/\/{2,}/g, "/").replace(/\/+$/, "");
+        if (kind === "file" && !abs.includes(".", abs.lastIndexOf("/") + 1)) abs += ".ts";
+        if (vfs.has(abs)) {
+          setError(`"${abs}" already exists`);
+          return;
+        }
+        const built = scaffoldFor(abs, kind);
+        if (!built) {
+          setError("Invalid path");
+          return;
+        }
+        vfs.write(built.path, built.content, "ui");
+        setCreating(null);
+        setError(null);
+        if (kind === "file") onOpen(built.path);
+      } catch (err) {
+        setError((err as Error).message);
       }
-      const built = scaffoldFor(abs, kind);
-      if (!built) {
-        setError("Invalid path");
-        return;
-      }
-      vfs.write(built.path, built.content, "ui");
-      setCreating(null);
-      setError(null);
-      if (kind === "file") onOpen(built.path);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  };
+    };
 
   const commitRename = (oldPath: string, name: string): void => {
     const trim = name.trim();
@@ -217,7 +238,9 @@ export function FileTree({ active, onOpen }: FileTreeProps): React.JSX.Element {
     }
     const isFolder = !vfs.has(oldPath);
     const parentDir = oldPath.slice(0, oldPath.lastIndexOf("/"));
-    const nextPath = isFolder ? `${parentDir}/${trim.replace(/^\/|\/$/g, "")}` : `${parentDir}/${trim}`;
+    const nextPath = isFolder
+      ? `${parentDir}/${trim.replace(/^\/|\/$/g, "")}`
+      : `${parentDir}/${trim}`;
     try {
       if (isFolder) {
         for (const path of vfs.list()) {
@@ -238,11 +261,17 @@ export function FileTree({ active, onOpen }: FileTreeProps): React.JSX.Element {
 
   const removeEntry = (path: string): void => {
     const isFolder = !vfs.has(path);
-    const targets = isFolder ? vfs.list().filter((p) => p === path || p.startsWith(`${path}/`)) : [path];
+    const targets = isFolder
+      ? vfs.list().filter((p) => p === path || p.startsWith(`${path}/`))
+      : [path];
     const nonEmpty = targets.some((target) => (vfs.read(target) ?? "").trim() !== "");
-    const breakApp = targets.some(
-      (target) => target === "/taser.ts" || (!isFolder && /^\/routes\/.*\.(get|post|put|patch|delete)\.ts$/.test(target)),
-    );
+    const breakApp = targets.some((target) => {
+      if (target === "/taser.ts") return true;
+      if (!isFolder && target.startsWith("/routes/")) {
+        return parseFilePath(target.slice("/routes/".length)) !== null;
+      }
+      return false;
+    });
     if (nonEmpty || breakApp) {
       const message = `Delete ${targets.length} item(s) under ${path}?${breakApp ? " The app may stop responding." : ""}`;
       if (!window.confirm(message)) return;
@@ -374,7 +403,9 @@ export function FileTree({ active, onOpen }: FileTreeProps): React.JSX.Element {
           <NameInput
             depth={0}
             isFolder={topCreate.kind === "folder"}
-            placeholder={topCreate.kind === "folder" ? "name" : "name or path, e.g. routes/health.get.ts"}
+            placeholder={
+              topCreate.kind === "folder" ? "name" : "name or path, e.g. routes/health.get.ts"
+            }
             onCommit={commitCreate(topCreate.kind, "/")}
             onCancel={() => setCreating(null)}
           />

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  compareBySegments,
   deriveCanonicalUrl,
   formatRelativeImport,
   isIgnoredPath,
@@ -54,5 +55,16 @@ describe("paths", () => {
     ["C:\\app\\src\\.taserjs", "C:\\app\\src\\routes\\$.tsx", ".js", "../routes/$.js"],
   ])("formatRelativeImport(%j, %j, %j)", (fromDir, target, ext, expected) => {
     expect(formatRelativeImport(fromDir, target, ext)).toBe(expected);
+  });
+
+  it("compares paths by segments correctly", () => {
+    const list = ["routes/users/$id.get.ts", "routes/$.ts", "routes/admin/$.ts", "routes/admin.ts"];
+    list.sort(compareBySegments);
+    expect(list).toEqual([
+      "routes/$.ts",
+      "routes/admin/$.ts",
+      "routes/admin.ts",
+      "routes/users/$id.get.ts",
+    ]);
   });
 });

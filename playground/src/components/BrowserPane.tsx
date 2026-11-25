@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 
-import { getBuildStatus, request, subscribeBuildStatus, type BuildStatus, type RunResult } from "../runner";
+import {
+  getBuildStatus,
+  request,
+  subscribeBuildStatus,
+  type BuildStatus,
+  type RunResult,
+} from "../runner";
 
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"];
 const HOST_PREFIX = "http://localhost";
@@ -67,7 +73,9 @@ export function BrowserPane(): React.JSX.Element {
   }, [dial.phase]);
 
   const contentType =
-    result?.kind === "response" ? (result.headers.find(([key]) => key.toLowerCase() === "content-type")?.[1] ?? "") : "";
+    result?.kind === "response"
+      ? (result.headers.find(([key]) => key.toLowerCase() === "content-type")?.[1] ?? "")
+      : "";
   const isJson = contentType.includes("json");
   const isHtml = contentType.includes("text/html");
 
@@ -76,7 +84,9 @@ export function BrowserPane(): React.JSX.Element {
       <div className="panel-head">
         <span className="title">Browser</span>
         <span className="spacer" />
-        {dial.phase !== "ready" && <span>{dial.phase === "booting" ? "loading compiler…" : dial.phase}</span>}
+        {dial.phase !== "ready" && (
+          <span>{dial.phase === "booting" ? "loading compiler…" : dial.phase}</span>
+        )}
         {result && <span className="resp-ms">{result.ms.toFixed(0)}ms</span>}
       </div>
       <form
@@ -86,7 +96,11 @@ export function BrowserPane(): React.JSX.Element {
           void submit();
         }}
       >
-        <select className="method-select" value={method} onChange={(event) => setMethod(event.target.value)}>
+        <select
+          className="method-select"
+          value={method}
+          onChange={(event) => setMethod(event.target.value)}
+        >
           {METHODS.map((candidate) => (
             <option key={candidate} value={candidate}>
               {candidate}
@@ -124,7 +138,9 @@ export function BrowserPane(): React.JSX.Element {
               <div key={`${error.file}:${error.message}`}>
                 <span className="err-file">
                   {error.file}
-                  {error.line !== undefined ? `:${error.line}${error.column !== undefined ? `:${error.column}` : ""}` : ""}
+                  {error.line !== undefined
+                    ? `:${error.line}${error.column !== undefined ? `:${error.column}` : ""}`
+                    : ""}
                 </span>
                 {error.message}
               </div>
@@ -156,7 +172,11 @@ export function BrowserPane(): React.JSX.Element {
             {isHtml && (
               <div className="view-toggle">
                 <label>
-                  <input type="checkbox" checked={viewSource} onChange={(event) => setViewSource(event.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={viewSource}
+                    onChange={(event) => setViewSource(event.target.checked)}
+                  />
                   View source
                 </label>
               </div>
@@ -165,13 +185,15 @@ export function BrowserPane(): React.JSX.Element {
               {isHtml && !viewSource ? (
                 <iframe sandbox="" srcDoc={result.body} title="response" />
               ) : isJson ? (
-                <pre>{(() => {
-                  try {
-                    return JSON.stringify(JSON.parse(result.body), null, 2);
-                  } catch {
-                    return result.body;
-                  }
-                })()}</pre>
+                <pre>
+                  {(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(result.body), null, 2);
+                    } catch {
+                      return result.body;
+                    }
+                  })()}
+                </pre>
               ) : (
                 <pre>{result.body}</pre>
               )}
@@ -186,14 +208,16 @@ export function BrowserPane(): React.JSX.Element {
         {result?.kind === "timeout" && (
           <div className="notice error">
             <span>
-              Request timed out after {(result.ms / 1000).toFixed(1)}s (possible infinite loop). The worker was
-              terminated; the next request rebuilds it.
+              Request timed out after {(result.ms / 1000).toFixed(1)}s (possible infinite loop). The
+              worker was terminated; the next request rebuilds it.
             </span>
           </div>
         )}
         {!result && dial.errors.length === 0 && dial.phase !== "booting" && (
           <div className="notice">
-            <span>Type a path like <code>/users/1</code> and press Go.</span>
+            <span>
+              Type a path like <code>/users/1</code> and press Go.
+            </span>
           </div>
         )}
       </div>

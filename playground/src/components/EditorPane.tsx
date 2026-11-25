@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import * as monaco from "monaco-editor";
+import { useEffect, useRef, useState } from "react";
 
 import { ensureModel, isGeneratedPath, markerCounts, watchMarkers } from "../monaco";
 import { FileIcon } from "./icons";
@@ -11,7 +11,12 @@ interface EditorPaneProps {
   onCloseTab: (path: string) => void;
 }
 
-export function EditorPane({ active, openFiles, onOpen, onCloseTab }: EditorPaneProps): React.JSX.Element {
+export function EditorPane({
+  active,
+  openFiles,
+  onOpen,
+  onCloseTab,
+}: EditorPaneProps): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const [inlay, setInlay] = useState(false);
@@ -30,6 +35,26 @@ export function EditorPane({ active, openFiles, onOpen, onCloseTab }: EditorPane
       smoothScrolling: true,
       padding: { top: 10 },
       inlayHints: { enabled: "off" },
+      fixedOverflowWidgets: true,
+      suggestFontSize: 13,
+      suggestLineHeight: 26,
+      suggest: {
+        showIcons: true,
+        showStatusBar: true,
+        showInlineDetails: true,
+        preview: true,
+        filterGraceful: true,
+        localityBonus: true,
+        shareSuggestSelections: true,
+      },
+      quickSuggestions: {
+        other: true,
+        comments: false,
+        strings: true,
+      },
+      parameterHints: {
+        enabled: true,
+      },
     });
     editorRef.current = editor;
     const stopMarkers = watchMarkers(() => setCounts(markerCounts()));
@@ -56,7 +81,11 @@ export function EditorPane({ active, openFiles, onOpen, onCloseTab }: EditorPane
       <div className="chrome-row">
         <div className="tabs">
           {openFiles.map((path) => (
-            <div key={path} className={`tab${path === active ? " active" : ""}`} onClick={() => onOpen(path)}>
+            <div
+              key={path}
+              className={`tab${path === active ? " active" : ""}`}
+              onClick={() => onOpen(path)}
+            >
               <FileIcon path={path} />
               <span>{path.replace(/^\//, "")}</span>
               <button
@@ -93,7 +122,11 @@ export function EditorPane({ active, openFiles, onOpen, onCloseTab }: EditorPane
           <button
             className="btn warning"
             onClick={() => {
-              if (window.confirm("Reset the project to the default starter? Your changes will be lost.")) {
+              if (
+                window.confirm(
+                  "Reset the project to the default starter? Your changes will be lost.",
+                )
+              ) {
                 window.dispatchEvent(new CustomEvent("playground:reset"));
               }
             }}

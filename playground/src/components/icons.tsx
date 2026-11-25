@@ -35,7 +35,13 @@ function PageGlyph({ color, className }: SvgProps & { color: string }): React.JS
 }
 
 /** Colored page glyph for a file path; language colors, dim default. */
-export function FileIcon({ path, className }: { path: string; className?: string }): React.JSX.Element {
+export function FileIcon({
+  path,
+  className,
+}: {
+  path: string;
+  className?: string;
+}): React.JSX.Element {
   const dot = path.lastIndexOf(".");
   const ext = dot >= 0 ? path.slice(dot + 1).toLowerCase() : "";
   return <PageGlyph color={FILE_COLORS[ext] ?? FILE_DEFAULT_COLOR} className={className} />;
@@ -87,17 +93,11 @@ function StrokeIcon(props: SvgProps & { d: string }): React.JSX.Element {
 
 /** Explorer-action icons (currentColor strokes, like the VS Code toolbar). */
 export const NewFileIcon = (p: SvgProps = {}): React.JSX.Element => (
-  <StrokeIcon
-    {...p}
-    d="M8.5 1.5H3.5v13h9V5.5zM8.5 1.5v4h4M10.5 8v4M8.5 10h4"
-  />
+  <StrokeIcon {...p} d="M8.5 1.5H3.5v13h9V5.5zM8.5 1.5v4h4M10.5 8v4M8.5 10h4" />
 );
 
 export const NewFolderIcon = (p: SvgProps = {}): React.JSX.Element => (
-  <StrokeIcon
-    {...p}
-    d="M2 13.5V3c0-.6.4-1 1-1h3.5l1.5 2h5c.6 0 1 .4 1 1v8.5M8 9.5v4M6 11.5h4"
-  />
+  <StrokeIcon {...p} d="M2 13.5V3c0-.6.4-1 1-1h3.5l1.5 2h5c.6 0 1 .4 1 1v8.5M8 9.5v4M6 11.5h4" />
 );
 
 export const TrashIcon = (p: SvgProps = {}): React.JSX.Element => (

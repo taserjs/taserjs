@@ -2,15 +2,15 @@ import { editor, MarkerSeverity, typescript as ts, Uri } from "monaco-editor";
 // eslint-disable-next-line import/default -- side-effect language registration
 import editorWorkerSource from "monaco-editor/esm/vs/editor/editor.worker.js?worker";
 // eslint-disable-next-line import/default -- side-effect language registration
-import tsWorkerSource from "monaco-editor/esm/vs/language/typescript/ts.worker.js?worker";
-// eslint-disable-next-line import/default -- side-effect language registration
-import jsonWorkerSource from "monaco-editor/esm/vs/language/json/json.worker.js?worker";
-// eslint-disable-next-line import/default -- side-effect language registration
 import cssWorkerSource from "monaco-editor/esm/vs/language/css/css.worker.js?worker";
 // eslint-disable-next-line import/default -- side-effect language registration
 import htmlWorkerSource from "monaco-editor/esm/vs/language/html/html.worker.js?worker";
-
+// eslint-disable-next-line import/default -- side-effect language registration
+import jsonWorkerSource from "monaco-editor/esm/vs/language/json/json.worker.js?worker";
+// eslint-disable-next-line import/default -- side-effect language registration
+import tsWorkerSource from "monaco-editor/esm/vs/language/typescript/ts.worker.js?worker";
 import taserDts from "virtual:taser-dts";
+
 import { vfs, type VfsEvent } from "./vfs";
 
 // Workers: bundling them explicitly (Vite `?worker`) and handing them to monaco
@@ -72,6 +72,17 @@ for (const [name, theme] of Object.entries({
       "editorLineNumber.foreground": dark ? "#3a4054" : "#c3c7d4",
       "editorGutter.background": dark ? "#111420" : "#ffffff",
       "editor.lineHighlightBackground": dark ? "#1a1e2c" : "#f4f6fb",
+      "editorSuggestWidget.background": dark ? "#141824" : "#ffffff",
+      "editorSuggestWidget.border": dark ? "#232938" : "#e2e6f0",
+      "editorSuggestWidget.foreground": dark ? "#e6e9f2" : "#17203a",
+      "editorSuggestWidget.selectedBackground": dark ? "#222a3d" : "#eaf0fc",
+      "editorSuggestWidget.selectedForeground": dark ? "#ffffff" : "#0b1020",
+      "editorSuggestWidget.highlightForeground": dark ? "#7aa2ff" : "#3b82f6",
+      "editorSuggestWidget.focusHighlightForeground": dark ? "#7aa2ff" : "#3b82f6",
+      "editorSuggestWidgetStatus.foreground": dark ? "#8b93ab" : "#64748b",
+      "editorHoverWidget.background": dark ? "#141824" : "#ffffff",
+      "editorHoverWidget.border": dark ? "#232938" : "#e2e6f0",
+      "editorHoverWidget.foreground": dark ? "#e6e9f2" : "#17203a",
     },
   });
 }

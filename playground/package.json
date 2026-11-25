@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "oxlint src vite.config.ts",
+    "test": "vitest run",
     "clean": "rimraf dist"
   },
   "dependencies": {
@@ -27,9 +28,11 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "6.1.2",
+    "pathe": "^2.0.3",
     "rimraf": "^6.0.1",
     "typescript": "5.9.3",
     "vite": "8.3.5",
+    "vitest": "^4.1.10",
     "zod": "4.6.7"
   },
   "engines": {

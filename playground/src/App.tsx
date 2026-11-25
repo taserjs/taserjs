@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { DEFAULT_ACTIVE, starterProject } from "./starter";
-import { loadInitial, onExternalHash, setActivePathProvider, writeHash, writeMirror } from "./persist";
-import { ensureModel, registerOpenFile, startModelSync } from "./monaco";
-import { rebuild, syncManifest } from "./runner";
-import { vfs } from "./vfs";
 import { BrowserPane } from "./components/BrowserPane";
 import { EditorPane } from "./components/EditorPane";
 import { FileTree } from "./components/FileTree";
+import { ensureModel, registerOpenFile, startModelSync } from "./monaco";
+import {
+  loadInitial,
+  onExternalHash,
+  setActivePathProvider,
+  writeHash,
+  writeMirror,
+} from "./persist";
+import { rebuild, syncManifest } from "./runner";
+import { DEFAULT_ACTIVE, starterProject } from "./starter";
+import { vfs } from "./vfs";
+
 import "./global.css";
 
 const MIN_EDITOR = 120;
@@ -22,7 +29,8 @@ interface Widths {
   browser: number;
 }
 
-const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number): number =>
+  Math.min(max, Math.max(min, value));
 
 /**
  * Clamps both side tracks so the row always fits the viewport: files + browser
@@ -114,7 +122,10 @@ export function App(): React.JSX.Element {
     // --- boot ----------------------------------------------------------------
     setActivePathProvider(() => activeRef.current);
     const initial = loadInitial();
-    vfs.hydrate(Object.keys(initial.files).length > 0 ? initial.files : starterProject(), "hydrate");
+    vfs.hydrate(
+      Object.keys(initial.files).length > 0 ? initial.files : starterProject(),
+      "hydrate",
+    );
 
     let nextActive = initial.active;
     if (!nextActive || !vfs.has(nextActive)) nextActive = DEFAULT_ACTIVE;
@@ -206,16 +217,13 @@ export function App(): React.JSX.Element {
     persistSoon();
   }, []);
 
-  const closeTab = useCallback(
-    (path: string): void => {
-      setOpenFiles((prev) => {
-        const next = prev.filter((candidate) => candidate !== path);
-        if (!next.includes(activeRef.current ?? "")) setActive(next.at(-1) ?? null);
-        return next;
-      });
-    },
-    [],
-  );
+  const closeTab = useCallback((path: string): void => {
+    setOpenFiles((prev) => {
+      const next = prev.filter((candidate) => candidate !== path);
+      if (!next.includes(activeRef.current ?? "")) setActive(next.at(-1) ?? null);
+      return next;
+    });
+  }, []);
 
   const [widths, setWidths] = useState<Widths>(() =>
     fitWidths(232, Math.max(340, Math.min(560, Math.round(window.innerWidth * 0.4))), "browser"),
@@ -223,13 +231,16 @@ export function App(): React.JSX.Element {
 
   // Shrinking the window must not push panels past the right edge.
   useEffect(() => {
-    const onResize = (): void => setWidths((prev) => fitWidths(prev.files, prev.browser, "browser"));
+    const onResize = (): void =>
+      setWidths((prev) => fitWidths(prev.files, prev.browser, "browser"));
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
   const filePanel = <FileTree active={active} onOpen={openFile} />;
-  const editorPanel = <EditorPane active={active} openFiles={openFiles} onOpen={openFile} onCloseTab={closeTab} />;
+  const editorPanel = (
+    <EditorPane active={active} openFiles={openFiles} onOpen={openFile} onCloseTab={closeTab} />
+  );
   const browserPanel = <BrowserPane />;
 
   if (narrow) {
@@ -237,7 +248,11 @@ export function App(): React.JSX.Element {
       <div className="app narrow">
         <div className="mode-switch">
           {(["files", "code", "browser"] as const).map((candidate) => (
-            <button key={candidate} className={mode === candidate ? "active" : ""} onClick={() => setMode(candidate)}>
+            <button
+              key={candidate}
+              className={mode === candidate ? "active" : ""}
+              onClick={() => setMode(candidate)}
+            >
               {candidate === "files" ? "Files" : candidate === "code" ? "Code" : "Browser"}
             </button>
           ))}
@@ -264,9 +279,15 @@ export function App(): React.JSX.Element {
         }}
       >
         <div className="side-host">{filePanel}</div>
-        <Splitter onResize={(dx) => setWidths((prev) => fitWidths(prev.files + dx, prev.browser, "files"))} />
+        <Splitter
+          onResize={(dx) => setWidths((prev) => fitWidths(prev.files + dx, prev.browser, "files"))}
+        />
         {editorPanel}
-        <Splitter onResize={(dx) => setWidths((prev) => fitWidths(prev.files, prev.browser - dx, "browser"))} />
+        <Splitter
+          onResize={(dx) =>
+            setWidths((prev) => fitWidths(prev.files, prev.browser - dx, "browser"))
+          }
+        />
         <div className="side-host">{browserPanel}</div>
       </div>
     </div>

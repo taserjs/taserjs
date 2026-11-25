@@ -7,6 +7,8 @@ const VERSIONS = {
   "@taserjs/router": "0.3.0",
   "@taserjs/client": "0.3.0",
   "@taserjs/utils": "0.3.0",
+  hono: "4.13.7",
+  "@standard-schema/spec": "1.1.0",
   zod: "4.6.7",
 } as const;
 
@@ -14,7 +16,8 @@ const ESM_SH = "https://esm.sh";
 
 /** Resolves a bare specifier to its pinned esm.sh URL, or null when unpinned. */
 export function resolvePin(specifier: string): string | null {
-  if (specifier in VERSIONS) return `${ESM_SH}/${specifier}@${VERSIONS[specifier as keyof typeof VERSIONS]}`;
+  if (specifier in VERSIONS)
+    return `${ESM_SH}/${specifier}@${VERSIONS[specifier as keyof typeof VERSIONS]}`;
   for (const base of Object.keys(VERSIONS)) {
     if (specifier.startsWith(`${base}/`)) {
       const subpath = specifier.slice(base.length + 1);

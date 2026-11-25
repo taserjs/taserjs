@@ -1,8 +1,7 @@
-import type { DiscoveredLayout, ScanResult } from "./scan-types.js";
-
 import type { ResolvedTaserConfig } from "./config-shared.js";
 import { resolvePaths } from "./config-shared.js";
 import { formatRelativeImport } from "./paths.js";
+import type { DiscoveredLayout, ScanResult } from "./scan-types.js";
 
 const quote = JSON.stringify;
 

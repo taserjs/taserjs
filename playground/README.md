@@ -55,7 +55,7 @@ time by the `virtual:taser-dts` Vite plugin:
   `routes/$.ts` feeds `RouterRegister` in the generated manifest.
 
 Diagnostics correctness has one non-obvious fix: Monaco only re-validates a
-file when *that file* changes, so a codegen rewrite of the manifest leaves
+file when _that file_ changes, so a codegen rewrite of the manifest leaves
 stale markers (e.g. a stale `RoutePath` union) on route files that did not
 change. `pumpDiagnostics()` re-applies `setDiagnosticsOptions` — which fires
 the defaults' `onDidChange` and revalidates every model — debounced on every
@@ -76,8 +76,7 @@ pnpm --filter playground exec tsc --noEmit   # typecheck
   may be mis-scanned. The real CLI stays the source of truth.
 - `routes.gen.ts` is read-only in the editor UI: edits to it are overwritten
   by the next codegen pass.
-- The bundle is large (~5 MB minified) because it ships Monaco + esbuild-wasm
-  + TS. Splitting per-language Monaco chunks was left untuned.
+- The bundle is large (~5 MB minified) because it ships Monaco + esbuild-wasm and TS. Splitting per-language Monaco chunks was left untuned.
 
 ## Full-Node tier (later)
 

@@ -1,4 +1,5 @@
 import {
+  compareBySegments,
   deriveCanonicalUrl,
   deriveLayoutInfo,
   isIgnoredPath,
@@ -47,15 +48,6 @@ function extractRootCall(content: string): { verb: string; path: string } | null
   const path = (match[2] ?? match[3] ?? match[4]) as string;
   return { verb: match[1]!, path };
 }
-
-const compareBySegments = (a: string, b: string): number => {
-  const left = a.split("/");
-  const right = b.split("/");
-  for (let i = 0; i < Math.min(left.length, right.length); i += 1) {
-    if (left[i] !== right[i]) return left[i]! < right[i]! ? -1 : 1;
-  }
-  return left.length - right.length;
-};
 
 /**
  * Browser-side scanner that produces the same `ScanResult` model as the CLI's

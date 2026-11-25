@@ -188,3 +188,15 @@ export function formatRelativeImport(
   const specifier = isAbsolute(relPath) || /^\.\.?\//.test(relPath) ? relPath : `./${relPath}`;
   return specifier.replace(SOURCE_EXTENSION_PATTERN, "") + ext;
 }
+
+/**
+ * Compares two relative file paths segment-by-segment for stable directory-first ordering.
+ */
+export function compareBySegments(a: string, b: string): number {
+  const left = a.split("/");
+  const right = b.split("/");
+  for (let i = 0; i < Math.min(left.length, right.length); i++) {
+    if (left[i] !== right[i]) return left[i]! < right[i]! ? -1 : 1;
+  }
+  return left.length - right.length;
+}

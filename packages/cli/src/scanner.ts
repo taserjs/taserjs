@@ -4,6 +4,7 @@ import { parseSync } from "oxc-parser";
 import { join, relative, resolve } from "pathe";
 
 import {
+  compareBySegments,
   deriveCanonicalUrl,
   deriveLayoutInfo,
   isIgnoredPath,
@@ -147,15 +148,6 @@ interface SourceFile {
   absolutePath: string;
   parsed: ParsedFilePath;
 }
-
-const compareBySegments = (a: string, b: string): number => {
-  const left = a.split("/");
-  const right = b.split("/");
-  for (let i = 0; i < Math.min(left.length, right.length); i++) {
-    if (left[i] !== right[i]) return left[i]! < right[i]! ? -1 : 1;
-  }
-  return left.length - right.length;
-};
 
 /** Lists route and layout candidates in a stable, directory-first order. */
 function discoverFiles(routesDir: string): SourceFile[] {

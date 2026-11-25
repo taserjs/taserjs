@@ -1,9 +1,9 @@
-import { createRequire } from "node:module";
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 import react from "@vitejs/plugin-react";
+import { dirname, join, normalize, resolve } from "pathe";
 import { defineConfig, type Plugin } from "vite";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -42,7 +42,7 @@ function pkg(specifier: string, fromDir: string): string {
   // then walk up to the directory that actually is the package root.
   /** The leaf, e.g. `spec` for `@standard-schema/spec`. */
   const leaf = specifier.replace(/^@[^/]+\//, "");
-  let dir = dirname(createRequire(join(fromDir, "noop.js")).resolve(specifier));
+  let dir = normalize(dirname(createRequire(join(fromDir, "noop.js")).resolve(specifier)));
   while (dir.split("/").pop() !== leaf && dir !== dirname(dir)) dir = dirname(dir);
   return dir;
 }
@@ -50,21 +50,21 @@ function pkg(specifier: string, fromDir: string): string {
 const RUNTIME_DIR = resolve(REPO, "packages", "runtime");
 
 const SPECS: PkgSpec[] = [
-  ...["runtime", "router", "client", "utils"].map(
-    (leaf): PkgSpec => {
-      const root = resolve(REPO, "packages", leaf);
-      const real = JSON.parse(readFileSync(join(root, "package.json"), "utf-8")) as { types?: string };
-      // tsdown emits `<entry>.d.ts` next to `<entry>.js` for every entry point,
-      // mirroring each package's `exports` map. The virtual layout flattens
-      // `dist/` to the package root, so `types` follows.
-      return {
-        name: `@taserjs/${leaf}`,
-        root,
-        dir: "dist",
-        types: (real.types ?? "./dist/index.d.ts").replace("./dist/", "./"),
-      };
-    },
-  ),
+  ...["runtime", "router", "client", "utils"].map((leaf): PkgSpec => {
+    const root = resolve(REPO, "packages", leaf);
+    const real = JSON.parse(readFileSync(join(root, "package.json"), "utf-8")) as {
+      types?: string;
+    };
+    // tsdown emits `<entry>.d.ts` next to `<entry>.js` for every entry point,
+    // mirroring each package's `exports` map. The virtual layout flattens
+    // `dist/` to the package root, so `types` follows.
+    return {
+      name: `@taserjs/${leaf}`,
+      root,
+      dir: "dist",
+      types: (real.types ?? "./dist/index.d.ts").replace("./dist/", "./"),
+    };
+  }),
   {
     name: "hono",
     root: pkg("hono", RUNTIME_DIR),
@@ -95,10 +95,9 @@ function collectDts(): Record<string, string> {
       // Drop the packing directory ("dist" or "dist/types"): the virtual layout
       // mirrors each package's real exports -> `node_modules/<name>/<subpath>.d.ts`,
       // which node-style resolution probes directly (index fallback also works).
-      const virtualRel = file
+      const virtualRel = normalize(file)
         .slice(dir.length + 1)
-        .replaceAll("\\", "/")
-        .replace(/^dist\/|^dist\\/, "");
+        .replace(/^dist\//, "");
       out[`${prefix}${virtualRel}`] = readFileSync(file, "utf-8");
     }
   }
