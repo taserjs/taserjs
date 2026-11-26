@@ -102,7 +102,15 @@ export function TopBar({
     if (sharing) return;
     setSharing(true);
     try {
-      writeHash();
+      const hashStatus = writeHash();
+      if (hashStatus === "hard-limit") {
+        toastManager.add({
+          title: "Project too large to share",
+          description:
+            "Project exceeds the 32 KB URL share limit. Trim files to generate a shareable link.",
+        });
+        return;
+      }
       const result = await shortenUrl(location.href);
 
       try {

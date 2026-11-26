@@ -1,4 +1,4 @@
-export const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
+export const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "QUERY"] as const;
 export type HttpMethod = (typeof HTTP_METHODS)[number];
 
 const METHOD_BADGE_CLASSES: Record<string, string> = {

@@ -25,7 +25,7 @@ import {
   scaffoldFor,
   type TreeNode,
 } from "../scaffold";
-import { isHiddenPath, vfs } from "../vfs";
+import { isHiddenPath, pathError, vfs } from "../vfs";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 type CreateKind = "file" | "folder";
@@ -245,11 +245,41 @@ export function FileTree({ active, onOpen, onRenamePath }: FileTreeProps): React
     }
     try {
       if (isFolder) {
-        for (const path of vfs.listVisible()) {
-          if (path === oldPath || path.startsWith(`${oldPath}/`)) {
-            vfs.rename(path, `${nextPath}${path.slice(oldPath.length)}`, "ui");
+        const targets = vfs
+          .listVisible()
+          .filter((path) => path === oldPath || path.startsWith(`${oldPath}/`));
+        const moves = targets.map((from) => ({
+          from,
+          to: `${nextPath}${from.slice(oldPath.length)}`,
+        }));
+        const sourceSet = new Set(targets);
+
+        // Preflight every destination before mutating anything.
+        for (const { to } of moves) {
+          const invalid = pathError(to);
+          if (invalid) throw new Error(`Cannot rename to "${to}": ${invalid}`);
+          if (isHiddenPath(to)) throw new Error("Internal .taserjs paths are reserved.");
+          if (vfs.has(to) && !sourceSet.has(to)) {
+            throw new Error(`A file already exists at "${to}"`);
           }
         }
+
+        const completed: Array<{ from: string; to: string }> = [];
+        try {
+          for (const move of moves) {
+            vfs.rename(move.from, move.to, "ui");
+            completed.push(move);
+          }
+        } catch (moveErr) {
+          for (let i = completed.length - 1; i >= 0; i -= 1) {
+            const done = completed[i]!;
+            if (vfs.has(done.to) && !vfs.has(done.from)) {
+              vfs.rename(done.to, done.from, "ui");
+            }
+          }
+          throw moveErr;
+        }
+
         setEmptyFolders((prev) => {
           const next = new Set<string>();
           for (const folder of prev) {
@@ -345,11 +375,26 @@ export function FileTree({ active, onOpen, onRenamePath }: FileTreeProps): React
         <div
           key={node.path}
           role="treeitem"
+          tabIndex={0}
           aria-selected={isActive}
           aria-expanded={node.isFolder ? !isCollapsed : undefined}
           onClick={() => (node.isFolder ? toggleFolder(node.path) : onOpen(node.path))}
+          onKeyDown={(event) => {
+            if (event.target !== event.currentTarget) return;
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              if (node.isFolder) toggleFolder(node.path);
+              else onOpen(node.path);
+            } else if (node.isFolder && event.key === "ArrowRight" && isCollapsed) {
+              event.preventDefault();
+              expandPath(node.path);
+            } else if (node.isFolder && event.key === "ArrowLeft" && !isCollapsed) {
+              event.preventDefault();
+              toggleFolder(node.path);
+            }
+          }}
           style={{ paddingLeft: 8 + depth * 14 }}
-          className={`group flex h-7 cursor-pointer items-center gap-1.5 rounded-md mx-1.5 pr-1.5 select-none transition-colors ${
+          className={`group flex h-7 cursor-pointer items-center gap-1.5 rounded-md mx-1.5 pr-1.5 select-none transition-colors focus-visible:ring-1 focus-visible:ring-pg-primary focus-visible:outline-none ${
             isActive
               ? "bg-pg-accent-soft font-medium text-pg-primary"
               : "text-pg-fg/90 hover:bg-pg-hover hover:text-pg-fg"

@@ -25,21 +25,3 @@ export const APP_STUB = `import { defineTaser } from "@taserjs/router";
 
 export default defineTaser();
 `;
-
-/** Custom middleware file that adds `state` and `services` visible to consumers via inference. */
-export function middlewareContentStub(name: string): string {
-  return `import { middleware } from "@taserjs/router";
-
-/**
- * Custom middleware. Use via \`t.get("/x").use(${name}).handler(...)\`.
- * \`next({ ... })\` adds state, \`next.provide(services)\` adds services;
- * both are inferred on route handlers automatically.
- */
-export const ${name} = middleware().handler(async ({ req, state }, next) => {
-  const start = Date.now();
-  console.log(\`\${req.method} \${req.url}\`);
-  const res = await next({ ${name}At: start });
-  return res;
-});
-`;
-}

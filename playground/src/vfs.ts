@@ -4,6 +4,8 @@ export interface VfsEvent {
   type: "add" | "change" | "unlink";
   path: string;
   origin?: VfsOrigin | undefined;
+  /** Present on unlink events produced by a rename so consumers can remap instead of closing. */
+  movedTo?: string | undefined;
 }
 
 type Listener = (event: VfsEvent) => void;
@@ -89,13 +91,16 @@ export class Vfs {
     return true;
   }
 
-  /** Remove + write under the hood, preserving the content. */
+  /** Write + unlink under the hood, preserving the content and marking the unlink as a move. */
   rename(from: string, to: string, origin?: VfsOrigin): void {
     const error = pathError(to) ?? (to === from ? "Rename target must differ" : null);
     if (error) throw new Error(`Cannot rename to "${to}": ${error}`);
     if (this.files.has(to)) throw new Error(`A file already exists at "${to}"`);
     this.write(to, this.read(from) ?? "", origin);
-    this.remove(from, origin);
+    if (this.files.has(from)) {
+      this.files.delete(from);
+      this.emit({ type: "unlink", path: from, origin, movedTo: to });
+    }
   }
 
   snapshot(): Record<string, string> {

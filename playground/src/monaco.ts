@@ -226,7 +226,7 @@ export function startModelSync(onUnlink?: (path: string) => void): () => void {
       const model = models.get(event.path);
       models.delete(event.path);
       model?.dispose();
-      if (!isHiddenPath(event.path)) onUnlink?.(event.path);
+      if (!event.movedTo && !isHiddenPath(event.path)) onUnlink?.(event.path);
     }
     if (event.origin !== "editor") pumpDiagnostics();
   };

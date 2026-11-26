@@ -49,9 +49,16 @@ export type RunResult =
 let initPromise: Promise<void> | null = null;
 
 function ensureEsbuild(): Promise<void> {
-  initPromise ??= initialize({
-    wasmURL: new URL(wasmUrl, import.meta.url).href,
-  }).then(() => undefined);
+  if (!initPromise) {
+    initPromise = initialize({
+      wasmURL: new URL(wasmUrl, import.meta.url).href,
+    })
+      .then(() => undefined)
+      .catch((err: unknown) => {
+        initPromise = null;
+        throw err;
+      });
+  }
   return initPromise;
 }
 
@@ -175,7 +182,7 @@ for (const level of ["log", "info", "warn", "error"]) {
   };
 }
 
-self.onmessage = async ({ data }) => {
+async function handleRequest(data) {
   const { id, method, url, headers, body } = data;
   const logs = [];
   activeLogs = logs;
@@ -198,6 +205,11 @@ self.onmessage = async ({ data }) => {
   } finally {
     if (activeLogs === logs) activeLogs = null;
   }
+}
+
+let requestQueue = Promise.resolve();
+self.onmessage = ({ data }) => {
+  requestQueue = requestQueue.then(() => handleRequest(data));
 };
 `;
 
@@ -258,8 +270,9 @@ function spawnWorker(code: string): void {
     workerUrl = null;
   }
   workerUrl = URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
-  worker = new Worker(workerUrl, { type: "module" });
-  worker.onmessage = ({ data }) => {
+  const nextWorker = new Worker(workerUrl, { type: "module" });
+  worker = nextWorker;
+  nextWorker.onmessage = ({ data }) => {
     const settle = pending.get(data.id as number);
     if (!settle) return;
     clearTimeout(settle.timer);
@@ -279,8 +292,18 @@ function spawnWorker(code: string): void {
         : { kind: "error", error: data.error as string, ms: settle.ms(), logs },
     );
   };
-  worker.onerror = (event) => {
-    rejectAllPending(event.message || "Worker crashed");
+  nextWorker.onerror = (event) => {
+    const message = event.message || "Worker crashed during startup";
+    if (worker === nextWorker) {
+      nextWorker.terminate();
+      worker = null;
+      setStatus({
+        ...status,
+        phase: "error",
+        errors: [{ file: "(worker)", message }],
+      });
+    }
+    rejectAllPending(message);
   };
 }
 
@@ -289,7 +312,18 @@ async function runSingleBuild(): Promise<void> {
     ...status,
     phase: status.phase === "booting" ? "booting" : "building",
   });
-  await ensureEsbuild();
+
+  try {
+    await ensureEsbuild();
+  } catch (failure) {
+    setStatus({
+      phase: "error",
+      errors: formatBuildFailure(failure),
+      routes: status.routes,
+      layouts: status.layouts,
+    });
+    return;
+  }
 
   const scan = scanProject();
   if (scan.diagnostics.length > 0 || !vfs.has(MANIFEST_PATH)) {
@@ -404,16 +438,19 @@ export async function request(input: RequestInput): Promise<RunResult> {
     };
   }
 
+  const targetWorker = worker;
   const id = (nextRequestId += 1);
   return new Promise<RunResult>((resolve, reject) => {
     const timer = setTimeout(() => {
       pending.delete(id);
-      worker?.terminate();
-      worker = null;
+      if (worker === targetWorker) {
+        targetWorker.terminate();
+        worker = null;
+      }
       resolve({ kind: "timeout", ms: performance.now() - started, logs: [] });
     }, REQUEST_TIMEOUT_MS);
     pending.set(id, { resolve, reject, timer, ms: () => performance.now() - started });
-    worker?.postMessage({
+    targetWorker.postMessage({
       id,
       method: input.method,
       url: input.url,

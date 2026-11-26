@@ -89,13 +89,16 @@ export function BrowserPane({ buildStatus, onJumpToError }: BrowserPaneProps): R
   const [copiedBody, setCopiedBody] = useState(false);
   const autoRan = useRef(false);
   const pathInputRef = useRef<HTMLInputElement | null>(null);
+  const requestSeqRef = useRef(0);
 
   const dispatchRequest = async (overrideMethod?: string, overridePath?: string): Promise<void> => {
+    const seq = (requestSeqRef.current += 1);
     const activeMethod = overrideMethod ?? method;
     const activePath = overridePath ?? pathText;
     setSending(true);
     try {
       await waitForBuild();
+      if (seq !== requestSeqRef.current) return;
       if (getBuildStatus().phase === "error") {
         setResult({
           kind: "error",
@@ -129,8 +132,10 @@ export function BrowserPane({ buildStatus, onJumpToError }: BrowserPaneProps): R
       if (response.kind === "timeout") {
         requestRebuild();
       }
+      if (seq !== requestSeqRef.current) return;
       setResult(response);
     } catch (err) {
+      if (seq !== requestSeqRef.current) return;
       setResult({
         kind: "error",
         error: String((err as Error)?.message ?? err),
@@ -138,7 +143,7 @@ export function BrowserPane({ buildStatus, onJumpToError }: BrowserPaneProps): R
         logs: [],
       });
     } finally {
-      setSending(false);
+      if (seq === requestSeqRef.current) setSending(false);
     }
   };
 

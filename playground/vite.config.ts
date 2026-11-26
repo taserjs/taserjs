@@ -123,6 +123,7 @@ function taserTypesPlugin(): Plugin {
 }
 
 export default defineConfig({
+  base: "./",
   plugins: [tailwindcss(), react(), taserTypesPlugin()],
   resolve: {
     alias: monacoWorkerAliases,

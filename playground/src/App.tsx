@@ -118,10 +118,11 @@ function PlaygroundShell(): React.JSX.Element {
   const { theme, toggleTheme } = useTheme();
   const [mode, setMode] = useState<"files" | "code" | "runner">("code");
   const [initialActive] = useState<string | null>(() => ensureBooted());
-  const [active, setActive] = useState<string | null>(initialActive);
-  const [openFiles, setOpenFiles] = useState<string[]>(() =>
-    initialActive ? [initialActive] : [],
-  );
+  const [tabState, setTabState] = useState<{ openFiles: string[]; active: string | null }>(() => ({
+    openFiles: initialActive ? [initialActive] : [],
+    active: initialActive,
+  }));
+  const { openFiles, active } = tabState;
   const [inlayHints, setInlayHints] = useState(false);
   const [jumpTarget, setJumpTarget] = useState<JumpTarget | null>(null);
 
@@ -143,8 +144,10 @@ function PlaygroundShell(): React.JSX.Element {
   const openFile = useCallback((path: string): void => {
     if (isHiddenPath(path) || !vfs.has(path)) return;
     ensureModel(path);
-    setActive(path);
-    setOpenFiles((prev) => (prev.includes(path) ? prev : [...prev, path]));
+    setTabState((prev) => ({
+      openFiles: prev.openFiles.includes(path) ? prev.openFiles : [...prev.openFiles, path],
+      active: path,
+    }));
     if (narrowMedia?.matches) setMode("code");
     persistSoon();
   }, []);
@@ -159,12 +162,12 @@ function PlaygroundShell(): React.JSX.Element {
   );
 
   const closeTab = useCallback((path: string): void => {
-    setOpenFiles((prev) => {
-      const next = prev.filter((candidate) => candidate !== path);
-      if (activeRef.current === path) {
-        setActive(next.at(-1) ?? null);
-      }
-      return next;
+    setTabState((prev) => {
+      const nextOpen = prev.openFiles.filter((candidate) => candidate !== path);
+      return {
+        openFiles: nextOpen,
+        active: prev.active === path ? (nextOpen.at(-1) ?? null) : prev.active,
+      };
     });
   }, []);
 
@@ -177,8 +180,10 @@ function PlaygroundShell(): React.JSX.Element {
         }
         return candidate;
       };
-      setOpenFiles((prev) => [...new Set(prev.map(remap))]);
-      setActive((current) => (current ? remap(current) : current));
+      setTabState((prev) => ({
+        openFiles: [...new Set(prev.openFiles.map(remap))],
+        active: prev.active ? remap(prev.active) : prev.active,
+      }));
       persistSoon();
     },
     [],
@@ -186,8 +191,7 @@ function PlaygroundShell(): React.JSX.Element {
 
   const handleReset = useCallback((): void => {
     vfs.hydrate(starterProject(), "ui");
-    setActive(DEFAULT_ACTIVE);
-    setOpenFiles([DEFAULT_ACTIVE]);
+    setTabState({ openFiles: [DEFAULT_ACTIVE], active: DEFAULT_ACTIVE });
     for (const path of vfs.list()) ensureModel(path);
     syncManifest();
     writeHash();
@@ -220,13 +224,16 @@ function PlaygroundShell(): React.JSX.Element {
     });
 
     const stopModelSync = startModelSync((unlinked) => {
-      setOpenFiles((prev) => {
-        if (!prev.includes(unlinked)) return prev;
-        const next = prev.filter((item) => item !== unlinked);
-        if (activeRef.current === unlinked) {
-          setActive(next.at(-1) ?? vfs.listVisible()[0] ?? null);
+      setTabState((prev) => {
+        const nextOpen = prev.openFiles.filter((item) => item !== unlinked);
+        if (nextOpen.length === prev.openFiles.length && prev.active !== unlinked) {
+          return prev;
         }
-        return next;
+        const nextActive =
+          prev.active === unlinked
+            ? (nextOpen.at(-1) ?? vfs.listVisible()[0] ?? null)
+            : prev.active;
+        return { openFiles: nextOpen, active: nextActive };
       });
     });
 
@@ -253,8 +260,7 @@ function PlaygroundShell(): React.JSX.Element {
         state.active && !isHiddenPath(state.active) && vfs.has(state.active)
           ? state.active
           : (visible[0] ?? null);
-      setActive(swappedActive);
-      setOpenFiles(swappedActive ? [swappedActive] : []);
+      setTabState({ openFiles: swappedActive ? [swappedActive] : [], active: swappedActive });
       for (const path of vfs.list()) ensureModel(path);
       syncManifest();
       void rebuild();
@@ -326,9 +332,9 @@ function PlaygroundShell(): React.JSX.Element {
             ))}
           </div>
           <div className="min-h-0 flex-1 overflow-hidden">
-            {mode === "files" && explorerPanel}
-            {mode === "code" && editorPanel}
-            {mode === "runner" && runnerPanel}
+            <div className={mode === "files" ? "h-full" : "hidden"}>{explorerPanel}</div>
+            <div className={mode === "code" ? "h-full" : "hidden"}>{editorPanel}</div>
+            <div className={mode === "runner" ? "h-full" : "hidden"}>{runnerPanel}</div>
           </div>
         </div>
       ) : (

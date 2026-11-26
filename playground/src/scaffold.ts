@@ -3,7 +3,6 @@ import {
   deriveLayoutInfo,
   isIgnoredPath,
   layoutStub,
-  middlewareContentStub,
   parseFilePath,
   routeStub,
 } from "@taserjs/cli/codegen";
@@ -19,7 +18,6 @@ export type FileMeta =
   | { kind: "route"; method: string; canonicalPath: string }
   | { kind: "layout"; layoutId: string }
   | { kind: "config" }
-  | { kind: "middleware" }
   | { kind: "other" };
 
 export function sanitizeEntryName(name: string): string {
@@ -46,7 +44,6 @@ export function resolveCreateTarget(
  * Infers initial file content from a VFS path:
  * - `/routes/foo.get.ts` -> route handler stub
  * - `/routes/admin.ts` or `/routes/admin/$.ts` -> layout stub
- * - `/middlewares/auth.ts` -> reusable middleware stub
  * - anything else -> empty file
  */
 export function scaffoldFor(absPath: string): { path: string; content: string } {
@@ -78,29 +75,12 @@ export function scaffoldFor(absPath: string): { path: string; content: string } 
     }
   }
 
-  if (rel.startsWith("middlewares/")) {
-    const midRel = rel.slice("middlewares/".length);
-    const match = midRel.match(/^([^/]+)\.(ts|tsx)$/);
-    if (match) {
-      const base = match[1]!;
-      const camel = base
-        .split(/[^A-Za-z0-9]+/)
-        .filter(Boolean)
-        .map((part, index) =>
-          index === 0 ? part.toLowerCase() : part[0]!.toUpperCase() + part.slice(1).toLowerCase(),
-        )
-        .join("");
-      return { path: absPath, content: middlewareContentStub(camel || "middleware") };
-    }
-  }
-
   return { path: absPath, content: "" };
 }
 
 /** Classifies a VFS file path for explorer badges and status bar route info. */
 export function getFileMeta(absPath: string): FileMeta {
   if (absPath === "/taser.ts") return { kind: "config" };
-  if (absPath.startsWith("/middlewares/")) return { kind: "middleware" };
   if (!absPath.startsWith("/routes/")) return { kind: "other" };
 
   const routesRel = absPath.slice("/routes/".length);

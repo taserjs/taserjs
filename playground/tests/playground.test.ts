@@ -2,6 +2,7 @@ import { compareBySegments } from "@taserjs/cli/codegen";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { computeVisibleRouteCount } from "../src/components/RoutePickerBar";
+import { HTTP_METHODS } from "../src/method-styles";
 import { decode, encodeState } from "../src/persist";
 import { PIN_NAMES, resolvePin } from "../src/pins";
 import {
@@ -11,8 +12,9 @@ import {
   sanitizeEntryName,
   scaffoldFor,
 } from "../src/scaffold";
+import { extractRootCall } from "../src/scan";
 import { clearShortenCache, isPublicShareUrl, shortenUrl } from "../src/shorten";
-import { isGeneratedPath, isHiddenPath, Vfs } from "../src/vfs";
+import { isGeneratedPath, isHiddenPath, Vfs, type VfsEvent } from "../src/vfs";
 
 describe("playground pins", () => {
   it("exports compareBySegments from codegen and compares paths stably", () => {
@@ -39,9 +41,12 @@ describe("playground pins", () => {
     expect(resolvePin("@taserjs/router/reply")).toBe("https://esm.sh/@taserjs/router@0.3.0/reply");
   });
 
-  it("returns null for unknown bare imports", () => {
+  it("returns null for unknown bare imports and Object.prototype keys", () => {
     expect(resolvePin("express")).toBeNull();
     expect(resolvePin("lodash")).toBeNull();
+    expect(resolvePin("toString")).toBeNull();
+    expect(resolvePin("constructor")).toBeNull();
+    expect(resolvePin("__proto__")).toBeNull();
   });
 });
 
@@ -83,6 +88,30 @@ describe("playground VFS & hidden generated files", () => {
       files: { "/routes/index.get.ts": "export default {};" },
       active: "/routes/index.get.ts",
     });
+  });
+
+  it("rejects decoded snapshots containing invalid VFS paths", () => {
+    const relativeKey = encodeState({ "routes/index.get.ts": "export default {};" }, null);
+    const traversalKey = encodeState({ "/routes/../secret.ts": "export default {};" }, null);
+    expect(decode(relativeKey)).toBeNull();
+    expect(decode(traversalKey)).toBeNull();
+  });
+
+  it("marks rename unlinks with movedTo so tabs are not closed as deletions", () => {
+    const store = new Vfs();
+    store.write("/routes/a.get.ts", "export default {};", "ui");
+    const events: VfsEvent[] = [];
+    store.watch((event) => events.push(event));
+
+    store.rename("/routes/a.get.ts", "/routes/b.get.ts", "ui");
+    expect(events).toEqual([
+      { type: "add", path: "/routes/b.get.ts", origin: "ui" },
+      { type: "unlink", path: "/routes/a.get.ts", origin: "ui", movedTo: "/routes/b.get.ts" },
+    ]);
+
+    events.length = 0;
+    store.remove("/routes/b.get.ts", "ui");
+    expect(events).toEqual([{ type: "unlink", path: "/routes/b.get.ts", origin: "ui" }]);
   });
 });
 
@@ -129,11 +158,9 @@ describe("playground scaffolding, sanitization, and tree model", () => {
     expect(scaffoldFor("/routes/page.get.tsx").content).toContain('t.get("/page")');
   });
 
-  it("scaffolds optional route parameters and middlewares correctly", () => {
+  it("scaffolds optional route parameters and leaves non-route files empty", () => {
     expect(scaffoldFor("/routes/users/{-$id}.get.ts").content).toContain('t.get("/users/:id?")');
-    expect(scaffoldFor("/middlewares/auth-check.ts").content).toContain(
-      "export const authCheck = middleware()",
-    );
+    expect(scaffoldFor("/lib/helper.ts")).toEqual({ path: "/lib/helper.ts", content: "" });
   });
 
   it("derives file metadata for routes, layouts, and app config", () => {
@@ -261,5 +288,40 @@ describe("playground URL shortener (spoo.me + da.gd fallback)", () => {
       reason: "too-long",
     });
     expect(mockUnused).not.toHaveBeenCalled();
+  });
+});
+
+describe("playground route scanner & HTTP method support", () => {
+  it("preserves t.layout('/*') when followed by a block comment", () => {
+    const source = `
+import { t } from "@taserjs/router";
+export default t.layout("/*").use(async (_args, next) => {
+  /* measure request timing */
+  return await next();
+});
+`;
+    expect(extractRootCall(source)).toEqual({ verb: "layout", path: "/*" });
+  });
+
+  it("prefers the default-exported route call over earlier local builders", () => {
+    const direct = `
+import { t } from "@taserjs/router";
+const health = t.get("/health");
+export default t.get("/users").handler(async () => new Response("ok"));
+`;
+    expect(extractRootCall(direct)).toEqual({ verb: "get", path: "/users" });
+
+    const bound = `
+import { t } from "@taserjs/router";
+const health = t.get("/health");
+const usersRoute = t.post("/users").handler(async () => new Response("ok"));
+export default usersRoute;
+`;
+    expect(extractRootCall(bound)).toEqual({ verb: "post", path: "/users" });
+  });
+
+  it("supports OPTIONS and QUERY in HTTP_METHODS", () => {
+    expect(HTTP_METHODS).toContain("OPTIONS");
+    expect(HTTP_METHODS).toContain("QUERY");
   });
 });

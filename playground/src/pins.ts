@@ -16,7 +16,7 @@ const ESM_SH = "https://esm.sh";
 
 /** Resolves a bare specifier to its pinned esm.sh URL, or null when unpinned. */
 export function resolvePin(specifier: string): string | null {
-  if (specifier in VERSIONS)
+  if (Object.hasOwn(VERSIONS, specifier))
     return `${ESM_SH}/${specifier}@${VERSIONS[specifier as keyof typeof VERSIONS]}`;
   for (const base of Object.keys(VERSIONS)) {
     if (specifier.startsWith(`${base}/`)) {

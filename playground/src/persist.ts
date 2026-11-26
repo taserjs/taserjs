@@ -1,6 +1,6 @@
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from "lz-string";
 
-import { isHiddenPath, vfs } from "./vfs";
+import { isHiddenPath, pathError, vfs } from "./vfs";
 
 const STATE_VERSION = 1;
 const SOFT_LIMIT = 8_000;
@@ -44,6 +44,7 @@ export function decode(encoded: string): PersistedState | null {
   const files: Record<string, string> = {};
   for (const [path, content] of Object.entries(state.files)) {
     if (typeof content !== "string") return null;
+    if (pathError(path) !== null) return null;
     if (!isHiddenPath(path)) files[path] = content;
   }
 
@@ -78,22 +79,32 @@ export function subscribeOversized(listener: (value: boolean) => void): () => vo
   };
 }
 
+export type HashWriteStatus = "ok" | "soft-limit" | "hard-limit";
+
 let lastHash = "";
 
 /** Debounced by the caller. replaceState (no history entries, no hashchange noise). */
-export function writeHash(): void {
+export function writeHash(): HashWriteStatus {
   const active = activePathProvider();
   const safeActive = active && !isHiddenPath(active) ? active : null;
   const encoded = encodeState(vfs.userSnapshot(), safeActive);
   if (encoded.length > HARD_LIMIT) {
     setOversized(true);
-    return; // stop writing; mirror keeps the state readable
+    // Clear any stale hash so reload restores the newer localStorage mirror instead.
+    if (location.hash) {
+      lastHash = "";
+      history.replaceState(null, "", `${location.pathname}${location.search}`);
+    }
+    return "hard-limit";
   }
-  setOversized(encoded.length > SOFT_LIMIT);
+  const softExceeded = encoded.length > SOFT_LIMIT;
+  setOversized(softExceeded);
   const target = `#${encoded}`;
-  if (location.hash === target) return;
-  lastHash = target;
-  history.replaceState(null, "", target);
+  if (location.hash !== target) {
+    lastHash = target;
+    history.replaceState(null, "", target);
+  }
+  return softExceeded ? "soft-limit" : "ok";
 }
 
 /** Simple localStorage mirror: a fallback restore path for oversized states. */
