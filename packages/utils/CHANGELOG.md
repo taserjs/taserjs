@@ -1,5 +1,11 @@
 # @taserjs/utils
 
+## 0.3.1
+
+### Patch Changes
+
+- 7ddf99a: tweak: Playground for making route generation node independent
+
 ## 0.3.0
 
 No changes in this release.
