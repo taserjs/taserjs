@@ -328,13 +328,61 @@ html > body[data-scroll-locked] {
   background: transparent !important;
 }
 
+@keyframes landing-shimmer-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes landing-shimmer-sheen {
+  0%,
+  55% {
+    transform: translateX(-140%) skewX(-18deg);
+  }
+  100% {
+    transform: translateX(240%) skewX(-18deg);
+  }
+}
+
+.landing-shimmer-beam {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 265deg,
+    color-mix(in oklab, var(--landing-accent) 45%, transparent) 300deg,
+    var(--landing-accent) 330deg,
+    #fde047 346deg,
+    transparent 360deg
+  );
+  animation: landing-shimmer-spin 3.4s linear infinite;
+}
+
+.landing-shimmer-sheen {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--landing-accent) 16%, white 18%),
+    transparent
+  );
+  animation: landing-shimmer-sheen 4.5s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-animate-in,
   .landing-float,
   .landing-glow,
   .landing-cursor,
-  .landing-line {
+  .landing-line,
+  .landing-shimmer-beam,
+  .landing-shimmer-sheen {
     animation: none;
+  }
+
+  .landing-shimmer-sheen {
+    opacity: 0;
   }
 
   .landing-animate-in,

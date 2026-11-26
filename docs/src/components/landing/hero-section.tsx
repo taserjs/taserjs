@@ -1,7 +1,9 @@
-import { ArrowRight, Brain, Sparkles } from "lucide-react";
+import { ArrowRight, Brain, Play, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 import { Logo } from "@/components/logo";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { playgroundUrl } from "@/lib/shared";
 
 import { HeroVisual } from "./hero-visual";
 import { SectionSeparator } from "./section-separator";
@@ -40,6 +42,13 @@ export function HeroSection() {
               Get Started
               <ArrowRight className="size-4" aria-hidden />
             </Link>
+            <ShimmerButton href={playgroundUrl} target="_blank" rel="noopener noreferrer">
+              <Play
+                className="size-3.5 fill-current text-orange-500 dark:text-orange-400"
+                aria-hidden
+              />
+              Playground
+            </ShimmerButton>
             <Link
               href="/#why-taser"
               className="inline-flex items-center gap-2 rounded-xl border border-fd-border bg-fd-background/80 px-5 py-3 text-sm font-medium backdrop-blur-sm transition-all duration-300 hover:bg-fd-accent hover:-translate-y-0.5"
