@@ -31,6 +31,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.js",
+    "./codegen": "./dist/codegen.js",
     "./package.json": "./package.json"
   },
   "publishConfig": {

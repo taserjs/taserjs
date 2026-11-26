@@ -4,6 +4,7 @@ import { parseSync } from "oxc-parser";
 import { join, relative, resolve } from "pathe";
 
 import {
+  compareBySegments,
   deriveCanonicalUrl,
   deriveLayoutInfo,
   isIgnoredPath,
@@ -11,33 +12,21 @@ import {
   type ParsedFilePath,
 } from "./paths.js";
 import { layoutStub, routeStub } from "./scaffold.js";
+import type {
+  DiscoveredLayout,
+  DiscoveredRoute,
+  ExpectedExport,
+  ScanDiagnostic,
+  ScanResult,
+} from "./scan-types.js";
 
-export interface ScanDiagnostic {
-  filePath: string;
-  message: string;
-}
-
-export interface DiscoveredRoute {
-  filePath: string;
-  absolutePath: string;
-  /** Uppercase HTTP verb, e.g. `GET`. */
-  method: string;
-  canonicalPath: string;
-  segmentHierarchy: string[];
-}
-
-export interface DiscoveredLayout {
-  filePath: string;
-  absolutePath: string;
-  layoutId: string;
-  targetSegment: string;
-}
-
-export interface ScanResult {
-  routes: DiscoveredRoute[];
-  layouts: DiscoveredLayout[];
-  diagnostics: ScanDiagnostic[];
-}
+export type {
+  DiscoveredLayout,
+  DiscoveredRoute,
+  ExpectedExport,
+  ScanDiagnostic,
+  ScanResult,
+} from "./scan-types.js";
 
 export interface ScanOptions {
   routesDir: string;
@@ -45,10 +34,6 @@ export interface ScanOptions {
   /** Fill empty route and layout files with starter stubs. */
   scaffold?: boolean | undefined;
 }
-
-export type ExpectedExport =
-  | { kind: "route"; verb: string; canonicalPath: string }
-  | { kind: "layout"; layoutId: string };
 
 const NOT_A_LAYOUT_HINT =
   'Non-verb files that are not layouts must be prefixed with "-" to be ignored.';
@@ -163,15 +148,6 @@ interface SourceFile {
   absolutePath: string;
   parsed: ParsedFilePath;
 }
-
-const compareBySegments = (a: string, b: string): number => {
-  const left = a.split("/");
-  const right = b.split("/");
-  for (let i = 0; i < Math.min(left.length, right.length); i++) {
-    if (left[i] !== right[i]) return left[i]! < right[i]! ? -1 : 1;
-  }
-  return left.length - right.length;
-};
 
 /** Lists route and layout candidates in a stable, directory-first order. */
 function discoverFiles(routesDir: string): SourceFile[] {

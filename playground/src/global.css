@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --color-pg-bg: var(--pg-bg);
+  --color-pg-surface: var(--pg-surface);
+  --color-pg-panel: var(--pg-panel);
+  --color-pg-muted: var(--pg-muted);
+  --color-pg-hover: var(--pg-hover);
+  --color-pg-border: var(--pg-border);
+  --color-pg-border-strong: var(--pg-border-strong);
+  --color-pg-fg: var(--pg-fg);
+  --color-pg-fg-muted: var(--pg-fg-muted);
+  --color-pg-primary: var(--pg-primary);
+  --color-pg-primary-fg: var(--pg-primary-fg);
+  --color-pg-accent-soft: var(--pg-accent-soft);
+}
+
+:root {
+  color-scheme: light;
+  --pg-accent-raw: #ff7f04;
+  --pg-bg: hsl(0, 0%, 96%);
+  --pg-surface: hsl(0, 0%, 100%);
+  --pg-panel: hsl(0, 0%, 98%);
+  --pg-muted: hsl(0, 0%, 93.5%);
+  --pg-hover: hsla(0, 0%, 0%, 0.045);
+  --pg-border: hsla(0, 0%, 78%, 0.65);
+  --pg-border-strong: hsla(0, 0%, 66%, 0.8);
+  --pg-fg: hsl(0, 0%, 6%);
+  --pg-fg-muted: hsl(0, 0%, 42%);
+  --pg-primary: oklch(0.66 0.19 45);
+  --pg-primary-fg: hsl(0, 0%, 99%);
+  --pg-accent-soft: color-mix(in oklab, var(--pg-accent-raw) 13%, transparent);
+}
+
+.dark {
+  color-scheme: dark;
+  --pg-bg: hsl(0, 0%, 7.04%);
+  --pg-surface: hsl(0, 0%, 9.2%);
+  --pg-panel: hsl(0, 0%, 10.4%);
+  --pg-muted: hsl(0, 0%, 13.8%);
+  --pg-hover: hsla(0, 0%, 100%, 0.055);
+  --pg-border: hsla(0, 0%, 100%, 0.09);
+  --pg-border-strong: hsla(0, 0%, 100%, 0.16);
+  --pg-fg: hsl(0, 0%, 93%);
+  --pg-fg-muted: hsla(0, 0%, 72%, 0.85);
+  --pg-primary: oklch(0.72 0.19 48);
+  --pg-primary-fg: hsl(0, 0%, 8%);
+  --pg-accent-soft: color-mix(in oklab, var(--pg-accent-raw) 14%, transparent);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    border-color: var(--pg-border);
+  }
+
+  html,
+  body,
+  #root {
+    margin: 0;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  body {
+    background: var(--pg-bg);
+    color: var(--pg-fg);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--pg-accent-raw) 28%, transparent);
+  }
+}
+
+/* Subtle Taser warm header glow */
+.pg-header-glow {
+  background: radial-gradient(
+    ellipse 55% 120% at 8% 0%,
+    color-mix(in oklab, var(--pg-accent-raw) 11%, transparent),
+    transparent 70%
+  );
+}
+
+/* Resizable panel separators (react-resizable-panels v4) */
+.pg-separator {
+  position: relative;
+  flex: none;
+  width: 1px;
+  background: var(--pg-border);
+  cursor: col-resize;
+  outline: none;
+  transition: background-color 150ms ease;
+}
+
+.pg-separator::after {
+  content: "";
+  position: absolute;
+  inset: 0 -3px;
+  z-index: 10;
+}
+
+.pg-separator[data-separator="hover"],
+.pg-separator[data-separator="active"],
+.pg-separator:focus-visible {
+  background: var(--pg-primary);
+}
+
+.pg-separator[data-separator="active"]::after {
+  background: color-mix(in oklab, var(--pg-accent-raw) 22%, transparent);
+}
+
+/* Subtle Monaco popup polish without forcing rigid dimensions */
+.monaco-editor .suggest-widget,
+.monaco-editor .suggest-details,
+.monaco-editor .monaco-hover {
+  border-radius: 8px;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.28),
+    0 2px 8px rgba(0, 0, 0, 0.16);
+}
+
+.dark .monaco-editor .suggest-widget,
+.dark .monaco-editor .suggest-details,
+.dark .monaco-editor .monaco-hover {
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.6),
+    0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* Thin neutral scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pg-border-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--pg-border-strong);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--pg-fg-muted);
+}
