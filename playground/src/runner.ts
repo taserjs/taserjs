@@ -1,4 +1,4 @@
-import { renderManifest } from "@taserjs/cli/codegen";
+import { renderManifest, type DiscoveredLayout, type DiscoveredRoute } from "@taserjs/cli/codegen";
 import { build, initialize, type Loader, type Plugin } from "esbuild-wasm";
 import wasmUrl from "esbuild-wasm/esbuild.wasm?url";
 
@@ -6,7 +6,7 @@ import { PIN_NAMES, resolvePin } from "./pins";
 import { MANIFEST_PATH, PLAYGROUND_CONFIG, scanProject } from "./scan";
 import { vfs } from "./vfs";
 
-const REQUEST_TIMEOUT_MS = 3_000;
+const REQUEST_TIMEOUT_MS = 5_000;
 
 export interface RunnerError {
   file: string;
@@ -20,6 +20,17 @@ export type BuildPhase = "booting" | "ready" | "building" | "error";
 export interface BuildStatus {
   phase: BuildPhase;
   errors: RunnerError[];
+  routes: DiscoveredRoute[];
+  layouts: DiscoveredLayout[];
+}
+
+export type ConsoleLevel = "log" | "info" | "warn" | "error";
+
+export interface ConsoleEntry {
+  id: number;
+  level: ConsoleLevel;
+  args: string[];
+  timestamp: number;
 }
 
 export type RunResult =
@@ -30,9 +41,10 @@ export type RunResult =
       headers: [string, string][];
       body: string;
       ms: number;
+      logs: ConsoleEntry[];
     }
-  | { kind: "error"; error: string; ms: number }
-  | { kind: "timeout"; ms: number };
+  | { kind: "error"; error: string; ms: number; logs: ConsoleEntry[] }
+  | { kind: "timeout"; ms: number; logs: ConsoleEntry[] };
 
 let initPromise: Promise<void> | null = null;
 
@@ -43,7 +55,6 @@ function ensureEsbuild(): Promise<void> {
   return initPromise;
 }
 
-/** Joins POSIX-style path segments without importing a path library. */
 function dirname(filePath: string): string {
   const index = filePath.lastIndexOf("/");
   if (index <= 0) return "/";
@@ -61,10 +72,6 @@ function joinPath(fromDir: string, specifier: string): string {
   return `/${stack.join("/")}`;
 }
 
-/**
- * Tries the esbuild-style import candidates used by the workspace convention
- * (`.ts`, `.tsx`, and `.js`->`.ts` file mapping like the CLI manifest emits).
- */
 function resolveCandidates(target: string): string[] {
   const bases = [target, target.replace(/\.js$/, ""), target.replace(/\.jsx$/, "")];
   const out = new Set<string>();
@@ -140,27 +147,63 @@ const vfsPlugin: Plugin = {
 
 const HARNESS = `import app from "/.taserjs/routes.gen.js";
 
+function formatArg(value) {
+  if (typeof value === "string") return value;
+  if (value instanceof Error) return value.stack || value.message || String(value);
+  if (typeof value === "undefined") return "undefined";
+  if (value === null) return "null";
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
+let activeLogs = null;
+let logSeq = 0;
+for (const level of ["log", "info", "warn", "error"]) {
+  const original = console[level].bind(console);
+  console[level] = (...args) => {
+    if (activeLogs) {
+      logSeq += 1;
+      activeLogs.push({ id: logSeq, level, args: args.map(formatArg), timestamp: Date.now() });
+    }
+    original(...args);
+  };
+}
+
 self.onmessage = async ({ data }) => {
   const { id, method, url, headers, body } = data;
+  const logs = [];
+  activeLogs = logs;
   try {
-    const res = await app.fetch(new Request(url, { method, headers, body }));
+    const init = { method, headers };
+    if (body !== undefined) init.body = body;
+    const res = await app.fetch(new Request(url, init));
+    const responseBody = await res.text();
     self.postMessage({
       id,
       ok: true,
       status: res.status,
       statusText: res.statusText,
       headers: [...res.headers],
-      body: await res.text(),
+      body: responseBody,
+      logs,
     });
   } catch (e) {
-    self.postMessage({ id, ok: false, error: String(e?.stack ?? e) });
+    self.postMessage({ id, ok: false, error: String(e?.stack ?? e), logs });
+  } finally {
+    if (activeLogs === logs) activeLogs = null;
   }
 };
 `;
 
 // --- build state ------------------------------------------------------------
 
-let status: BuildStatus = { phase: "booting", errors: [] };
+let status: BuildStatus = { phase: "booting", errors: [], routes: [], layouts: [] };
 const statusListeners = new Set<(s: BuildStatus) => void>();
 
 function setStatus(next: BuildStatus): void {
@@ -179,12 +222,34 @@ export function subscribeBuildStatus(listener: (s: BuildStatus) => void): () => 
   };
 }
 
+// --- worker lifecycle -------------------------------------------------------
+
+interface PendingRequest {
+  resolve: (result: RunResult) => void;
+  reject: (error: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+  ms: () => number;
+}
+
+const pending = new Map<number, PendingRequest>();
+let nextRequestId = 1;
+
 let worker: Worker | null = null;
 let workerUrl: string | null = null;
 let rebuildInFlight: Promise<void> | null = null;
+let rebuildQueued = false;
+
+function rejectAllPending(reason: string): void {
+  for (const settle of pending.values()) {
+    clearTimeout(settle.timer);
+    settle.reject(new Error(reason));
+  }
+  pending.clear();
+}
 
 function spawnWorker(code: string): void {
   if (worker) {
+    rejectAllPending("Worker restarted after rebuild");
     worker.terminate();
     worker = null;
   }
@@ -196,73 +261,104 @@ function spawnWorker(code: string): void {
   worker = new Worker(workerUrl, { type: "module" });
   worker.onmessage = ({ data }) => {
     const settle = pending.get(data.id as number);
-    if (!settle) return; // stale id: worker was terminated mid-flight
-    pending.delete(data.id);
+    if (!settle) return;
+    clearTimeout(settle.timer);
+    pending.delete(data.id as number);
+    const logs = Array.isArray(data.logs) ? (data.logs as ConsoleEntry[]) : [];
     settle.resolve(
       data.ok
         ? {
             kind: "response",
-            status: data.status,
-            statusText: data.statusText,
-            headers: data.headers,
-            body: data.body,
+            status: data.status as number,
+            statusText: data.statusText as string,
+            headers: data.headers as [string, string][],
+            body: data.body as string,
             ms: settle.ms(),
+            logs,
           }
-        : { kind: "error", error: data.error, ms: settle.ms() },
+        : { kind: "error", error: data.error as string, ms: settle.ms(), logs },
     );
   };
   worker.onerror = (event) => {
-    for (const settle of pending.values())
-      settle.reject(new Error(event.message || "Worker crashed"));
-    pending.clear();
+    rejectAllPending(event.message || "Worker crashed");
   };
 }
 
-/** Bundles the current project and swaps in a fresh worker ("last good build" keeps the old one on error). */
-export function rebuild(): Promise<void> {
-  if (rebuildInFlight) return rebuildInFlight;
-  rebuildInFlight = (async () => {
+async function runSingleBuild(): Promise<void> {
+  setStatus({
+    ...status,
+    phase: status.phase === "booting" ? "booting" : "building",
+  });
+  await ensureEsbuild();
+
+  const scan = scanProject();
+  if (scan.diagnostics.length > 0 || !vfs.has(MANIFEST_PATH)) {
     setStatus({
-      phase: status.phase === "booting" ? "booting" : "building",
-      errors: status.errors,
+      phase: "error",
+      errors: scan.diagnostics.map((d) => ({
+        file: d.filePath.startsWith("/") ? d.filePath : `/routes/${d.filePath}`,
+        message: d.message,
+      })),
+      routes: scan.routes,
+      layouts: scan.layouts,
     });
-    await ensureEsbuild();
+    return;
+  }
 
-    const scan = scanProject();
-    if (scan.diagnostics.length > 0 || !vfs.has(MANIFEST_PATH)) {
-      setStatus({
-        phase: "error",
-        errors: scan.diagnostics.map((d) => ({ file: d.filePath, message: d.message })),
-      });
-      return; // last good build keeps serving
-    }
+  try {
+    const result = await build({
+      stdin: {
+        contents: HARNESS,
+        loader: "ts",
+        sourcefile: "playground-harness.ts",
+        resolveDir: "/",
+      },
+      bundle: true,
+      format: "esm",
+      write: false,
+      sourcemap: "inline",
+      plugins: [vfsPlugin],
+      logLevel: "silent",
+    });
+    const code = result.outputFiles?.[0]?.text ?? "";
+    spawnWorker(code);
+    setStatus({ phase: "ready", errors: [], routes: scan.routes, layouts: scan.layouts });
+  } catch (failure) {
+    setStatus({
+      phase: "error",
+      errors: formatBuildFailure(failure),
+      routes: scan.routes,
+      layouts: scan.layouts,
+    });
+  }
+}
 
-    try {
-      const result = await build({
-        stdin: {
-          contents: HARNESS,
-          loader: "ts",
-          sourcefile: "playground-harness.ts",
-          resolveDir: "/",
-        },
-        bundle: true,
-        format: "esm",
-        write: false,
-        sourcemap: "inline",
-        plugins: [vfsPlugin],
-        logLevel: "silent",
-      });
-      const code = result.outputFiles?.[0]?.text ?? "";
-      spawnWorker(code);
-      setStatus({ phase: "ready", errors: [] });
-    } catch (failure) {
-      setStatus({ phase: "error", errors: formatBuildFailure(failure) });
-      return;
-    }
-  })().finally(() => {
+/**
+ * Bundles the current project and swaps in a fresh worker.
+ * If another edit arrives mid-build, a follow-up rebuild is queued automatically.
+ */
+export function rebuild(): Promise<void> {
+  if (rebuildInFlight) {
+    rebuildQueued = true;
+    return rebuildInFlight;
+  }
+
+  const drain = async (): Promise<void> => {
+    rebuildQueued = false;
+    await runSingleBuild();
+    if (rebuildQueued) await drain();
+  };
+
+  rebuildInFlight = drain().finally(() => {
     rebuildInFlight = null;
   });
   return rebuildInFlight;
+}
+
+/** Waits for any active rebuild to settle before dispatching a request. */
+export async function waitForBuild(): Promise<BuildStatus> {
+  if (rebuildInFlight) await rebuildInFlight;
+  return status;
 }
 
 interface FailureWithErrors {
@@ -277,7 +373,7 @@ function formatBuildFailure(failure: unknown): RunnerError[] {
   const typed = failure as FailureWithErrors;
   if (Array.isArray(typed?.errors) && typed.errors.length > 0) {
     return typed.errors.map((error) => ({
-      file: error.location?.file ?? "(unknown file)",
+      file: (error.location?.file ?? "(unknown file)").replace(/^vfs:/, ""),
       line: error.location?.line,
       column: error.location?.column,
       message: error.text,
@@ -288,31 +384,23 @@ function formatBuildFailure(failure: unknown): RunnerError[] {
 
 // --- requests ---------------------------------------------------------------
 
-interface PendingRequest {
-  resolve: (result: RunResult) => void;
-  reject: (error: Error) => void;
-  timer: ReturnType<typeof setTimeout>;
-  ms: () => number;
-}
-
-const pending = new Map<number, PendingRequest>();
-let nextRequestId = 1;
-
 export interface RequestInput {
   method: string;
   url: string;
-  headers?: HeadersInit;
+  headers?: Record<string, string>;
   body?: string;
 }
 
 export async function request(input: RequestInput): Promise<RunResult> {
   const started = performance.now();
-  if (!worker) await rebuild();
+  await waitForBuild();
+  if (!worker && status.phase !== "error") await rebuild();
   if (!worker || status.phase === "error") {
     return {
       kind: "error",
       error: "Build failed — fix the errors above and try again.",
       ms: performance.now() - started,
+      logs: [],
     };
   }
 
@@ -322,8 +410,7 @@ export async function request(input: RequestInput): Promise<RunResult> {
       pending.delete(id);
       worker?.terminate();
       worker = null;
-      resolve({ kind: "timeout", ms: performance.now() - started });
-      // next request lazily triggers getBuildStatus-aware rebuild
+      resolve({ kind: "timeout", ms: performance.now() - started, logs: [] });
     }, REQUEST_TIMEOUT_MS);
     pending.set(id, { resolve, reject, timer, ms: () => performance.now() - started });
     worker?.postMessage({
@@ -336,14 +423,19 @@ export async function request(input: RequestInput): Promise<RunResult> {
   });
 }
 
-/** Used when the timeout path kills the worker: lazily rebuild on next request. */
 export function requestRebuild(): void {
   void rebuild();
 }
 
 export { MANIFEST_PATH as manifestPath, PLAYGROUND_CONFIG };
 
-/** Convenience for App: regenerates `routes.gen.ts` from a fresh scan. */
+/** Regenerates `/.taserjs/routes.gen.ts` from a fresh scan and updates discovered routes. */
 export function syncManifest(): void {
-  vfs.write(MANIFEST_PATH, renderManifest(scanProject(), PLAYGROUND_CONFIG, "/"), "codegen");
+  const scan = scanProject();
+  vfs.write(MANIFEST_PATH, renderManifest(scan, PLAYGROUND_CONFIG, "/"), "codegen");
+  setStatus({
+    ...status,
+    routes: scan.routes,
+    layouts: scan.layouts,
+  });
 }

@@ -8,6 +8,17 @@ export interface VfsEvent {
 
 type Listener = (event: VfsEvent) => void;
 
+export const GENERATED_PREFIX = "/.taserjs/";
+
+export function isGeneratedPath(path: string): boolean {
+  return path === "/.taserjs" || path.startsWith(GENERATED_PREFIX);
+}
+
+/** Paths hidden from the explorer, editor tabs, and shared snapshots. */
+export function isHiddenPath(path: string): boolean {
+  return isGeneratedPath(path) || path.endsWith("/.gitkeep");
+}
+
 /** Absolute POSIX-style path rules, shared by the editor and the file tree UI. */
 export function pathError(path: string): string | null {
   if (!path.startsWith("/")) return "Path must start with /";
@@ -56,6 +67,11 @@ export class Vfs {
     return [...this.files.keys()].sort();
   }
 
+  /** User-facing files only (excludes generated `/.taserjs/` files and placeholders). */
+  listVisible(): string[] {
+    return this.list().filter((path) => !isHiddenPath(path));
+  }
+
   write(path: string, content: string, origin?: VfsOrigin): boolean {
     const error = pathError(path);
     if (error) throw new Error(`Invalid path "${path}": ${error}`);
@@ -88,10 +104,26 @@ export class Vfs {
     return out;
   }
 
-  /** Applies a diff so watcher-driven consumers (models, rebuilds) stay live across hash swaps. */
+  /** Snapshot of user-authored files only (excludes `/.taserjs/` generated output). */
+  userSnapshot(): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const [path, content] of this.files) {
+      if (!isHiddenPath(path)) out[path] = content;
+    }
+    return out;
+  }
+
+  /**
+   * Applies a diff so watcher-driven consumers (models, rebuilds) stay live
+   * across hash swaps. Preserves internal generated files unless overwritten later.
+   */
   hydrate(next: Record<string, string>, origin: VfsOrigin = "hydrate"): void {
-    for (const path of this.list()) if (!(path in next)) this.remove(path, origin);
-    for (const [path, content] of Object.entries(next)) this.write(path, content, origin);
+    for (const path of this.list()) {
+      if (!isGeneratedPath(path) && !(path in next)) this.remove(path, origin);
+    }
+    for (const [path, content] of Object.entries(next)) {
+      if (!isGeneratedPath(path)) this.write(path, content, origin);
+    }
   }
 }
 

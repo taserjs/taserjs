@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { dirname, join, normalize, resolve } from "pathe";
 import { defineConfig, type Plugin } from "vite";
@@ -40,7 +41,6 @@ interface PkgSpec {
 function pkg(specifier: string, fromDir: string): string {
   // Resolve via the package's "." entry (its exports map may not expose ./package.json),
   // then walk up to the directory that actually is the package root.
-  /** The leaf, e.g. `spec` for `@standard-schema/spec`. */
   const leaf = specifier.replace(/^@[^/]+\//, "");
   let dir = normalize(dirname(createRequire(join(fromDir, "noop.js")).resolve(specifier)));
   while (dir.split("/").pop() !== leaf && dir !== dirname(dir)) dir = dirname(dir);
@@ -55,9 +55,6 @@ const SPECS: PkgSpec[] = [
     const real = JSON.parse(readFileSync(join(root, "package.json"), "utf-8")) as {
       types?: string;
     };
-    // tsdown emits `<entry>.d.ts` next to `<entry>.js` for every entry point,
-    // mirroring each package's `exports` map. The virtual layout flattens
-    // `dist/` to the package root, so `types` follows.
     return {
       name: `@taserjs/${leaf}`,
       root,
@@ -92,9 +89,6 @@ function collectDts(): Record<string, string> {
     out[`${prefix}package.json`] = JSON.stringify({ name: spec.name, types: spec.types });
     const dir = join(spec.root, spec.dir);
     for (const file of dtsFiles(dir)) {
-      // Drop the packing directory ("dist" or "dist/types"): the virtual layout
-      // mirrors each package's real exports -> `node_modules/<name>/<subpath>.d.ts`,
-      // which node-style resolution probes directly (index fallback also works).
       const virtualRel = normalize(file)
         .slice(dir.length + 1)
         .replace(/^dist\//, "");
@@ -129,7 +123,7 @@ function taserTypesPlugin(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), taserTypesPlugin()],
+  plugins: [tailwindcss(), react(), taserTypesPlugin()],
   resolve: {
     alias: monacoWorkerAliases,
   },

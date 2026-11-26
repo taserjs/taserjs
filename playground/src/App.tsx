@@ -1,99 +1,50 @@
+import { Toast } from "@base-ui/react/toast";
+import { Tooltip } from "@base-ui/react/tooltip";
+import { Code2, FolderTree, Send, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Group, Panel, Separator } from "react-resizable-panels";
 
 import { BrowserPane } from "./components/BrowserPane";
-import { EditorPane } from "./components/EditorPane";
+import { EditorPane, type JumpTarget } from "./components/EditorPane";
 import { FileTree } from "./components/FileTree";
+import { TopBar } from "./components/TopBar";
 import { ensureModel, registerOpenFile, startModelSync } from "./monaco";
 import {
+  isOversized,
   loadInitial,
   onExternalHash,
   setActivePathProvider,
+  subscribeOversized,
   writeHash,
   writeMirror,
 } from "./persist";
-import { rebuild, syncManifest } from "./runner";
+import { getBuildStatus, rebuild, subscribeBuildStatus, syncManifest } from "./runner";
 import { DEFAULT_ACTIVE, starterProject } from "./starter";
-import { vfs } from "./vfs";
+import { useTheme } from "./theme";
+import { isHiddenPath, vfs } from "./vfs";
 
 import "./global.css";
 
-const MIN_EDITOR = 120;
-const MIN_FILES = 150;
-const MAX_FILES = 480;
-const MIN_BROWSER = 280;
-const MAX_BROWSER = 760;
-const SPLITTERS = 10;
+const NARROW_MEDIA_QUERY = "(max-width: 1023px)";
+const narrowMedia = typeof window !== "undefined" ? window.matchMedia(NARROW_MEDIA_QUERY) : null;
 
-interface Widths {
-  files: number;
-  browser: number;
-}
-
-const clamp = (value: number, min: number, max: number): number =>
-  Math.min(max, Math.max(min, value));
-
-/**
- * Clamps both side tracks so the row always fits the viewport: files + browser
- * may never eat into the editor's minimum, otherwise the grid overflows and the
- * right panel is clipped mid-pane. The panel being grown wins; the other one
- * gives way down to its own minimum.
- */
-function fitWidths(files: number, browser: number, grow: "files" | "browser"): Widths {
-  const available = Math.max(MIN_FILES + MIN_BROWSER, window.innerWidth - SPLITTERS - MIN_EDITOR);
-  let f = clamp(Math.round(files), MIN_FILES, MAX_FILES);
-  let b = clamp(Math.round(browser), MIN_BROWSER, MAX_BROWSER);
-  if (f + b > available) {
-    if (grow === "files") b = Math.max(MIN_BROWSER, available - f);
-    else f = Math.max(MIN_FILES, available - b);
-    // one clamp can still be over budget if the other panel is already at its min
-    if (f + b > available) {
-      if (grow === "files") f = Math.max(MIN_FILES, available - b);
-      else b = Math.max(MIN_BROWSER, available - f);
-    }
-  }
-  return { files: f, browser: b };
+function subscribeNarrow(callback: () => void): () => void {
+  if (!narrowMedia) return () => undefined;
+  narrowMedia.addEventListener("change", callback);
+  return () => narrowMedia.removeEventListener("change", callback);
 }
 
 function useNarrowLayout(): boolean {
-  const media = window.matchMedia("(max-width: 1099px)");
   return useSyncExternalStore(
-    (callback) => {
-      media.addEventListener("change", callback);
-      return () => media.removeEventListener("change", callback);
-    },
-    () => media.matches,
+    subscribeNarrow,
+    () => narrowMedia?.matches ?? false,
     () => false,
   );
 }
 
-/** Divider dragged by absolute pointer positions (movementX is unreliable in some webviews). */
-function Splitter(props: { onResize: (dx: number) => void }): React.JSX.Element {
-  const [dragging, setDragging] = useState(false);
-  const lastX = useRef(0);
-  return (
-    <div
-      className={`splitter${dragging ? " dragging" : ""}`}
-      onPointerDown={(event) => {
-        event.currentTarget.setPointerCapture(event.pointerId);
-        lastX.current = event.clientX;
-        setDragging(true);
-      }}
-      onPointerMove={(event) => {
-        if (!dragging) return;
-        props.onResize(event.clientX - lastX.current);
-        lastX.current = event.clientX;
-      }}
-      onPointerUp={(event) => {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-        setDragging(false);
-      }}
-      onPointerCancel={(event) => {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-        setDragging(false);
-      }}
-    />
-  );
-}
+const PERSIST_DEBOUNCE_MS = 200;
+const SCAN_DEBOUNCE_MS = 150;
+const BUILD_DEBOUNCE_MS = 300;
 
 let persistTimer: number | undefined;
 function persistSoon(): void {
@@ -101,16 +52,84 @@ function persistSoon(): void {
   persistTimer = window.setTimeout(() => {
     writeHash();
     writeMirror();
-  }, 200);
+  }, PERSIST_DEBOUNCE_MS);
 }
 
-export function App(): React.JSX.Element {
+function ToastList(): React.JSX.Element {
+  const { toasts } = Toast.useToastManager();
+  return (
+    <Toast.Portal>
+      <Toast.Viewport className="fixed right-4 bottom-4 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2 outline-none">
+        {toasts.map((toast) => (
+          <Toast.Root
+            key={toast.id}
+            toast={toast}
+            className="flex items-start justify-between gap-2 rounded-xl border border-pg-border-strong bg-pg-surface p-3 shadow-2xl"
+          >
+            <div className="min-w-0">
+              {toast.title && (
+                <Toast.Title className="text-xs font-semibold text-pg-fg">
+                  {toast.title}
+                </Toast.Title>
+              )}
+              {toast.description && (
+                <Toast.Description className="mt-0.5 text-[11px] leading-relaxed text-pg-fg-muted">
+                  {toast.description}
+                </Toast.Description>
+              )}
+            </div>
+            <Toast.Close
+              aria-label="Dismiss notification"
+              className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-pg-fg-muted hover:bg-pg-hover hover:text-pg-fg"
+            >
+              <X className="size-3.5" />
+            </Toast.Close>
+          </Toast.Root>
+        ))}
+      </Toast.Viewport>
+    </Toast.Portal>
+  );
+}
+
+let booted = false;
+
+function ensureBooted(): string | null {
+  if (!booted) {
+    booted = true;
+    const initial = loadInitial();
+    vfs.hydrate(
+      Object.keys(initial.files).length > 0 ? initial.files : starterProject(),
+      "hydrate",
+    );
+    let nextActive = initial.active;
+    if (!nextActive || isHiddenPath(nextActive) || !vfs.has(nextActive)) {
+      nextActive = DEFAULT_ACTIVE;
+    }
+    if (!vfs.has(nextActive)) nextActive = vfs.listVisible()[0] ?? null;
+    for (const path of vfs.list()) ensureModel(path);
+    return nextActive;
+  }
+  const visible = vfs.listVisible();
+  return vfs.has(DEFAULT_ACTIVE) ? DEFAULT_ACTIVE : (visible[0] ?? null);
+}
+
+function PlaygroundShell(): React.JSX.Element {
   const narrow = useNarrowLayout();
-  const [mode, setMode] = useState<"files" | "code" | "browser">("code");
-  const [active, setActive] = useState<string | null>(null);
-  const [openFiles, setOpenFiles] = useState<string[]>([]);
-  const activeRef = useRef<string | null>(null);
-  activeRef.current = active;
+  const { theme, toggleTheme } = useTheme();
+  const [mode, setMode] = useState<"files" | "code" | "runner">("code");
+  const [initialActive] = useState<string | null>(() => ensureBooted());
+  const [active, setActive] = useState<string | null>(initialActive);
+  const [openFiles, setOpenFiles] = useState<string[]>(() =>
+    initialActive ? [initialActive] : [],
+  );
+  const [inlayHints, setInlayHints] = useState(false);
+  const [jumpTarget, setJumpTarget] = useState<JumpTarget | null>(null);
+
+  const activeRef = useRef<string | null>(initialActive);
+
+  useEffect(() => {
+    activeRef.current = active;
+  }, [active]);
 
   // VFS version drives re-renders of panels that read the file list directly.
   useSyncExternalStore(
@@ -118,48 +137,95 @@ export function App(): React.JSX.Element {
     () => vfs.version,
   );
 
-  useEffect(() => {
-    // --- boot ----------------------------------------------------------------
-    setActivePathProvider(() => activeRef.current);
-    const initial = loadInitial();
-    vfs.hydrate(
-      Object.keys(initial.files).length > 0 ? initial.files : starterProject(),
-      "hydrate",
-    );
+  const buildStatus = useSyncExternalStore(subscribeBuildStatus, getBuildStatus, getBuildStatus);
+  const oversizedUrl = useSyncExternalStore(subscribeOversized, isOversized, () => false);
 
-    let nextActive = initial.active;
-    if (!nextActive || !vfs.has(nextActive)) nextActive = DEFAULT_ACTIVE;
-    if (!vfs.has(nextActive)) nextActive = vfs.list()[0] ?? null;
-    setActive(nextActive);
-    setOpenFiles(nextActive ? [nextActive] : []);
+  const openFile = useCallback((path: string): void => {
+    if (isHiddenPath(path) || !vfs.has(path)) return;
+    ensureModel(path);
+    setActive(path);
+    setOpenFiles((prev) => (prev.includes(path) ? prev : [...prev, path]));
+    if (narrowMedia?.matches) setMode("code");
+    persistSoon();
+  }, []);
+
+  const jumpTo = useCallback(
+    (path: string, line = 1, column = 1): void => {
+      if (isHiddenPath(path) || !vfs.has(path)) return;
+      openFile(path);
+      setJumpTarget({ path, line, column, nonce: Date.now() });
+    },
+    [openFile],
+  );
+
+  const closeTab = useCallback((path: string): void => {
+    setOpenFiles((prev) => {
+      const next = prev.filter((candidate) => candidate !== path);
+      if (activeRef.current === path) {
+        setActive(next.at(-1) ?? null);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleRenamePath = useCallback(
+    (oldPath: string, newPath: string, isFolder: boolean): void => {
+      const remap = (candidate: string): string => {
+        if (!isFolder) return candidate === oldPath ? newPath : candidate;
+        if (candidate === oldPath || candidate.startsWith(`${oldPath}/`)) {
+          return `${newPath}${candidate.slice(oldPath.length)}`;
+        }
+        return candidate;
+      };
+      setOpenFiles((prev) => [...new Set(prev.map(remap))]);
+      setActive((current) => (current ? remap(current) : current));
+      persistSoon();
+    },
+    [],
+  );
+
+  const handleReset = useCallback((): void => {
+    vfs.hydrate(starterProject(), "ui");
+    setActive(DEFAULT_ACTIVE);
+    setOpenFiles([DEFAULT_ACTIVE]);
     for (const path of vfs.list()) ensureModel(path);
+    syncManifest();
+    writeHash();
+    writeMirror();
+    void rebuild();
+  }, []);
 
-    // --- watcher: codegen -> rebuild -> persistence ---------------------------
+  useEffect(() => {
+    setActivePathProvider(() => activeRef.current);
+
     let scanTimer: number | undefined;
     let buildTimer: number | undefined;
     let hashTimer: number | undefined;
 
     const stopWatch = vfs.watch((event) => {
+      if (event.origin === "codegen") return;
       if (event.path.startsWith("/routes/")) {
         window.clearTimeout(scanTimer);
-        scanTimer = window.setTimeout(() => syncManifest(), 150);
+        scanTimer = window.setTimeout(() => syncManifest(), SCAN_DEBOUNCE_MS);
       }
       window.clearTimeout(buildTimer);
       buildTimer = window.setTimeout(() => {
         void rebuild();
-      }, 300);
+      }, BUILD_DEBOUNCE_MS);
       window.clearTimeout(hashTimer);
       hashTimer = window.setTimeout(() => {
         writeHash();
         writeMirror();
-      }, 300);
+      }, BUILD_DEBOUNCE_MS);
     });
 
     const stopModelSync = startModelSync((unlinked) => {
-      setActive((current) => {
-        if (current !== unlinked) return current;
-        const next = vfs.list()[0] ?? null;
-        setOpenFiles(next ? [next] : []);
+      setOpenFiles((prev) => {
+        if (!prev.includes(unlinked)) return prev;
+        const next = prev.filter((item) => item !== unlinked);
+        if (activeRef.current === unlinked) {
+          setActive(next.at(-1) ?? vfs.listVisible()[0] ?? null);
+        }
         return next;
       });
     });
@@ -169,127 +235,148 @@ export function App(): React.JSX.Element {
     writeHash();
     writeMirror();
 
-    registerOpenFile((path) => {
-      if (!vfs.has(path)) return false;
-      openFile(path);
+    const stopOpener = registerOpenFile((path, line, column) => {
+      if (isHiddenPath(path) || !vfs.has(path)) return false;
+      if (line !== undefined) jumpTo(path, line, column ?? 1);
+      else openFile(path);
       return true;
     });
 
     const stopHash = onExternalHash((state) => {
       if (!state) {
-        // Corrupt or empty external hash: keep the current project alive and
-        // rewrite the URL to reflect it (also un-sticks stale corrupt hashes).
         persistSoon();
         return;
       }
       vfs.hydrate(Object.keys(state.files).length > 0 ? state.files : starterProject(), "hydrate");
-      const swappedActive = state.active ?? vfs.list()[0] ?? null;
+      const visible = vfs.listVisible();
+      const swappedActive =
+        state.active && !isHiddenPath(state.active) && vfs.has(state.active)
+          ? state.active
+          : (visible[0] ?? null);
       setActive(swappedActive);
       setOpenFiles(swappedActive ? [swappedActive] : []);
       for (const path of vfs.list()) ensureModel(path);
-    });
-
-    const onReset = (): void => {
-      vfs.hydrate(starterProject(), "ui");
-      setActive(DEFAULT_ACTIVE);
-      setOpenFiles([DEFAULT_ACTIVE]);
-      for (const path of vfs.list()) ensureModel(path);
       syncManifest();
-      writeHash();
-      writeMirror();
       void rebuild();
-    };
-    window.addEventListener("playground:reset", onReset);
+    });
 
     return () => {
+      window.clearTimeout(scanTimer);
+      window.clearTimeout(buildTimer);
+      window.clearTimeout(hashTimer);
       stopWatch();
       stopModelSync();
+      stopOpener.dispose();
       stopHash();
-      window.removeEventListener("playground:reset", onReset);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [jumpTo, openFile]);
 
-  const openFile = useCallback((path: string): void => {
-    ensureModel(path);
-    setActive(path);
-    setOpenFiles((prev) => (prev.includes(path) ? prev : [...prev, path]));
-    persistSoon();
-  }, []);
-
-  const closeTab = useCallback((path: string): void => {
-    setOpenFiles((prev) => {
-      const next = prev.filter((candidate) => candidate !== path);
-      if (!next.includes(activeRef.current ?? "")) setActive(next.at(-1) ?? null);
-      return next;
-    });
-  }, []);
-
-  const [widths, setWidths] = useState<Widths>(() =>
-    fitWidths(232, Math.max(340, Math.min(560, Math.round(window.innerWidth * 0.4))), "browser"),
+  const explorerPanel = (
+    <FileTree active={active} onOpen={openFile} onRenamePath={handleRenamePath} />
   );
-
-  // Shrinking the window must not push panels past the right edge.
-  useEffect(() => {
-    const onResize = (): void =>
-      setWidths((prev) => fitWidths(prev.files, prev.browser, "browser"));
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  const filePanel = <FileTree active={active} onOpen={openFile} />;
   const editorPanel = (
-    <EditorPane active={active} openFiles={openFiles} onOpen={openFile} onCloseTab={closeTab} />
+    <EditorPane
+      active={active}
+      openFiles={openFiles}
+      theme={theme}
+      inlayHints={inlayHints}
+      jumpTarget={jumpTarget}
+      onOpen={openFile}
+      onCloseTab={closeTab}
+      onJumpTo={jumpTo}
+    />
   );
-  const browserPanel = <BrowserPane />;
+  const runnerPanel = <BrowserPane buildStatus={buildStatus} onJumpToError={jumpTo} />;
 
-  if (narrow) {
-    return (
-      <div className="app narrow">
-        <div className="mode-switch">
-          {(["files", "code", "browser"] as const).map((candidate) => (
-            <button
-              key={candidate}
-              className={mode === candidate ? "active" : ""}
-              onClick={() => setMode(candidate)}
-            >
-              {candidate === "files" ? "Files" : candidate === "code" ? "Code" : "Browser"}
-            </button>
-          ))}
-        </div>
-        <div className="workspace">
-          {mode === "files" && filePanel}
-          {mode === "code" && editorPanel}
-          {mode === "browser" && browserPanel}
-        </div>
-      </div>
-    );
-  }
-
-  // Grid chrome: fixed px tracks for the side panels, the editor track takes
-  // exactly the remaining space, so the panels always fill the window and
-  // content can never move a track. The template is set inline from state so
-  // it can never desync from React.
   return (
-    <div className="app">
-      <div
-        className="workspace"
-        style={{
-          gridTemplateColumns: `${widths.files}px 5px minmax(${MIN_EDITOR}px, 1fr) 5px ${widths.browser}px`,
-        }}
-      >
-        <div className="side-host">{filePanel}</div>
-        <Splitter
-          onResize={(dx) => setWidths((prev) => fitWidths(prev.files + dx, prev.browser, "files"))}
-        />
-        {editorPanel}
-        <Splitter
-          onResize={(dx) =>
-            setWidths((prev) => fitWidths(prev.files, prev.browser - dx, "browser"))
-          }
-        />
-        <div className="side-host">{browserPanel}</div>
-      </div>
+    <div className="flex h-full flex-col bg-pg-bg text-pg-fg">
+      <TopBar
+        buildStatus={buildStatus}
+        inlayHints={inlayHints}
+        onToggleInlayHints={() => setInlayHints((value) => !value)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        oversizedUrl={oversizedUrl}
+        onReset={handleReset}
+      />
+
+      {narrow ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex flex-none gap-1.5 border-b border-pg-border bg-pg-panel px-2.5 py-1.5">
+            {(
+              [
+                { id: "files", label: "Files", icon: FolderTree },
+                { id: "code", label: "Editor", icon: Code2 },
+                { id: "runner", label: "Request", icon: Send },
+              ] as const
+            ).map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setMode(id)}
+                className={`inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-medium transition-colors ${
+                  mode === id
+                    ? "border-orange-500/40 bg-pg-accent-soft text-pg-primary"
+                    : "border-pg-border bg-pg-surface text-pg-fg-muted hover:text-pg-fg"
+                }`}
+              >
+                <Icon className="size-3.5" />
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            {mode === "files" && explorerPanel}
+            {mode === "code" && editorPanel}
+            {mode === "runner" && runnerPanel}
+          </div>
+        </div>
+      ) : (
+        <Group orientation="horizontal" className="min-h-0 flex-1">
+          <Panel
+            id="explorer"
+            defaultSize={232}
+            minSize={170}
+            maxSize={400}
+            groupResizeBehavior="preserve-pixel-size"
+            className="min-h-0"
+          >
+            {explorerPanel}
+          </Panel>
+          <Separator className="pg-separator" />
+          <Panel
+            id="editor"
+            minSize={260}
+            groupResizeBehavior="preserve-relative-size"
+            className="min-h-0"
+          >
+            {editorPanel}
+          </Panel>
+          <Separator className="pg-separator" />
+          <Panel
+            id="runner"
+            defaultSize={440}
+            minSize={300}
+            maxSize={720}
+            groupResizeBehavior="preserve-pixel-size"
+            className="min-h-0"
+          >
+            {runnerPanel}
+          </Panel>
+        </Group>
+      )}
+
+      <ToastList />
     </div>
+  );
+}
+
+export function App(): React.JSX.Element {
+  return (
+    <Tooltip.Provider delay={350}>
+      <Toast.Provider timeout={3200}>
+        <PlaygroundShell />
+      </Toast.Provider>
+    </Tooltip.Provider>
   );
 }

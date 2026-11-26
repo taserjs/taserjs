@@ -11,12 +11,11 @@ import jsonWorkerSource from "monaco-editor/esm/vs/language/json/json.worker.js?
 import tsWorkerSource from "monaco-editor/esm/vs/language/typescript/ts.worker.js?worker";
 import taserDts from "virtual:taser-dts";
 
-import { vfs, type VfsEvent } from "./vfs";
+import type { Theme } from "./theme";
+import { isGeneratedPath, isHiddenPath, vfs, type VfsEvent } from "./vfs";
 
 // Workers: bundling them explicitly (Vite `?worker`) and handing them to monaco
-// is the only mode that works in both dev and production builds. Monaco's
-// self-registration via `new Worker(new URL('...', import.meta.url))` resolves
-// in the dev server but not from the bundled dist.
+// is the only mode that works in both dev and production builds.
 self.MonacoEnvironment = {
   getWorker(_, label) {
     switch (label) {
@@ -46,46 +45,110 @@ ts.typescriptDefaults.setCompilerOptions({
   lib: ["es2020", "dom", "dom.iterable"],
 });
 ts.typescriptDefaults.setEagerModelSync(true);
+ts.typescriptDefaults.setInlayHintsOptions({
+  includeInlayParameterNameHints: "literals",
+  includeInlayParameterNameHintsWhenArgumentMatchesName: false,
+  includeInlayFunctionParameterTypeHints: true,
+  includeInlayVariableTypeHints: true,
+  includeInlayPropertyDeclarationTypeHints: true,
+  includeInlayFunctionLikeReturnTypeHints: true,
+  includeInlayEnumMemberValueHints: true,
+});
 
 // Declaration files of taserjs packages + hono + @standard-schema/spec + zod,
-// collected from the workspace at build time (see vite.config.ts). Registered
-// under file:///node_modules/<name>/<path> so node-style resolution finds them.
+// collected from the workspace at build time (see vite.config.ts).
 for (const [relativePath, content] of Object.entries(taserDts)) {
   ts.typescriptDefaults.addExtraLib(content, `file:///${relativePath}`);
 }
 
-for (const [name, theme] of Object.entries({
-  "pg-light": { base: "vs" as editor.BuiltinTheme, dark: false },
-  "pg-dark": { base: "vs-dark" as editor.BuiltinTheme, dark: true },
-})) {
-  const { base, dark } = theme as { base: editor.BuiltinTheme; dark: boolean };
-  editor.defineTheme(name, {
-    base,
-    inherit: true,
-    rules: [
-      { token: "comment", foreground: dark ? "6b7394" : "8a90a8", fontStyle: "italic" },
-      { token: "string", foreground: dark ? "9ece6a" : "3a7a3a" },
-    ],
-    colors: {
-      "editor.background": dark ? "#111420" : "#ffffff",
-      "editor.foreground": dark ? "#e6e9f2" : "#17203a",
-      "editorLineNumber.foreground": dark ? "#3a4054" : "#c3c7d4",
-      "editorGutter.background": dark ? "#111420" : "#ffffff",
-      "editor.lineHighlightBackground": dark ? "#1a1e2c" : "#f4f6fb",
-      "editorSuggestWidget.background": dark ? "#141824" : "#ffffff",
-      "editorSuggestWidget.border": dark ? "#232938" : "#e2e6f0",
-      "editorSuggestWidget.foreground": dark ? "#e6e9f2" : "#17203a",
-      "editorSuggestWidget.selectedBackground": dark ? "#222a3d" : "#eaf0fc",
-      "editorSuggestWidget.selectedForeground": dark ? "#ffffff" : "#0b1020",
-      "editorSuggestWidget.highlightForeground": dark ? "#7aa2ff" : "#3b82f6",
-      "editorSuggestWidget.focusHighlightForeground": dark ? "#7aa2ff" : "#3b82f6",
-      "editorSuggestWidgetStatus.foreground": dark ? "#8b93ab" : "#64748b",
-      "editorHoverWidget.background": dark ? "#141824" : "#ffffff",
-      "editorHoverWidget.border": dark ? "#232938" : "#e2e6f0",
-      "editorHoverWidget.foreground": dark ? "#e6e9f2" : "#17203a",
-    },
-  });
-}
+export const MONACO_THEMES: Record<Theme, string> = {
+  dark: "taser-dark",
+  light: "taser-light",
+};
+
+editor.defineTheme("taser-dark", {
+  base: "vs-dark",
+  inherit: true,
+  rules: [
+    { token: "comment", foreground: "6e6e73", fontStyle: "italic" },
+    { token: "keyword", foreground: "fb923c" },
+    { token: "string", foreground: "86efac" },
+    { token: "number", foreground: "fdba74" },
+    { token: "type.identifier", foreground: "93c5fd" },
+    { token: "delimiter", foreground: "a1a1aa" },
+  ],
+  colors: {
+    "editor.background": "#171717",
+    "editor.foreground": "#ededed",
+    "editorLineNumber.foreground": "#525252",
+    "editorLineNumber.activeForeground": "#fb923c",
+    "editorGutter.background": "#171717",
+    "editorCursor.foreground": "#f97316",
+    "editor.lineHighlightBackground": "#1f1f1f",
+    "editor.selectionBackground": "#f9731633",
+    "editor.inactiveSelectionBackground": "#f973161a",
+    "editorIndentGuide.background1": "#262626",
+    "editorIndentGuide.activeBackground1": "#404040",
+    "editorWidget.background": "#1c1c1c",
+    "editorWidget.border": "#2e2e2e",
+    "editorSuggestWidget.background": "#1b1b1b",
+    "editorSuggestWidget.border": "#2e2e2e",
+    "editorSuggestWidget.foreground": "#ededed",
+    "editorSuggestWidget.selectedBackground": "#f9731624",
+    "editorSuggestWidget.selectedForeground": "#ffffff",
+    "editorSuggestWidget.highlightForeground": "#fb923c",
+    "editorSuggestWidget.focusHighlightForeground": "#fb923c",
+    "editorSuggestWidgetStatus.foreground": "#8f8f8f",
+    "editorHoverWidget.background": "#1b1b1b",
+    "editorHoverWidget.border": "#2e2e2e",
+    "editorHoverWidget.foreground": "#ededed",
+    "editorInlayHint.background": "#262626",
+    "editorInlayHint.foreground": "#a1a1aa",
+    "scrollbarSlider.background": "#ffffff18",
+    "scrollbarSlider.hoverBackground": "#ffffff28",
+    "scrollbarSlider.activeBackground": "#ffffff38",
+  },
+});
+
+editor.defineTheme("taser-light", {
+  base: "vs",
+  inherit: true,
+  rules: [
+    { token: "comment", foreground: "8e8e93", fontStyle: "italic" },
+    { token: "keyword", foreground: "c2410c" },
+    { token: "string", foreground: "15803d" },
+    { token: "number", foreground: "b45309" },
+    { token: "type.identifier", foreground: "0369a1" },
+  ],
+  colors: {
+    "editor.background": "#ffffff",
+    "editor.foreground": "#171717",
+    "editorLineNumber.foreground": "#a3a3a3",
+    "editorLineNumber.activeForeground": "#ea580c",
+    "editorGutter.background": "#ffffff",
+    "editorCursor.foreground": "#ea580c",
+    "editor.lineHighlightBackground": "#f7f7f8",
+    "editor.selectionBackground": "#f973162b",
+    "editor.inactiveSelectionBackground": "#f9731614",
+    "editorIndentGuide.background1": "#eeeeee",
+    "editorIndentGuide.activeBackground1": "#d4d4d4",
+    "editorWidget.background": "#ffffff",
+    "editorWidget.border": "#e4e4e7",
+    "editorSuggestWidget.background": "#ffffff",
+    "editorSuggestWidget.border": "#e4e4e7",
+    "editorSuggestWidget.foreground": "#171717",
+    "editorSuggestWidget.selectedBackground": "#ff7f041c",
+    "editorSuggestWidget.selectedForeground": "#0a0a0b",
+    "editorSuggestWidget.highlightForeground": "#ea580c",
+    "editorSuggestWidget.focusHighlightForeground": "#ea580c",
+    "editorSuggestWidgetStatus.foreground": "#737373",
+    "editorHoverWidget.background": "#ffffff",
+    "editorHoverWidget.border": "#e4e4e7",
+    "editorHoverWidget.foreground": "#171717",
+    "editorInlayHint.background": "#f4f4f5",
+    "editorInlayHint.foreground": "#52525b",
+  },
+});
 
 export function languageOf(path: string): string {
   const ext = path.slice(path.lastIndexOf(".") + 1).toLowerCase();
@@ -111,11 +174,6 @@ export function languageOf(path: string): string {
 }
 
 const models = new Map<string, editor.ITextModel>();
-const GENERATED_PREFIX = "/.taserjs/";
-
-export function isGeneratedPath(path: string): boolean {
-  return path.startsWith(GENERATED_PREFIX);
-}
 
 export function getModel(path: string): editor.ITextModel | undefined {
   return models.get(path);
@@ -129,6 +187,7 @@ export function ensureModel(path: string): editor.ITextModel {
   const model = editor.createModel(content, languageOf(path), Uri.parse(`file://${path}`));
   model.updateOptions({ tabSize: 2 });
   model.onDidChangeContent(() => {
+    if (isGeneratedPath(path)) return;
     const value = model.getValue();
     if (vfs.read(path) !== value) vfs.write(path, value, "editor");
   });
@@ -139,11 +198,8 @@ export function ensureModel(path: string): editor.ITextModel {
 let pumpTimer: number | undefined;
 
 /**
- * Nudges a re-validate-all pass in the DiagnosticsAdapter. Monaco only
- * re-requested diagnostics for a file when *that file* changes, so a codegen
- * manifest rewrite leaves stale markers (e.g. `RoutePath` unions) on route
- * files that did not change themselves. `setDiagnosticsOptions` fires the
- * defaults' `onDidChange`, which revalidates every model.
+ * Nudges a re-validate-all pass in the DiagnosticsAdapter so manifest updates
+ * refresh markers on route files that did not change themselves.
  */
 export function pumpDiagnostics(): void {
   window.clearTimeout(pumpTimer);
@@ -153,8 +209,8 @@ export function pumpDiagnostics(): void {
 }
 
 /**
- * VFS -> Monaco model sync. External changes (hydrate, codegen) update the
- * models; editor-originated writes are ignored here to avoid echo loops.
+ * VFS -> Monaco model sync. Internal `/.taserjs/routes.gen.ts` is kept synced
+ * as a hidden model so TS cross-file inference works without exposing it in UI.
  */
 export function startModelSync(onUnlink?: (path: string) => void): () => void {
   const apply = (event: VfsEvent): void => {
@@ -170,47 +226,73 @@ export function startModelSync(onUnlink?: (path: string) => void): () => void {
       const model = models.get(event.path);
       models.delete(event.path);
       model?.dispose();
-      onUnlink?.(event.path);
+      if (!isHiddenPath(event.path)) onUnlink?.(event.path);
     }
     if (event.origin !== "editor") pumpDiagnostics();
   };
   return vfs.watch(apply);
 }
 
+export interface EditorDiagnostic {
+  path: string;
+  line: number;
+  column: number;
+  message: string;
+  severity: "error" | "warning";
+}
+
 export function watchMarkers(callback: () => void): IDisposableLike {
   return editor.onDidChangeMarkers(() => callback());
 }
 
-export function markerCounts(): { errors: number; warnings: number } {
-  let errors = 0;
-  let warnings = 0;
+/** Returns user-facing diagnostics (errors & warnings, excluding hidden generated files). */
+export function markerList(): EditorDiagnostic[] {
+  const out: EditorDiagnostic[] = [];
   for (const marker of editor.getModelMarkers({})) {
-    if (marker.severity === MarkerSeverity.Error) errors += 1;
-    else if (marker.severity === MarkerSeverity.Warning) warnings += 1;
+    const path = marker.resource?.path ?? "";
+    if (!path || isHiddenPath(path)) continue;
+    if (marker.severity !== MarkerSeverity.Error && marker.severity !== MarkerSeverity.Warning) {
+      continue;
+    }
+    out.push({
+      path,
+      line: marker.startLineNumber,
+      column: marker.startColumn,
+      message: marker.message,
+      severity: marker.severity === MarkerSeverity.Error ? "error" : "warning",
+    });
   }
-  return { errors, warnings };
-}
-
-/** Marker list for the status bar tooltip / debugging: which file, what message. */
-export function markerDetails(): Array<{ resource: string; message: string }> {
-  return editor.getModelMarkers({}).map((marker) => ({
-    resource: marker.resource?.path ?? "?",
-    message: `${marker.message} (line ${marker.startLineNumber})`,
-  }));
+  out.sort((a, b) => {
+    if (a.severity !== b.severity) return a.severity === "error" ? -1 : 1;
+    if (a.path !== b.path) return a.path < b.path ? -1 : 1;
+    return a.line - b.line || a.column - b.column;
+  });
+  return out;
 }
 
 export interface IDisposableLike {
   dispose(): void;
 }
 
-/** Intercepts Cmd/Ctrl+click navigation so go-to-definition switches VFS files. */
-export function registerOpenFile(open: (path: string) => boolean): IDisposableLike {
+/** Intercepts Cmd/Ctrl+click navigation so go-to-definition switches VFS files (ignoring hidden files). */
+export function registerOpenFile(
+  open: (path: string, line?: number, column?: number) => boolean,
+): IDisposableLike {
   return editor.registerEditorOpener({
-    openCodeEditor: (_source, resource) => {
+    openCodeEditor: (_source, resource, selectionOrPosition) => {
       const path = decodeURIComponent(resource.path);
-      return open(path);
+      if (isHiddenPath(path)) return false;
+      const line =
+        selectionOrPosition && "startLineNumber" in selectionOrPosition
+          ? selectionOrPosition.startLineNumber
+          : selectionOrPosition?.lineNumber;
+      const column =
+        selectionOrPosition && "startColumn" in selectionOrPosition
+          ? selectionOrPosition.startColumn
+          : selectionOrPosition?.column;
+      return open(path, line, column);
     },
   });
 }
 
-export { editor, ts, Uri };
+export { editor, isGeneratedPath, ts, Uri };

@@ -1,72 +1,18 @@
-import {
-  compareBySegments,
-  deriveCanonicalUrl,
-  deriveLayoutInfo,
-  isIgnoredPath,
-  layoutStub,
-  middlewareContentStub,
-  parseFilePath,
-  routeStub,
-} from "@taserjs/cli/codegen";
-import { describe, expect, it } from "vitest";
+import { compareBySegments } from "@taserjs/cli/codegen";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { computeVisibleRouteCount } from "../src/components/RoutePickerBar";
+import { decode, encodeState } from "../src/persist";
 import { PIN_NAMES, resolvePin } from "../src/pins";
-
-function scaffoldFor(
-  absPath: string,
-  kind: "file" | "folder",
-): { path: string; content: string } | null {
-  if (kind === "folder") return { path: `${absPath}/.gitkeep`, content: "" };
-  const rel = absPath.startsWith("/") ? absPath.slice(1) : absPath;
-
-  if (rel.startsWith("routes/")) {
-    const routesRel = rel.slice("routes/".length);
-    if (!routesRel || isIgnoredPath(routesRel)) {
-      return { path: absPath, content: "" };
-    }
-    const parsed = parseFilePath(routesRel);
-    if (!parsed) {
-      return { path: absPath, content: "" };
-    }
-    if (parsed.verb !== null) {
-      let canonicalPath = "/";
-      try {
-        canonicalPath = deriveCanonicalUrl(parsed.dir, parsed.stem).canonicalPath;
-      } catch {
-        // scanner diagnostics will explain the fix; fall through with the stub
-      }
-      return { path: absPath, content: routeStub(parsed.verb.toUpperCase(), canonicalPath) };
-    }
-    try {
-      const info = deriveLayoutInfo(parsed.dir, parsed.stem);
-      return { path: absPath, content: layoutStub(info.layoutId) };
-    } catch {
-      return { path: absPath, content: "" };
-    }
-  }
-
-  if (rel.startsWith("middlewares/")) {
-    const midRel = rel.slice("middlewares/".length);
-    const match = midRel.match(/^([^/]+)\.(ts|tsx)$/);
-    if (match) {
-      const base = match[1]!;
-      const camel = base
-        .split(/[^A-Za-z0-9]+/)
-        .filter(Boolean)
-        .map((part, index) =>
-          index === 0 ? part.toLowerCase() : part[0]!.toUpperCase() + part.slice(1).toLowerCase(),
-        )
-        .join("");
-      return { path: absPath, content: middlewareContentStub(camel || "middleware") };
-    }
-  }
-
-  return { path: absPath, content: "" };
-}
-
-function sanitizeName(name: string): string {
-  return name.replace(/[^A-Za-z0-9_./$[\]{}-]/g, "-");
-}
+import {
+  buildFileTree,
+  getFileMeta,
+  resolveCreateTarget,
+  sanitizeEntryName,
+  scaffoldFor,
+} from "../src/scaffold";
+import { clearShortenCache, isPublicShareUrl, shortenUrl } from "../src/shorten";
+import { isGeneratedPath, isHiddenPath, Vfs } from "../src/vfs";
 
 describe("playground pins", () => {
   it("exports compareBySegments from codegen and compares paths stably", () => {
@@ -99,28 +45,68 @@ describe("playground pins", () => {
   });
 });
 
-describe("playground file tree scaffolding & name sanitization", () => {
+describe("playground VFS & hidden generated files", () => {
+  it("treats /.taserjs/* and .gitkeep as hidden paths", () => {
+    expect(isGeneratedPath("/.taserjs/routes.gen.ts")).toBe(true);
+    expect(isGeneratedPath("/.taserjs")).toBe(true);
+    expect(isGeneratedPath("/routes/index.get.ts")).toBe(false);
+
+    expect(isHiddenPath("/.taserjs/routes.gen.ts")).toBe(true);
+    expect(isHiddenPath("/routes/empty/.gitkeep")).toBe(true);
+    expect(isHiddenPath("/routes/index.get.ts")).toBe(false);
+  });
+
+  it("excludes generated files from listVisible() and userSnapshot()", () => {
+    const store = new Vfs();
+    store.write("/taser.ts", "export default {};", "ui");
+    store.write("/routes/index.get.ts", "export default {};", "ui");
+    store.write("/.taserjs/routes.gen.ts", "// generated", "codegen");
+
+    expect(store.list()).toContain("/.taserjs/routes.gen.ts");
+    expect(store.listVisible()).toEqual(["/routes/index.get.ts", "/taser.ts"]);
+    expect(store.userSnapshot()).toEqual({
+      "/taser.ts": "export default {};",
+      "/routes/index.get.ts": "export default {};",
+    });
+  });
+
+  it("strips hidden generated files when decoding persisted hashes", () => {
+    const encoded = encodeState(
+      {
+        "/.taserjs/routes.gen.ts": "// stale generated",
+        "/routes/index.get.ts": "export default {};",
+      },
+      "/.taserjs/routes.gen.ts",
+    );
+    const decoded = decode(encoded);
+    expect(decoded).toEqual({
+      files: { "/routes/index.get.ts": "export default {};" },
+      active: "/routes/index.get.ts",
+    });
+  });
+});
+
+describe("playground scaffolding, sanitization, and tree model", () => {
   it("preserves optional param braces { and } in name sanitization", () => {
-    expect(sanitizeName("{-$name}.get.ts")).toBe("{-$name}.get.ts");
-    expect(sanitizeName("users/{-$id}.get.ts")).toBe("users/{-$id}.get.ts");
-    expect(sanitizeName("special@file#name.ts")).toBe("special-file-name.ts");
+    expect(sanitizeEntryName("{-$name}.get.ts")).toBe("{-$name}.get.ts");
+    expect(sanitizeEntryName("users/{-$id}.get.ts")).toBe("users/{-$id}.get.ts");
+    expect(sanitizeEntryName("special@file#name.ts")).toBe("special-file-name.ts");
   });
 
-  it("scaffolds nested layout files properly", () => {
-    const adminNested = scaffoldFor("/routes/admin/$.ts", "file");
-    expect(adminNested).not.toBeNull();
-    expect(adminNested?.content).toContain('t.layout("/admin/*")');
-
-    const rootLayout = scaffoldFor("/routes/$.ts", "file");
-    expect(rootLayout).not.toBeNull();
-    expect(rootLayout?.content).toContain('t.layout("/*")');
-
-    const siblingLayout = scaffoldFor("/routes/admin.ts", "file");
-    expect(siblingLayout).not.toBeNull();
-    expect(siblingLayout?.content).toContain('t.layout("/admin/*")');
+  it("appends .ts for extension-less files and bare HTTP verb suffixes", () => {
+    expect(resolveCreateTarget("/routes", "health.get", "file")).toBe("/routes/health.get.ts");
+    expect(resolveCreateTarget("/routes", "admin", "file")).toBe("/routes/admin.ts");
+    expect(resolveCreateTarget("/", "notes.md", "file")).toBe("/notes.md");
+    expect(resolveCreateTarget("/routes", "admin", "folder")).toBe("/routes/admin");
   });
 
-  it("scaffolds all verbs and tsx route files properly", () => {
+  it("scaffolds nested and sibling layout files properly", () => {
+    expect(scaffoldFor("/routes/admin/$.ts").content).toContain('t.layout("/admin/*")');
+    expect(scaffoldFor("/routes/$.ts").content).toContain('t.layout("/*")');
+    expect(scaffoldFor("/routes/admin.ts").content).toContain('t.layout("/admin/*")');
+  });
+
+  it("scaffolds all HTTP verbs and tsx route files properly", () => {
     for (const verb of [
       "get",
       "post",
@@ -132,29 +118,148 @@ describe("playground file tree scaffolding & name sanitization", () => {
       "all",
       "any",
     ]) {
-      const res = scaffoldFor(`/routes/test.${verb}.ts`, "file");
-      expect(res).not.toBeNull();
+      const res = scaffoldFor(`/routes/test.${verb}.ts`);
       if (verb === "any") {
-        expect(res?.content).toContain('t.any("/test", ["GET", "POST"])');
+        expect(res.content).toContain('t.any("/test", ["GET", "POST"])');
       } else {
-        expect(res?.content).toContain(`t.${verb}("/test")`);
+        expect(res.content).toContain(`t.${verb}("/test")`);
       }
     }
 
-    const tsxRoute = scaffoldFor("/routes/page.get.tsx", "file");
-    expect(tsxRoute).not.toBeNull();
-    expect(tsxRoute?.content).toContain('t.get("/page")');
+    expect(scaffoldFor("/routes/page.get.tsx").content).toContain('t.get("/page")');
   });
 
-  it("scaffolds optional route parameters correctly", () => {
-    const opt = scaffoldFor("/routes/users/{-$id}.get.ts", "file");
-    expect(opt).not.toBeNull();
-    expect(opt?.content).toContain('t.get("/users/:id?")');
+  it("scaffolds optional route parameters and middlewares correctly", () => {
+    expect(scaffoldFor("/routes/users/{-$id}.get.ts").content).toContain('t.get("/users/:id?")');
+    expect(scaffoldFor("/middlewares/auth-check.ts").content).toContain(
+      "export const authCheck = middleware()",
+    );
   });
 
-  it("scaffolds middleware files properly", () => {
-    const mid = scaffoldFor("/middlewares/auth-check.ts", "file");
-    expect(mid).not.toBeNull();
-    expect(mid?.content).toContain("export const authCheck = middleware()");
+  it("derives file metadata for routes, layouts, and app config", () => {
+    expect(getFileMeta("/taser.ts")).toEqual({ kind: "config" });
+    expect(getFileMeta("/routes/users/$id.get.ts")).toEqual({
+      kind: "route",
+      method: "GET",
+      canonicalPath: "/users/:id",
+    });
+    expect(getFileMeta("/routes/$.ts")).toEqual({ kind: "layout", layoutId: "/*" });
+  });
+
+  it("builds a folder-first tree including empty folders without .gitkeep files", () => {
+    const tree = buildFileTree(["/taser.ts", "/routes/index.get.ts"], ["/middlewares"]);
+    expect(tree.children.map((node) => `${node.isFolder ? "d" : "f"}:${node.name}`)).toEqual([
+      "d:middlewares",
+      "d:routes",
+      "f:taser.ts",
+    ]);
+  });
+});
+
+describe("adaptive route picker overflow math", () => {
+  it("shows every route when all pills fit without needing an overflow trigger", () => {
+    expect(computeVisibleRouteCount([60, 80, 90], 250, 56, 6)).toBe(3);
+  });
+
+  it("reserves room for the overflow button when pills exceed available width", () => {
+    // All 3 take 60 + 6 + 80 + 6 + 90 = 242px (> 220px).
+    // Budget with overflow button = 220 - 56 = 164px.
+    // Pill 0: 60 + 6 = 66 <= 164; Pill 1: 66 + 80 + 6 = 152 <= 164; Pill 2: 152 + 96 > 164.
+    expect(computeVisibleRouteCount([60, 80, 90], 220, 56, 6)).toBe(2);
+  });
+
+  it("returns 0 when even the first pill plus overflow trigger does not fit", () => {
+    expect(computeVisibleRouteCount([140, 120], 160, 56, 6)).toBe(0);
+    expect(computeVisibleRouteCount([], 300, 56, 6)).toBe(0);
+  });
+});
+
+describe("playground URL shortener (spoo.me + da.gd fallback)", () => {
+  beforeEach(() => {
+    clearShortenCache();
+  });
+
+  it("identifies public vs localhost/private URLs", () => {
+    expect(isPublicShareUrl("https://play.taserjs.dev/#abc")).toBe(true);
+    expect(isPublicShareUrl("http://localhost:5173/#abc")).toBe(false);
+    expect(isPublicShareUrl("http://127.0.0.1:4173/#abc")).toBe(false);
+    expect(isPublicShareUrl("http://app.local/#abc")).toBe(false);
+  });
+
+  it("skips network requests on localhost origins", async () => {
+    const mockFetch = vi.fn();
+    const res = await shortenUrl(
+      "http://localhost:5173/#abc",
+      mockFetch as unknown as typeof fetch,
+    );
+    expect(res).toEqual({
+      url: "http://localhost:5173/#abc",
+      shortened: false,
+      reason: "local-origin",
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("shortens via spoo.me first and caches subsequent calls for the same URL", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ short_url: "https://spoo.me/taser1" }),
+    });
+
+    const target = "https://play.taserjs.dev/#N4Igtest";
+    const first = await shortenUrl(target, mockFetch as unknown as typeof fetch);
+    const second = await shortenUrl(target, mockFetch as unknown as typeof fetch);
+
+    expect(first).toEqual({
+      url: "https://spoo.me/taser1",
+      shortened: true,
+      provider: "spoo.me",
+    });
+    expect(second).toEqual(first);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to da.gd when spoo.me fails", async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 429 })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => "https://da.gd/taser2\n",
+      });
+
+    const res = await shortenUrl(
+      "https://play.taserjs.dev/#N4Igfallback",
+      mockFetch as unknown as typeof fetch,
+    );
+    expect(res).toEqual({
+      url: "https://da.gd/taser2",
+      shortened: true,
+      provider: "da.gd",
+    });
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns original URL when both providers fail or URL exceeds 8,192 chars", async () => {
+    const mockFetch = vi.fn().mockRejectedValue(new Error("network down"));
+    const failed = await shortenUrl(
+      "https://play.taserjs.dev/#offline",
+      mockFetch as unknown as typeof fetch,
+    );
+    expect(failed).toEqual({
+      url: "https://play.taserjs.dev/#offline",
+      shortened: false,
+      reason: "unavailable",
+    });
+
+    const hugeUrl = `https://play.taserjs.dev/#${"a".repeat(8200)}`;
+    const mockUnused = vi.fn();
+    const oversized = await shortenUrl(hugeUrl, mockUnused as unknown as typeof fetch);
+    expect(oversized).toEqual({
+      url: hugeUrl,
+      shortened: false,
+      reason: "too-long",
+    });
+    expect(mockUnused).not.toHaveBeenCalled();
   });
 });
